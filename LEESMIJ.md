@@ -13,13 +13,24 @@ tablet als app op het startscherm te zetten.
 
 Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na sluiten).
 
-## Bestanden
+## Mappenstructuur
+
+**Website (gaat online):**
 - `index.html` — de app zelf
 - `manifest.json` — maakt de app installeerbaar
 - `sw.js` — laat de app offline werken
 - `icon-192.png`, `icon-512.png` — het app-icoon
+- `Logo_kleine_tekst.png` — logo bovenaan de app
+- `deals/` — de 30 deal-plaatjes (Ronde 1)
 
-Alle bestanden moeten **samen in dezelfde map / dezelfde repo** staan.
+Deze bestanden moeten **samen in de hoofdmap** blijven staan, anders breekt de site.
+
+**`_bron/` (werkmateriaal — blijft lokaal, gaat NIET online):**
+- `_process.ps1` — script dat de deal-plaatjes bijsnijdt en roteert
+- `_deals_backup/` — originele deal-plaatjes (de bron)
+- `deals-check.png` — controle-montage van alle deals
+- `deals-vel.pdf` — print-vel
+- `Logo_grote_tekst.png` — extra logo-variant (ongebruikt)
 
 ---
 
@@ -61,6 +72,8 @@ Het icoontje verschijnt; de app opent schermvullend, zonder browserbalk.
 - **Super Deals-namen, tracks of gewichten** wijzigen: dat staat bovenin `index.html`
   in de lijsten `SUPERDEALS`, `TRACKS` en de gewichten-berekening. Vraag gerust of ik
   het voor je aanpas — dan hoef je niet in de code te duiken.
+- **Deal-plaatjes opnieuw maken**: leg nieuwe originelen in `_bron/_deals_backup/` en
+  draai `_bron/_process.ps1`. De bewerkte plaatjes komen vanzelf in `deals/` terecht.
 - Na een wijziging verhoog je best het versienummer in `sw.js` (bv. v1 → v2) zodat
   tablets de nieuwe versie ophalen.
 

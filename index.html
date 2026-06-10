@@ -232,7 +232,7 @@
     <div class="card finale" data-key="finale" data-view="finale">
       <div class="rnd">Slot</div>
       <h2>Finalespel</h2>
-      <p>Namen van de finalisten</p>
+      <p>Vraag &amp; antwoord</p>
     </div>
   </div>
 
@@ -300,17 +300,9 @@
 
   <!-- FINALE -->
   <div class="view" id="finale">
-    <p class="hint">Noteer de finalisten, of schakel over naar Vraag &amp; antwoord. Het antwoord blijft verborgen tot je op Toon klikt.</p>
-    <div class="bar" style="margin-bottom:16px;">
-      <div class="segmented" id="finaleToggle">
-        <button type="button" class="seg active" data-mode="namen">Namen</button>
-        <button type="button" class="seg" data-mode="qa">Vraag &amp; antwoord</button>
-      </div>
-    </div>
-    <div class="finalewrap" data-grid="finale" id="finaleNamen"></div>
+    <p class="hint">Noteer per regel een vraag en het antwoord. Het antwoord blijft verborgen tot je op Toon klikt.</p>
     <div class="qawrap" data-grid="qa" id="finaleQA"></div>
     <div class="bar" style="margin-top:14px;">
-      <button class="btn clear" data-reset="finale">Namen wissen</button>
       <button class="btn clear" data-reset="qa">Vragen wissen</button>
     </div>
   </div>
@@ -464,15 +456,6 @@ function renderCoins(){
   }
 }
 function renderFinale(){
-  const g=document.querySelector('[data-grid="finale"]'); g.innerHTML='';
-  for(let i=0;i<8;i++){
-    const row=document.createElement('div'); row.className='fp';
-    row.innerHTML=`<span>Speler ${i+1}</span>`;
-    const inp=document.createElement('input');
-    inp.type='text'; inp.placeholder='Naam…'; inp.value=state.finale[i]||'';
-    inp.oninput=e=>{state.finale[i]=e.target.value;save();};
-    row.appendChild(inp); g.appendChild(row);
-  }
   const q=document.querySelector('[data-grid="qa"]'); q.innerHTML='';
   for(let i=0;i<2;i++){
     const card=document.createElement('div'); card.className='qa';
@@ -493,17 +476,6 @@ function renderFinale(){
     ar.appendChild(ai); ar.appendChild(eye);
     card.appendChild(qr); card.appendChild(ar); q.appendChild(card);
   }
-  applyFinaleMode();
-}
-function applyFinaleMode(){
-  const m=state.finaleMode||'namen';
-  const namen=document.getElementById('finaleNamen');
-  const qa=document.getElementById('finaleQA');
-  if(namen) namen.style.display = m==='namen'?'':'none';
-  if(qa) qa.style.display = m==='qa'?'':'none';
-  const rf=document.querySelector('[data-reset="finale"]'); if(rf) rf.style.display=m==='namen'?'':'none';
-  const rq=document.querySelector('[data-reset="qa"]'); if(rq) rq.style.display=m==='qa'?'':'none';
-  document.querySelectorAll('#finaleToggle .seg').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
 }
 
 function updateAll(){
@@ -531,11 +503,6 @@ document.querySelectorAll('.card').forEach(c=>{
   c.onclick=()=>show(c.dataset.view);
 });
 document.getElementById('homeBtn').onclick=()=>show('menu');
-
-// finale: schakelen tussen Namen en Vraag & antwoord
-document.querySelectorAll('#finaleToggle .seg').forEach(b=>{
-  b.onclick=()=>{state.finaleMode=b.dataset.mode;save();applyFinaleMode();};
-});
 
 // reset buttons
 document.querySelectorAll('[data-reset]').forEach(b=>{
