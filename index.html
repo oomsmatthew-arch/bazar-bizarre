@@ -62,6 +62,13 @@
     transition:background .14s;}
   .wipe:hover{background:rgba(142,29,46,.22);}
   .wipe:active{transform:translateY(1px);}
+  .sessiebar{grid-column:1/-1;margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;}
+  .sessiebar .wipe{flex:1;margin-top:0;min-width:210px;}
+  .restore{flex:1;min-width:210px;background:transparent;border:1px solid var(--line);color:var(--muted);
+    font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer;transition:background .14s;}
+  .restore:hover:not(:disabled){background:var(--panel2);}
+  .restore:active{transform:translateY(1px);}
+  .restore:disabled{opacity:.45;cursor:not-allowed;}
 
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
@@ -239,7 +246,10 @@
       <h2>Finalespel</h2>
       <p>Vraag &amp; antwoord</p>
     </div>
-    <button id="wisSessie" class="wipe">Wis volledige sessie</button>
+    <div class="sessiebar">
+      <button id="wisSessie" class="wipe">Wis volledige sessie</button>
+      <button id="herstelSessie" class="restore">Laatst verwijderde sessie</button>
+    </div>
   </div>
 
   <!-- CONTROLE LIJST -->
@@ -510,10 +520,29 @@ document.querySelectorAll('.card').forEach(c=>{
 });
 document.getElementById('homeBtn').onclick=()=>show('menu');
 
-// wis de volledige sessie (alle rondes, prijzen, vragen)
+// wis de volledige sessie + herstel van de laatst gewiste sessie
+const KEYBACKUP='bazarbizarre_backup';
+function fmtTs(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,'0');
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}
+function updateRestoreBtn(){
+  const b=document.getElementById('herstelSessie');
+  const raw=localStorage.getItem(KEYBACKUP);
+  if(!raw){b.disabled=true;b.textContent='Geen verwijderde sessie';return;}
+  try{const o=JSON.parse(raw);b.disabled=false;b.textContent='Herstel sessie van '+fmtTs(o.ts);}
+  catch(e){b.disabled=true;b.textContent='Geen verwijderde sessie';}
+}
 document.getElementById('wisSessie').onclick=()=>{
   if(!confirm('Weet je het zeker? Dit wist ALLES van deze sessie: alle turven, aangevinkte deals/nummers/munten, prijzen en vragen.'))return;
+  try{localStorage.setItem(KEYBACKUP,JSON.stringify({ts:Date.now(),data:state}));}catch(e){}
   state=freshState();
+  save();renderAll();updateAll();updateRestoreBtn();
+};
+document.getElementById('herstelSessie').onclick=()=>{
+  const raw=localStorage.getItem(KEYBACKUP);
+  if(!raw){alert('Er is geen verwijderde sessie om te herstellen.');return;}
+  let o; try{o=JSON.parse(raw);}catch(e){return;}
+  if(!confirm('De sessie van '+fmtTs(o.ts)+' terugzetten? De huidige gegevens worden vervangen.'))return;
+  state=Object.assign(freshState(),o.data);
   save();renderAll();updateAll();
 };
 
@@ -532,7 +561,7 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
 });
 
 function renderAll(){renderControle();renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
-renderAll(); updateAll(); show('menu');
+renderAll(); updateAll(); show('menu'); updateRestoreBtn();
 
 // Maak de app installeerbaar (PWA)
 if('serviceWorker' in navigator){
