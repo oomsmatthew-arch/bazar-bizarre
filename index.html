@@ -32,7 +32,7 @@
   .topbar .home.show{display:block;}
 
   /* ---- menu ---- */
-  .menu{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:26px;}
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px;}
   @media(max-width:560px){.menu{grid-template-columns:1fr;}}
   .card{position:relative;border:1px solid var(--line);border-radius:18px;padding:28px 24px;
     cursor:pointer;overflow:hidden;background:var(--panel);transition:transform .12s,border-color .12s;}
@@ -127,35 +127,30 @@
   <!-- MENU -->
   <div class="menu view active" id="menu">
     <div class="card" data-key="superdeals" data-view="superdeals">
-      <div class="ico">🏷️</div>
       <div class="rnd">Ronde 1</div>
       <h2>Super Deals</h2>
       <p>30 deals — duid aan wat gekozen is</p>
       <div class="prog"><i data-prog="superdeals"></i></div>
     </div>
     <div class="card" data-key="trolley" data-view="trolley">
-      <div class="ico">🎵</div>
       <div class="rnd">Ronde 2</div>
       <h2>Trolley Tunes</h2>
       <p>40 nummers — duid gespeelde aan</p>
       <div class="prog"><i data-prog="trolley"></i></div>
     </div>
     <div class="card" data-key="howmuch" data-view="howmuch">
-      <div class="ico">⚖️</div>
       <div class="rnd">Ronde 3</div>
       <h2>How Much?</h2>
       <p>30 potten — duid gewicht aan</p>
       <div class="prog"><i data-prog="howmuch"></i></div>
     </div>
     <div class="card" data-key="coins" data-view="coins">
-      <div class="ico">🪙</div>
       <div class="rnd">Ronde 4</div>
       <h2>Crazy Coins</h2>
       <p>24 munten — duid getrokken aan</p>
       <div class="prog"><i data-prog="coins"></i></div>
     </div>
     <div class="card finale" data-key="finale" data-view="finale">
-      <div class="ico">🏆</div>
       <div class="rnd">Slot</div>
       <h2>Finalespel</h2>
       <p>Namen van de finalisten</p>
