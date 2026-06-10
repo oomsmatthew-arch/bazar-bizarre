@@ -152,6 +152,9 @@
     font-size:22px;font-weight:800;background:var(--bg);
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
   .tally.has .label{color:var(--gold);}
+  .tally-total{margin-top:14px;font-weight:800;font-size:16px;color:var(--text);
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 15px;}
+  .tally-total b{color:var(--gold);font-size:22px;margin-left:4px;}
   .prijs{display:flex;align-items:center;gap:10px;background:var(--panel);
     border:1px solid var(--line);border-radius:12px;padding:8px 12px;}
   .prijs .pn{flex:0 0 34px;height:34px;border-radius:8px;display:grid;place-items:center;
@@ -221,6 +224,7 @@
       <div class="col">
         <div class="colhead">Turven</div>
         <div class="tallylist" data-grid="controle"></div>
+        <div class="tally-total">Totaal aangeduid: <b data-total="controle">0</b></div>
         <button class="btn clear" data-reset="controle" style="margin-top:12px;">Tellingen wissen</button>
       </div>
       <div class="col">
@@ -384,6 +388,8 @@ function renderControle(){
     row.querySelector('.plus').onclick=()=>{state.controle[i]=(state.controle[i]||0)+1;save();renderControle();};
     g.appendChild(row);
   });
+  const tot=document.querySelector('[data-total="controle"]');
+  if(tot) tot.textContent=state.controle.reduce((a,b)=>a+(b||0),0);
   const p=document.querySelector('[data-grid="prijzen"]'); p.innerHTML='';
   for(let i=0;i<8;i++){
     const row=document.createElement('div'); row.className='prijs';
