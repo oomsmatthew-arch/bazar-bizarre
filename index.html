@@ -57,6 +57,11 @@
   .card[data-key="coins"]{background:linear-gradient(150deg,#155041,#0d3128);border-left:5px solid var(--green);}
   .menu .finale{grid-column:1/-1;background:linear-gradient(120deg,#13294a,#0e3d30);border-left:5px solid var(--gold);}
   .menu .finale h2{color:var(--gold);}
+  .wipe{grid-column:1/-1;margin-top:8px;background:transparent;border:1px solid var(--red);
+    color:#f0a3ad;font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer;
+    transition:background .14s;}
+  .wipe:hover{background:rgba(142,29,46,.22);}
+  .wipe:active{transform:translateY(1px);}
 
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
@@ -234,6 +239,7 @@
       <h2>Finalespel</h2>
       <p>Vraag &amp; antwoord</p>
     </div>
+    <button id="wisSessie" class="wipe">Wis volledige sessie</button>
   </div>
 
   <!-- CONTROLE LIJST -->
@@ -503,6 +509,13 @@ document.querySelectorAll('.card').forEach(c=>{
   c.onclick=()=>show(c.dataset.view);
 });
 document.getElementById('homeBtn').onclick=()=>show('menu');
+
+// wis de volledige sessie (alle rondes, prijzen, vragen)
+document.getElementById('wisSessie').onclick=()=>{
+  if(!confirm('Weet je het zeker? Dit wist ALLES van deze sessie: alle turven, aangevinkte deals/nummers/munten, prijzen en vragen.'))return;
+  state=freshState();
+  save();renderAll();updateAll();
+};
 
 // reset buttons
 document.querySelectorAll('[data-reset]').forEach(b=>{
