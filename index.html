@@ -15,6 +15,8 @@
     --bg:#0f1f3d; --panel:#15294d; --panel2:#1b3360; --line:#2a4475;
     --gold:#ffd23f; --pink:#ff5d8f; --ok:#34d27b; --text:#eef3fb; --muted:#9fb2d4;
     --orange:#ff9f43; --purple:#9b7bd4;
+    /* logo-thema */
+    --navy:#13294a; --red:#8e1d2e; --brown:#7a5a2b; --green:#0e4d3a;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
@@ -22,9 +24,13 @@
   .wrap{max-width:1200px;margin:0 auto;padding:16px 14px 70px;}
 
   /* ---- top bar ---- */
-  .topbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;
-    background:linear-gradient(120deg,var(--pink),#b13b78);box-shadow:0 6px 20px rgba(0,0,0,.3);}
-  .topbar .logo{font-size:30px;}
+  .topbar{position:relative;display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:16px;
+    background:linear-gradient(120deg,#15294d,#0e1f3a);box-shadow:0 6px 20px rgba(0,0,0,.3);
+    border:1px solid var(--line);}
+  .topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;
+    background:linear-gradient(90deg,var(--navy) 0 25%,var(--red) 25% 50%,var(--brown) 50% 75%,var(--green) 75% 100%);
+    border-radius:0 0 16px 16px;}
+  .topbar .logo{height:46px;width:auto;border-radius:8px;display:block;}
   .topbar h1{margin:0;font-size:clamp(18px,3.4vw,26px);text-transform:uppercase;
     letter-spacing:.5px;font-weight:800;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25);flex:1;}
   .topbar .home{display:none;border:none;background:rgba(255,255,255,.18);color:#fff;
@@ -123,6 +129,25 @@
     font-size:17px;padding:9px 11px;border-radius:9px;outline:none;}
   .finalewrap .fp input:focus{border-color:var(--gold);}
 
+  /* controle lijst (turven) — twee kolommen */
+  .tallylist{columns:2;column-gap:16px;max-width:780px;}
+  @media(max-width:680px){.tallylist{columns:1;}}
+  .tally{display:flex;align-items:center;gap:10px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 12px;margin:0 0 12px;
+    break-inside:avoid;-webkit-column-break-inside:avoid;}
+  .tally .label{flex:1;min-width:0;font-weight:800;font-size:16px;text-transform:uppercase;letter-spacing:.4px;}
+  .tally .stepper{display:flex;align-items:center;flex:0 0 auto;}
+  .tally .stepper button{width:42px;height:42px;border:1px solid var(--line);background:var(--panel2);
+    color:#fff;font-size:24px;font-weight:800;cursor:pointer;line-height:1;}
+  .tally .stepper button.minus{border-radius:9px 0 0 9px;}
+  .tally .stepper button.plus{border-radius:0 9px 9px 0;}
+  .tally .stepper button:active{transform:translateY(1px);}
+  .tally .num{min-width:50px;height:42px;display:grid;place-items:center;
+    font-size:22px;font-weight:800;background:var(--bg);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .tally.has .label{color:var(--gold);}
+  .menu .controle{grid-column:1/-1;background:linear-gradient(120deg,#1c3a34,#15294d);}
+
   .hint{font-size:13px;color:var(--muted);margin:0 2px 14px;line-height:1.4;}
   footer{margin-top:24px;text-align:center;color:var(--muted);font-size:12px;}
 </style>
@@ -130,13 +155,18 @@
 <body>
 <div class="wrap">
   <div class="topbar">
-    <span class="logo">🛒</span>
+    <img class="logo" src="Logo_kleine_tekst.png" alt="Bazar Bizarre">
     <h1 id="title">Bazar Bizarre</h1>
     <button class="home" id="homeBtn">‹ Menu</button>
   </div>
 
   <!-- MENU -->
   <div class="menu view active" id="menu">
+    <div class="card controle" data-key="controle" data-view="controle">
+      <div class="rnd">Vooraf</div>
+      <h2>Controle lijst</h2>
+      <p>Turflijst — tel mee tijdens het spel</p>
+    </div>
     <div class="card" data-key="superdeals" data-view="superdeals">
       <div class="rnd">Ronde 1</div>
       <h2>Super Deals</h2>
@@ -165,6 +195,15 @@
       <div class="rnd">Slot</div>
       <h2>Finalespel</h2>
       <p>Namen van de finalisten</p>
+    </div>
+  </div>
+
+  <!-- CONTROLE LIJST -->
+  <div class="view" id="controle">
+    <p class="hint">Tik op + of − om te turven. De tellingen worden automatisch bewaard.</p>
+    <div class="tallylist" data-grid="controle"></div>
+    <div class="bar" style="margin-top:16px;">
+      <button class="btn clear" data-reset="controle">Lijst wissen</button>
     </div>
   </div>
 
@@ -226,6 +265,11 @@
 
 <script>
 // ---------------- DATA ----------------
+// Controle lijst — woorden om te turven (− / +). Vul hier aan met de volledige lijst.
+const CONTROLE = [
+  "Reserved","Extra Sale","3+1","Prizes"
+];
+
 const SUPERDEALS = [
   "Get 3 Pay 2","+100 Loyalty Points","+500 Loyalty Points","30% Off","10% Off",
   "-50%","Now -25%","Sale 20%","Buy 1 Get 1 Free","Reduced for quick sale",
@@ -267,6 +311,7 @@ let state = loadState();
 
 function freshState(){
   return {
+    controle: new Array(CONTROLE.length).fill(0),
     superdeals: new Array(SUPERDEALS.length).fill(false),
     trolley: new Array(TRACKS.length).fill(false),
     howmuch: new Array(WEIGHTS.length).fill(false),
@@ -296,6 +341,23 @@ function renderSuperdeals(){
     t.innerHTML=`<img src="deals/deal-${num}.png" alt="${d}" loading="lazy"><span class="n">${i+1}</span>`;
     t.onclick=()=>{state.superdeals[i]=!state.superdeals[i];save();renderSuperdeals();updateAll();};
     g.appendChild(t);
+  });
+}
+function renderControle(){
+  const g=document.querySelector('[data-grid="controle"]'); g.innerHTML='';
+  CONTROLE.forEach((name,i)=>{
+    const c=state.controle[i]||0;
+    const row=document.createElement('div');
+    row.className='tally'+(c>0?' has':'');
+    row.innerHTML=`<div class="label">${name}</div>
+      <div class="stepper">
+        <button class="minus" aria-label="minder">−</button>
+        <div class="num">${c}</div>
+        <button class="plus" aria-label="meer">+</button>
+      </div>`;
+    row.querySelector('.minus').onclick=()=>{state.controle[i]=Math.max(0,(state.controle[i]||0)-1);save();renderControle();};
+    row.querySelector('.plus').onclick=()=>{state.controle[i]=(state.controle[i]||0)+1;save();renderControle();};
+    g.appendChild(row);
   });
 }
 function renderTrolley(){
@@ -354,7 +416,7 @@ function updateAll(){
 }
 
 // ---------------- NAV ----------------
-const titles={menu:"Bazar Bizarre",superdeals:"Ronde 1 · Super Deals",
+const titles={menu:"Bazar Bizarre",controle:"Controle lijst",superdeals:"Ronde 1 · Super Deals",
   trolley:"Ronde 2 · Trolley Tunes",howmuch:"Ronde 3 · How Much?",
   coins:"Ronde 4 · Crazy Coins",finale:"Finalespel"};
 function show(view){
@@ -375,12 +437,13 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
     const k=b.dataset.reset;
     if(!confirm('Weet je het zeker? Dit wist deze ronde.'))return;
     if(k==='finale')state.finale=new Array(8).fill("");
+    else if(k==='controle')state.controle=CONTROLE.map(()=>0);
     else state[k]=state[k].map(()=>false);
     save();renderAll();updateAll();
   };
 });
 
-function renderAll(){renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
+function renderAll(){renderControle();renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
 renderAll(); updateAll(); show('menu');
 
 // Maak de app installeerbaar (PWA)
