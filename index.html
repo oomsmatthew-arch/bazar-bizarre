@@ -131,9 +131,13 @@
     font-size:17px;padding:9px 11px;border-radius:9px;outline:none;}
   .finalewrap .fp input:focus{border-color:var(--gold);}
 
-  /* controle lijst (turven) — twee kolommen */
-  .tallylist{columns:2;column-gap:16px;max-width:780px;}
-  @media(max-width:680px){.tallylist{columns:1;}}
+  /* controle lijst — links turven, rechts prijzen */
+  .controle-wrap{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;max-width:920px;}
+  @media(max-width:760px){.controle-wrap{grid-template-columns:1fr;}}
+  .controle-wrap .colhead{font-family:var(--serif);font-size:19px;font-weight:700;
+    letter-spacing:.5px;margin:0 2px 12px;color:var(--text);}
+  .tallylist{display:grid;gap:12px;}
+  .prijzenlist{display:grid;gap:10px;}
   .tally{display:flex;align-items:center;gap:10px;background:var(--panel);
     border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 12px;margin:0 0 12px;
     break-inside:avoid;-webkit-column-break-inside:avoid;}
@@ -148,6 +152,13 @@
     font-size:22px;font-weight:800;background:var(--bg);
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
   .tally.has .label{color:var(--gold);}
+  .prijs{display:flex;align-items:center;gap:10px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:8px 12px;}
+  .prijs .pn{flex:0 0 34px;height:34px;border-radius:8px;display:grid;place-items:center;
+    font-weight:800;background:var(--bg);color:var(--gold);border:1px solid var(--line);font-size:15px;}
+  .prijs input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:16px;padding:9px 11px;border-radius:9px;outline:none;}
+  .prijs input:focus{border-color:var(--gold);}
   .menu .controle{grid-column:1/-1;position:relative;overflow:hidden;
     background:linear-gradient(120deg,#16261f,#11203a);}
   .menu .controle::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;
@@ -205,10 +216,18 @@
 
   <!-- CONTROLE LIJST -->
   <div class="view" id="controle">
-    <p class="hint">Tik op + of − om te turven. De tellingen worden automatisch bewaard.</p>
-    <div class="tallylist" data-grid="controle"></div>
-    <div class="bar" style="margin-top:16px;">
-      <button class="btn clear" data-reset="controle">Lijst wissen</button>
+    <p class="hint">Tik links op + of − om te turven. Rechts noteer je de 8 prijzen. Alles wordt automatisch bewaard.</p>
+    <div class="controle-wrap">
+      <div class="col">
+        <div class="colhead">Turven</div>
+        <div class="tallylist" data-grid="controle"></div>
+        <button class="btn clear" data-reset="controle" style="margin-top:12px;">Tellingen wissen</button>
+      </div>
+      <div class="col">
+        <div class="colhead">Prijzen</div>
+        <div class="prijzenlist" data-grid="prijzen"></div>
+        <button class="btn clear" data-reset="prijzen" style="margin-top:12px;">Prijzen wissen</button>
+      </div>
     </div>
   </div>
 
@@ -272,7 +291,7 @@
 // ---------------- DATA ----------------
 // Controle lijst — woorden om te turven (− / +). Vul hier aan met de volledige lijst.
 const CONTROLE = [
-  "Reserved","Extra Sale","3+1","Prizes"
+  "Reserved","Extra Sale","3+1"
 ];
 
 const SUPERDEALS = [
@@ -317,6 +336,7 @@ let state = loadState();
 function freshState(){
   return {
     controle: new Array(CONTROLE.length).fill(0),
+    prijzen: new Array(8).fill(""),
     superdeals: new Array(SUPERDEALS.length).fill(false),
     trolley: new Array(TRACKS.length).fill(false),
     howmuch: new Array(WEIGHTS.length).fill(false),
@@ -364,6 +384,15 @@ function renderControle(){
     row.querySelector('.plus').onclick=()=>{state.controle[i]=(state.controle[i]||0)+1;save();renderControle();};
     g.appendChild(row);
   });
+  const p=document.querySelector('[data-grid="prijzen"]'); p.innerHTML='';
+  for(let i=0;i<8;i++){
+    const row=document.createElement('div'); row.className='prijs';
+    row.innerHTML=`<span class="pn">${i+1}</span>`;
+    const inp=document.createElement('input');
+    inp.type='text'; inp.placeholder='Welke prijs…'; inp.value=state.prijzen[i]||'';
+    inp.oninput=e=>{state.prijzen[i]=e.target.value;save();};
+    row.appendChild(inp); p.appendChild(row);
+  }
 }
 function renderTrolley(){
   const g=document.querySelector('[data-grid="trolley"]'); g.innerHTML='';
@@ -442,6 +471,7 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
     const k=b.dataset.reset;
     if(!confirm('Weet je het zeker? Dit wist deze ronde.'))return;
     if(k==='finale')state.finale=new Array(8).fill("");
+    else if(k==='prijzen')state.prijzen=new Array(8).fill("");
     else if(k==='controle')state.controle=CONTROLE.map(()=>0);
     else state[k]=state[k].map(()=>false);
     save();renderAll();updateAll();
