@@ -64,11 +64,11 @@
   .wipe:active{transform:translateY(1px);}
   .sessiebar{grid-column:1/-1;margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;}
   .sessiebar .wipe{flex:1;margin-top:0;min-width:210px;}
-  .restore{flex:1;min-width:210px;background:transparent;border:1px solid var(--line);color:var(--muted);
+  .restore{flex:1;min-width:210px;background:var(--panel);border:1px solid var(--line);color:var(--text);
     font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer;transition:background .14s;}
   .restore:hover:not(:disabled){background:var(--panel2);}
   .restore:active{transform:translateY(1px);}
-  .restore:disabled{opacity:.45;cursor:not-allowed;}
+  .restore:disabled{opacity:.6;cursor:not-allowed;color:var(--muted);}
 
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
