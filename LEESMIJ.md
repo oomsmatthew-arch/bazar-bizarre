@@ -1,0 +1,67 @@
+# Bazar Bizarre — Spelleider-app
+
+Een tablet-tool voor de entertainer om tijdens het Bazar Bizarre prijzenspel bij te
+houden wat al gespeeld/gekozen is. Vier rondes + finale, werkt offline, en is op de
+tablet als app op het startscherm te zetten.
+
+## Wat zit erin
+- **Ronde 1 – Super Deals** (30 deals aanvinken)
+- **Ronde 2 – Trolley Tunes** (40 nummers aanvinken)
+- **Ronde 3 – How Much?** (30 gewichten 0,400–1,850 kg, met 1 kg referentiepot)
+- **Ronde 4 – Crazy Coins** (24 nummers aanvinken)
+- **Finalespel** (namen van max. 8 finalisten)
+
+Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na sluiten).
+
+## Bestanden
+- `index.html` — de app zelf
+- `manifest.json` — maakt de app installeerbaar
+- `sw.js` — laat de app offline werken
+- `icon-192.png`, `icon-512.png` — het app-icoon
+
+Alle bestanden moeten **samen in dezelfde map / dezelfde repo** staan.
+
+---
+
+## Online zetten via GitHub Pages (gratis)
+
+Je hebt al een GitHub-account, dus dit is de makkelijkste route.
+
+1. Ga naar https://github.com en klik rechtsboven op **+** → **New repository**.
+2. Geef een naam, bv. `bazar-bizarre`. Zet 'm op **Public**. Klik **Create repository**.
+3. Op de nieuwe repo-pagina: klik **"uploading an existing file"**.
+4. Sleep ALLE bestanden hierboven (index.html, manifest.json, sw.js, en de 2 icons)
+   in het uploadvak. Klik onderaan **Commit changes**.
+5. Ga naar het tabblad **Settings** → links **Pages**.
+6. Onder "Build and deployment" → Source: **Deploy from a branch**.
+   Branch: **main** (of master), map: **/ (root)**. Klik **Save**.
+7. Wacht ~1 minuut en ververs. Bovenaan verschijnt je link, zoiets als:
+   `https://JOUWNAAM.github.io/bazar-bizarre/`
+
+Die link deel je. Iedereen kan 'm openen op tablet of telefoon.
+
+---
+
+## Als app op het startscherm zetten
+
+**Op iPad / iPhone (Safari):**
+1. Open de link in **Safari**.
+2. Tik op het deel-icoon (vierkantje met pijl omhoog).
+3. Kies **"Zet op beginscherm"** → **Voeg toe**.
+Het icoontje verschijnt; de app opent schermvullend, zonder browserbalk.
+
+**Op Android (Chrome):**
+1. Open de link in **Chrome**.
+2. Tik op de drie puntjes rechtsboven.
+3. Kies **"App installeren"** of **"Toevoegen aan startscherm"**.
+
+---
+
+## Iets aanpassen?
+- **Super Deals-namen, tracks of gewichten** wijzigen: dat staat bovenin `index.html`
+  in de lijsten `SUPERDEALS`, `TRACKS` en de gewichten-berekening. Vraag gerust of ik
+  het voor je aanpas — dan hoef je niet in de code te duiken.
+- Na een wijziging verhoog je best het versienummer in `sw.js` (bv. v1 → v2) zodat
+  tablets de nieuwe versie ophalen.
+
+Veel speelplezier met Bazar Bizarre!

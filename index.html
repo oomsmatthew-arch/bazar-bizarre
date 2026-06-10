@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bazar Bizarre — Spelleider</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff5d8f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bazar Bizarre">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0f1f3d; --panel:#15294d; --panel2:#1b3360; --line:#2a4475;
+    --gold:#ffd23f; --pink:#ff5d8f; --ok:#34d27b; --text:#eef3fb; --muted:#9fb2d4;
+    --orange:#ff9f43; --purple:#9b7bd4;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overscroll-behavior:none;}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px 14px 70px;}
+
+  /* ---- top bar ---- */
+  .topbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;
+    background:linear-gradient(120deg,var(--pink),#b13b78);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+  .topbar .logo{font-size:30px;}
+  .topbar h1{margin:0;font-size:clamp(18px,3.4vw,26px);text-transform:uppercase;
+    letter-spacing:.5px;font-weight:800;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25);flex:1;}
+  .topbar .home{display:none;border:none;background:rgba(255,255,255,.18);color:#fff;
+    font-weight:700;font-size:14px;padding:9px 14px;border-radius:10px;cursor:pointer;}
+  .topbar .home.show{display:block;}
+
+  /* ---- menu ---- */
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;}
+  @media(max-width:560px){.menu{grid-template-columns:1fr;}}
+  .card{position:relative;border:1px solid var(--line);border-radius:18px;padding:22px 18px;
+    cursor:pointer;overflow:hidden;background:var(--panel);transition:transform .12s,border-color .12s;}
+  .card:active{transform:scale(.985);}
+  .card .rnd{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .card h2{margin:6px 0 4px;font-size:24px;}
+  .card p{margin:0;color:var(--muted);font-size:14px;}
+  .card .ico{position:absolute;right:14px;top:14px;font-size:34px;opacity:.9;}
+  .card .prog{margin-top:14px;height:9px;border-radius:99px;background:var(--bg);
+    border:1px solid var(--line);overflow:hidden;}
+  .card .prog>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--ok));}
+  .card[data-key="superdeals"]{background:linear-gradient(150deg,#1b3360,#15294d);}
+  .card[data-key="trolley"]{background:linear-gradient(150deg,#1f2f57,#15294d);}
+  .card[data-key="howmuch"]{background:linear-gradient(150deg,#22314f,#15294d);}
+  .card[data-key="coins"]{background:linear-gradient(150deg,#241f55,#15294d);}
+  .menu .finale{grid-column:1/-1;background:linear-gradient(120deg,#3a2a66,#241f55);}
+
+  /* ---- views ---- */
+  .view{display:none;margin-top:16px;}
+  .view.active{display:block;}
+
+  .bar{display:flex;align-items:center;gap:14px;margin:6px 2px 16px;flex-wrap:wrap;}
+  .count{font-size:14px;color:var(--muted);}
+  .count b{color:var(--text);font-size:17px;}
+  .progress{flex:1;min-width:140px;height:11px;background:var(--panel);border-radius:99px;
+    overflow:hidden;border:1px solid var(--line);}
+  .progress>i{display:block;height:100%;width:0;
+    background:linear-gradient(90deg,var(--gold),var(--ok));transition:width .2s;}
+  .btn{border:none;border-radius:10px;padding:9px 14px;font-weight:700;font-size:14px;
+    cursor:pointer;background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  .btn:active{transform:translateY(1px);}
+  .btn.clear{background:transparent;color:var(--muted);}
+
+  /* generic tile grids */
+  .tiles{display:grid;gap:10px;}
+  .tiles.deals{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+  .tiles.weights{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+  .tiles.coins{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));}
+  .tile{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--panel);
+    padding:14px 12px;cursor:pointer;user-select:none;text-align:center;
+    transition:background .14s,border-color .14s;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:4px;min-height:70px;}
+  .tile:hover{background:var(--panel2);}
+  .tile .n{font-size:12px;color:var(--muted);}
+  .tile .v{font-weight:800;font-size:17px;line-height:1.1;}
+  .tile.done{border-color:var(--ok);background:rgba(52,210,123,.13);}
+  .tile.done::after{content:"✓";position:absolute;top:5px;right:8px;color:var(--ok);font-weight:900;}
+  .tile.done .v{opacity:.5;text-decoration:line-through;}
+  .tile.coin .v{font-size:22px;}
+  .tile.special{border-style:dashed;}
+  .tile.special .v{color:var(--gold);}
+
+  /* trolley list */
+  .tracklist{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  @media(max-width:680px){.tracklist{grid-template-columns:1fr;}}
+  .track{display:flex;align-items:center;gap:11px;background:var(--panel);
+    border:1px solid var(--line);border-radius:11px;padding:7px 9px;cursor:pointer;user-select:none;}
+  .track:hover{background:var(--panel2);}
+  .track .num{flex:0 0 34px;height:34px;border-radius:8px;display:grid;place-items:center;
+    font-weight:800;background:var(--bg);color:var(--gold);border:1px solid var(--line);}
+  .track .info{flex:1;min-width:0;}
+  .track .title{font-weight:700;font-size:15px;line-height:1.12;}
+  .track .artist{font-size:12px;color:var(--muted);}
+  .track .box{flex:0 0 26px;height:26px;border-radius:7px;border:2px solid var(--line);
+    display:grid;place-items:center;color:#fff;font-size:15px;}
+  .track.done{border-color:var(--ok);background:rgba(52,210,123,.10);}
+  .track.done .box{background:var(--ok);border-color:var(--ok);}
+  .track.done .title{text-decoration:line-through;text-decoration-color:var(--muted);}
+
+  /* finale */
+  .finalewrap{display:grid;gap:10px;max-width:520px;}
+  .finalewrap .fp{display:flex;align-items:center;gap:10px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:8px 12px;}
+  .finalewrap .fp span{flex:0 0 80px;font-size:12px;text-transform:uppercase;letter-spacing:1px;
+    color:var(--gold);font-weight:700;}
+  .finalewrap .fp input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:17px;padding:9px 11px;border-radius:9px;outline:none;}
+  .finalewrap .fp input:focus{border-color:var(--gold);}
+
+  .hint{font-size:13px;color:var(--muted);margin:0 2px 14px;line-height:1.4;}
+  footer{margin-top:24px;text-align:center;color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <span class="logo">🛒</span>
+    <h1 id="title">Bazar Bizarre</h1>
+    <button class="home" id="homeBtn">‹ Menu</button>
+  </div>
+
+  <!-- MENU -->
+  <div class="menu view active" id="menu">
+    <div class="card" data-key="superdeals" data-view="superdeals">
+      <div class="ico">🏷️</div>
+      <div class="rnd">Ronde 1</div>
+      <h2>Super Deals</h2>
+      <p>30 deals — duid aan wat gekozen is</p>
+      <div class="prog"><i data-prog="superdeals"></i></div>
+    </div>
+    <div class="card" data-key="trolley" data-view="trolley">
+      <div class="ico">🎵</div>
+      <div class="rnd">Ronde 2</div>
+      <h2>Trolley Tunes</h2>
+      <p>40 nummers — duid gespeelde aan</p>
+      <div class="prog"><i data-prog="trolley"></i></div>
+    </div>
+    <div class="card" data-key="howmuch" data-view="howmuch">
+      <div class="ico">⚖️</div>
+      <div class="rnd">Ronde 3</div>
+      <h2>How Much?</h2>
+      <p>30 potten — duid gewicht aan</p>
+      <div class="prog"><i data-prog="howmuch"></i></div>
+    </div>
+    <div class="card" data-key="coins" data-view="coins">
+      <div class="ico">🪙</div>
+      <div class="rnd">Ronde 4</div>
+      <h2>Crazy Coins</h2>
+      <p>24 munten — duid getrokken aan</p>
+      <div class="prog"><i data-prog="coins"></i></div>
+    </div>
+    <div class="card finale" data-key="finale" data-view="finale">
+      <div class="ico">🏆</div>
+      <div class="rnd">Slot</div>
+      <h2>Finalespel</h2>
+      <p>Namen van de finalisten</p>
+    </div>
+  </div>
+
+  <!-- SUPER DEALS -->
+  <div class="view" id="superdeals">
+    <p class="hint">Tik een deal aan zodra die gekozen is op het winkelrek.</p>
+    <div class="bar">
+      <span class="count"><b data-done="superdeals">0</b> / 30 gekozen</span>
+      <span class="progress"><i data-fill="superdeals"></i></span>
+      <button class="btn clear" data-reset="superdeals">Ronde wissen</button>
+    </div>
+    <div class="tiles deals" data-grid="superdeals"></div>
+  </div>
+
+  <!-- TROLLEY -->
+  <div class="view" id="trolley">
+    <p class="hint">Tik een nummer aan zodra het gespeeld is.</p>
+    <div class="bar">
+      <span class="count"><b data-done="trolley">0</b> / 40 gespeeld</span>
+      <span class="progress"><i data-fill="trolley"></i></span>
+      <button class="btn clear" data-reset="trolley">Ronde wissen</button>
+    </div>
+    <div class="tracklist" data-grid="trolley"></div>
+  </div>
+
+  <!-- HOW MUCH -->
+  <div class="view" id="howmuch">
+    <p class="hint">Tik een gewicht aan zodra de pot gekozen is. De 1 kg referentiepot is gemarkeerd.</p>
+    <div class="bar">
+      <span class="count"><b data-done="howmuch">0</b> / 30 gekozen</span>
+      <span class="progress"><i data-fill="howmuch"></i></span>
+      <button class="btn clear" data-reset="howmuch">Ronde wissen</button>
+    </div>
+    <div class="tiles weights" data-grid="howmuch"></div>
+  </div>
+
+  <!-- COINS -->
+  <div class="view" id="coins">
+    <p class="hint">Tik een nummer aan zodra de munt getrokken is. ! = directe finale, ? = vrije keuze.</p>
+    <div class="bar">
+      <span class="count"><b data-done="coins">0</b> / 24 getrokken</span>
+      <span class="progress"><i data-fill="coins"></i></span>
+      <button class="btn clear" data-reset="coins">Ronde wissen</button>
+    </div>
+    <div class="tiles coins" data-grid="coins"></div>
+  </div>
+
+  <!-- FINALE -->
+  <div class="view" id="finale">
+    <p class="hint">Noteer de finalisten. Tot 8 spelers.</p>
+    <div class="finalewrap" data-grid="finale"></div>
+    <div class="bar" style="margin-top:14px;">
+      <button class="btn clear" data-reset="finale">Namen wissen</button>
+    </div>
+  </div>
+
+  <footer>Bazar Bizarre · spelleider-tool · wijzigingen worden automatisch bewaard</footer>
+</div>
+
+<script>
+// ---------------- DATA ----------------
+const SUPERDEALS = [
+  "Get 3 Pay 2","+100 Loyalty Points","+500 Loyalty Points","30% Off","10% Off",
+  "-50%","Now -25%","Sale 20%","Buy 1 Get 1 Free","Reduced for quick sale",
+  "Black Friday Promo","Today Buy 2+1 Free","5+1 Free Mega-Promo","Zero Waste",
+  "20 € Limited Offer","-35%","Buy 4 Get 1 Free","Winter Sales 4+4 Free","Fixed Price",
+  "This Week 2nd Half Price","Try Now 100ml Extra","Trial Offer 10 €","60% Off Now",
+  "Summer 1+2 Deal","Low Price 12,90","Free Sample","Final Sale 80%","15% Cashback Deal",
+  "Volume Discount 12+3 Free","Best Price 16 €"
+];
+
+const TRACKS = [
+  ["Viva la vida","Coldplay"],["American boy","Estelle"],["Bad guy","Billie Eilish"],
+  ["Beat it","Michael Jackson"],["Blinding lights","The Weeknd"],["Blue suede shoes","Elvis and others"],
+  ["Call me maybe","Carly Rae Jepsen"],["Crazy in love","Beyoncé"],["Dance monkey","Tones and I"],
+  ["Dancing queen","ABBA"],["Despacito","Luis Fonsi"],["Für Elise","Beethoven"],
+  ["Pink pony club","Chappell Roan"],["Happy","Pharrell Williams"],["I feel good","James Brown"],
+  ["I got a feeling","Black Eyed Peas"],["Ich bin wie du","Marianne Rosenberg"],
+  ["Je t'aime moi non plus","Serge Gainsbourg/Jane Birkin"],["Jolene","Dolly Parton"],
+  ["La ballade des gens heureux","Gérard Lenorman"],["Last Christmas","Wham"],
+  ["Les lacs du Connemara","Michel Sardou"],["Levitating","Dua Lipa"],["Oh champs elysées","Joe Dassin"],
+  ["Rolling in the deep","Adele"],["Same love","Macklemore"],["Bohemian Rhapsody","Queen"],
+  ["Shotgun","George Ezra"],["Sign of the times","Harry Styles"],["Smells like teen spirit","Nirvana"],
+  ["Smoke on the water","Deep Purple"],["Somewhere over the rainbow","Judy Garland & others"],
+  ["The final countdown","Europe"],["The shape of you","Ed Sheeran"],
+  ["Uptown funk","Mark Ronson/Bruno Mars"],["We are the champions","Queen"],
+  ["We will rock you","Queen"],["Wonderwall","Oasis"],["YMCA","The Village People"],
+  ["You'll never walk alone","Gerry and the Pacemakers"]
+];
+
+// 30 weights 0.400 -> 1.850 kg, step 0.050
+const WEIGHTS = [];
+for(let w=400; w<=1850; w+=50){ WEIGHTS.push((w/1000).toFixed(3).replace('.',',')); }
+
+const COIN_MAX = 24;
+
+// ---------------- STATE ----------------
+const KEY = 'bazarbizarre_v1';
+let state = loadState();
+
+function freshState(){
+  return {
+    superdeals: new Array(SUPERDEALS.length).fill(false),
+    trolley: new Array(TRACKS.length).fill(false),
+    howmuch: new Array(WEIGHTS.length).fill(false),
+    coins: new Array(COIN_MAX).fill(false),
+    finale: new Array(8).fill("")
+  };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const s = JSON.parse(raw); const base = freshState();
+      return Object.assign(base, s); }
+  }catch(e){}
+  return freshState();
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
+
+// ---------------- RENDER ----------------
+function renderSuperdeals(){
+  const g = document.querySelector('[data-grid="superdeals"]'); g.innerHTML='';
+  SUPERDEALS.forEach((d,i)=>{
+    const t=document.createElement('div');
+    t.className='tile'+(state.superdeals[i]?' done':'');
+    t.innerHTML=`<div class="n">${i+1}</div><div class="v">${d}</div>`;
+    t.onclick=()=>{state.superdeals[i]=!state.superdeals[i];save();renderSuperdeals();updateAll();};
+    g.appendChild(t);
+  });
+}
+function renderTrolley(){
+  const g=document.querySelector('[data-grid="trolley"]'); g.innerHTML='';
+  TRACKS.forEach((tr,i)=>{
+    const row=document.createElement('div');
+    row.className='track'+(state.trolley[i]?' done':'');
+    row.innerHTML=`<div class="num">${i+1}</div><div class="info">
+      <div class="title">${tr[0]}</div><div class="artist">${tr[1]}</div></div>
+      <div class="box">${state.trolley[i]?'✓':''}</div>`;
+    row.onclick=()=>{state.trolley[i]=!state.trolley[i];save();renderTrolley();updateAll();};
+    g.appendChild(row);
+  });
+}
+function renderHowmuch(){
+  const g=document.querySelector('[data-grid="howmuch"]'); g.innerHTML='';
+  WEIGHTS.forEach((w,i)=>{
+    const isRef = w==="1,000";
+    const t=document.createElement('div');
+    t.className='tile'+(state.howmuch[i]?' done':'')+(isRef?' special':'');
+    t.innerHTML=`<div class="n">${isRef?'referentie':'pot '+(i+1)}</div><div class="v">${w} kg</div>`;
+    t.onclick=()=>{state.howmuch[i]=!state.howmuch[i];save();renderHowmuch();updateAll();};
+    g.appendChild(t);
+  });
+}
+function renderCoins(){
+  const g=document.querySelector('[data-grid="coins"]'); g.innerHTML='';
+  for(let i=0;i<COIN_MAX;i++){
+    const t=document.createElement('div');
+    t.className='tile coin'+(state.coins[i]?' done':'');
+    t.innerHTML=`<div class="v">${i+1}</div>`;
+    t.onclick=()=>{state.coins[i]=!state.coins[i];save();renderCoins();updateAll();};
+    g.appendChild(t);
+  }
+}
+function renderFinale(){
+  const g=document.querySelector('[data-grid="finale"]'); g.innerHTML='';
+  for(let i=0;i<8;i++){
+    const row=document.createElement('div'); row.className='fp';
+    row.innerHTML=`<span>Speler ${i+1}</span>`;
+    const inp=document.createElement('input');
+    inp.type='text'; inp.placeholder='Naam…'; inp.value=state.finale[i]||'';
+    inp.oninput=e=>{state.finale[i]=e.target.value;save();};
+    row.appendChild(inp); g.appendChild(row);
+  }
+}
+
+function updateAll(){
+  const defs={superdeals:30,trolley:40,howmuch:30,coins:24};
+  for(const k in defs){
+    const n=state[k].filter(Boolean).length, total=defs[k];
+    const d=document.querySelector(`[data-done="${k}"]`); if(d)d.textContent=n;
+    const f=document.querySelector(`[data-fill="${k}"]`); if(f)f.style.width=(n/total*100)+'%';
+    const p=document.querySelector(`[data-prog="${k}"]`); if(p)p.style.width=(n/total*100)+'%';
+  }
+}
+
+// ---------------- NAV ----------------
+const titles={menu:"Bazar Bizarre",superdeals:"Ronde 1 · Super Deals",
+  trolley:"Ronde 2 · Trolley Tunes",howmuch:"Ronde 3 · How Much?",
+  coins:"Ronde 4 · Crazy Coins",finale:"Finalespel"};
+function show(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(view).classList.add('active');
+  document.getElementById('title').textContent=titles[view]||"Bazar Bizarre";
+  document.getElementById('homeBtn').classList.toggle('show',view!=='menu');
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.card').forEach(c=>{
+  c.onclick=()=>show(c.dataset.view);
+});
+document.getElementById('homeBtn').onclick=()=>show('menu');
+
+// reset buttons
+document.querySelectorAll('[data-reset]').forEach(b=>{
+  b.onclick=()=>{
+    const k=b.dataset.reset;
+    if(!confirm('Weet je het zeker? Dit wist deze ronde.'))return;
+    if(k==='finale')state.finale=new Array(8).fill("");
+    else state[k]=state[k].map(()=>false);
+    save();renderAll();updateAll();
+  };
+});
+
+function renderAll(){renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
+renderAll(); updateAll(); show('menu');
+
+// Maak de app installeerbaar (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
