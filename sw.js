@@ -1,5 +1,5 @@
 // Eenvoudige service worker: maakt de app installeerbaar en offline-bruikbaar.
-const CACHE = 'bazar-bizarre-v2';
+const CACHE = 'bazar-bizarre-v3';
 const ASSETS = ['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', e=>{
@@ -11,8 +11,14 @@ self.addEventListener('activate', e=>{
     Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
   self.clients.claim();
 });
+// Netwerk eerst: altijd de nieuwste versie tonen, en de cache bijwerken.
+// Geen internet? Dan valt hij terug op de laatst bewaarde versie (offline).
 self.addEventListener('fetch', e=>{
   e.respondWith(
-    caches.match(e.request).then(r=>r||fetch(e.request))
+    fetch(e.request).then(r=>{
+      const copy = r.clone();
+      caches.open(CACHE).then(c=>c.put(e.request, copy));
+      return r;
+    }).catch(()=>caches.match(e.request))
   );
 });
