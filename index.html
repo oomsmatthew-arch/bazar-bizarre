@@ -93,13 +93,13 @@
   .tile.special{border-style:dashed;}
   .tile.special .v{color:var(--gold);}
 
-  /* super deals: sticker images on white cards */
-  .tile.deal{background:#fff;padding:12px;min-height:150px;}
+  /* super deals: transparante sticker-afbeeldingen op themakaarten */
+  .tile.deal{background:var(--panel);padding:12px;min-height:150px;}
   .tile.deal img{max-width:100%;max-height:130px;width:auto;height:auto;display:block;
     -webkit-user-drag:none;}
   .tile.deal .n{position:absolute;top:6px;left:8px;font-size:12px;font-weight:800;color:#fff;
     background:rgba(0,0,0,.5);border-radius:999px;padding:1px 8px;line-height:1.5;}
-  .tile.deal.done{background:#fff;border-color:var(--ok);border-width:2px;}
+  .tile.deal.done{background:rgba(52,210,123,.13);border-color:var(--ok);border-width:2px;}
   .tile.deal.done img{filter:grayscale(.6);opacity:.4;}
   .tile.deal.done::after{content:"✓";top:6px;right:8px;font-size:24px;
     text-shadow:0 1px 3px rgba(0,0,0,.35);}

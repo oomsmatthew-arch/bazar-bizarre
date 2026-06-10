@@ -1,0 +1,5 @@
+# Werkbestanden / tijdelijke bestanden — niet mee online
+_*.ps1
+_deals_backup/
+deals-check.png
+deals-page.png
