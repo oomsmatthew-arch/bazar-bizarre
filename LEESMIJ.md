@@ -20,7 +20,7 @@ Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na slui
   de finale) in het archief en zet daarna alles schoon voor het volgende spel.
 - Rechtsboven staat het **tandwiel ⚙ (beheer)**. Dat opent — na een **pincode** — het
   overzicht van alle opgeslagen spellen.
-  - **Standaard pincode: `1234`** (te wijzigen via "Pincode wijzigen" in het beheerscherm).
+  - **Pincode: `3920`** (te wijzigen via "Pincode wijzigen" in het beheerscherm).
 - In het beheerscherm kan je elk spel bekijken, verwijderen, of exporteren:
   - **📋 Kopieer voor Sheets** — plak rechtstreeks in Google Sheets (Ctrl+V).
   - **⬇ Download CSV** — een bestand met alle spellen, klaar om te importeren.
