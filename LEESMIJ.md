@@ -9,9 +9,22 @@ tablet als app op het startscherm te zetten.
 - **Ronde 2 – Trolley Tunes** (40 nummers aanvinken)
 - **Ronde 3 – How Much?** (30 gewichten 0,400–1,850 kg, met 1 kg referentiepot)
 - **Ronde 4 – Crazy Coins** (24 nummers aanvinken)
-- **Finalespel** (namen van max. 8 finalisten)
+- **Finalespel** (vraag & antwoord; antwoord blijft verborgen tot je op Toon klikt)
 
 Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na sluiten).
+
+## Spellen archiveren (beheer)
+
+- Onderaan het menu staat **"✓ Spel afsluiten & opslaan in archief"**. Eén druk bewaart
+  het volledige spel (datum + tijd, naam/locatie, de 8 prijzen, samenvatting per ronde en
+  de finale) in het archief en zet daarna alles schoon voor het volgende spel.
+- Rechtsboven staat het **tandwiel ⚙ (beheer)**. Dat opent — na een **pincode** — het
+  overzicht van alle opgeslagen spellen.
+  - **Standaard pincode: `1234`** (te wijzigen via "Pincode wijzigen" in het beheerscherm).
+- In het beheerscherm kan je elk spel bekijken, verwijderen, of exporteren:
+  - **📋 Kopieer voor Sheets** — plak rechtstreeks in Google Sheets (Ctrl+V).
+  - **⬇ Download CSV** — een bestand met alle spellen, klaar om te importeren.
+- Dit vormt de basis voor de latere koppeling met Google Sheets/Forms voor de inventaris.
 
 ## Mappenstructuur
 

@@ -19,7 +19,7 @@
     --navy:#13294a; --red:#8e1d2e; --brown:#7a5a2b; --green:#0e4d3a;
     --serif:"Georgia","Iowan Old Style","Times New Roman",serif;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
     font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overscroll-behavior:none;}
   .wrap{max-width:1200px;margin:0 auto;padding:16px 14px 70px;}
@@ -37,6 +37,9 @@
   .topbar .home{display:none;border:none;background:rgba(255,255,255,.18);color:#fff;
     font-weight:700;font-size:14px;padding:9px 14px;border-radius:10px;cursor:pointer;}
   .topbar .home.show{display:block;}
+  .topbar .gear{border:none;background:rgba(255,255,255,.18);color:#fff;font-size:18px;
+    width:40px;height:40px;border-radius:10px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto;}
+  .topbar .gear:active{transform:translateY(1px);}
 
   /* ---- menu ---- */
   .menu{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px;}
@@ -69,6 +72,28 @@
   .restore:hover:not(:disabled){background:var(--panel2);}
   .restore:active{transform:translateY(1px);}
   .restore:disabled{opacity:.6;cursor:not-allowed;color:var(--muted);}
+  .finishbtn{grid-column:1/-1;margin-top:18px;background:linear-gradient(120deg,var(--green),#0b3b2d);
+    border:1px solid var(--ok);color:#eafff5;font-weight:800;font-size:16px;padding:15px;
+    border-radius:14px;cursor:pointer;transition:filter .14s;}
+  .finishbtn:hover{filter:brightness(1.08);}
+  .finishbtn:active{transform:translateY(1px);}
+
+  /* ---- admin / archief ---- */
+  .game{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 16px;margin-bottom:12px;}
+  .game h3{margin:0 0 2px;font-family:var(--serif);font-size:18px;color:var(--gold);}
+  .game .meta{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .game .sums{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .game .sums span{background:var(--bg);border:1px solid var(--line);border-radius:999px;
+    padding:3px 11px;font-size:12px;color:var(--text);}
+  .game .block{margin-bottom:10px;}
+  .game .block .h{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px;}
+  .game .prijzen{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;}
+  .game .prijzen div{font-size:13px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:8px;padding:5px 10px;}
+  .game .prijzen div b{color:var(--gold);margin-right:6px;}
+  .game .fin{font-size:13px;color:var(--text);line-height:1.5;}
+  .game .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .game .acts .del{color:#f0a3ad;border-color:var(--red);background:transparent;}
 
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
@@ -207,6 +232,7 @@
   <div class="topbar">
     <img class="logo" src="Logo_kleine_tekst.png" alt="Bazar Bizarre">
     <h1 id="title">Bazar Bizarre</h1>
+    <button class="gear" id="adminBtn" title="Beheer" aria-label="Beheer">⚙</button>
     <button class="home" id="homeBtn">‹ Menu</button>
   </div>
 
@@ -246,6 +272,7 @@
       <h2>Finalespel</h2>
       <p>Vraag &amp; antwoord</p>
     </div>
+    <button id="afsluitSpel" class="finishbtn">✓ Spel afsluiten &amp; opslaan in archief</button>
     <div class="sessiebar">
       <button id="wisSessie" class="wipe">Wis volledige sessie</button>
       <button id="herstelSessie" class="restore">Laatst verwijderde sessie</button>
@@ -321,6 +348,18 @@
     <div class="bar" style="margin-top:14px;">
       <button class="btn clear" data-reset="qa">Vragen wissen</button>
     </div>
+  </div>
+
+  <!-- ADMIN / ARCHIEF -->
+  <div class="view" id="admin">
+    <p class="hint">Alle afgesloten spellen. Exporteer ze als CSV-bestand of kopieer ze rechtstreeks naar Google Sheets voor je inventaris.</p>
+    <div class="bar">
+      <span class="count"><b id="adminCount">0</b> opgeslagen spellen</span>
+      <button class="btn" id="copySheets">📋 Kopieer voor Sheets</button>
+      <button class="btn" id="expCsv">⬇ Download CSV</button>
+      <button class="btn clear" id="changePin">Pincode wijzigen</button>
+    </div>
+    <div id="adminList"></div>
   </div>
 
   <footer>Bazar Bizarre · spelleider-tool · wijzigingen worden automatisch bewaard</footer>
@@ -507,7 +546,7 @@ function updateAll(){
 // ---------------- NAV ----------------
 const titles={menu:"Bazar Bizarre",controle:"Controle lijst",superdeals:"Ronde 1 · Super Deals",
   trolley:"Ronde 2 · Trolley Tunes",howmuch:"Ronde 3 · How Much?",
-  coins:"Ronde 4 · Crazy Coins",finale:"Finalespel"};
+  coins:"Ronde 4 · Crazy Coins",finale:"Finalespel",admin:"Beheer · Archief"};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
@@ -545,6 +584,160 @@ document.getElementById('herstelSessie').onclick=()=>{
   state=Object.assign(freshState(),o.data);
   save();renderAll();updateAll();
 };
+
+// ================= ARCHIEF: opgeslagen spellen =================
+const GAMESKEY='bazarbizarre_games';
+const PINKEY='bazarbizarre_pin';
+const DEFAULT_PIN='1234';   // standaard pincode — kan je wijzigen in het beheerscherm
+
+function loadGames(){try{return JSON.parse(localStorage.getItem(GAMESKEY))||[];}catch(e){return[];}}
+function saveGames(a){try{localStorage.setItem(GAMESKEY,JSON.stringify(a));}catch(e){}}
+function getPin(){return localStorage.getItem(PINKEY)||DEFAULT_PIN;}
+
+// huidig spel als momentopname (datum, naam, prijzen, samenvatting, finale)
+function snapshotGame(label){
+  return {
+    id: Date.now(),
+    ts: Date.now(),
+    label: label||'',
+    prijzen: state.prijzen.slice(),
+    vragen: state.vragen.slice(),
+    antwoorden: state.antwoorden.slice(),
+    controle: state.controle.slice(),
+    counts: {
+      superdeals: state.superdeals.filter(Boolean).length,
+      trolley:    state.trolley.filter(Boolean).length,
+      howmuch:    state.howmuch.filter(Boolean).length,
+      coins:      state.coins.filter(Boolean).length
+    }
+  };
+}
+
+// "Spel afsluiten & opslaan": archiveer + maak schoon voor volgend spel
+document.getElementById('afsluitSpel').onclick=()=>{
+  const label=prompt('Naam of locatie van dit spel? (optioneel — laat leeg en klik OK om toch op te slaan)','');
+  if(label===null) return; // geannuleerd
+  const games=loadGames(); games.push(snapshotGame(label.trim())); saveGames(games);
+  try{localStorage.setItem(KEYBACKUP,JSON.stringify({ts:Date.now(),data:state}));}catch(e){}
+  state=freshState();
+  save();renderAll();updateAll();updateRestoreBtn();
+  alert('Spel opgeslagen in het archief'+(label.trim()?(' ("'+label.trim()+'")'):'')+'.\nAlles staat klaar voor het volgende spel.');
+};
+
+// admin openen met pincode
+function openAdmin(){
+  const p=prompt('Pincode:');
+  if(p===null) return;
+  if(p!==getPin()){alert('Onjuiste pincode.');return;}
+  renderAdmin(); show('admin');
+}
+document.getElementById('adminBtn').onclick=openAdmin;
+
+function changePin(){
+  const cur=prompt('Huidige pincode:'); if(cur===null) return;
+  if(cur!==getPin()){alert('Onjuiste pincode.');return;}
+  const n=prompt('Nieuwe pincode (3 tot 8 cijfers):'); if(n===null) return;
+  if(!/^\d{3,8}$/.test(n)){alert('Gebruik 3 tot 8 cijfers.');return;}
+  localStorage.setItem(PINKEY,n); alert('Pincode gewijzigd.');
+}
+
+function finaleText(g){
+  const out=[];
+  (g.vragen||[]).forEach((v,i)=>{
+    const a=(g.antwoorden||[])[i]||'';
+    if((v&&v.trim())||(a&&a.trim())) out.push('V'+(i+1)+': '+(v||'')+' → '+(a||''));
+  });
+  return out.join('   |   ');
+}
+function esc(s){return String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderAdmin(){
+  const games=loadGames().slice().sort((a,b)=>b.ts-a.ts);
+  document.getElementById('adminCount').textContent=games.length;
+  const wrap=document.getElementById('adminList'); wrap.innerHTML='';
+  if(!games.length){wrap.innerHTML='<p class="hint">Nog geen opgeslagen spellen. Sluit een spel af via de knop onderaan het menu.</p>';return;}
+  games.forEach(g=>{
+    const c=g.counts||{};
+    const prijzen=(g.prijzen||[]).map((p,i)=> (p&&p.trim())?'<div><b>'+(i+1)+'</b>'+esc(p)+'</div>':'')
+      .filter(Boolean).join('');
+    const fin=finaleText(g);
+    const card=document.createElement('div'); card.className='game';
+    card.innerHTML=
+      '<h3>'+(g.label?esc(g.label):'Spel zonder naam')+'</h3>'+
+      '<div class="meta">'+fmtTs(g.ts)+'</div>'+
+      '<div class="sums">'+
+        '<span>Deals '+(c.superdeals||0)+'/30</span>'+
+        '<span>Tunes '+(c.trolley||0)+'/40</span>'+
+        '<span>Potten '+(c.howmuch||0)+'/30</span>'+
+        '<span>Munten '+(c.coins||0)+'/24</span>'+
+      '</div>'+
+      (prijzen?'<div class="block"><div class="h">Prijzen</div><div class="prijzen">'+prijzen+'</div></div>':'')+
+      (fin?'<div class="block"><div class="h">Finale</div><div class="fin">'+esc(fin)+'</div></div>':'')+
+      '<div class="acts">'+
+        '<button class="btn" data-copy="'+g.id+'">Kopieer deze rij</button>'+
+        '<button class="btn del" data-del="'+g.id+'">Verwijderen</button>'+
+      '</div>';
+    card.querySelector('[data-del]').onclick=()=>{
+      if(!confirm('Dit opgeslagen spel definitief verwijderen?'))return;
+      saveGames(loadGames().filter(x=>x.id!==g.id)); renderAdmin();
+    };
+    card.querySelector('[data-copy]').onclick=()=>copyText(buildTSV([g]));
+    wrap.appendChild(card);
+  });
+}
+
+// ----- export naar CSV / Google Sheets -----
+const EXPORT_HEADER=['Datum','Naam/locatie','Deals /30','Tunes /40','Potten /30','Munten /24',
+  'Prijs 1','Prijs 2','Prijs 3','Prijs 4','Prijs 5','Prijs 6','Prijs 7','Prijs 8','Finale'];
+function gameRow(g){
+  const c=g.counts||{}; const pr=g.prijzen||[];
+  const row=[fmtTs(g.ts), g.label||'', c.superdeals||0, c.trolley||0, c.howmuch||0, c.coins||0];
+  for(let i=0;i<8;i++) row.push(pr[i]||'');
+  row.push(finaleText(g).replace(/\s*\|\s*/g,' | '));
+  return row;
+}
+function exportRows(){
+  const games=loadGames().slice().sort((a,b)=>a.ts-b.ts);
+  return [EXPORT_HEADER].concat(games.map(gameRow));
+}
+function buildCSV(){
+  return exportRows().map(r=>r.map(v=>{
+    const s=String(v==null?'':v);
+    return '"'+s.replace(/"/g,'""')+'"';
+  }).join(',')).join('\r\n');
+}
+function buildTSV(games){
+  const rows = games ? [EXPORT_HEADER].concat(games.map(gameRow)) : exportRows();
+  return rows.map(r=>r.map(v=>String(v==null?'':v).replace(/\t/g,' ').replace(/\r?\n/g,' ')).join('\t')).join('\n');
+}
+function copyText(t){
+  const done=()=>alert('Gekopieerd! Plak het nu in Google Sheets (Ctrl+V).');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t));
+  }else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  const ta=document.createElement('textarea'); ta.value=t;
+  ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+  try{document.execCommand('copy');alert('Gekopieerd! Plak het nu in Google Sheets (Ctrl+V).');}
+  catch(e){alert('Kopiëren niet gelukt op dit toestel.');}
+  document.body.removeChild(ta);
+}
+function downloadCSV(){
+  const games=loadGames();
+  if(!games.length){alert('Er zijn nog geen opgeslagen spellen om te exporteren.');return;}
+  const blob=new Blob(['﻿'+buildCSV()],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='bazar-bizarre-spellen.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+document.getElementById('expCsv').onclick=downloadCSV;
+document.getElementById('copySheets').onclick=()=>{
+  if(!loadGames().length){alert('Er zijn nog geen opgeslagen spellen om te kopiëren.');return;}
+  copyText(buildTSV());
+};
+document.getElementById('changePin').onclick=changePin;
 
 // reset buttons
 document.querySelectorAll('[data-reset]').forEach(b=>{
