@@ -1,5 +1,5 @@
 // Eenvoudige service worker: maakt de app installeerbaar en offline-bruikbaar.
-const CACHE = 'bazar-bizarre-v5';
+const CACHE = 'bazar-bizarre-v6';
 const ASSETS = ['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', e=>{

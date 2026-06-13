@@ -605,6 +605,7 @@ function snapshotGame(label){
     vragen: state.vragen.slice(),
     antwoorden: state.antwoorden.slice(),
     controle: state.controle.slice(),
+    controleNamen: CONTROLE.slice(),
     counts: {
       superdeals: state.superdeals.filter(Boolean).length,
       trolley:    state.trolley.filter(Boolean).length,
@@ -616,7 +617,7 @@ function snapshotGame(label){
 
 // "Spel afsluiten & opslaan": archiveer + maak schoon voor volgend spel
 document.getElementById('afsluitSpel').onclick=()=>{
-  const label=prompt('Naam of locatie van dit spel? (optioneel — laat leeg en klik OK om toch op te slaan)','');
+  const label=prompt('Naam van dit spel?','');
   if(label===null) return; // geannuleerd
   const games=loadGames(); games.push(snapshotGame(label.trim())); saveGames(games);
   try{localStorage.setItem(KEYBACKUP,JSON.stringify({ts:Date.now(),data:state}));}catch(e){}
@@ -659,6 +660,10 @@ function renderAdmin(){
   if(!games.length){wrap.innerHTML='<p class="hint">Nog geen opgeslagen spellen. Sluit een spel af via de knop onderaan het menu.</p>';return;}
   games.forEach(g=>{
     const c=g.counts||{};
+    const cNamen=g.controleNamen||CONTROLE;
+    const cVals=g.controle||[];
+    const turfTotaal=cVals.reduce((a,b)=>a+(b||0),0);
+    const turven=cNamen.map((nm,i)=>'<div><b>'+esc(nm)+'</b>'+(cVals[i]||0)+'</div>').join('');
     const prijzen=(g.prijzen||[]).map((p,i)=> (p&&p.trim())?'<div><b>'+(i+1)+'</b>'+esc(p)+'</div>':'')
       .filter(Boolean).join('');
     const fin=finaleText(g);
@@ -672,7 +677,10 @@ function renderAdmin(){
         '<span>Potten '+(c.howmuch||0)+'/30</span>'+
         '<span>Munten '+(c.coins||0)+'/24</span>'+
       '</div>'+
-      (prijzen?'<div class="block"><div class="h">Prijzen</div><div class="prijzen">'+prijzen+'</div></div>':'')+
+      '<div class="block"><div class="h">Controleblad · turven (totaal '+turfTotaal+')</div>'+
+        '<div class="prijzen">'+(turven||'<div>—</div>')+'</div></div>'+
+      '<div class="block"><div class="h">Prijzen</div>'+
+        (prijzen?('<div class="prijzen">'+prijzen+'</div>'):'<div class="fin">— geen prijzen ingevuld —</div>')+'</div>'+
       (fin?'<div class="block"><div class="h">Finale</div><div class="fin">'+esc(fin)+'</div></div>':'')+
       '<div class="acts">'+
         '<button class="btn" data-copy="'+g.id+'">Kopieer deze rij</button>'+
@@ -688,12 +696,15 @@ function renderAdmin(){
 }
 
 // ----- export naar CSV / Google Sheets -----
-const EXPORT_HEADER=['Datum','Naam/locatie','Deals /30','Tunes /40','Potten /30','Munten /24',
-  'Prijs 1','Prijs 2','Prijs 3','Prijs 4','Prijs 5','Prijs 6','Prijs 7','Prijs 8','Finale'];
+const EXPORT_HEADER=['Datum','Naam','Deals /30','Tunes /40','Potten /30','Munten /24',
+  'Prijs 1','Prijs 2','Prijs 3','Prijs 4','Prijs 5','Prijs 6','Prijs 7','Prijs 8','Turven','Finale'];
 function gameRow(g){
   const c=g.counts||{}; const pr=g.prijzen||[];
+  const cNamen=g.controleNamen||CONTROLE; const cVals=g.controle||[];
+  const turfStr=cNamen.map((nm,i)=>nm+': '+(cVals[i]||0)).join(', ');
   const row=[fmtTs(g.ts), g.label||'', c.superdeals||0, c.trolley||0, c.howmuch||0, c.coins||0];
   for(let i=0;i<8;i++) row.push(pr[i]||'');
+  row.push(turfStr);
   row.push(finaleText(g).replace(/\s*\|\s*/g,' | '));
   return row;
 }
