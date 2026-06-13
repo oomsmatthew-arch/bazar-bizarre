@@ -72,11 +72,12 @@
   .restore:hover:not(:disabled){background:var(--panel2);}
   .restore:active{transform:translateY(1px);}
   .restore:disabled{opacity:.6;cursor:not-allowed;color:var(--muted);}
-  .finishbtn{grid-column:1/-1;margin-top:18px;background:linear-gradient(120deg,var(--green),#0b3b2d);
-    border:1px solid var(--ok);color:#eafff5;font-weight:800;font-size:16px;padding:15px;
-    border-radius:14px;cursor:pointer;transition:filter .14s;}
+  .finishbtn{background:linear-gradient(120deg,var(--green),#0b3b2d);
+    border:1px solid var(--ok);color:#eafff5;font-weight:800;font-size:15px;padding:13px;
+    border-radius:12px;cursor:pointer;transition:filter .14s;}
   .finishbtn:hover{filter:brightness(1.08);}
   .finishbtn:active{transform:translateY(1px);}
+  .sessiebar .finishbtn{flex:1;min-width:210px;}
 
   /* ---- admin / archief ---- */
   .game{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 16px;margin-bottom:12px;}
@@ -272,8 +273,8 @@
       <h2>Finalespel</h2>
       <p>Vraag &amp; antwoord</p>
     </div>
-    <button id="afsluitSpel" class="finishbtn">✓ Spel afsluiten &amp; opslaan in archief</button>
     <div class="sessiebar">
+      <button id="afsluitSpel" class="finishbtn">✓ Spel afsluiten &amp; opslaan</button>
       <button id="wisSessie" class="wipe">Wis volledige sessie</button>
       <button id="herstelSessie" class="restore">Laatst verwijderde sessie</button>
     </div>
