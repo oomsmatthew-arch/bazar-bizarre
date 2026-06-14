@@ -236,6 +236,10 @@
   .statcard .v{font-size:26px;font-weight:800;color:var(--forest);font-family:var(--serif);line-height:1.1;}
   .statcard .l{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
   .statcard.neg .v{color:#c0392b;}
+  /* Beheer: statistiek + voorraad-waarschuwingen naast elkaar */
+  .beheertop{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+  @media(max-width:720px){.beheertop{grid-template-columns:1fr;}}
+  .beheertop .field{margin:0;}
   .statlist{margin:10px 2px 0;font-size:14px;color:var(--text);line-height:1.7;}
   .statlist b{color:var(--forest);}
 
@@ -334,7 +338,7 @@
 
   <!-- INSTELLINGEN -->
   <div class="view" id="instellingen">
-    <p class="hint">Wijzig hier de mededeling op de homepagina en de koppelingen voor Inventaris en Online manuals. Alles wordt automatisch op dit toestel bewaard.</p>
+    <p class="hint">Wijzig hier de mededeling op de homepagina. Alles wordt automatisch op dit toestel bewaard.</p>
     <div class="settings">
       <div class="field">
         <div class="h">Mededeling op de homepagina</div>
@@ -342,30 +346,6 @@
         <div class="row">
           <button class="btn primary" id="saveMededeling">Mededeling opslaan</button>
           <button class="btn clear" id="clearMededeling">Mededeling wissen</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <div class="h">Koppelingen</div>
-        <label for="setInventaris">Link voor de inventaris lijst, bijvoorbeeld een Google Sheet</label>
-        <input type="url" id="setInventaris" placeholder="https://">
-        <label for="setManuals">Link voor de online manuals</label>
-        <input type="url" id="setManuals" placeholder="https://">
-        <div class="row">
-          <button class="btn primary" id="saveLinks">Koppelingen opslaan</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <div class="h">Voorraad-waarschuwingen</div>
-        <label for="setDrempel">🔴 Bijna op — waarschuw op of onder dit aantal</label>
-        <input type="number" id="setDrempel" min="0" value="16" style="max-width:120px">
-        <label for="setDrempel2">🟠 Aandacht — waarschuw op of onder dit aantal</label>
-        <input type="number" id="setDrempel2" min="0" value="24" style="max-width:120px">
-        <label for="setBestelMail">E-mailadres voor de bestellijst (optioneel)</label>
-        <input type="email" id="setBestelMail" placeholder="bijv. leverancier@bedrijf.be">
-        <div class="row">
-          <button class="btn primary" id="saveLowstock">Opslaan</button>
         </div>
       </div>
 
@@ -420,10 +400,20 @@
 
     <!-- BEHEER (wachtwoord) -->
     <div class="invpane" id="pane-beheer">
-      <div class="field">
-        <div class="h">Statistiek</div>
-        <div class="statgrid" id="statGrid"></div>
-        <div class="statlist" id="statTop"></div>
+      <div class="beheertop">
+        <div class="field">
+          <div class="h">Statistiek</div>
+          <div class="statgrid" id="statGrid"></div>
+          <div class="statlist" id="statTop"></div>
+        </div>
+        <div class="field">
+          <div class="h">Voorraad-waarschuwingen</div>
+          <label for="setDrempel">🔴 Bijna op — waarschuw op of onder dit aantal</label>
+          <input type="number" id="setDrempel" min="0" value="16" style="max-width:120px">
+          <label for="setDrempel2">🟠 Aandacht — waarschuw op of onder dit aantal</label>
+          <input type="number" id="setDrempel2" min="0" value="24" style="max-width:120px">
+          <div class="row"><button class="btn primary" id="saveLowstock">Opslaan</button></div>
+        </div>
       </div>
       <div class="field">
         <div class="h">Nieuwe levering registreren</div>
@@ -652,12 +642,6 @@ function openSettings(){
   if(p===null) return;
   if(p!==getPin()){alert('Onjuist wachtwoord.');return;}
   document.getElementById('setMededeling').value=getMededeling();
-  const l=getLinks();
-  document.getElementById('setInventaris').value=l.inventaris;
-  document.getElementById('setManuals').value=l.manuals;
-  document.getElementById('setDrempel').value=getDrempel();
-  document.getElementById('setDrempel2').value=getDrempel2();
-  document.getElementById('setBestelMail').value=getBestelMail();
   show('instellingen');
 }
 document.getElementById('gearBtn').onclick=openSettings;
@@ -674,22 +658,13 @@ document.getElementById('clearMededeling').onclick=()=>{
   document.getElementById('setMededeling').value='';
   renderHome();
 };
-document.getElementById('saveLinks').onclick=()=>{
-  const links={
-    inventaris:document.getElementById('setInventaris').value.trim(),
-    manuals:document.getElementById('setManuals').value.trim()
-  };
-  localStorage.setItem(K_LINKS,JSON.stringify(links));
-  alert('Koppelingen opgeslagen.');
-};
 document.getElementById('saveLowstock').onclick=()=>{
   const d=parseInt(document.getElementById('setDrempel').value,10);
   const d2=parseInt(document.getElementById('setDrempel2').value,10);
   localStorage.setItem(K_DREMPEL,isNaN(d)||d<0?DEFAULT_DREMPEL:d);
   localStorage.setItem(K_DREMPEL2,isNaN(d2)||d2<0?DEFAULT_DREMPEL2:d2);
-  localStorage.setItem(K_BESTELMAIL,document.getElementById('setBestelMail').value.trim());
   renderLowstock();
-  alert('Opgeslagen. De melding op de homepagina is bijgewerkt.');
+  alert('Opgeslagen. De waarschuwingen op de homepagina zijn bijgewerkt.');
 };
 document.getElementById('changePin').onclick=()=>{
   const cur=prompt('Huidig wachtwoord:'); if(cur===null) return;
@@ -990,16 +965,9 @@ function renderInvStock(){
 // BOEKJES (saldo + historiek)
 function renderBoekjes(){
   const bk=BBInv.getBoekjes(), levs=BBInv.getLeveringen(), forms=BBInv.getFormulieren();
-  let geleverd=0; levs.forEach(l=>geleverd+=(+l.boekjes||0));
-  let res=0,extra=0,gratis=0;
-  forms.forEach(f=>{const b=f.boekjes||{};res+=(+b.gereserveerd||0);extra+=(+b.extra||0);gratis+=(+b.gratis||0);});
-  const uit=res+extra+gratis;
-  const card=(v,l,neg)=>'<div class="statcard'+(neg?' neg':'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
+  const neg=(bk.stock||0)<0;
   document.getElementById('boekjesGrid').innerHTML=
-    card(bk.stock||0,'Huidige voorraad',(bk.stock||0)<0)+
-    card(geleverd,'Geleverd (geregistreerd)')+
-    card(uit,'Uitgedeeld (formulieren)')+
-    card(res+' / '+extra+' / '+gratis,'Gereserveerd / extra / gratis');
+    '<div class="statcard'+(neg?' neg':'')+'"><div class="v">'+(bk.stock||0)+'</div><div class="l">Huidige voorraad</div></div>';
   const ev=[];
   levs.forEach(l=>{ if(+l.boekjes) ev.push({ts:l.ts,datum:l.datum,type:'in',n:+l.boekjes,txt:l.tekst||''}); });
   forms.forEach(f=>{const b=f.boekjes||{};const u=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0); if(u) ev.push({ts:f.ts,type:'uit',n:u,txt:f.namen||''}); });
@@ -1016,7 +984,11 @@ function renderBoekjes(){
 }
 
 // BEHEER (bewerkbaar)
-function renderBeheer(){ renderStats(); renderLeveringen(); renderBeheerList(); }
+function renderBeheer(){
+  renderStats(); renderLeveringen(); renderBeheerList();
+  document.getElementById('setDrempel').value=getDrempel();
+  document.getElementById('setDrempel2').value=getDrempel2();
+}
 
 // ---- Statistiek ----
 function renderStats(){
