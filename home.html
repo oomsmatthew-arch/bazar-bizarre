@@ -1091,9 +1091,10 @@ function printHTML(title,bodyHtml){
     '<style>body{font-family:Arial,Helvetica,sans-serif;color:#1d2e22;margin:24px;}h1{font-size:20px;margin:0 0 4px;}'+
     '.sub{color:#666;font-size:12px;margin-bottom:16px;}table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:8px;}'+
     'th,td{border:1px solid #ccc;padding:6px 9px;text-align:left;}th{background:#eee;}td.n,th.n{text-align:right;width:90px;}'+
-    'h2{font-size:15px;margin:18px 0 6px;}</style></head><body>'+bodyHtml+
-    '<scr'+'ipt>window.onload=function(){window.print();};<\/scr'+'ipt></body></html>');
+    'h2{font-size:15px;margin:18px 0 6px;}</style></head><body>'+bodyHtml+'</body></html>');
   w.document.close();
+  w.focus();
+  setTimeout(function(){ try{ w.print(); }catch(e){} }, 350);
 }
 function printInventaris(){
   const pr=BBInv.getPrijzen(), bk=BBInv.getBoekjes();
