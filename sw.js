@@ -1,5 +1,5 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v23';
+const CACHE = 'bazar-bizarre-v24';
 const ASSETS = ['./','./index.html','./home.html','./manifest.json',
   './inventaris-data.js','./inventaris.js','./assets/icon-192.png','./assets/icon-512.png'];
 

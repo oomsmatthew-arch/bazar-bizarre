@@ -209,6 +209,18 @@
   .lowstock .ls-items{margin:8px 0 0;font-size:15px;line-height:1.5;color:var(--text);}
   .lowstock .ls-items b{color:#b83327;}
   .lowstock .row{margin-top:14px;}
+  .attention{margin-top:14px;border:1px solid #f0d29a;border-radius:18px;overflow:hidden;
+    background:linear-gradient(120deg,#fff8ec,#fff);position:relative;box-shadow:var(--shadow);display:none;}
+  .attention.show{display:block;}
+  .attention::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;
+    background:linear-gradient(180deg,#f5b942,#e08e0b);}
+  .attention .inner{padding:16px 18px 16px 24px;}
+  .attention .lbl{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b8791a;font-weight:800;}
+  .attention .ls-items{margin:8px 0 0;font-size:15px;line-height:1.5;color:var(--text);}
+  .attention .ls-items b{color:#b8791a;}
+  .attention .row{margin-top:14px;}
+  [data-theme="dark"] .attention{background:linear-gradient(120deg,#2a261a,#18271f);border-color:#5a4a30;}
+  .invdiv{grid-column:1/-1;height:1px;background:var(--line);margin:8px 2px;}
 
   /* ---- statistiek ---- */
   .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px;}
@@ -265,6 +277,16 @@
         <div class="row">
           <button class="btn primary" id="lowstockMail">✉ Bestellijst mailen</button>
           <button class="btn" id="lowstockGoto">Naar voorraad</button>
+        </div>
+      </div>
+    </div>
+    <!-- Aandacht-melding (oranje, voorraad raakt laag) -->
+    <div class="attention" id="attentionBanner">
+      <div class="inner">
+        <div class="lbl">⚠ Aandacht gevraagd</div>
+        <div class="ls-items" id="attentionItems"></div>
+        <div class="row">
+          <button class="btn" id="attentionGoto">Naar voorraad</button>
         </div>
       </div>
     </div>
@@ -327,9 +349,11 @@
       </div>
 
       <div class="field">
-        <div class="h">Lage-voorraad melding</div>
-        <label for="setDrempel">Waarschuw zodra de voorraad op of onder dit aantal komt</label>
-        <input type="number" id="setDrempel" min="0" value="5" style="max-width:120px">
+        <div class="h">Voorraad-waarschuwingen</div>
+        <label for="setDrempel">🔴 Bijna op — waarschuw op of onder dit aantal</label>
+        <input type="number" id="setDrempel" min="0" value="16" style="max-width:120px">
+        <label for="setDrempel2">🟠 Aandacht — waarschuw op of onder dit aantal</label>
+        <input type="number" id="setDrempel2" min="0" value="24" style="max-width:120px">
         <label for="setBestelMail">E-mailadres voor de bestellijst (optioneel)</label>
         <input type="email" id="setBestelMail" placeholder="bijv. leverancier@bedrijf.be">
         <div class="row">
@@ -491,16 +515,25 @@ const APP_VERSION='v13';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
-const K_DREMPEL='bb_home_drempel';
+const K_DREMPEL='bb_home_drempel';       // rood: voorraad bijna op
+const K_DREMPEL2='bb_home_drempel2';     // oranje: aandacht gevraagd
 const K_BESTELMAIL='bb_home_bestelmail';
 const K_THEME='bb_home_theme';
 const DEFAULT_PIN='3920';
-const DEFAULT_DREMPEL=5;
+const DEFAULT_DREMPEL=16;
+const DEFAULT_DREMPEL2=24;
 
 function getMededeling(){return localStorage.getItem(K_MED)||'';}
 function getLinks(){try{return Object.assign({inventaris:'',manuals:''},JSON.parse(localStorage.getItem(K_LINKS))||{});}catch(e){return{inventaris:'',manuals:''};}}
 function getPin(){return localStorage.getItem(K_PIN)||DEFAULT_PIN;}
 function getDrempel(){const v=parseInt(localStorage.getItem(K_DREMPEL),10);return isNaN(v)?DEFAULT_DREMPEL:v;}
+function getDrempel2(){const v=parseInt(localStorage.getItem(K_DREMPEL2),10);return isNaN(v)?DEFAULT_DREMPEL2:v;}
+// eenmalige update naar de nieuwe drempels (16 / 24)
+if(localStorage.getItem('bb_drempel_v2')!=='1'){
+  localStorage.setItem(K_DREMPEL,String(DEFAULT_DREMPEL));
+  localStorage.setItem(K_DREMPEL2,String(DEFAULT_DREMPEL2));
+  localStorage.setItem('bb_drempel_v2','1');
+}
 function getBestelMail(){return localStorage.getItem(K_BESTELMAIL)||'';}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
@@ -516,33 +549,50 @@ function renderHome(){
 // ---------------- LAGE VOORRAAD ----------------
 // Enkel prijzen die in Beheer als "in gebruik" zijn aangeduid, plus de boekjes,
 // tellen mee. Zo blijft de melding kort en relevant.
-function lowstockList(){
-  const drempel=getDrempel();
-  const out=[];
+// Twee niveaus: 'kritiek' (rood, ≤ drempel) en 'aandacht' (oranje, drempel..drempel2).
+// Enkel prijzen die in Beheer als "in gebruik" zijn aangeduid tellen mee.
+function lowstockLists(){
+  const dK=getDrempel(), dA=getDrempel2();
+  const kritiek=[], aandacht=[];
   const bk=BBInv.getBoekjes();
-  if((bk.stock||0)<=drempel) out.push({naam:'Boekjes',stock:bk.stock||0});
-  BBInv.getPrijzen().forEach(p=>{ if(p.inGebruik&&(p.stock||0)<=drempel) out.push({naam:p.naam,stock:p.stock||0}); });
-  out.sort((a,b)=>(a.stock||0)-(b.stock||0));
-  return out;
+  if((bk.stock||0)<=dK) kritiek.push({naam:'Boekjes',stock:bk.stock||0});
+  BBInv.getPrijzen().forEach(p=>{
+    if(!p.inGebruik) return;
+    const s=p.stock||0;
+    if(s<=dK) kritiek.push({naam:p.naam,stock:s});
+    else if(s<=dA) aandacht.push({naam:p.naam,stock:s});
+  });
+  kritiek.sort((a,b)=>a.stock-b.stock); aandacht.sort((a,b)=>a.stock-b.stock);
+  return {kritiek,aandacht};
+}
+function vatSamen(items,maxN){
+  const namen=items.map(it=>it.naam);
+  let zin=namen.slice(0,maxN).join(', ');
+  if(namen.length>maxN) zin+=' en nog '+(namen.length-maxN)+' andere';
+  return zin;
 }
 function renderLowstock(){
-  const banner=document.getElementById('lowstockBanner');
-  const low=lowstockList();
-  if(!low.length){banner.classList.remove('show');return;}
-  banner.classList.add('show');
-  const namen=low.map(it=>it.naam);
-  const max=8;
-  let zin=namen.slice(0,max).join(', ');
-  if(namen.length>max) zin+=' en nog '+(namen.length-max)+' andere';
-  document.getElementById('lowstockItems').innerHTML=
-    '<b>'+low.length+(low.length===1?' artikel is':' artikelen zijn')+' (bijna) op:</b> '+esc(zin)+'.';
+  const {kritiek,aandacht}=lowstockLists();
+  const red=document.getElementById('lowstockBanner');
+  if(kritiek.length){
+    red.classList.add('show');
+    document.getElementById('lowstockItems').innerHTML=
+      '<b>'+kritiek.length+(kritiek.length===1?' artikel is':' artikelen zijn')+' (bijna) op:</b> '+esc(vatSamen(kritiek,8))+'.';
+  } else red.classList.remove('show');
+  const org=document.getElementById('attentionBanner');
+  if(aandacht.length){
+    org.classList.add('show');
+    document.getElementById('attentionItems').innerHTML=
+      '<b>'+aandacht.length+(aandacht.length===1?' artikel raakt':' artikelen raken')+' laag:</b> '+esc(vatSamen(aandacht,8))+'.';
+  } else org.classList.remove('show');
 }
 document.getElementById('lowstockGoto').onclick=()=>{ renderInventaris(); show('inventaris'); };
+document.getElementById('attentionGoto').onclick=()=>{ renderInventaris(); show('inventaris'); };
 document.getElementById('lowstockMail').onclick=()=>{
-  const low=lowstockList();
-  if(!low.length){alert('Geen prijzen onder de drempel.');return;}
+  const {kritiek}=lowstockLists();
+  if(!kritiek.length){alert('Geen artikelen onder de kritieke drempel.');return;}
   const naar=getBestelMail();
-  const regels=low.map(it=>'- '+it.naam+' (nog '+(it.stock||0)+' op voorraad)').join('\n');
+  const regels=kritiek.map(it=>'- '+it.naam+' (nog '+(it.stock||0)+' op voorraad)').join('\n');
   const body='Hallo,\n\nGraag bijbestellen — de volgende artikelen zijn (bijna) op:\n\n'+regels+'\n\nMet vriendelijke groet';
   const url='mailto:'+encodeURIComponent(naar)+'?subject='+encodeURIComponent('Bestellijst Bazar Bizarre')+'&body='+encodeURIComponent(body);
   window.location.href=url;
@@ -599,6 +649,7 @@ function openSettings(){
   document.getElementById('setInventaris').value=l.inventaris;
   document.getElementById('setManuals').value=l.manuals;
   document.getElementById('setDrempel').value=getDrempel();
+  document.getElementById('setDrempel2').value=getDrempel2();
   document.getElementById('setBestelMail').value=getBestelMail();
   show('instellingen');
 }
@@ -626,7 +677,9 @@ document.getElementById('saveLinks').onclick=()=>{
 };
 document.getElementById('saveLowstock').onclick=()=>{
   const d=parseInt(document.getElementById('setDrempel').value,10);
+  const d2=parseInt(document.getElementById('setDrempel2').value,10);
   localStorage.setItem(K_DREMPEL,isNaN(d)||d<0?DEFAULT_DREMPEL:d);
+  localStorage.setItem(K_DREMPEL2,isNaN(d2)||d2<0?DEFAULT_DREMPEL2:d2);
   localStorage.setItem(K_BESTELMAIL,document.getElementById('setBestelMail').value.trim());
   renderLowstock();
   alert('Opgeslagen. De melding op de homepagina is bijgewerkt.');
@@ -902,13 +955,27 @@ function boekjesStockRow(){
     '<div class="stocknum'+((bk.stock||0)<0?' neg':'')+'">'+(bk.stock||0)+'</div>';
   return row;
 }
+function summaryRow(naam,sub,total,emoji){
+  const row=document.createElement('div'); row.className='invrow sumrow';
+  row.innerHTML='<div class="thumb ph ro">'+emoji+'</div><div class="nm"><div class="t">'+naam+'</div><div class="c">'+sub+'</div></div>'+
+    '<div class="stocknum'+(total<0?' neg':'')+'">'+total+'</div>';
+  return row;
+}
 function renderInvStock(){
   const list=document.getElementById('invList'); list.innerHTML='';
   const q=(document.getElementById('invZoek').value||'').toLowerCase().trim();
-  let pr=BBInv.getPrijzen();
+  const all=BBInv.getPrijzen();
+  let pr=all.slice();
   if(invCat!=='all') pr=pr.filter(p=>p.cat===invCat);
   if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
-  if(invCat==='all'&&!q) list.appendChild(boekjesStockRow());
+  if(invCat==='all'&&!q){
+    const kl=all.filter(p=>p.cat==='klein'), gr=all.filter(p=>p.cat==='groot');
+    const sum=a=>a.reduce((s,p)=>s+(p.stock||0),0);
+    list.appendChild(summaryRow('Boekjes','voorraad',BBInv.getBoekjes().stock||0,'📕'));
+    list.appendChild(summaryRow('Kleine prijzen',kl.length+' soorten',sum(kl),'🎁'));
+    list.appendChild(summaryRow('Grote prijzen',gr.length+' soorten',sum(gr),'🏆'));
+    const div=document.createElement('div'); div.className='invdiv'; list.appendChild(div);
+  }
   pr.sort((a,b)=>a.naam.localeCompare(b.naam));
   pr.forEach(p=>list.appendChild(stockRow(p)));
   if(!pr.length&&!(invCat==='all'&&!q)) list.innerHTML='<div class="empty-note">Geen prijzen gevonden.</div>';
