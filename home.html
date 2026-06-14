@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Entertainment">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<style>
+  /* === Center Parcs vibe: fris, natuurlijk, bosgroen en licht === */
+  :root{
+    --bg:#eef4ea; --bg2:#e2efdf; --panel:#ffffff; --panel2:#f3f8f0; --line:#cfe0c8;
+    --forest:#2f6450; --forest2:#3a7a62; --leaf:#4a9b5e; --leaf-soft:#a9e0a0;
+    --sun:#f5b942; --bark:#7a5a3a; --water:#2f8f9d;
+    --text:#1d2e22; --muted:#5e7363; --white:#ffffff;
+    --serif:"Georgia","Iowan Old Style","Times New Roman",serif;
+    --shadow:0 8px 24px rgba(31,81,53,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  html,body{margin:0;padding:0;color:var(--text);
+    background:
+      radial-gradient(1200px 500px at 15% -8%,rgba(123,192,138,.35),transparent 60%),
+      radial-gradient(900px 500px at 100% 0,rgba(47,143,157,.18),transparent 55%),
+      var(--bg);
+    background-attachment:fixed;
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overscroll-behavior:none;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 70px;}
+
+  /* ---- top bar ---- */
+  .topbar{position:relative;display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:20px;
+    background:linear-gradient(120deg,var(--forest),var(--forest2));box-shadow:var(--shadow);
+    border:1px solid rgba(255,255,255,.15);overflow:hidden;}
+  .topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;
+    background:linear-gradient(90deg,var(--leaf) 0 33%,var(--sun) 33% 66%,var(--water) 66% 100%);}
+  .topbar .logo{height:48px;width:48px;border-radius:12px;display:block;object-fit:cover;
+    background:var(--forest);}
+  .topbar h1{margin:0;font-family:var(--serif);font-size:clamp(18px,3.4vw,26px);
+    letter-spacing:.6px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2);flex:1;}
+  .navbtn{border:none;background:rgba(255,255,255,.2);color:#fff;
+    font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;cursor:pointer;flex:0 0 auto;}
+  .navbtn:active{transform:translateY(1px);}
+  .navbtn.home{display:none;}
+  .navbtn.home.show{display:block;}
+
+  /* ---- mededeling ---- */
+  .mededeling{margin-top:18px;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    background:linear-gradient(120deg,#fffaf0,#fff);position:relative;box-shadow:var(--shadow);}
+  .mededeling::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;
+    background:linear-gradient(180deg,var(--sun),#e89a2b);}
+  .mededeling .inner{padding:16px 18px 16px 24px;}
+  .mededeling .lbl{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b8791a;
+    font-weight:800;}
+  .mededeling .txt{margin-top:8px;font-size:16px;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word;}
+  .mededeling .txt.empty{color:var(--muted);font-style:italic;}
+
+  /* ---- menu ---- */
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px;}
+  @media(max-width:560px){.menu{grid-template-columns:1fr;}}
+  .card{position:relative;border:1px solid var(--line);border-radius:20px;padding:26px 24px;
+    cursor:pointer;overflow:hidden;background:var(--panel);box-shadow:var(--shadow);
+    transition:transform .12s,box-shadow .12s;text-decoration:none;color:inherit;display:block;}
+  .card:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(31,81,53,.18);}
+  .card:active{transform:scale(.985);}
+  .card::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--accent,var(--leaf));}
+  .card .rnd{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .card h2{margin:6px 0 6px;font-family:var(--serif);font-weight:700;font-size:24px;letter-spacing:.2px;color:var(--forest);}
+  .card p{margin:0;color:var(--muted);font-size:14px;line-height:1.45;}
+  .card[data-key="spel"]{--accent:var(--sun);background:linear-gradient(150deg,#fffaf0,#fff);}
+  .card[data-key="inventaris"]{--accent:var(--leaf);}
+  .card[data-key="manuals"]{--accent:var(--water);}
+  .card[data-key="instellingen"]{--accent:var(--bark);}
+
+  /* ---- views ---- */
+  .view{display:none;margin-top:16px;}
+  .view.active{display:block;}
+  .hint{font-size:13px;color:var(--muted);margin:0 2px 16px;line-height:1.45;}
+
+  /* ---- instellingen ---- */
+  .settings{display:grid;gap:18px;max-width:640px;}
+  .field{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);}
+  .field .h{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);
+    font-weight:800;margin-bottom:8px;}
+  .field label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px;}
+  .field input,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:16px;padding:11px 12px;border-radius:12px;outline:none;font-family:inherit;}
+  .field input:focus,.field textarea:focus{border-color:var(--leaf);background:#fff;}
+  .field textarea{min-height:96px;resize:vertical;line-height:1.5;}
+  .btn{border:none;border-radius:12px;padding:11px 16px;font-weight:700;font-size:14px;
+    cursor:pointer;background:var(--panel2);color:var(--forest);border:1px solid var(--line);}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:linear-gradient(120deg,var(--leaf),var(--forest2));border:1px solid var(--forest2);color:#fff;}
+  .btn.clear{background:transparent;color:var(--muted);}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+
+  /* ---- online manuals (mappenstructuur) ---- */
+  .crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 2px 14px;font-size:14px;}
+  .crumbs button{border:none;background:transparent;color:var(--forest2);font-weight:700;font-size:14px;
+    cursor:pointer;padding:4px 6px;border-radius:8px;}
+  .crumbs button:hover{background:var(--panel2);}
+  .crumbs .sep{color:var(--muted);}
+  .filelist{display:grid;gap:10px;}
+  .item{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:12px 14px;cursor:pointer;box-shadow:var(--shadow);
+    transition:transform .1s,box-shadow .1s;text-align:left;}
+  .item:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(31,81,53,.16);}
+  .item .ic{flex:0 0 52px;height:40px;border-radius:10px;display:grid;place-items:center;
+    font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--forest);
+    background:var(--panel2);border:1px solid var(--line);}
+  .item.folder .ic{background:linear-gradient(150deg,#fff4d9,#fde9bd);border-color:#f0d79a;color:#9a6b15;}
+  .item.pdf .ic{background:linear-gradient(150deg,#ffe3e0,#ffd2cd);border-color:#f3b3ab;color:#a23b30;}
+  .item.video .ic{background:linear-gradient(150deg,#dceefc,#c6e2f7);border-color:#a9cdec;color:#1f5d86;}
+  .item.link .ic{background:linear-gradient(150deg,#d9f3e2,#c2ebd0);border-color:#a3d8b6;color:#1f6b43;}
+  .item .info{flex:1;min-width:0;}
+  .item .title{font-weight:700;font-size:16px;color:var(--text);line-height:1.2;}
+  .item .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .item .chev{color:var(--muted);font-size:20px;flex:0 0 auto;}
+  .empty-note{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:18px;
+    color:var(--muted);font-size:14px;line-height:1.5;}
+
+  /* ---- viewer modal ---- */
+  .modal{position:fixed;inset:0;background:rgba(15,30,20,.78);display:none;z-index:50;
+    padding:14px;flex-direction:column;}
+  .modal.open{display:flex;}
+  .modal .mbar{display:flex;align-items:center;gap:12px;margin-bottom:10px;color:#fff;}
+  .modal .mbar .mtitle{flex:1;min-width:0;font-weight:700;font-size:16px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .modal .mbar button{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;
+    font-size:14px;padding:9px 14px;border-radius:10px;cursor:pointer;}
+  .modal .mbody{flex:1;min-height:0;border-radius:14px;overflow:hidden;background:#000;display:grid;}
+  .modal .mbody iframe,.modal .mbody video{width:100%;height:100%;border:0;display:block;background:#000;}
+
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <img class="logo" src="assets/logo-cp.png" alt="Center Parcs">
+    <h1 id="title">Entertainment</h1>
+    <button class="navbtn" id="gearBtn">Instellingen</button>
+    <button class="navbtn home" id="homeBtn">Home</button>
+  </div>
+
+  <!-- HOME -->
+  <div class="view active" id="home">
+    <!-- Mededeling -->
+    <div class="mededeling">
+      <div class="inner">
+        <div class="lbl">Mededeling</div>
+        <div class="txt" id="mededelingTxt"></div>
+      </div>
+    </div>
+
+    <!-- Menu -->
+    <div class="menu">
+      <a class="card" data-key="spel" href="index.html">
+        <div class="rnd">Het spel</div>
+        <h2>Bazar Bizarre</h2>
+        <p>Open de tool om het spel te leiden, met vier rondes en de finale.</p>
+      </a>
+      <a class="card" data-key="inventaris" data-link="inventaris" href="#">
+        <div class="rnd">Beheer</div>
+        <h2>Inventaris lijst BB</h2>
+        <p>Overzicht van de volledige inventaris.</p>
+      </a>
+      <div class="card" data-key="manuals" id="openManuals">
+        <div class="rnd">Naslag</div>
+        <h2>Online manuals</h2>
+        <p>Handleidingen en video's bekijken.</p>
+      </div>
+      <div class="card" data-key="instellingen" id="openSettings">
+        <div class="rnd">Beveiligd</div>
+        <h2>Instellingen</h2>
+        <p>De mededeling en koppelingen beheren met een wachtwoord.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTELLINGEN -->
+  <div class="view" id="instellingen">
+    <p class="hint">Wijzig hier de mededeling op de homepagina en de koppelingen voor Inventaris en Online manuals. Alles wordt automatisch op dit toestel bewaard.</p>
+    <div class="settings">
+      <div class="field">
+        <div class="h">Mededeling op de homepagina</div>
+        <textarea id="setMededeling" placeholder="Typ hier de mededeling die op de home pagina verschijnt"></textarea>
+        <div class="row">
+          <button class="btn primary" id="saveMededeling">Mededeling opslaan</button>
+          <button class="btn clear" id="clearMededeling">Mededeling wissen</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Koppelingen</div>
+        <label for="setInventaris">Link voor de inventaris lijst, bijvoorbeeld een Google Sheet</label>
+        <input type="url" id="setInventaris" placeholder="https://">
+        <label for="setManuals">Link voor de online manuals</label>
+        <input type="url" id="setManuals" placeholder="https://">
+        <div class="row">
+          <button class="btn primary" id="saveLinks">Koppelingen opslaan</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Wachtwoord</div>
+        <div class="row">
+          <button class="btn" id="changePin">Wachtwoord wijzigen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONLINE MANUALS -->
+  <div class="view" id="manuals">
+    <p class="hint">Blader door de handleidingen en video's. Tik een map om te openen, of een bestand om te bekijken.</p>
+    <div class="crumbs" id="crumbs"></div>
+    <div class="filelist" id="filelist"></div>
+  </div>
+
+  <footer>Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.</footer>
+</div>
+
+<!-- VIEWER MODAL -->
+<div class="modal" id="viewer">
+  <div class="mbar">
+    <div class="mtitle" id="viewerTitle"></div>
+    <button id="viewerOpen">Nieuw tabblad</button>
+    <button id="viewerClose">Sluiten</button>
+  </div>
+  <div class="mbody" id="viewerBody"></div>
+</div>
+
+<script>
+// ---------------- STATE ----------------
+const K_MED='bb_home_mededeling';
+const K_LINKS='bb_home_links';
+const K_PIN='bb_home_pin';
+const DEFAULT_PIN='3920';
+
+function getMededeling(){return localStorage.getItem(K_MED)||'';}
+function getLinks(){try{return Object.assign({inventaris:'',manuals:''},JSON.parse(localStorage.getItem(K_LINKS))||{});}catch(e){return{inventaris:'',manuals:''};}}
+function getPin(){return localStorage.getItem(K_PIN)||DEFAULT_PIN;}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ---------------- HOME RENDER ----------------
+function renderHome(){
+  const txt=document.getElementById('mededelingTxt');
+  const m=getMededeling().trim();
+  if(m){txt.textContent=m;txt.classList.remove('empty');}
+  else{txt.textContent='Nog geen mededeling. Voeg er een toe via Instellingen.';txt.classList.add('empty');}
+}
+
+// koppelingskaarten (inventaris)
+document.querySelectorAll('[data-link]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    const url=(getLinks()[a.dataset.link]||'').trim();
+    if(!url){
+      alert('Er is nog geen koppeling ingesteld voor "'+a.querySelector('h2').textContent+'".\n\nVul de link in via Instellingen. Daar is een wachtwoord voor nodig.');
+      return;
+    }
+    window.open(url,'_blank','noopener');
+  });
+});
+
+// ---------------- NAV ----------------
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals'};
+function show(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(view).classList.add('active');
+  document.getElementById('title').textContent=titles[view]||'Entertainment';
+  document.getElementById('homeBtn').classList.toggle('show',view!=='home');
+  window.scrollTo(0,0);
+}
+document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
+
+// ---------------- INSTELLINGEN (wachtwoord) ----------------
+function openSettings(){
+  const p=prompt('Wachtwoord:');
+  if(p===null) return;
+  if(p!==getPin()){alert('Onjuist wachtwoord.');return;}
+  document.getElementById('setMededeling').value=getMededeling();
+  const l=getLinks();
+  document.getElementById('setInventaris').value=l.inventaris;
+  document.getElementById('setManuals').value=l.manuals;
+  show('instellingen');
+}
+document.getElementById('gearBtn').onclick=openSettings;
+document.getElementById('openSettings').onclick=openSettings;
+
+document.getElementById('saveMededeling').onclick=()=>{
+  localStorage.setItem(K_MED,document.getElementById('setMededeling').value);
+  renderHome();
+  alert('Mededeling opgeslagen.');
+};
+document.getElementById('clearMededeling').onclick=()=>{
+  if(!confirm('De mededeling wissen?'))return;
+  localStorage.removeItem(K_MED);
+  document.getElementById('setMededeling').value='';
+  renderHome();
+};
+document.getElementById('saveLinks').onclick=()=>{
+  const links={
+    inventaris:document.getElementById('setInventaris').value.trim(),
+    manuals:document.getElementById('setManuals').value.trim()
+  };
+  localStorage.setItem(K_LINKS,JSON.stringify(links));
+  alert('Koppelingen opgeslagen.');
+};
+document.getElementById('changePin').onclick=()=>{
+  const cur=prompt('Huidig wachtwoord:'); if(cur===null) return;
+  if(cur!==getPin()){alert('Onjuist wachtwoord.');return;}
+  const n=prompt('Nieuw wachtwoord, drie tot acht cijfers:'); if(n===null) return;
+  if(!/^\d{3,8}$/.test(n)){alert('Gebruik drie tot acht cijfers.');return;}
+  localStorage.setItem(K_PIN,n); alert('Wachtwoord gewijzigd.');
+};
+
+// ---------------- ONLINE MANUALS ----------------
+let MANUALS=null;
+let manualsPath=[];
+
+function fileBadge(type){return type==='video'?'FILM':type==='link'?'LINK':'PDF';}
+
+async function loadManuals(){
+  if(MANUALS) return MANUALS;
+  try{
+    const res=await fetch('manuals.json',{cache:'no-store'});
+    if(!res.ok) throw new Error('http '+res.status);
+    MANUALS=await res.json();
+  }catch(e){
+    MANUALS={__error:String(e)};
+  }
+  return MANUALS;
+}
+
+function currentFolder(){
+  let node=MANUALS;
+  for(const seg of manualsPath){
+    const next=(node.folders||[]).find(f=>f.name===seg);
+    if(!next){manualsPath=[];return MANUALS;}
+    node=next;
+  }
+  return node;
+}
+
+function renderCrumbs(){
+  const c=document.getElementById('crumbs'); c.innerHTML='';
+  const make=(label,idx)=>{const b=document.createElement('button');b.textContent=label;
+    b.onclick=()=>{manualsPath=manualsPath.slice(0,idx);renderManuals();};return b;};
+  c.appendChild(make('Manuals',0));
+  manualsPath.forEach((seg,i)=>{
+    const s=document.createElement('span');s.className='sep';s.textContent='›';c.appendChild(s);
+    c.appendChild(make(seg,i+1));
+  });
+}
+
+function renderManuals(){
+  renderCrumbs();
+  const list=document.getElementById('filelist'); list.innerHTML='';
+  if(MANUALS&&MANUALS.__error){
+    list.innerHTML='<div class="empty-note">Kon manuals.json niet laden ('+MANUALS.__error+'). '+
+      'Dit werkt alleen via een webserver, niet door het bestand rechtstreeks te openen. '+
+      'Open de site via Live Server of online.</div>';
+    return;
+  }
+  const node=currentFolder();
+  const folders=node.folders||[];
+  const items=node.items||[];
+  if(!folders.length&&!items.length){
+    list.innerHTML='<div class="empty-note">Deze map is nog leeg. Leg je PDF of video in de map '+
+      'manuals en voeg ze toe in manuals.json.</div>';
+    return;
+  }
+  folders.forEach(f=>{
+    const el=document.createElement('button'); el.className='item folder';
+    const count=(f.folders||[]).length+(f.items||[]).length;
+    el.innerHTML='<div class="ic">MAP</div><div class="info"><div class="title">'+esc(f.name)+
+      '</div><div class="sub">'+count+(count===1?' item':' items')+'</div></div><div class="chev">›</div>';
+    el.onclick=()=>{manualsPath.push(f.name);renderManuals();};
+    list.appendChild(el);
+  });
+  items.forEach(it=>{
+    const el=document.createElement('button'); el.className='item '+(it.type||'pdf');
+    const sub=it.type==='video'?'Video':it.type==='link'?'Externe link':'PDF document';
+    el.innerHTML='<div class="ic">'+fileBadge(it.type)+'</div><div class="info"><div class="title">'+
+      esc(it.title||it.src)+'</div><div class="sub">'+(it.desc?esc(it.desc):sub)+'</div></div><div class="chev">›</div>';
+    el.onclick=()=>openItem(it);
+    list.appendChild(el);
+  });
+}
+
+// ---------------- VIEWER ----------------
+const viewer=document.getElementById('viewer');
+let viewerUrl='';
+function openItem(it){
+  const url=it.src||'';
+  if(it.type==='link'){ window.open(url,'_blank','noopener'); return; }
+  viewerUrl=url;
+  document.getElementById('viewerTitle').textContent=it.title||url;
+  const body=document.getElementById('viewerBody'); body.innerHTML='';
+  if(it.type==='video'){
+    const v=document.createElement('video');
+    v.src=url; v.controls=true; v.autoplay=true; v.playsInline=true;
+    body.appendChild(v);
+  }else{
+    const f=document.createElement('iframe');
+    f.src=url; f.allow='fullscreen';
+    body.appendChild(f);
+  }
+  viewer.classList.add('open');
+}
+function closeViewer(){
+  viewer.classList.remove('open');
+  document.getElementById('viewerBody').innerHTML='';
+}
+document.getElementById('viewerClose').onclick=closeViewer;
+document.getElementById('viewerOpen').onclick=()=>{ if(viewerUrl) window.open(viewerUrl,'_blank','noopener'); };
+viewer.addEventListener('click',e=>{ if(e.target===viewer) closeViewer(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&viewer.classList.contains('open')) closeViewer(); });
+
+document.getElementById('openManuals').onclick=async()=>{
+  show('manuals');
+  document.getElementById('filelist').innerHTML='<div class="empty-note">Laden</div>';
+  await loadManuals();
+  manualsPath=[];
+  renderManuals();
+};
+
+// ---------------- INIT ----------------
+renderHome(); show('home');
+</script>
+</body>
+</html>

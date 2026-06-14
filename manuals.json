@@ -1,0 +1,19 @@
+{
+  "_uitleg": "Mappenstructuur voor Online manuals. Leg je bestanden in de map 'manuals/' en voeg ze hieronder toe. 'type' is 'pdf', 'video' of 'link'. 'src' is het bestandspad (bv. manuals/handleiding.pdf) of een URL bij type 'link'. Mappen mogen genest worden via 'folders'.",
+  "folders": [
+    {
+      "name": "Bazar Bizarre",
+      "items": [
+        { "title": "Spelregels (voorbeeld)", "type": "pdf", "src": "manuals/bazar-bizarre/spelregels.pdf", "desc": "Volledige spelregels" },
+        { "title": "Uitleg video (voorbeeld)", "type": "video", "src": "manuals/bazar-bizarre/uitleg.mp4" }
+      ]
+    },
+    {
+      "name": "Algemeen",
+      "items": [
+        { "title": "Welkomstgids (voorbeeld link)", "type": "link", "src": "https://www.example.com" }
+      ]
+    }
+  ],
+  "items": []
+}
