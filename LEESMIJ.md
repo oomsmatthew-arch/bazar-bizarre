@@ -28,15 +28,20 @@ Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na slui
 
 ## Mappenstructuur
 
-**Website (gaat online):**
-- `index.html` — de app zelf
+**Website (gaat online) — hoofdmap:**
+- `home.html` — de landingspagina (Entertainment / Center Parcs)
+- `index.html` — de spelleider-app zelf
 - `manifest.json` — maakt de app installeerbaar
 - `sw.js` — laat de app offline werken
-- `icon-192.png`, `icon-512.png` — het app-icoon
-- `Logo_kleine_tekst.png` — logo bovenaan de app
-- `deals/` — de 30 deal-plaatjes (Ronde 1)
+- `manuals.json` — inhoudsopgave voor "Online manuals"
 
-Deze bestanden moeten **samen in de hoofdmap** blijven staan, anders breekt de site.
+**Mappen die online gaan:**
+- `assets/` — alle afbeeldingen/iconen: `logo-cp.png`, `logo-cp-full.png`,
+  `Logo_kleine_tekst.png`, `icon-192.png`, `icon-512.png`
+- `deals/` — de 30 deal-plaatjes (Ronde 1)
+- `manuals/` — PDF's/video's voor "Online manuals" (zie `manuals/LEESMIJ.md`)
+
+De bestanden in de hoofdmap moeten **in de hoofdmap** blijven staan, anders breekt de site.
 
 **`_bron/` (werkmateriaal — blijft lokaal, gaat NIET online):**
 - `_process.ps1` — script dat de deal-plaatjes bijsnijdt en roteert
