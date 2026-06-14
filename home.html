@@ -173,6 +173,9 @@
   .invrow .stk input{width:60px;height:36px;text-align:center;border:1px solid var(--line);border-left:0;border-right:0;
     background:#fff;color:var(--text);font-size:16px;font-weight:800;outline:none;}
   .invrow .stk input.neg{color:#c0392b;}
+  .thumb.ro{cursor:default;}
+  .stocknum{flex:0 0 auto;min-width:54px;text-align:right;font-weight:800;font-size:18px;color:var(--forest);}
+  .stocknum.neg{color:#c0392b;}
   .invrow .del{flex:0 0 auto;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:800;
     border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:15px;}
   .addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;background:var(--panel);
@@ -261,6 +264,27 @@
       </div>
 
       <div class="field">
+        <div class="h">Inventaris — exporteren</div>
+        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of kopieer rechtstreeks naar Google Sheets / Excel.</p>
+        <div class="row">
+          <button class="btn primary" id="expStockCsv">⬇ Stock (CSV)</button>
+          <button class="btn" id="copyStock">📋 Stock kopiëren</button>
+          <button class="btn" id="expFormCsv">⬇ Formulieren (CSV)</button>
+          <button class="btn" id="expLevCsv">⬇ Leveringen (CSV)</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="h">Inventaris — importeren (stock)</div>
+        <p class="hint" style="margin:0 0 10px;">CSV met kolommen <b>Categorie, Naam, Stock</b>. Bestaande prijzen worden bijgewerkt op naam; nieuwe worden toegevoegd.</p>
+        <input type="file" id="impFile" accept=".csv,text/csv">
+      </div>
+      <div class="field">
+        <div class="h">Inventaris — alles terugzetten</div>
+        <p class="hint" style="margin:0 0 10px;">Zet de volledige inventaris terug naar de oorspronkelijke Excel-lijst. Stock en eigen toevoegingen gaan verloren.</p>
+        <div class="row"><button class="btn" id="invReset">Inventaris herstellen naar startlijst</button></div>
+      </div>
+
+      <div class="field">
         <div class="h">Wachtwoord</div>
         <div class="row">
           <button class="btn" id="changePin">Wachtwoord wijzigen</button>
@@ -280,14 +304,14 @@
   <div class="view" id="inventaris">
     <p class="hint">Beheer hier je voorraad. Het formulier in Bazar Bizarre boekt automatisch af; hier registreer je leveringen, voeg je artikelen toe en bekijk je de inzendingen.</p>
     <div class="invtabs">
-      <button class="invtab active" data-tab="leveringen">Leveringen</button>
-      <button class="invtab" data-tab="stock">Stock</button>
+      <button class="invtab active" data-tab="stock">Stock</button>
       <button class="invtab" data-tab="formulieren">Formulieren</button>
-      <button class="invtab" data-tab="data">Import / Export</button>
+      <button class="invtab" data-tab="beheer">🔒 Beheer</button>
     </div>
 
-    <!-- STOCK -->
-    <div class="invpane" id="pane-stock">
+    <!-- STOCK (overzicht, alleen-lezen) -->
+    <div class="invpane active" id="pane-stock">
+      <p class="hint" style="margin:0 2px 12px;">Actuele voorraad. Verandert automatisch door leveringen en doorgestuurde formulieren. Aanpassen doe je onder <b>🔒 Beheer</b>.</p>
       <div class="invsum" id="invSum"></div>
       <input type="text" id="invZoek" class="finp zoek" placeholder="Zoek een prijs…">
       <div class="invfilter">
@@ -296,21 +320,10 @@
         <button class="chip" data-cat="groot">Grote</button>
       </div>
       <div class="invlist" id="invList"></div>
-      <div class="addrow">
-        <select id="invNewCat">
-          <option value="klein">Kleine prijs</option>
-          <option value="groot">Grote prijs</option>
-        </select>
-        <input type="text" id="invNewNaam" class="nm" placeholder="Naam nieuwe prijs">
-        <input type="number" id="invNewStock" style="width:90px" placeholder="stock" value="0">
-        <button class="btn" id="invAddFoto">📷 Foto</button>
-        <img id="invAddFotoPrev" class="thumb" alt="" style="display:none">
-        <button class="btn primary" id="invAdd">Toevoegen</button>
-      </div>
     </div>
 
-    <!-- LEVERINGEN -->
-    <div class="invpane active" id="pane-leveringen">
+    <!-- BEHEER (wachtwoord) -->
+    <div class="invpane" id="pane-beheer">
       <div class="field">
         <div class="h">Nieuwe levering registreren</div>
         <label for="levDatum">Datum</label>
@@ -326,6 +339,24 @@
         <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
       </div>
       <div id="levList"></div>
+
+      <div class="field" style="margin-top:18px;">
+        <div class="h">Prijs toevoegen</div>
+        <div class="addrow">
+          <select id="invNewCat">
+            <option value="klein">Kleine prijs</option>
+            <option value="groot">Grote prijs</option>
+          </select>
+          <input type="text" id="invNewNaam" class="nm" placeholder="Naam nieuwe prijs">
+          <input type="number" id="invNewStock" style="width:90px" placeholder="aantal" value="0">
+          <button class="btn" id="invAddFoto">📷 Foto</button>
+          <img id="invAddFotoPrev" class="thumb" alt="" style="display:none">
+          <button class="btn primary" id="invAdd">Toevoegen</button>
+        </div>
+      </div>
+      <div class="h" style="margin:0 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Prijzen &amp; hoeveelheden</div>
+      <input type="text" id="beheerZoek" class="finp zoek" placeholder="Zoek een prijs om te bewerken…">
+      <div class="invlist" id="beheerList"></div>
     </div>
 
     <!-- FORMULIEREN -->
@@ -334,29 +365,6 @@
       <div id="formList"></div>
     </div>
 
-    <!-- IMPORT / EXPORT -->
-    <div class="invpane" id="pane-data">
-      <div class="field">
-        <div class="h">Exporteren</div>
-        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of kopieer rechtstreeks naar Google Sheets / Excel.</p>
-        <div class="row">
-          <button class="btn primary" id="expStockCsv">⬇ Stock (CSV)</button>
-          <button class="btn" id="copyStock">📋 Stock kopiëren</button>
-          <button class="btn" id="expFormCsv">⬇ Formulieren (CSV)</button>
-          <button class="btn" id="expLevCsv">⬇ Leveringen (CSV)</button>
-        </div>
-      </div>
-      <div class="field">
-        <div class="h">Importeren (stock)</div>
-        <p class="hint" style="margin:0 0 10px;">CSV met kolommen <b>Categorie, Naam, Stock</b>. Bestaande prijzen worden bijgewerkt op naam; nieuwe worden toegevoegd.</p>
-        <input type="file" id="impFile" accept=".csv,text/csv">
-      </div>
-      <div class="field">
-        <div class="h">Alles terugzetten</div>
-        <p class="hint" style="margin:0 0 10px;">Zet de volledige inventaris terug naar de oorspronkelijke Excel-lijst. Stock en eigen toevoegingen gaan verloren.</p>
-        <div class="row"><button class="btn" id="invReset">Inventaris herstellen naar startlijst</button></div>
-      </div>
-    </div>
   </div>
 
   <footer>Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.</footer>
@@ -577,14 +585,24 @@ let invCat='all';
 
 document.getElementById('openInventaris').onclick=()=>{ renderInventaris(); show('inventaris'); };
 
-// tabs
+// tabs (Beheer is met wachtwoord beveiligd zodat niet iedereen kan wijzigen)
+let invUnlocked=false;
 document.querySelectorAll('.invtab').forEach(b=>{
   b.onclick=()=>{
+    const t=b.dataset.tab;
+    if(t==='beheer'&&!invUnlocked){
+      const p=prompt('Wachtwoord voor beheer:');
+      if(p===null) return;
+      if(p!==getPin()){alert('Onjuist wachtwoord.');return;}
+      invUnlocked=true;
+    }
     document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
-    const t=b.dataset.tab;
     document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
     document.getElementById('pane-'+t).classList.add('active');
+    if(t==='stock'){renderInvSum();renderInvStock();}
+    else if(t==='formulieren') renderFormulieren();
+    else if(t==='beheer') renderBeheer();
   };
 });
 // filters + zoek
@@ -593,8 +611,9 @@ document.querySelectorAll('.chip').forEach(c=>{
     c.classList.add('active');invCat=c.dataset.cat;renderInvStock();};
 });
 document.getElementById('invZoek').oninput=renderInvStock;
+document.getElementById('beheerZoek').oninput=renderBeheerList;
 
-function renderInventaris(){ renderInvSum(); renderInvStock(); renderLevPrijsOpties(); renderLeveringen(); renderFormulieren(); }
+function renderInventaris(){ renderInvSum(); renderInvStock(); renderFormulieren(); }
 
 function renderInvSum(){
   const pr=BBInv.getPrijzen(), bk=BBInv.getBoekjes();
@@ -632,9 +651,9 @@ function prijsRow(p){
   tw.querySelector('.thumb').onclick=()=>pickFoto(url=>{
     if(!url){alert('Kon de foto niet verwerken.');return;}
     if(!BBInv.setFoto(p.id,url)){alert('Onvoldoende opslagruimte om de foto te bewaren. Gebruik kleinere of minder foto’s.');return;}
-    renderInvStock();
+    renderBeheerList();
   });
-  if(p.foto) tw.querySelector('.thumbx').onclick=e=>{e.stopPropagation();if(confirm('Foto verwijderen?')){BBInv.setFoto(p.id,'');renderInvStock();}};
+  if(p.foto) tw.querySelector('.thumbx').onclick=e=>{e.stopPropagation();if(confirm('Foto verwijderen?')){BBInv.setFoto(p.id,'');renderBeheerList();}};
   row.prepend(tw);
   const inp=row.querySelector('.stk input');
   const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
@@ -643,7 +662,7 @@ function prijsRow(p){
   row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
   inp.onchange=()=>commit(+inp.value||0);
   inp.classList.toggle('neg',(p.stock||0)<0);
-  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderInvStock();renderInvSum();renderLevPrijsOpties();}};
+  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();renderLevPrijsOpties();}};
   return row;
 }
 function boekjesRow(){
@@ -660,16 +679,42 @@ function boekjesRow(){
   inp.classList.toggle('neg',(bk.stock||0)<0);
   return row;
 }
+// STOCK-overzicht (alleen-lezen, toont de actuele gesynchroniseerde voorraad)
+function stockRow(p){
+  const row=document.createElement('div'); row.className='invrow';
+  row.innerHTML=(p.foto?'<img class="thumb ro" src="'+p.foto+'" alt="">':'<div class="thumb ph ro">📷</div>')+
+    '<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
+    '<div class="stocknum'+((p.stock||0)<0?' neg':'')+'">'+(p.stock||0)+'</div>';
+  return row;
+}
+function boekjesStockRow(){
+  const bk=BBInv.getBoekjes();
+  const row=document.createElement('div'); row.className='invrow';
+  row.innerHTML='<div class="thumb ph ro">📕</div><div class="nm"><div class="t">Boekjes</div><div class="c">voorraad</div></div>'+
+    '<div class="stocknum'+((bk.stock||0)<0?' neg':'')+'">'+(bk.stock||0)+'</div>';
+  return row;
+}
 function renderInvStock(){
   const list=document.getElementById('invList'); list.innerHTML='';
   const q=(document.getElementById('invZoek').value||'').toLowerCase().trim();
   let pr=BBInv.getPrijzen();
   if(invCat!=='all') pr=pr.filter(p=>p.cat===invCat);
   if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
-  if(invCat==='all'&&!q) list.appendChild(boekjesRow());
+  if(invCat==='all'&&!q) list.appendChild(boekjesStockRow());
+  pr.sort((a,b)=>a.naam.localeCompare(b.naam));
+  pr.forEach(p=>list.appendChild(stockRow(p)));
+  if(!pr.length&&!(invCat==='all'&&!q)) list.innerHTML='<div class="empty-note">Geen prijzen gevonden.</div>';
+}
+// BEHEER (bewerkbaar)
+function renderBeheer(){ renderLevPrijsOpties(); renderLeveringen(); renderBeheerList(); }
+function renderBeheerList(){
+  const list=document.getElementById('beheerList'); list.innerHTML='';
+  const q=(document.getElementById('beheerZoek').value||'').toLowerCase().trim();
+  if(!q) list.appendChild(boekjesRow());
+  let pr=BBInv.getPrijzen();
+  if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
   pr.sort((a,b)=>a.naam.localeCompare(b.naam));
   pr.forEach(p=>list.appendChild(prijsRow(p)));
-  if(!pr.length&&!(invCat==='all'&&!q)) list.innerHTML='<div class="empty-note">Geen prijzen gevonden.</div>';
 }
 let invAddFoto='';
 document.getElementById('invAddFoto').onclick=()=>pickFoto(url=>{
@@ -686,7 +731,7 @@ document.getElementById('invAdd').onclick=()=>{
   if(rec===null){alert('Onvoldoende opslagruimte om (de foto van) deze prijs te bewaren. Gebruik kleinere of minder foto’s.');return;}
   document.getElementById('invNewNaam').value=''; document.getElementById('invNewStock').value='0';
   invAddFoto=''; const prev=document.getElementById('invAddFotoPrev'); prev.src=''; prev.style.display='none';
-  renderInvStock(); renderInvSum(); renderLevPrijsOpties();
+  renderBeheerList(); renderInvSum(); renderLevPrijsOpties();
 };
 
 // ---- Leveringen ----

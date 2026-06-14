@@ -1,5 +1,5 @@
 // Eenvoudige service worker: maakt de app installeerbaar en offline-bruikbaar.
-const CACHE = 'bazar-bizarre-v10';
+const CACHE = 'bazar-bizarre-v11';
 const ASSETS = ['./','./index.html','./home.html','./manifest.json',
   './inventaris-data.js','./inventaris.js','./assets/icon-192.png','./assets/icon-512.png'];
 
