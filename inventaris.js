@@ -75,6 +75,31 @@
     return rec;
   }
   function removePrijs(id){setPrijzen(getPrijzen().filter(p=>p.id!==id));}
+  // Markeer of een prijs effectief gebruikt wordt. Enkel "in gebruik"-prijzen
+  // tellen mee voor de lage-voorraad melding en de bestellijst.
+  function setGebruik(id,val){
+    const pr=getPrijzen();const p=pr.find(x=>x.id===id);if(!p)return;
+    p.inGebruik=!!val;setPrijzen(pr);
+  }
+
+  // Laatste doorgestuurde formulier ongedaan maken: zet de afgeboekte stock
+  // (prijzen + boekjes) terug en verwijder de inzending. Geeft de inzending terug,
+  // of null als er geen formulier is. (Het spel-archief wordt apart hersteld in index.html.)
+  function undoLastFormulier(){
+    const forms=getFormulieren();
+    if(!forms.length) return null;
+    const rec=forms.pop();
+    const prijzen=getPrijzen(), byId={};
+    prijzen.forEach(p=>byId[p.id]=p);
+    const credit=arr=>(arr||[]).forEach(it=>{const p=byId[it.id]; if(p) p.stock=(p.stock||0)+(+it.n||0);});
+    credit(rec.kleine); credit(rec.groot);
+    setPrijzen(prijzen);
+    const b=rec.boekjes||{};
+    const used=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
+    const bk=getBoekjes(); bk.stock=(bk.stock||0)+used; setBoekjes(bk);
+    setFormulieren(forms);
+    return rec;
+  }
   // Foto (data-URL) bij een prijs zetten of wissen. Geeft false terug als de opslag vol zit.
   function setFoto(id,dataUrl){
     const pr=getPrijzen();const p=pr.find(x=>x.id===id);if(!p)return false;
@@ -84,6 +109,6 @@
 
   window.BBInv={seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
-    submitFormulier,addLevering,addPrijs,removePrijs,setFoto,uid};
+    submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,undoLastFormulier,uid};
   seedIfEmpty();
 })();
