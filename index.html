@@ -760,6 +760,8 @@ function renderKiesLijst(cat){
   const zoekEl=document.getElementById(cat==='klein'?'fKleinZoek':'fGrootZoek');
   const q=(zoekEl.value||'').toLowerCase().trim();
   let items=BBInv.getPrijzen().filter(p=>p.cat===cat&&(!q||p.naam.toLowerCase().includes(q)));
+  // enkel 'in gebruik' + voorraad>0; reeds gekozen prijzen blijven altijd zichtbaar
+  items=items.filter(p=>(p.inGebruik&&(p.stock||0)>0) || fSel[cat][p.id]);
   const f=fFilter[cat];
   if(f==='gekozen') items=items.filter(p=>fSel[cat][p.id]);
   if(f==='vaakst') items=items.slice().sort((a,b)=>(fUsage[b.id]||0)-(fUsage[a.id]||0)||a.naam.localeCompare(b.naam));
