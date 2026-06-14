@@ -153,7 +153,9 @@
   .chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
     padding:6px 14px;border-radius:999px;cursor:pointer;}
   .chip.active{background:var(--forest);color:#fff;border-color:var(--forest);}
-  .invlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:8px;margin-top:6px;}
+  .invlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:8px;margin-top:6px;}
+  /* beheerlijst heeft meer knoppen per rij → bredere kolommen zodat de naam niet wordt samengeknepen */
+  #beheerList{grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));}
   .invrow.span{grid-column:1/-1;}
   .invrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);}
