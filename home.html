@@ -153,7 +153,8 @@
   .chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
     padding:6px 14px;border-radius:999px;cursor:pointer;}
   .chip.active{background:var(--forest);color:#fff;border-color:var(--forest);}
-  .invlist{display:grid;gap:8px;margin-top:6px;}
+  .invlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:8px;margin-top:6px;}
+  .invrow.span{grid-column:1/-1;}
   .invrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);}
   .thumbwrap{position:relative;flex:0 0 auto;}
@@ -264,27 +265,6 @@
       </div>
 
       <div class="field">
-        <div class="h">Inventaris — exporteren</div>
-        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of kopieer rechtstreeks naar Google Sheets / Excel.</p>
-        <div class="row">
-          <button class="btn primary" id="expStockCsv">⬇ Stock (CSV)</button>
-          <button class="btn" id="copyStock">📋 Stock kopiëren</button>
-          <button class="btn" id="expFormCsv">⬇ Formulieren (CSV)</button>
-          <button class="btn" id="expLevCsv">⬇ Leveringen (CSV)</button>
-        </div>
-      </div>
-      <div class="field">
-        <div class="h">Inventaris — importeren (stock)</div>
-        <p class="hint" style="margin:0 0 10px;">CSV met kolommen <b>Categorie, Naam, Stock</b>. Bestaande prijzen worden bijgewerkt op naam; nieuwe worden toegevoegd.</p>
-        <input type="file" id="impFile" accept=".csv,text/csv">
-      </div>
-      <div class="field">
-        <div class="h">Inventaris — alles terugzetten</div>
-        <p class="hint" style="margin:0 0 10px;">Zet de volledige inventaris terug naar de oorspronkelijke Excel-lijst. Stock en eigen toevoegingen gaan verloren.</p>
-        <div class="row"><button class="btn" id="invReset">Inventaris herstellen naar startlijst</button></div>
-      </div>
-
-      <div class="field">
         <div class="h">Wachtwoord</div>
         <div class="row">
           <button class="btn" id="changePin">Wachtwoord wijzigen</button>
@@ -330,10 +310,6 @@
         <input type="date" id="levDatum" class="finp">
         <label for="levBoekjes">Boekjes geleverd (komt bij de boekjes-voorraad)</label>
         <input type="number" id="levBoekjes" class="finp" min="0" value="0">
-        <label for="levPrijs">Prijs bijvullen (optioneel)</label>
-        <select id="levPrijs" class="finp"></select>
-        <label for="levAantal">Aantal van die prijs</label>
-        <input type="number" id="levAantal" class="finp" min="0" value="0">
         <label for="levTekst">Notitie (optioneel)</label>
         <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
         <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
@@ -357,6 +333,27 @@
       <div class="h" style="margin:0 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Prijzen &amp; hoeveelheden</div>
       <input type="text" id="beheerZoek" class="finp zoek" placeholder="Zoek een prijs om te bewerken…">
       <div class="invlist" id="beheerList"></div>
+
+      <div class="field" style="margin-top:18px;">
+        <div class="h">Exporteren</div>
+        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of kopieer rechtstreeks naar Google Sheets / Excel.</p>
+        <div class="row">
+          <button class="btn primary" id="expStockCsv">⬇ Stock (CSV)</button>
+          <button class="btn" id="copyStock">📋 Stock kopiëren</button>
+          <button class="btn" id="expFormCsv">⬇ Formulieren (CSV)</button>
+          <button class="btn" id="expLevCsv">⬇ Leveringen (CSV)</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="h">Importeren (stock)</div>
+        <p class="hint" style="margin:0 0 10px;">CSV met kolommen <b>Categorie, Naam, Stock</b>. Bestaande prijzen worden bijgewerkt op naam; nieuwe worden toegevoegd.</p>
+        <input type="file" id="impFile" accept=".csv,text/csv">
+      </div>
+      <div class="field">
+        <div class="h">Alles terugzetten</div>
+        <p class="hint" style="margin:0 0 10px;">Zet de volledige inventaris terug naar de oorspronkelijke Excel-lijst. Stock en eigen toevoegingen gaan verloren.</p>
+        <div class="row"><button class="btn" id="invReset">Inventaris herstellen naar startlijst</button></div>
+      </div>
     </div>
 
     <!-- FORMULIEREN -->
@@ -662,12 +659,12 @@ function prijsRow(p){
   row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
   inp.onchange=()=>commit(+inp.value||0);
   inp.classList.toggle('neg',(p.stock||0)<0);
-  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();renderLevPrijsOpties();}};
+  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();}};
   return row;
 }
 function boekjesRow(){
   const bk=BBInv.getBoekjes();
-  const row=document.createElement('div'); row.className='invrow';
+  const row=document.createElement('div'); row.className='invrow span';
   row.innerHTML='<div class="nm"><div class="t">Boekjes</div><div class="c">voorraad</div></div>'+
     '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(bk.stock||0)+'"><button type="button" class="pl">+</button></div>'+
     '<span style="width:36px;flex:0 0 auto;"></span>';
@@ -689,7 +686,7 @@ function stockRow(p){
 }
 function boekjesStockRow(){
   const bk=BBInv.getBoekjes();
-  const row=document.createElement('div'); row.className='invrow';
+  const row=document.createElement('div'); row.className='invrow span';
   row.innerHTML='<div class="thumb ph ro">📕</div><div class="nm"><div class="t">Boekjes</div><div class="c">voorraad</div></div>'+
     '<div class="stocknum'+((bk.stock||0)<0?' neg':'')+'">'+(bk.stock||0)+'</div>';
   return row;
@@ -706,7 +703,7 @@ function renderInvStock(){
   if(!pr.length&&!(invCat==='all'&&!q)) list.innerHTML='<div class="empty-note">Geen prijzen gevonden.</div>';
 }
 // BEHEER (bewerkbaar)
-function renderBeheer(){ renderLevPrijsOpties(); renderLeveringen(); renderBeheerList(); }
+function renderBeheer(){ renderLeveringen(); renderBeheerList(); }
 function renderBeheerList(){
   const list=document.getElementById('beheerList'); list.innerHTML='';
   const q=(document.getElementById('beheerZoek').value||'').toLowerCase().trim();
@@ -731,30 +728,19 @@ document.getElementById('invAdd').onclick=()=>{
   if(rec===null){alert('Onvoldoende opslagruimte om (de foto van) deze prijs te bewaren. Gebruik kleinere of minder foto’s.');return;}
   document.getElementById('invNewNaam').value=''; document.getElementById('invNewStock').value='0';
   invAddFoto=''; const prev=document.getElementById('invAddFotoPrev'); prev.src=''; prev.style.display='none';
-  renderBeheerList(); renderInvSum(); renderLevPrijsOpties();
+  renderBeheerList(); renderInvSum();
 };
 
 // ---- Leveringen ----
-function renderLevPrijsOpties(){
-  const sel=document.getElementById('levPrijs'); const pr=BBInv.getPrijzen();
-  const opt=(p)=>'<option value="'+p.id+'">'+esc(p.naam)+'</option>';
-  const k=pr.filter(p=>p.cat==='klein').sort((a,b)=>a.naam.localeCompare(b.naam));
-  const g=pr.filter(p=>p.cat==='groot').sort((a,b)=>a.naam.localeCompare(b.naam));
-  sel.innerHTML='<option value="">— geen prijs bijvullen —</option>'+
-    '<optgroup label="Grote prijzen">'+g.map(opt).join('')+'</optgroup>'+
-    '<optgroup label="Kleine prijzen">'+k.map(opt).join('')+'</optgroup>';
-}
 document.getElementById('levAdd').onclick=()=>{
   const datum=document.getElementById('levDatum').value;
   const boekjes=+document.getElementById('levBoekjes').value||0;
-  const prijsId=document.getElementById('levPrijs').value;
-  const prijsAantal=+document.getElementById('levAantal').value||0;
   const tekst=document.getElementById('levTekst').value.trim();
-  if(!boekjes&&!(prijsId&&prijsAantal)&&!tekst){alert('Vul minstens boekjes, een prijs+aantal, of een notitie in.');return;}
-  BBInv.addLevering({datum,boekjes,prijsId,prijsAantal,tekst});
-  document.getElementById('levBoekjes').value='0';document.getElementById('levAantal').value='0';
-  document.getElementById('levTekst').value='';document.getElementById('levPrijs').value='';
-  renderInvSum();renderInvStock();renderLeveringen();
+  if(!boekjes&&!tekst){alert('Vul minstens boekjes of een notitie in.');return;}
+  BBInv.addLevering({datum,boekjes,tekst});
+  document.getElementById('levBoekjes').value='0';
+  document.getElementById('levTekst').value='';
+  renderInvSum();renderLeveringen();
   alert('Levering geregistreerd.');
 };
 function renderLeveringen(){
