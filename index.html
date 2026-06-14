@@ -263,6 +263,7 @@
   <div class="topbar">
     <img class="logo" src="assets/Logo_kleine_tekst.png" alt="Bazar Bizarre">
     <h1 id="title">Bazar Bizarre</h1>
+    <button class="gear" id="naarHome" title="Naar startpagina" aria-label="Naar startpagina">🏠</button>
     <button class="gear" id="adminBtn" title="Beheer" aria-label="Beheer">⚙</button>
     <button class="home" id="homeBtn">‹ Menu</button>
   </div>
@@ -767,6 +768,7 @@ function openAdmin(){
   renderAdmin(); show('admin');
 }
 document.getElementById('adminBtn').onclick=openAdmin;
+document.getElementById('naarHome').onclick=()=>{ location.href='home.html'; };
 
 function changePin(){
   const cur=prompt('Huidige pincode:'); if(cur===null) return;
