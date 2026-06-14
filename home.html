@@ -181,7 +181,7 @@
   .stocknum.neg{color:#c0392b;}
   .invrow .del{flex:0 0 auto;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:800;
     border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:15px;}
-  .invrow .use{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--muted);
+  .invrow .use{flex:0 0 auto;border:1px solid #e2b6b0;background:#fdecea;color:#a23b30;
     font-weight:800;border-radius:10px;height:36px;padding:0 10px;cursor:pointer;font-size:12px;white-space:nowrap;}
   .invrow .use.on{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
   .addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;background:var(--panel);
@@ -837,7 +837,7 @@ function fileToThumb(file,cb){
 function prijsRow(p){
   const row=document.createElement('div'); row.className='invrow';
   row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
-    '<button type="button" class="use'+(p.inGebruik?' on':'')+'" title="Tellen voor de lage-voorraad melding?">'+(p.inGebruik?'✓ In gebruik':'In gebruik')+'</button>'+
+    '<button type="button" class="use'+(p.inGebruik?' on':'')+'" title="Tellen voor de lage-voorraad melding?">'+(p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik')+'</button>'+
     '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(p.stock||0)+'"><button type="button" class="pl">+</button></div>'+
     '<button type="button" class="del" title="Verwijderen">✕</button>';
   // foto-thumbnail vooraan
@@ -862,7 +862,7 @@ function prijsRow(p){
     p.inGebruik=!p.inGebruik;
     BBInv.setGebruik(p.id,p.inGebruik);
     useBtn.classList.toggle('on',p.inGebruik);
-    useBtn.textContent=p.inGebruik?'✓ In gebruik':'In gebruik';
+    useBtn.textContent=p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik';
     if(beheerOnlyUse) renderBeheerList();
   };
   row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();}};
