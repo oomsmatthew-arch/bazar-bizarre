@@ -236,6 +236,9 @@
   .statcard .v{font-size:26px;font-weight:800;color:var(--forest);font-family:var(--serif);line-height:1.1;}
   .statcard .l{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
   .statcard.neg .v{color:#c0392b;}
+  .statcard.red .v{color:#c0392b;}
+  .statcard.orange .v{color:#b8791a;}
+  .statcard.grey .v{color:var(--muted);}
   /* Beheer: statistiek + voorraad-waarschuwingen naast elkaar */
   .beheertop{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
   @media(max-width:720px){.beheertop{grid-template-columns:1fr;}}
@@ -402,7 +405,7 @@
     <div class="invpane" id="pane-beheer">
       <div class="beheertop">
         <div class="field">
-          <div class="h">Statistiek</div>
+          <div class="h">Voorraad-gezondheid</div>
           <div class="statgrid" id="statGrid"></div>
           <div class="statlist" id="statTop"></div>
         </div>
@@ -991,29 +994,19 @@ function renderBeheer(){
 }
 
 // ---- Statistiek ----
+// Voorraad-gezondheid: enkel prijzen die 'in gebruik' zijn, in disjuncte groepen.
 function renderStats(){
-  const forms=BBInv.getFormulieren();
-  const now=new Date(), mJaar=now.getFullYear(), mMaand=now.getMonth();
-  let dezeMaand=0, boekjesTot=0, prijzenTot=0;
-  const perPrijs={};
-  forms.forEach(f=>{
-    const d=new Date(f.ts);
-    if(d.getFullYear()===mJaar&&d.getMonth()===mMaand) dezeMaand++;
-    const b=f.boekjes||{}; boekjesTot+=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
-    [].concat(f.kleine||[],f.groot||[]).forEach(x=>{
-      const n=+x.n||0; prijzenTot+=n;
-      if(x.naam) perPrijs[x.naam]=(perPrijs[x.naam]||0)+n;
-    });
-  });
-  const card=(v,l)=>'<div class="statcard"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
+  const pr=BBInv.getPrijzen().filter(p=>p.inGebruik);
+  const dK=getDrempel(), dA=getDrempel2();
+  let uit=0,bijna=0,aandacht=0;
+  pr.forEach(p=>{const s=p.stock||0; if(s<=0)uit++; else if(s<=dK)bijna++; else if(s<=dA)aandacht++;});
+  const card=(v,l,cls)=>'<div class="statcard'+(cls?' '+cls:'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
   document.getElementById('statGrid').innerHTML=
-    card(forms.length,'Spellen totaal')+card(dezeMaand,'Spellen deze maand')+
-    card(prijzenTot,'Prijzen weggegeven')+card(boekjesTot,'Boekjes weggegeven');
-  const top=Object.keys(perPrijs).map(n=>({naam:n,n:perPrijs[n]})).sort((a,b)=>b.n-a.n).slice(0,5);
-  const el=document.getElementById('statTop');
-  if(!top.length){el.innerHTML='<span class="hint">Nog geen weggegeven prijzen om te tonen.</span>';return;}
-  el.innerHTML='<b>Snelst opgaande prijzen:</b><br>'+
-    top.map((t,i)=>(i+1)+'. '+esc(t.naam)+' — <b>'+t.n+'×</b>').join('<br>');
+    card(pr.length,'In gebruik')+
+    card(bijna,'🔴 Bijna op (≤'+dK+')','red')+
+    card(aandacht,'🟠 Aandacht ('+(dK+1)+'–'+dA+')','orange')+
+    card(uit,'⚫ Uitverkocht (0)','grey');
+  const el=document.getElementById('statTop'); if(el) el.innerHTML='';
 }
 let beheerOnlyUse=false;
 let beheerCat='all';
