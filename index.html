@@ -113,6 +113,7 @@
     border-radius:9px;padding:9px 11px;cursor:pointer;user-select:none;}
   .kiesrij:hover{background:var(--panel2);}
   .kiesrij.aan{border-color:var(--ok);background:rgba(52,210,123,.13);}
+  .kiesrij .kfoto{width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid var(--line);flex:0 0 auto;}
   .kiesrij .knaam{flex:1;min-width:0;font-weight:700;font-size:15px;display:flex;flex-direction:column;gap:2px;}
   .kiesrij .kstock{font-size:11px;font-weight:600;color:var(--muted);}
   .qstep{display:flex;align-items:center;flex:0 0 auto;}
@@ -713,7 +714,7 @@ function renderKiesLijst(cat){
   items.forEach(p=>{
     const sel=fSel[cat][p.id];
     const row=document.createElement('div'); row.className='kiesrij'+(sel?' aan':'');
-    row.innerHTML='<div class="knaam">'+esc(p.naam)+'<span class="kstock">stock '+(p.stock||0)+(sel?' · '+sel+' weg':'')+'</span></div>';
+    row.innerHTML=(p.foto?'<img class="kfoto" src="'+p.foto+'" alt="">':'')+'<div class="knaam">'+esc(p.naam)+'<span class="kstock">stock '+(p.stock||0)+(sel?' · '+sel+' weg':'')+'</span></div>';
     if(sel){
       const st=document.createElement('div'); st.className='qstep';
       st.innerHTML='<button type="button" class="qmin">−</button><span class="qn">'+sel+'</span><button type="button" class="qpl">+</button>';

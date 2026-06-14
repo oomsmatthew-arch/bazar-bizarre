@@ -68,14 +68,22 @@
     return rec;
   }
 
-  function addPrijs(cat,naam,stock){
-    const pr=getPrijzen();const rec={id:uid(),cat:cat==='groot'?'groot':'klein',naam:naam||'',stock:+stock||0};
-    pr.push(rec);setPrijzen(pr);return rec;
+  function addPrijs(cat,naam,stock,foto){
+    const pr=getPrijzen();const rec={id:uid(),cat:cat==='groot'?'groot':'klein',naam:naam||'',stock:+stock||0,foto:foto||''};
+    pr.push(rec);
+    try{localStorage.setItem(K_PR,JSON.stringify(pr));}catch(e){return null;} // null = opslag vol
+    return rec;
   }
   function removePrijs(id){setPrijzen(getPrijzen().filter(p=>p.id!==id));}
+  // Foto (data-URL) bij een prijs zetten of wissen. Geeft false terug als de opslag vol zit.
+  function setFoto(id,dataUrl){
+    const pr=getPrijzen();const p=pr.find(x=>x.id===id);if(!p)return false;
+    p.foto=dataUrl||'';
+    try{localStorage.setItem(K_PR,JSON.stringify(pr));return true;}catch(e){return false;}
+  }
 
   window.BBInv={seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
-    submitFormulier,addLevering,addPrijs,removePrijs,uid};
+    submitFormulier,addLevering,addPrijs,removePrijs,setFoto,uid};
   seedIfEmpty();
 })();

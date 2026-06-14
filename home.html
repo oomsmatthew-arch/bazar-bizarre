@@ -156,6 +156,13 @@
   .invlist{display:grid;gap:8px;margin-top:6px;}
   .invrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);}
+  .thumbwrap{position:relative;flex:0 0 auto;}
+  .thumb{width:46px;height:46px;border-radius:10px;object-fit:cover;border:1px solid var(--line);
+    display:block;background:var(--panel2);cursor:pointer;}
+  .thumb.ph{display:grid;place-items:center;font-size:20px;color:var(--muted);}
+  .thumbx{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;
+    background:#a23b30;color:#fff;font-size:11px;font-weight:800;cursor:pointer;line-height:1;
+    display:grid;place-items:center;box-shadow:var(--shadow);}
   .invrow .nm{flex:1;min-width:0;}
   .invrow .nm .t{font-weight:700;font-size:15px;color:var(--text);}
   .invrow .nm .c{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
@@ -273,14 +280,14 @@
   <div class="view" id="inventaris">
     <p class="hint">Beheer hier je voorraad. Het formulier in Bazar Bizarre boekt automatisch af; hier registreer je leveringen, voeg je artikelen toe en bekijk je de inzendingen.</p>
     <div class="invtabs">
-      <button class="invtab active" data-tab="stock">Stock</button>
-      <button class="invtab" data-tab="leveringen">Leveringen</button>
+      <button class="invtab active" data-tab="leveringen">Leveringen</button>
+      <button class="invtab" data-tab="stock">Stock</button>
       <button class="invtab" data-tab="formulieren">Formulieren</button>
       <button class="invtab" data-tab="data">Import / Export</button>
     </div>
 
     <!-- STOCK -->
-    <div class="invpane active" id="pane-stock">
+    <div class="invpane" id="pane-stock">
       <div class="invsum" id="invSum"></div>
       <input type="text" id="invZoek" class="finp zoek" placeholder="Zoek een prijs…">
       <div class="invfilter">
@@ -296,12 +303,14 @@
         </select>
         <input type="text" id="invNewNaam" class="nm" placeholder="Naam nieuwe prijs">
         <input type="number" id="invNewStock" style="width:90px" placeholder="stock" value="0">
+        <button class="btn" id="invAddFoto">📷 Foto</button>
+        <img id="invAddFotoPrev" class="thumb" alt="" style="display:none">
         <button class="btn primary" id="invAdd">Toevoegen</button>
       </div>
     </div>
 
     <!-- LEVERINGEN -->
-    <div class="invpane" id="pane-leveringen">
+    <div class="invpane active" id="pane-leveringen">
       <div class="field">
         <div class="h">Nieuwe levering registreren</div>
         <label for="levDatum">Datum</label>
@@ -595,12 +604,39 @@ function renderInvSum(){
     pill('Boekjes',(bk.stock||0),(bk.stock||0)<0)+pill('Kleine prijzen',k+' soorten')+pill('Grote prijzen',g+' soorten');
 }
 
+// Foto kiezen + verkleinen tot een kleine thumbnail (bespaart opslagruimte)
+function pickFoto(cb){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=()=>{const f=inp.files&&inp.files[0]; if(f) fileToThumb(f,cb);};
+  inp.click();
+}
+function fileToThumb(file,cb){
+  const r=new FileReader();
+  r.onload=()=>{const img=new Image();
+    img.onload=()=>{const max=200;let w=img.width,h=img.height;
+      if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      try{cb(c.toDataURL('image/jpeg',0.62));}catch(e){cb(null);}};
+    img.onerror=()=>cb(null); img.src=r.result;};
+  r.onerror=()=>cb(null); r.readAsDataURL(file);
+}
 function prijsRow(p){
   const row=document.createElement('div'); row.className='invrow';
   row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
     '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(p.stock||0)+'"><button type="button" class="pl">+</button></div>'+
     '<button type="button" class="del" title="Verwijderen">✕</button>';
-  const inp=row.querySelector('input');
+  // foto-thumbnail vooraan
+  const tw=document.createElement('div'); tw.className='thumbwrap';
+  tw.innerHTML=p.foto?('<img class="thumb" src="'+p.foto+'" alt=""><button type="button" class="thumbx" title="Foto verwijderen">✕</button>'):'<div class="thumb ph">📷</div>';
+  tw.querySelector('.thumb').onclick=()=>pickFoto(url=>{
+    if(!url){alert('Kon de foto niet verwerken.');return;}
+    if(!BBInv.setFoto(p.id,url)){alert('Onvoldoende opslagruimte om de foto te bewaren. Gebruik kleinere of minder foto’s.');return;}
+    renderInvStock();
+  });
+  if(p.foto) tw.querySelector('.thumbx').onclick=e=>{e.stopPropagation();if(confirm('Foto verwijderen?')){BBInv.setFoto(p.id,'');renderInvStock();}};
+  row.prepend(tw);
+  const inp=row.querySelector('.stk input');
   const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
     if(t){t.stock=v;BBInv.setPrijzen(pr);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();};
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
@@ -635,13 +671,21 @@ function renderInvStock(){
   pr.forEach(p=>list.appendChild(prijsRow(p)));
   if(!pr.length&&!(invCat==='all'&&!q)) list.innerHTML='<div class="empty-note">Geen prijzen gevonden.</div>';
 }
+let invAddFoto='';
+document.getElementById('invAddFoto').onclick=()=>pickFoto(url=>{
+  if(!url){alert('Kon de foto niet verwerken.');return;}
+  invAddFoto=url;
+  const prev=document.getElementById('invAddFotoPrev'); prev.src=url; prev.style.display='block';
+});
 document.getElementById('invAdd').onclick=()=>{
   const naam=document.getElementById('invNewNaam').value.trim();
   const cat=document.getElementById('invNewCat').value;
   const stock=+document.getElementById('invNewStock').value||0;
   if(!naam){alert('Geef eerst een naam in.');return;}
-  BBInv.addPrijs(cat,naam,stock);
+  const rec=BBInv.addPrijs(cat,naam,stock,invAddFoto);
+  if(rec===null){alert('Onvoldoende opslagruimte om (de foto van) deze prijs te bewaren. Gebruik kleinere of minder foto’s.');return;}
   document.getElementById('invNewNaam').value=''; document.getElementById('invNewStock').value='0';
+  invAddFoto=''; const prev=document.getElementById('invAddFotoPrev'); prev.src=''; prev.style.display='none';
   renderInvStock(); renderInvSum(); renderLevPrijsOpties();
 };
 
