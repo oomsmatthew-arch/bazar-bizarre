@@ -149,10 +149,10 @@
     font-size:13px;font-weight:700;color:var(--forest);box-shadow:var(--shadow);}
   .invsum .pill b{color:var(--leaf);}
   .invsum .pill.neg b{color:#c0392b;}
-  .invfilter{display:flex;gap:8px;margin:10px 2px;}
-  .chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
+  .invfilter{display:flex;gap:8px;margin:10px 2px;flex-wrap:wrap;}
+  .chip,.bchip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
     padding:6px 14px;border-radius:999px;cursor:pointer;}
-  .chip.active{background:var(--forest);color:#fff;border-color:var(--forest);}
+  .chip.active,.bchip.active{background:var(--forest);color:#fff;border-color:var(--forest);}
   .invlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:8px;margin-top:6px;}
   /* beheerlijst heeft meer knoppen per rij → bredere kolommen zodat de naam niet wordt samengeknepen */
   #beheerList{grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));}
@@ -421,7 +421,12 @@
       </div>
       <div class="h" style="margin:0 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Prijzen &amp; hoeveelheden</div>
       <input type="text" id="beheerZoek" class="finp zoek" placeholder="Zoek een prijs om te bewerken…">
-      <div class="invfilter"><button class="chip" id="beheerUseFilter">★ Alleen 'in gebruik'</button></div>
+      <div class="invfilter">
+        <button class="chip" id="beheerUseFilter">★ Alleen 'in gebruik'</button>
+        <button class="bchip active" data-bcat="all">Alle</button>
+        <button class="bchip" data-bcat="klein">Kleine</button>
+        <button class="bchip" data-bcat="groot">Grote</button>
+      </div>
       <div class="invlist" id="beheerList"></div>
 
       <div class="field" style="margin-top:18px;">
@@ -965,22 +970,28 @@ function renderStats(){
     top.map((t,i)=>(i+1)+'. '+esc(t.naam)+' — <b>'+t.n+'×</b>').join('<br>');
 }
 let beheerOnlyUse=false;
+let beheerCat='all';
 function renderBeheerList(){
   const list=document.getElementById('beheerList'); list.innerHTML='';
   const q=(document.getElementById('beheerZoek').value||'').toLowerCase().trim();
-  if(!q&&!beheerOnlyUse) list.appendChild(boekjesRow());
+  if(!q&&!beheerOnlyUse&&beheerCat==='all') list.appendChild(boekjesRow());
   let pr=BBInv.getPrijzen();
+  if(beheerCat!=='all') pr=pr.filter(p=>p.cat===beheerCat);
   if(beheerOnlyUse) pr=pr.filter(p=>p.inGebruik);
   if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
   pr.sort((a,b)=>a.naam.localeCompare(b.naam));
   pr.forEach(p=>list.appendChild(prijsRow(p)));
-  if(!pr.length&&(q||beheerOnlyUse)) list.innerHTML='<div class="empty-note">'+(beheerOnlyUse?'Nog geen prijzen als ‘in gebruik’ aangeduid. Tik bij een prijs op “In gebruik”.':'Geen prijzen gevonden.')+'</div>';
+  if(!pr.length&&(q||beheerOnlyUse||beheerCat!=='all')) list.innerHTML='<div class="empty-note">'+(beheerOnlyUse?'Nog geen prijzen als ‘in gebruik’ aangeduid. Tik bij een prijs op “In gebruik”.':'Geen prijzen gevonden.')+'</div>';
 }
 document.getElementById('beheerUseFilter').onclick=function(){
   beheerOnlyUse=!beheerOnlyUse;
   this.classList.toggle('active',beheerOnlyUse);
   renderBeheerList();
 };
+document.querySelectorAll('.bchip').forEach(c=>{
+  c.onclick=()=>{document.querySelectorAll('.bchip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');beheerCat=c.dataset.bcat;renderBeheerList();};
+});
 let invAddFoto='';
 document.getElementById('invAddFoto').onclick=()=>pickFoto(url=>{
   if(!url){alert('Kon de foto niet verwerken.');return;}
