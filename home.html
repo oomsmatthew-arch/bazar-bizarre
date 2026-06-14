@@ -563,6 +563,8 @@ function show(view){
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
+  // Instellingen-knop verbergen in de inventaris (daar hoort beheer thuis, niet de algemene instellingen)
+  document.getElementById('gearBtn').style.display = (view==='inventaris') ? 'none' : '';
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
