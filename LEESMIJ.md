@@ -26,6 +26,25 @@ Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na slui
   - **⬇ Download CSV** — een bestand met alle spellen, klaar om te importeren.
 - Dit vormt de basis voor de latere koppeling met Google Sheets/Forms voor de inventaris.
 
+## Inventaris & formulier (insourced)
+
+De inventaris zit volledig in de app zelf — geen Google of server nodig. `home.html`
+(Inventaris) en `index.html` (het spel) draaien op hetzelfde domein en **delen daardoor
+dezelfde opslag** op het toestel.
+
+- **Formulier** (in Bazar Bizarre): de knop **"Spel afsluiten"** opent een formulier waar
+  je de weggegeven kleine/grote prijzen aanklikt (met zoek + aantal), boekjes invult,
+  finale en opmerkingen. **Doorsturen** boekt alles af van de voorraad én sluit het spel af.
+- **Inventaris-beheer** (in home, kaart "Inventaris lijst BB"), met tabbladen:
+  - **Stock** — voorraad per prijs en boekjes aanpassen, prijzen toevoegen/verwijderen.
+  - **Leveringen** — geleverde boekjes/prijzen registreren → voorraad omhoog.
+  - **Formulieren** — alle doorgestuurde inzendingen bekijken.
+  - **Import / Export** — CSV exporteren, kopiëren voor Sheets/Excel, of CSV importeren.
+- De startlijst komt uit `inventaris-data.js` (gegenereerd uit `_bron/CGT - Inventaris.xlsx`,
+  119 kleine + 61 grote prijzen + boekjes). De gedeelde logica staat in `inventaris.js`.
+- Let op: de gegevens leven **op dat toestel**. Gebruik Export/Import om te back-uppen of
+  over te zetten naar een ander toestel.
+
 ## Mappenstructuur
 
 **Website (gaat online) — hoofdmap:**
