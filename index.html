@@ -396,7 +396,7 @@
 
   <!-- FORMULIER (spel afsluiten → inventaris) -->
   <div class="view" id="formulier">
-    <p class="hint">Vul in wat je dit spel hebt weggegeven. Bij <b>Doorsturen</b> wordt dit van de inventaris-stock afgeboekt en het spel afgesloten.</p>
+    <p class="hint">Automatisch overgenomen uit het controleblad (prijzen + turven) — pas aan waar nodig. Bij <b>Doorsturen</b> wordt dit van de inventaris-stock afgeboekt en het spel afgesloten.</p>
 
     <div class="formblok">
       <label class="flbl" for="fNamen">Datum &amp; naam medewerker(s)</label>
@@ -802,7 +802,19 @@ function renderFormulier(){
   document.getElementById('fNamenLijst').innerHTML=recente.map(n=>'<option value="'+esc(n)+'">').join('');
   document.getElementById('fFinale').value='';
   document.getElementById('fOpm').value='';
-  ['fBkRes','fBkExtra','fBkGratis'].forEach(id=>document.getElementById(id).value='0');
+  // --- overnemen vanuit het controleblad (vorige pagina) ---
+  // 8 prijzen → voorselectie in de keuzelijsten (op naam → juiste categorie)
+  const _inv=(window.BBInv?BBInv.getPrijzen():[]);
+  (state.prijzen||[]).forEach(naam=>{
+    const n=(naam||'').trim(); if(!n) return;
+    const p=_inv.find(x=>x.naam.toLowerCase()===n.toLowerCase());
+    if(p) fSel[p.cat][p.id]=(fSel[p.cat][p.id]||0)+1;
+  });
+  // turven → boekjes (Reserved → gereserveerd, Extra Sale → extra, 3+1 → gratis)
+  const _cc=kw=>{const i=CONTROLE.findIndex(c=>c.toLowerCase().includes(kw));return i>=0?(state.controle[i]||0):0;};
+  document.getElementById('fBkRes').value=_cc('reserved');
+  document.getElementById('fBkExtra').value=_cc('extra');
+  document.getElementById('fBkGratis').value=_cc('3+1');
   document.getElementById('fKleinZoek').value=''; document.getElementById('fGrootZoek').value='';
   renderKiesLijst('klein'); renderKiesLijst('groot'); updateTel('klein'); updateTel('groot');
 }
