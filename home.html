@@ -195,6 +195,14 @@
   .subrec .meta{font-size:12px;color:var(--muted);margin-bottom:8px;}
   .subrec .pr{font-size:13px;color:var(--text);line-height:1.6;}
   .subrec .pr b{color:var(--forest);}
+  .subrec .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
+  .subrec .fc{background:var(--panel2);border:1px solid var(--line);border-radius:999px;
+    padding:4px 12px;font-size:13px;font-weight:800;color:var(--forest);}
+  .subrec .fc.bk{color:#b8791a;border-color:#f0d29a;background:#fff8ec;}
+  .subrec .blk{font-size:13px;line-height:1.5;margin-bottom:6px;color:var(--text);
+    display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;}
+  .subrec .bl{flex:0 0 auto;min-width:104px;font-weight:800;color:var(--forest);
+    text-transform:uppercase;font-size:11px;letter-spacing:.5px;}
   .subrec .rm{margin-top:10px;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:700;border-radius:10px;
     padding:7px 11px;cursor:pointer;font-size:13px;}
 
@@ -427,7 +435,6 @@
         <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
         <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
       </div>
-      <div id="levList"></div>
 
       <div class="field" style="margin-top:18px;">
         <div class="h">Prijs toevoegen</div>
@@ -1090,7 +1097,8 @@ document.getElementById('levAdd').onclick=()=>{
   alert('Levering geregistreerd.');
 };
 function renderLeveringen(){
-  const wrap=document.getElementById('levList'); const levs=BBInv.getLeveringen().slice().sort((a,b)=>b.ts-a.ts);
+  const wrap=document.getElementById('levList'); if(!wrap) return; // lijst niet meer zichtbaar in Beheer
+  const levs=BBInv.getLeveringen().slice().sort((a,b)=>b.ts-a.ts);
   wrap.innerHTML='';
   if(!levs.length){wrap.innerHTML='<p class="hint">Nog geen leveringen geregistreerd.</p>';return;}
   levs.forEach(l=>{
@@ -1114,15 +1122,23 @@ function renderFormulieren(){
   if(!forms.length){wrap.innerHTML='<p class="hint">Nog geen formulieren. Sluit een spel af in Bazar Bizarre en stuur het door.</p>';return;}
   forms.forEach(f=>{
     const pl=arr=>(arr||[]).map(x=>esc(x.naam)+(x.n>1?(' ×'+x.n):'')).join(', ')||'—';
+    const aantal=arr=>(arr||[]).reduce((s,x)=>s+(+x.n||1),0);
     const b=f.boekjes||{};
+    const nK=aantal(f.kleine), nG=aantal(f.groot);
+    const bkTot=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
     const d=document.createElement('div'); d.className='subrec';
     d.innerHTML='<h4>'+(f.namen?esc(f.namen):'Zonder naam')+'</h4>'+
       '<div class="meta">'+bbFmtTs(f.ts)+'</div>'+
-      '<div class="pr"><b>Kleine prijzen:</b> '+pl(f.kleine)+'<br>'+
-      '<b>Grote prijzen:</b> '+pl(f.groot)+'<br>'+
-      '<b>Boekjes:</b> '+(b.gereserveerd||0)+' gereserveerd · '+(b.extra||0)+' extra · '+(b.gratis||0)+' gratis'+
-      (f.finale?('<br><b>Finale:</b> '+esc(f.finale)):'')+
-      (f.opmerking?('<br><b>Opmerking:</b> '+esc(f.opmerking)):'')+'</div>'+
+      '<div class="chips">'+
+        '<span class="fc">🎁 '+nK+' kleine</span>'+
+        '<span class="fc">🏆 '+nG+' grote</span>'+
+        '<span class="fc bk">📕 '+bkTot+' boekjes</span>'+
+      '</div>'+
+      '<div class="blk"><span class="bl">Kleine prijzen</span><span>'+pl(f.kleine)+'</span></div>'+
+      '<div class="blk"><span class="bl">Grote prijzen</span><span>'+pl(f.groot)+'</span></div>'+
+      '<div class="blk"><span class="bl">Boekjes</span><span><b>'+bkTot+'</b> totaal — '+(b.gereserveerd||0)+' gereserveerd · '+(b.extra||0)+' extra · '+(b.gratis||0)+' gratis</span></div>'+
+      (f.finale?('<div class="blk"><span class="bl">Finale</span><span>'+esc(f.finale)+'</span></div>'):'')+
+      (f.opmerking?('<div class="blk"><span class="bl">Opmerking</span><span>'+esc(f.opmerking)+'</span></div>'):'')+
       '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
     d.querySelector('.rm').onclick=()=>{if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
     wrap.appendChild(d);
