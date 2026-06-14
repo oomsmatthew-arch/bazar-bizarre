@@ -581,12 +581,19 @@ function renderControle(){
   });
   const tot=document.querySelector('[data-total="controle"]');
   if(tot) tot.textContent=state.controle.reduce((a,b)=>a+(b||0),0);
+  // keuzelijst met de beschikbare inventaris-prijzen (typen om te filteren of kiezen)
+  let dl=document.getElementById('prijslijst');
+  if(!dl){ dl=document.createElement('datalist'); dl.id='prijslijst'; document.body.appendChild(dl); }
+  const namen=(window.BBInv?BBInv.getPrijzen():[]).map(x=>x.naam)
+    .filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  dl.innerHTML=namen.map(n=>'<option value="'+esc(n).replace(/"/g,'&quot;')+'"></option>').join('');
   const p=document.querySelector('[data-grid="prijzen"]'); p.innerHTML='';
   for(let i=0;i<8;i++){
     const row=document.createElement('div'); row.className='prijs';
     row.innerHTML=`<span class="pn">${i+1}</span>`;
     const inp=document.createElement('input');
-    inp.type='text'; inp.placeholder='Welke prijs…'; inp.value=state.prijzen[i]||'';
+    inp.type='text'; inp.placeholder='Kies of typ een prijs…'; inp.value=state.prijzen[i]||'';
+    inp.setAttribute('list','prijslijst');
     inp.oninput=e=>{state.prijzen[i]=e.target.value;save();};
     row.appendChild(inp); p.appendChild(row);
   }
