@@ -96,6 +96,36 @@
   .game .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
   .game .acts .del{color:#f0a3ad;border-color:var(--red);background:transparent;}
 
+  /* ---- formulier (spel afsluiten) ---- */
+  .formblok{margin:0 2px 18px;}
+  .flbl{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);
+    font-weight:700;margin-bottom:7px;display:block;}
+  .finp{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:16px;padding:11px 12px;border-radius:10px;outline:none;font-family:inherit;}
+  .finp:focus{border-color:var(--gold);}
+  textarea.finp{min-height:80px;resize:vertical;line-height:1.4;}
+  .finp.zoek{margin-bottom:8px;}
+  .telpil{display:inline-block;background:var(--gold);color:#1a1a1a;font-weight:800;font-size:13px;
+    border-radius:999px;padding:1px 10px;margin-left:6px;}
+  .kieslijst{max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;
+    background:var(--bg);padding:6px;display:grid;gap:6px;}
+  .kiesrij{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+    border-radius:9px;padding:9px 11px;cursor:pointer;user-select:none;}
+  .kiesrij:hover{background:var(--panel2);}
+  .kiesrij.aan{border-color:var(--ok);background:rgba(52,210,123,.13);}
+  .kiesrij .knaam{flex:1;min-width:0;font-weight:700;font-size:15px;display:flex;flex-direction:column;gap:2px;}
+  .kiesrij .kstock{font-size:11px;font-weight:600;color:var(--muted);}
+  .qstep{display:flex;align-items:center;flex:0 0 auto;}
+  .qstep button{width:34px;height:34px;border:1px solid var(--line);background:var(--panel2);color:#fff;
+    font-size:20px;font-weight:800;cursor:pointer;line-height:1;}
+  .qstep .qmin{border-radius:8px 0 0 8px;}
+  .qstep .qpl{border-radius:0 8px 8px 0;}
+  .qstep .qn{min-width:34px;height:34px;display:grid;place-items:center;font-weight:800;
+    background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .boekjesgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  @media(max-width:560px){.boekjesgrid{grid-template-columns:1fr;}}
+  .boekjesgrid label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:5px;}
+
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
   .view.active{display:block;}
@@ -351,6 +381,51 @@
     </div>
   </div>
 
+  <!-- FORMULIER (spel afsluiten → inventaris) -->
+  <div class="view" id="formulier">
+    <p class="hint">Vul in wat je dit spel hebt weggegeven. Bij <b>Doorsturen</b> wordt dit van de inventaris-stock afgeboekt en het spel afgesloten.</p>
+
+    <div class="formblok">
+      <label class="flbl" for="fNamen">Naam medewerker(s)</label>
+      <input type="text" id="fNamen" class="finp" placeholder="Naam &amp; voornaam">
+    </div>
+
+    <div class="formblok">
+      <div class="flbl">Kleine prijzen weggegeven <span id="fKleinTel" class="telpil">0</span></div>
+      <input type="text" id="fKleinZoek" class="finp zoek" placeholder="Zoek een kleine prijs…">
+      <div class="kieslijst" id="fKleinLijst"></div>
+    </div>
+
+    <div class="formblok">
+      <div class="flbl">Grote prijzen weggegeven <span id="fGrootTel" class="telpil">0</span></div>
+      <input type="text" id="fGrootZoek" class="finp zoek" placeholder="Zoek een grote prijs…">
+      <div class="kieslijst" id="fGrootLijst"></div>
+    </div>
+
+    <div class="formblok">
+      <div class="flbl">Boekjes</div>
+      <div class="boekjesgrid">
+        <label>Gereserveerd<input type="number" id="fBkRes" class="finp" min="0" value="0"></label>
+        <label>Extra verkocht (podium)<input type="number" id="fBkExtra" class="finp" min="0" value="0"></label>
+        <label>Gratis uitgedeeld (3+1)<input type="number" id="fBkGratis" class="finp" min="0" value="0"></label>
+      </div>
+    </div>
+
+    <div class="formblok">
+      <label class="flbl" for="fFinale">Finalereeks</label>
+      <input type="text" id="fFinale" class="finp" placeholder="Welke finalereeks…">
+    </div>
+    <div class="formblok">
+      <label class="flbl" for="fOpm">Opmerkingen</label>
+      <textarea id="fOpm" class="finp" placeholder="Opmerkingen richting de FM's of Lien…"></textarea>
+    </div>
+
+    <div class="bar" style="margin-top:8px;gap:10px;">
+      <button class="finishbtn" id="fDoorsturen" style="flex:1;min-width:200px;">✓ Doorsturen &amp; spel afsluiten</button>
+      <button class="btn clear" id="fAnnuleer">Annuleren</button>
+    </div>
+  </div>
+
   <!-- ADMIN / ARCHIEF -->
   <div class="view" id="admin">
     <p class="hint">Alle afgesloten spellen. Exporteer ze als CSV-bestand of kopieer ze rechtstreeks naar Google Sheets voor je inventaris.</p>
@@ -366,6 +441,8 @@
   <footer>Bazar Bizarre · spelleider-tool · wijzigingen worden automatisch bewaard</footer>
 </div>
 
+<script src="inventaris-data.js"></script>
+<script src="inventaris.js"></script>
 <script>
 // ---------------- DATA ----------------
 // Controle lijst — woorden om te turven (− / +). Vul hier aan met de volledige lijst.
@@ -547,7 +624,8 @@ function updateAll(){
 // ---------------- NAV ----------------
 const titles={menu:"Bazar Bizarre",controle:"Controle lijst",superdeals:"Ronde 1 · Super Deals",
   trolley:"Ronde 2 · Trolley Tunes",howmuch:"Ronde 3 · How Much?",
-  coins:"Ronde 4 · Crazy Coins",finale:"Finalespel",admin:"Beheer · Archief"};
+  coins:"Ronde 4 · Crazy Coins",finale:"Finalespel",admin:"Beheer · Archief",
+  formulier:"Spel afsluiten · Formulier"};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
@@ -616,14 +694,69 @@ function snapshotGame(label){
 }
 
 // "Spel afsluiten & opslaan": archiveer + maak schoon voor volgend spel
-document.getElementById('afsluitSpel').onclick=()=>{
-  const label=prompt('Naam van dit spel?','');
-  if(label===null) return; // geannuleerd
-  const games=loadGames(); games.push(snapshotGame(label.trim())); saveGames(games);
+document.getElementById('afsluitSpel').onclick=()=>{ renderFormulier(); show('formulier'); };
+
+// ---- FORMULIER: keuzelijsten + doorsturen naar inventaris ----
+let fSel={klein:{},groot:{}}; // id -> aantal
+function updateTel(cat){
+  const ids=Object.keys(fSel[cat]); const total=ids.reduce((a,id)=>a+fSel[cat][id],0);
+  document.getElementById(cat==='klein'?'fKleinTel':'fGrootTel').textContent=total;
+}
+function renderKiesLijst(cat){
+  const lijstEl=document.getElementById(cat==='klein'?'fKleinLijst':'fGrootLijst');
+  const zoekEl=document.getElementById(cat==='klein'?'fKleinZoek':'fGrootZoek');
+  const q=(zoekEl.value||'').toLowerCase().trim();
+  const items=BBInv.getPrijzen().filter(p=>p.cat===cat&&(!q||p.naam.toLowerCase().includes(q)));
+  lijstEl.innerHTML='';
+  if(!items.length){lijstEl.innerHTML='<div class="kstock" style="padding:10px;">Geen prijzen gevonden.</div>';return;}
+  items.forEach(p=>{
+    const sel=fSel[cat][p.id];
+    const row=document.createElement('div'); row.className='kiesrij'+(sel?' aan':'');
+    row.innerHTML='<div class="knaam">'+esc(p.naam)+'<span class="kstock">stock '+(p.stock||0)+(sel?' · '+sel+' weg':'')+'</span></div>';
+    if(sel){
+      const st=document.createElement('div'); st.className='qstep';
+      st.innerHTML='<button type="button" class="qmin">−</button><span class="qn">'+sel+'</span><button type="button" class="qpl">+</button>';
+      st.querySelector('.qmin').onclick=e=>{e.stopPropagation();
+        if(sel<=1){delete fSel[cat][p.id];}else{fSel[cat][p.id]=sel-1;}
+        renderKiesLijst(cat);updateTel(cat);};
+      st.querySelector('.qpl').onclick=e=>{e.stopPropagation();fSel[cat][p.id]=sel+1;renderKiesLijst(cat);updateTel(cat);};
+      row.appendChild(st);
+    }
+    row.onclick=()=>{ if(fSel[cat][p.id])delete fSel[cat][p.id]; else fSel[cat][p.id]=1; renderKiesLijst(cat); updateTel(cat); };
+    lijstEl.appendChild(row);
+  });
+}
+function renderFormulier(){
+  fSel={klein:{},groot:{}};
+  document.getElementById('fNamen').value='';
+  document.getElementById('fFinale').value='';
+  document.getElementById('fOpm').value='';
+  ['fBkRes','fBkExtra','fBkGratis'].forEach(id=>document.getElementById(id).value='0');
+  document.getElementById('fKleinZoek').value=''; document.getElementById('fGrootZoek').value='';
+  renderKiesLijst('klein'); renderKiesLijst('groot'); updateTel('klein'); updateTel('groot');
+}
+document.getElementById('fKleinZoek').oninput=()=>renderKiesLijst('klein');
+document.getElementById('fGrootZoek').oninput=()=>renderKiesLijst('groot');
+document.getElementById('fAnnuleer').onclick=()=>show('menu');
+document.getElementById('fDoorsturen').onclick=()=>{
+  const kleine=Object.keys(fSel.klein).map(id=>({id,n:fSel.klein[id]}));
+  const groot=Object.keys(fSel.groot).map(id=>({id,n:fSel.groot[id]}));
+  const namen=document.getElementById('fNamen').value.trim();
+  const aantalKlein=kleine.reduce((a,x)=>a+x.n,0), aantalGroot=groot.reduce((a,x)=>a+x.n,0);
+  if(!confirm('Doorsturen naar de inventaris en spel afsluiten?\n\n'+aantalKlein+' kleine en '+aantalGroot+' grote prijzen worden van de stock afgeboekt.\nDaarna wordt het spel afgesloten en alles schoongezet voor het volgende spel.'))return;
+  const f={namen,kleine,groot,
+    boekjes:{gereserveerd:+document.getElementById('fBkRes').value||0,
+      extra:+document.getElementById('fBkExtra').value||0,
+      gratis:+document.getElementById('fBkGratis').value||0},
+    finale:document.getElementById('fFinale').value.trim(),
+    opmerking:document.getElementById('fOpm').value.trim()};
+  BBInv.submitFormulier(f);
+  // archiveer ook de spel-sessie (bestaande spel-archief met turven/finale)
+  const games=loadGames(); games.push(snapshotGame(namen)); saveGames(games);
   try{localStorage.setItem(KEYBACKUP,JSON.stringify({ts:Date.now(),data:state}));}catch(e){}
-  state=freshState();
-  save();renderAll();updateAll();updateRestoreBtn();
-  alert('Spel opgeslagen in het archief'+(label.trim()?(' ("'+label.trim()+'")'):'')+'.\nAlles staat klaar voor het volgende spel.');
+  state=freshState(); save(); renderAll(); updateAll(); updateRestoreBtn();
+  show('menu');
+  alert('Doorgestuurd naar de inventaris en spel afgesloten.\nAlles staat klaar voor het volgende spel.');
 };
 
 // admin openen met pincode

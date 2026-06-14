@@ -134,6 +134,54 @@
   .modal .mbody{flex:1;min-height:0;border-radius:14px;overflow:hidden;background:#000;display:grid;}
   .modal .mbody iframe,.modal .mbody video{width:100%;height:100%;border:0;display:block;background:#000;}
 
+  /* ---- inventaris ---- */
+  .finp{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:16px;
+    padding:11px 12px;border-radius:12px;outline:none;font-family:inherit;}
+  .finp:focus{border-color:var(--leaf);background:#fff;}
+  .finp.zoek{margin:0 0 10px;}
+  .invtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 16px;}
+  .invtab{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;
+    font-size:14px;padding:9px 14px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow);}
+  .invtab.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  .invpane{display:none;} .invpane.active{display:block;}
+  .invsum{display:flex;flex-wrap:wrap;gap:10px;margin:0 2px 14px;}
+  .invsum .pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;
+    font-size:13px;font-weight:700;color:var(--forest);box-shadow:var(--shadow);}
+  .invsum .pill b{color:var(--leaf);}
+  .invsum .pill.neg b{color:#c0392b;}
+  .invfilter{display:flex;gap:8px;margin:10px 2px;}
+  .chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
+    padding:6px 14px;border-radius:999px;cursor:pointer;}
+  .chip.active{background:var(--forest);color:#fff;border-color:var(--forest);}
+  .invlist{display:grid;gap:8px;margin-top:6px;}
+  .invrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);}
+  .invrow .nm{flex:1;min-width:0;}
+  .invrow .nm .t{font-weight:700;font-size:15px;color:var(--text);}
+  .invrow .nm .c{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+  .invrow .stk{display:flex;align-items:center;flex:0 0 auto;}
+  .invrow .stk button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--forest);font-size:20px;font-weight:800;cursor:pointer;line-height:1;}
+  .invrow .stk .min{border-radius:9px 0 0 9px;} .invrow .stk .pl{border-radius:0 9px 9px 0;}
+  .invrow .stk input{width:60px;height:36px;text-align:center;border:1px solid var(--line);border-left:0;border-right:0;
+    background:#fff;color:var(--text);font-size:16px;font-weight:800;outline:none;}
+  .invrow .stk input.neg{color:#c0392b;}
+  .invrow .del{flex:0 0 auto;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:800;
+    border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:15px;}
+  .addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;background:var(--panel);
+    border:1px dashed var(--line);border-radius:14px;padding:12px;}
+  .addrow select,.addrow input{background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:15px;padding:10px;border-radius:10px;outline:none;font-family:inherit;}
+  .addrow input.nm{flex:1;min-width:140px;}
+  .subrec{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;
+    box-shadow:var(--shadow);}
+  .subrec h4{margin:0 0 2px;font-family:var(--serif);color:var(--forest);font-size:16px;}
+  .subrec .meta{font-size:12px;color:var(--muted);margin-bottom:8px;}
+  .subrec .pr{font-size:13px;color:var(--text);line-height:1.6;}
+  .subrec .pr b{color:var(--forest);}
+  .subrec .rm{margin-top:10px;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:700;border-radius:10px;
+    padding:7px 11px;cursor:pointer;font-size:13px;}
+
   footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12px;}
 </style>
 </head>
@@ -163,11 +211,11 @@
         <h2>Bazar Bizarre</h2>
         <p>Open de tool om het spel te leiden, met vier rondes en de finale.</p>
       </a>
-      <a class="card" data-key="inventaris" data-link="inventaris" href="#">
+      <div class="card" data-key="inventaris" id="openInventaris">
         <div class="rnd">Beheer</div>
         <h2>Inventaris lijst BB</h2>
-        <p>Overzicht van de volledige inventaris.</p>
-      </a>
+        <p>Voorraad beheren, leveringen en formulieren.</p>
+      </div>
       <div class="card" data-key="manuals" id="openManuals">
         <div class="rnd">Naslag</div>
         <h2>Online manuals</h2>
@@ -221,6 +269,87 @@
     <div class="filelist" id="filelist"></div>
   </div>
 
+  <!-- INVENTARIS -->
+  <div class="view" id="inventaris">
+    <p class="hint">Beheer hier je voorraad. Het formulier in Bazar Bizarre boekt automatisch af; hier registreer je leveringen, voeg je artikelen toe en bekijk je de inzendingen.</p>
+    <div class="invtabs">
+      <button class="invtab active" data-tab="stock">Stock</button>
+      <button class="invtab" data-tab="leveringen">Leveringen</button>
+      <button class="invtab" data-tab="formulieren">Formulieren</button>
+      <button class="invtab" data-tab="data">Import / Export</button>
+    </div>
+
+    <!-- STOCK -->
+    <div class="invpane active" id="pane-stock">
+      <div class="invsum" id="invSum"></div>
+      <input type="text" id="invZoek" class="finp zoek" placeholder="Zoek een prijs…">
+      <div class="invfilter">
+        <button class="chip active" data-cat="all">Alle</button>
+        <button class="chip" data-cat="klein">Kleine</button>
+        <button class="chip" data-cat="groot">Grote</button>
+      </div>
+      <div class="invlist" id="invList"></div>
+      <div class="addrow">
+        <select id="invNewCat">
+          <option value="klein">Kleine prijs</option>
+          <option value="groot">Grote prijs</option>
+        </select>
+        <input type="text" id="invNewNaam" class="nm" placeholder="Naam nieuwe prijs">
+        <input type="number" id="invNewStock" style="width:90px" placeholder="stock" value="0">
+        <button class="btn primary" id="invAdd">Toevoegen</button>
+      </div>
+    </div>
+
+    <!-- LEVERINGEN -->
+    <div class="invpane" id="pane-leveringen">
+      <div class="field">
+        <div class="h">Nieuwe levering registreren</div>
+        <label for="levDatum">Datum</label>
+        <input type="date" id="levDatum" class="finp">
+        <label for="levBoekjes">Boekjes geleverd (komt bij de boekjes-voorraad)</label>
+        <input type="number" id="levBoekjes" class="finp" min="0" value="0">
+        <label for="levPrijs">Prijs bijvullen (optioneel)</label>
+        <select id="levPrijs" class="finp"></select>
+        <label for="levAantal">Aantal van die prijs</label>
+        <input type="number" id="levAantal" class="finp" min="0" value="0">
+        <label for="levTekst">Notitie (optioneel)</label>
+        <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
+        <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
+      </div>
+      <div id="levList"></div>
+    </div>
+
+    <!-- FORMULIEREN -->
+    <div class="invpane" id="pane-formulieren">
+      <p class="hint"><b id="formCount">0</b> doorgestuurde formulieren vanuit Bazar Bizarre.</p>
+      <div id="formList"></div>
+    </div>
+
+    <!-- IMPORT / EXPORT -->
+    <div class="invpane" id="pane-data">
+      <div class="field">
+        <div class="h">Exporteren</div>
+        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of kopieer rechtstreeks naar Google Sheets / Excel.</p>
+        <div class="row">
+          <button class="btn primary" id="expStockCsv">⬇ Stock (CSV)</button>
+          <button class="btn" id="copyStock">📋 Stock kopiëren</button>
+          <button class="btn" id="expFormCsv">⬇ Formulieren (CSV)</button>
+          <button class="btn" id="expLevCsv">⬇ Leveringen (CSV)</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="h">Importeren (stock)</div>
+        <p class="hint" style="margin:0 0 10px;">CSV met kolommen <b>Categorie, Naam, Stock</b>. Bestaande prijzen worden bijgewerkt op naam; nieuwe worden toegevoegd.</p>
+        <input type="file" id="impFile" accept=".csv,text/csv">
+      </div>
+      <div class="field">
+        <div class="h">Alles terugzetten</div>
+        <p class="hint" style="margin:0 0 10px;">Zet de volledige inventaris terug naar de oorspronkelijke Excel-lijst. Stock en eigen toevoegingen gaan verloren.</p>
+        <div class="row"><button class="btn" id="invReset">Inventaris herstellen naar startlijst</button></div>
+      </div>
+    </div>
+  </div>
+
   <footer>Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.</footer>
 </div>
 
@@ -234,6 +363,8 @@
   <div class="mbody" id="viewerBody"></div>
 </div>
 
+<script src="inventaris-data.js"></script>
+<script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
 const K_MED='bb_home_mededeling';
@@ -268,7 +399,7 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
@@ -428,6 +559,237 @@ document.getElementById('openManuals').onclick=async()=>{
   await loadManuals();
   manualsPath=[];
   renderManuals();
+};
+
+// ================= INVENTARIS BEHEER =================
+function bbFmtTs(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,'0');
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}
+let invCat='all';
+
+document.getElementById('openInventaris').onclick=()=>{ renderInventaris(); show('inventaris'); };
+
+// tabs
+document.querySelectorAll('.invtab').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const t=b.dataset.tab;
+    document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('pane-'+t).classList.add('active');
+  };
+});
+// filters + zoek
+document.querySelectorAll('.chip').forEach(c=>{
+  c.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');invCat=c.dataset.cat;renderInvStock();};
+});
+document.getElementById('invZoek').oninput=renderInvStock;
+
+function renderInventaris(){ renderInvSum(); renderInvStock(); renderLevPrijsOpties(); renderLeveringen(); renderFormulieren(); }
+
+function renderInvSum(){
+  const pr=BBInv.getPrijzen(), bk=BBInv.getBoekjes();
+  const k=pr.filter(p=>p.cat==='klein').length, g=pr.filter(p=>p.cat==='groot').length;
+  const pill=(l,v,neg)=>'<span class="pill'+(neg?' neg':'')+'">'+l+': <b>'+v+'</b></span>';
+  document.getElementById('invSum').innerHTML=
+    pill('Boekjes',(bk.stock||0),(bk.stock||0)<0)+pill('Kleine prijzen',k+' soorten')+pill('Grote prijzen',g+' soorten');
+}
+
+function prijsRow(p){
+  const row=document.createElement('div'); row.className='invrow';
+  row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
+    '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(p.stock||0)+'"><button type="button" class="pl">+</button></div>'+
+    '<button type="button" class="del" title="Verwijderen">✕</button>';
+  const inp=row.querySelector('input');
+  const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
+    if(t){t.stock=v;BBInv.setPrijzen(pr);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();};
+  row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
+  row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
+  inp.onchange=()=>commit(+inp.value||0);
+  inp.classList.toggle('neg',(p.stock||0)<0);
+  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderInvStock();renderInvSum();renderLevPrijsOpties();}};
+  return row;
+}
+function boekjesRow(){
+  const bk=BBInv.getBoekjes();
+  const row=document.createElement('div'); row.className='invrow';
+  row.innerHTML='<div class="nm"><div class="t">Boekjes</div><div class="c">voorraad</div></div>'+
+    '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(bk.stock||0)+'"><button type="button" class="pl">+</button></div>'+
+    '<span style="width:36px;flex:0 0 auto;"></span>';
+  const inp=row.querySelector('input');
+  const commit=v=>{v=Math.round(v||0);const o=BBInv.getBoekjes();o.stock=v;BBInv.setBoekjes(o);inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();};
+  row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
+  row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
+  inp.onchange=()=>commit(+inp.value||0);
+  inp.classList.toggle('neg',(bk.stock||0)<0);
+  return row;
+}
+function renderInvStock(){
+  const list=document.getElementById('invList'); list.innerHTML='';
+  const q=(document.getElementById('invZoek').value||'').toLowerCase().trim();
+  let pr=BBInv.getPrijzen();
+  if(invCat!=='all') pr=pr.filter(p=>p.cat===invCat);
+  if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
+  if(invCat==='all'&&!q) list.appendChild(boekjesRow());
+  pr.sort((a,b)=>a.naam.localeCompare(b.naam));
+  pr.forEach(p=>list.appendChild(prijsRow(p)));
+  if(!pr.length&&!(invCat==='all'&&!q)) list.innerHTML='<div class="empty-note">Geen prijzen gevonden.</div>';
+}
+document.getElementById('invAdd').onclick=()=>{
+  const naam=document.getElementById('invNewNaam').value.trim();
+  const cat=document.getElementById('invNewCat').value;
+  const stock=+document.getElementById('invNewStock').value||0;
+  if(!naam){alert('Geef eerst een naam in.');return;}
+  BBInv.addPrijs(cat,naam,stock);
+  document.getElementById('invNewNaam').value=''; document.getElementById('invNewStock').value='0';
+  renderInvStock(); renderInvSum(); renderLevPrijsOpties();
+};
+
+// ---- Leveringen ----
+function renderLevPrijsOpties(){
+  const sel=document.getElementById('levPrijs'); const pr=BBInv.getPrijzen();
+  const opt=(p)=>'<option value="'+p.id+'">'+esc(p.naam)+'</option>';
+  const k=pr.filter(p=>p.cat==='klein').sort((a,b)=>a.naam.localeCompare(b.naam));
+  const g=pr.filter(p=>p.cat==='groot').sort((a,b)=>a.naam.localeCompare(b.naam));
+  sel.innerHTML='<option value="">— geen prijs bijvullen —</option>'+
+    '<optgroup label="Grote prijzen">'+g.map(opt).join('')+'</optgroup>'+
+    '<optgroup label="Kleine prijzen">'+k.map(opt).join('')+'</optgroup>';
+}
+document.getElementById('levAdd').onclick=()=>{
+  const datum=document.getElementById('levDatum').value;
+  const boekjes=+document.getElementById('levBoekjes').value||0;
+  const prijsId=document.getElementById('levPrijs').value;
+  const prijsAantal=+document.getElementById('levAantal').value||0;
+  const tekst=document.getElementById('levTekst').value.trim();
+  if(!boekjes&&!(prijsId&&prijsAantal)&&!tekst){alert('Vul minstens boekjes, een prijs+aantal, of een notitie in.');return;}
+  BBInv.addLevering({datum,boekjes,prijsId,prijsAantal,tekst});
+  document.getElementById('levBoekjes').value='0';document.getElementById('levAantal').value='0';
+  document.getElementById('levTekst').value='';document.getElementById('levPrijs').value='';
+  renderInvSum();renderInvStock();renderLeveringen();
+  alert('Levering geregistreerd.');
+};
+function renderLeveringen(){
+  const wrap=document.getElementById('levList'); const levs=BBInv.getLeveringen().slice().sort((a,b)=>b.ts-a.ts);
+  wrap.innerHTML='';
+  if(!levs.length){wrap.innerHTML='<p class="hint">Nog geen leveringen geregistreerd.</p>';return;}
+  levs.forEach(l=>{
+    const d=document.createElement('div'); d.className='subrec';
+    const parts=[];
+    if(l.boekjes) parts.push('<b>'+l.boekjes+'</b> boekjes');
+    if(l.prijsNaam&&l.prijsAantal) parts.push('<b>'+l.prijsAantal+'</b>× '+esc(l.prijsNaam));
+    if(l.tekst) parts.push(esc(l.tekst));
+    d.innerHTML='<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
+      '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
+    d.querySelector('.rm').onclick=()=>{if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
+    wrap.appendChild(d);
+  });
+}
+
+// ---- Formulieren ----
+function renderFormulieren(){
+  const forms=BBInv.getFormulieren().slice().sort((a,b)=>b.ts-a.ts);
+  document.getElementById('formCount').textContent=forms.length;
+  const wrap=document.getElementById('formList'); wrap.innerHTML='';
+  if(!forms.length){wrap.innerHTML='<p class="hint">Nog geen formulieren. Sluit een spel af in Bazar Bizarre en stuur het door.</p>';return;}
+  forms.forEach(f=>{
+    const pl=arr=>(arr||[]).map(x=>esc(x.naam)+(x.n>1?(' ×'+x.n):'')).join(', ')||'—';
+    const b=f.boekjes||{};
+    const d=document.createElement('div'); d.className='subrec';
+    d.innerHTML='<h4>'+(f.namen?esc(f.namen):'Zonder naam')+'</h4>'+
+      '<div class="meta">'+bbFmtTs(f.ts)+'</div>'+
+      '<div class="pr"><b>Kleine prijzen:</b> '+pl(f.kleine)+'<br>'+
+      '<b>Grote prijzen:</b> '+pl(f.groot)+'<br>'+
+      '<b>Boekjes:</b> '+(b.gereserveerd||0)+' gereserveerd · '+(b.extra||0)+' extra · '+(b.gratis||0)+' gratis'+
+      (f.finale?('<br><b>Finale:</b> '+esc(f.finale)):'')+
+      (f.opmerking?('<br><b>Opmerking:</b> '+esc(f.opmerking)):'')+'</div>'+
+      '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
+    d.querySelector('.rm').onclick=()=>{if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
+    wrap.appendChild(d);
+  });
+}
+
+// ---- Import / Export ----
+function csvCell(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}
+function rowsToCSV(rows){return rows.map(r=>r.map(csvCell).join(',')).join('\r\n');}
+function rowsToTSV(rows){return rows.map(r=>r.map(v=>String(v==null?'':v).replace(/\t/g,' ').replace(/\r?\n/g,' ')).join('\t')).join('\n');}
+function dl(name,text){const blob=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1500);}
+function copyText(t){const done=()=>alert('Gekopieerd! Plak het in Google Sheets of Excel (Ctrl+V).');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>fb());}else fb();
+  function fb(){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){alert('Kopiëren niet gelukt.');}document.body.removeChild(ta);}}
+function stockRows(){
+  const rows=[['Categorie','Naam','Stock']];
+  const bk=BBInv.getBoekjes(); rows.push(['Boekjes','Boekjes',bk.stock||0]);
+  BBInv.getPrijzen().slice().sort((a,b)=>a.cat.localeCompare(b.cat)||a.naam.localeCompare(b.naam))
+    .forEach(p=>rows.push([p.cat==='groot'?'Grote prijs':'Kleine prijs',p.naam,p.stock||0]));
+  return rows;
+}
+function formRows(){
+  const rows=[['Datum','Namen','Kleine prijzen','Grote prijzen','Boekjes gereserveerd','Extra verkocht','Gratis (3+1)','Finale','Opmerking']];
+  const pl=arr=>(arr||[]).map(x=>x.naam+(x.n>1?(' x'+x.n):'')).join('; ');
+  BBInv.getFormulieren().slice().sort((a,b)=>a.ts-b.ts).forEach(f=>{const b=f.boekjes||{};
+    rows.push([bbFmtTs(f.ts),f.namen||'',pl(f.kleine),pl(f.groot),b.gereserveerd||0,b.extra||0,b.gratis||0,f.finale||'',f.opmerking||'']);});
+  return rows;
+}
+function levRows(){
+  const rows=[['Datum','Boekjes','Prijs','Aantal','Notitie']];
+  BBInv.getLeveringen().slice().sort((a,b)=>a.ts-b.ts).forEach(l=>rows.push([l.datum||bbFmtTs(l.ts),l.boekjes||0,l.prijsNaam||'',l.prijsAantal||0,l.tekst||'']));
+  return rows;
+}
+document.getElementById('expStockCsv').onclick=()=>dl('inventaris-stock.csv',rowsToCSV(stockRows()));
+document.getElementById('copyStock').onclick=()=>copyText(rowsToTSV(stockRows()));
+document.getElementById('expFormCsv').onclick=()=>{if(BBInv.getFormulieren().length)dl('formulieren.csv',rowsToCSV(formRows()));else alert('Nog geen formulieren.');};
+document.getElementById('expLevCsv').onclick=()=>{if(BBInv.getLeveringen().length)dl('leveringen.csv',rowsToCSV(levRows()));else alert('Nog geen leveringen.');};
+
+function parseCSV(text){
+  text=text.replace(/^﻿/,'');
+  const firstLine=(text.split(/\r?\n/)[0]||'');
+  const delim=(firstLine.split(';').length>firstLine.split(',').length)?';':',';
+  const rows=[];let row=[],cell='',inQ=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(inQ){ if(ch==='"'){ if(text[i+1]==='"'){cell+='"';i++;}else inQ=false; } else cell+=ch; }
+    else{ if(ch==='"')inQ=true; else if(ch===delim){row.push(cell);cell='';}
+      else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell='';}
+      else if(ch==='\r'){} else cell+=ch; } }
+  if(cell.length||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+document.getElementById('impFile').onchange=e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const rows=parseCSV(String(reader.result)).filter(r=>r.some(c=>String(c).trim()!==''));
+      if(rows.length<2){alert('Geen rijen gevonden in het bestand.');return;}
+      const head=rows[0].map(h=>h.toLowerCase().trim());
+      const iCat=head.findIndex(h=>h.startsWith('categ')), iNaam=head.findIndex(h=>h.startsWith('naam')), iStock=head.findIndex(h=>h.startsWith('stock'));
+      if(iNaam<0||iStock<0){alert('Kolommen "Naam" en "Stock" niet gevonden in de eerste rij.');return;}
+      const pr=BBInv.getPrijzen(); const byNaam={}; pr.forEach(p=>byNaam[p.naam.toLowerCase()]=p);
+      let upd=0,add=0,bk=0;
+      rows.slice(1).forEach(r=>{
+        const naam=(r[iNaam]||'').trim(); if(!naam)return;
+        const stock=Math.round(parseFloat(String(r[iStock]).replace(',','.'))||0);
+        const cat=((iCat>=0?r[iCat]:'')||'').toLowerCase();
+        if(naam.toLowerCase()==='boekjes'){const o=BBInv.getBoekjes();o.stock=stock;BBInv.setBoekjes(o);bk++;return;}
+        const ex=byNaam[naam.toLowerCase()];
+        if(ex){ex.stock=stock;upd++;}
+        else{const c=cat.indexOf('groot')>=0?'groot':'klein';const rec=BBInv.addPrijs(c,naam,stock);byNaam[naam.toLowerCase()]=rec;add++;}
+      });
+      BBInv.setPrijzen(pr);
+      renderInventaris();
+      alert('Import klaar: '+upd+' bijgewerkt, '+add+' toegevoegd'+(bk?', boekjes bijgewerkt':'')+'.');
+    }catch(err){alert('Kon het bestand niet inlezen: '+err.message);}
+    document.getElementById('impFile').value='';
+  };
+  reader.readAsText(file);
+};
+document.getElementById('invReset').onclick=()=>{
+  if(!confirm('De volledige inventaris terugzetten naar de oorspronkelijke Excel-lijst?\nAlle stock-aanpassingen en eigen toevoegingen gaan verloren. (Formulieren en leveringen blijven staan.)'))return;
+  localStorage.removeItem('bb_inv_prijzen'); localStorage.removeItem('bb_inv_boekjes');
+  BBInv.seedIfEmpty(); renderInventaris();
+  alert('Inventaris hersteld naar de startlijst.');
 };
 
 // ---------------- INIT ----------------
