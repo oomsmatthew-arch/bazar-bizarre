@@ -584,8 +584,10 @@ function renderControle(){
   // keuzelijst met de beschikbare inventaris-prijzen (typen om te filteren of kiezen)
   let dl=document.getElementById('prijslijst');
   if(!dl){ dl=document.createElement('datalist'); dl.id='prijslijst'; document.body.appendChild(dl); }
-  const namen=(window.BBInv?BBInv.getPrijzen():[]).map(x=>x.naam)
-    .filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  // alleen prijzen die 'in gebruik' zijn én voorraad hebben (stock > 0)
+  const namen=(window.BBInv?BBInv.getPrijzen():[])
+    .filter(p=>p.inGebruik && (p.stock||0)>0)
+    .map(x=>x.naam).filter(Boolean).sort((a,b)=>a.localeCompare(b));
   dl.innerHTML=namen.map(n=>'<option value="'+esc(n).replace(/"/g,'&quot;')+'"></option>').join('');
   const p=document.querySelector('[data-grid="prijzen"]'); p.innerHTML='';
   for(let i=0;i<8;i++){
