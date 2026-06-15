@@ -32,6 +32,7 @@
     await loadAll();
     await migrateIfEmpty();
     await migrateBestelIfNeeded();
+    await topUpBestelDefaults();
     subscribe();
     ready=true;
     fire();
@@ -134,6 +135,26 @@
       if(!cache.bestellingen.length && localStorage.getItem(SEEDED)!=='1'){ cache.bestellingen=bestelSeed(); saveBestelBackup(); }
       localStorage.setItem(SEEDED,'1');
     }
+  }
+
+  // Bestaande lijsten bijwerken als de standaardlijst nieuwe bestellingen kreeg
+  // (bv. een volledig boekjaar toegevoegd). We voegen enkel toe wat nog niet bestaat,
+  // op basis van datum + omschrijving + leverancier, zodat niets dubbel komt en eigen
+  // toevoegingen blijven staan.
+  function bestelKey(b){ return (b.datum||'')+'|'+(b.info||'').trim().toLowerCase()+'|'+(b.leverancier||'').trim().toLowerCase(); }
+  async function topUpBestelDefaults(){
+    const VER=2; // verhoog dit wanneer er nieuwe standaardbestellingen bijkomen
+    const cur=+(localStorage.getItem('bb_bestel_seed_ver')||1);
+    if(cur>=VER){ return; }
+    const have=new Set(cache.bestellingen.map(bestelKey));
+    const def=window.BESTELLINGEN_DEFAULT||[];
+    const toAdd=def.filter(d=>!have.has(bestelKey(d)));
+    if(toAdd.length){
+      const recs=toAdd.map((d,i)=>Object.assign({id:uid(),ts:Date.now()+i},JSON.parse(JSON.stringify(d))));
+      if(bestelOK){ for(let i=0;i<recs.length;i+=40){ const r=await sb.from('bestellingen').insert(recs.slice(i,i+40).map(bestelToRow)); err(r); } }
+      cache.bestellingen=cache.bestellingen.concat(recs); saveBestelBackup();
+    }
+    localStorage.setItem('bb_bestel_seed_ver',String(VER));
   }
 
   // ---------------- GETTERS (synchroon, uit cache) ----------------

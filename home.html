@@ -252,8 +252,12 @@
   .finrow .fk{flex:1;min-width:0;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .finrow .fn{flex:0 0 auto;color:var(--muted);font-size:12px;font-weight:700;}
   .finrow .fv{flex:0 0 auto;font-weight:800;color:var(--forest);min-width:96px;text-align:right;}
-  /* filter-/sorteerbalk */
-  .bestelctrls{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 12px;}
+  /* filter-/sorteerbalk: vult de volle breedte, alle vakjes even breed (lijnt uit met het kader eronder) */
+  .bestelctrls{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+  .bestelctrls .bsel,.bestelctrls .bbtn{flex:1 1 150px;min-width:0;}
+  .bbtn{background:var(--panel);border:1px solid var(--line);color:var(--forest);font-weight:700;font-size:13px;
+    padding:8px 12px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow);white-space:nowrap;}
+  .bbtn:active{transform:translateY(1px);}
   .bsel{background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:13px;font-weight:700;
     padding:8px 12px;border-radius:10px;outline:none;font-family:inherit;cursor:pointer;box-shadow:var(--shadow);}
   .bsel:focus{border-color:var(--leaf);}
@@ -264,7 +268,7 @@
   .bestelrow:first-child{border-top:none;}
   .bestelrow:hover{background:var(--panel2);}
   .bestelrow:active{background:var(--leaf-soft);}
-  .bestelrow .br-datum{flex:0 0 48px;font-size:12px;color:var(--muted);font-weight:800;}
+  .bestelrow .br-datum{flex:0 0 60px;font-size:12px;color:var(--muted);font-weight:800;}
   .bestelrow .br-info{flex:1 1 240px;min-width:0;white-space:nowrap;overflow:hidden;
     display:flex;align-items:baseline;gap:8px;}
   .bestelrow .br-info .t{font-weight:700;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0;}
@@ -426,7 +430,7 @@
       </div>
       <div class="card" data-key="bestellingen" id="openBestellingen">
         <div class="rnd">Beheer</div>
-        <h2>Bestellingen</h2>
+        <h2>Besteloverzicht</h2>
         <p>Overzicht van bestellingen: status, aantal, kosten, leverancier en leverdatum.</p>
       </div>
       <div class="card" data-key="manuals" id="openManuals">
@@ -635,6 +639,7 @@
           <option value="prijs-desc">Prijs: hoog → laag</option>
           <option value="prijs-asc">Prijs: laag → hoog</option>
         </select>
+        <button class="bbtn" id="bestelWisFilters">↺ Wis filters</button>
       </div>
       <div id="bestelList"></div>
     </div>
@@ -747,7 +752,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v19';
+const APP_VERSION='v20';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -848,7 +853,7 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Bestellingen'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
@@ -1495,7 +1500,7 @@ function boekjaarVan(iso){ if(!iso) return ''; const p=String(iso).split('-'); i
 function kwartaalVan(iso){ if(!iso) return 0; const m=+String(iso).split('-')[1]; if(m>=10) return 1; if(m<=3) return 2; if(m<=6) return 3; return 4; }
 function eur(n){ n=+n||0; try{return n.toLocaleString('nl-BE',{style:'currency',currency:'EUR'});}catch(e){return '€ '+n.toFixed(2);} }
 function dmy(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
-function dmShort(iso){ if(!iso) return '—'; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]:iso; }
+function dmShort(iso){ if(!iso) return '—'; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0].slice(2):iso; }
 function stClass(s){ return 's-'+String(s||'').toLowerCase().replace(/\s+/g,''); }
 function bestelTotaal(b){ return (+b.ent||0)+(+b.bay||0)+(+b.hsb||0); }
 
@@ -1645,6 +1650,11 @@ document.getElementById('bestelKwartaal').onchange=e=>{ bestelKwartaal=e.target.
 document.getElementById('bestelAfd').onchange=e=>{ bestelAfd=e.target.value; renderBestelList(); };
 document.getElementById('bestelLev').onchange=e=>{ bestelLev=e.target.value; renderBestelList(); };
 document.getElementById('bestelSort').onchange=e=>{ bestelSort=e.target.value; renderBestelList(); };
+document.getElementById('bestelWisFilters').onclick=()=>{
+  bestelStatusFilter='all'; bestelQuery=''; bestelAfd='all'; bestelLev='all'; bestelSort='datum-desc'; bestelBoekjaar='all'; bestelKwartaal='all';
+  document.getElementById('bestelZoek').value='';
+  renderBestellingen();
+};
 document.getElementById('bestelAnnuleer').onclick=closeBestelModal;
 document.getElementById('bestelModal').addEventListener('click',e=>{ if(e.target.id==='bestelModal') closeBestelModal(); });
 document.getElementById('bestelOpslaan').onclick=()=>{
@@ -1681,12 +1691,12 @@ document.getElementById('bestelReset').onclick=()=>{
 document.getElementById('bestelPrint').onclick=()=>{
   const list=BBInv.getBestellingen().slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
   const rows=list.map(b=>'<tr><td>'+esc(dmy(b.datum))+'</td><td>'+esc(b.cat)+'</td><td>'+esc(b.info)+'</td><td>'+esc(b.status)+'</td><td>'+esc(b.aantal)+'</td><td class="n">'+(+b.ent?eur(b.ent):'')+'</td><td class="n">'+(+b.bay?eur(b.bay):'')+'</td><td class="n">'+(+b.hsb?eur(b.hsb):'')+'</td><td>'+esc(b.leverancier)+'</td><td>'+esc(dmy(b.leverdatum))+'</td><td>'+esc(b.opm)+'</td></tr>').join('');
-  const body='<h1>Bestellingen — overzicht</h1><div class="sub">Afgedrukt op '+dmy(new Date().toISOString().slice(0,10))+'</div>'+
+  const body='<h1>Besteloverzicht</h1><div class="sub">Afgedrukt op '+dmy(new Date().toISOString().slice(0,10))+'</div>'+
     '<table><tr><th>Datum</th><th>Categorie</th><th>Bestelling</th><th>Status</th><th>Aantal</th><th class="n">ENT</th><th class="n">BAY</th><th class="n">HSB</th><th>Leverancier</th><th>Geleverd</th><th>Opmerkingen</th></tr>'+rows+'</table>';
   const css='body{font-family:Arial,Helvetica,sans-serif;color:#1d2e22;margin:20px;}h1{font-size:19px;margin:0 0 4px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}table{border-collapse:collapse;width:100%;font-size:12px;}th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;vertical-align:top;}td.n,th.n{text-align:right;white-space:nowrap;}';
   const w=window.open('','_blank');
   if(!w){ alert('Kon het afdrukvenster niet openen (popup geblokkeerd?).'); return; }
-  w.document.open(); w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Bestellingen</title><style>'+css+'</style></head><body>'+body+'</body></html>'); w.document.close(); w.focus();
+  w.document.open(); w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Besteloverzicht</title><style>'+css+'</style></head><body>'+body+'</body></html>'); w.document.close(); w.focus();
   setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('bestelModal').classList.contains('open')) closeBestelModal(); });
