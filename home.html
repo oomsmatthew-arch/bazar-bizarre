@@ -903,7 +903,7 @@ function prijsRow(p){
   row.prepend(tw);
   const inp=row.querySelector('.stk input');
   const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
-    if(t){t.stock=v;BBInv.setPrijzen(pr);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();};
+    if(t){t.stock=v;BBInv.setPrijzen(pr);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
   row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
   inp.onchange=()=>commit(+inp.value||0);
@@ -915,8 +915,9 @@ function prijsRow(p){
     useBtn.classList.toggle('on',p.inGebruik);
     useBtn.textContent=p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik';
     if(beheerOnlyUse) renderBeheerList();
+    renderStats();
   };
-  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();}};
+  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();renderStats();}};
   return row;
 }
 function boekjesRow(){
@@ -926,7 +927,7 @@ function boekjesRow(){
     '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(bk.stock||0)+'"><button type="button" class="pl">+</button></div>'+
     '<span style="width:36px;flex:0 0 auto;"></span>';
   const inp=row.querySelector('input');
-  const commit=v=>{v=Math.round(v||0);const o=BBInv.getBoekjes();o.stock=v;BBInv.setBoekjes(o);inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();};
+  const commit=v=>{v=Math.round(v||0);const o=BBInv.getBoekjes();o.stock=v;BBInv.setBoekjes(o);inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
   row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
   inp.onchange=()=>commit(+inp.value||0);
@@ -1059,7 +1060,7 @@ document.getElementById('invAdd').onclick=()=>{
   if(rec===null){alert('Onvoldoende opslagruimte om (de foto van) deze prijs te bewaren. Gebruik kleinere of minder foto’s.');return;}
   document.getElementById('invNewNaam').value=''; document.getElementById('invNewStock').value='0';
   invAddFoto=''; const prev=document.getElementById('invAddFotoPrev'); prev.src=''; prev.style.display='none';
-  renderBeheerList(); renderInvSum();
+  renderBeheerList(); renderInvSum(); renderStats();
 };
 
 // ---- Leveringen ----
@@ -1071,7 +1072,7 @@ document.getElementById('levAdd').onclick=()=>{
   BBInv.addLevering({datum,boekjes,tekst});
   document.getElementById('levBoekjes').value='0';
   document.getElementById('levTekst').value='';
-  renderInvSum();renderLeveringen();
+  renderInvSum();renderStats();renderLeveringen();
   alert('Levering geregistreerd.');
 };
 function renderLeveringen(){
