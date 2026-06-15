@@ -1024,11 +1024,24 @@ function renderStats(){
   const stat=(v,lo,hi)=> v<=lo?{c:'red',t:'🔴 Bijna op'}:(v<=hi?{c:'orange',t:'🟠 Aandacht'}:{c:'green',t:'🟢 Goed op voorraad'});
   const ps=stat(totaal,dK,dA);
   const bs=bk<=dBk?{c:'red',t:'🔴 Bijna op'}:{c:'green',t:'🟢 Goed op voorraad'};
+  // laatste levering
+  const levs=BBInv.getLeveringen();
+  const last=levs.length?levs.slice().sort((a,b)=>b.ts-a.ts)[0]:null;
+  let levVal='—', levLbl='Laatste levering — nog geen';
+  if(last){
+    let d=last.datum||'';
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d)){const p=d.split('-');d=p[2]+'/'+p[1];}
+    else{const dd=new Date(last.ts);d=String(dd.getDate()).padStart(2,'0')+'/'+String(dd.getMonth()+1).padStart(2,'0');}
+    levVal=d;
+    const parts=[]; if(last.boekjes)parts.push(last.boekjes+' boekjes'); if(last.tekst)parts.push(last.tekst);
+    levLbl='Laatste levering'+(parts.length?(' · '+parts.join(' · ')):'');
+  }
   const card=(v,l,cls)=>'<div class="statcard'+(cls?' '+cls:'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
   document.getElementById('statGrid').innerHTML=
     card(totaal,'Prijzen op voorraad · '+ps.t,ps.c)+
     card(bk,'Boekjes op voorraad · '+bs.t,bs.c)+
-    card(uitverkocht,'Soorten uitverkocht','grey');
+    card(uitverkocht,'Soorten uitverkocht','grey')+
+    card(levVal,levLbl);
   const el=document.getElementById('statTop'); if(el) el.innerHTML='';
 }
 let beheerOnlyUse=false;
