@@ -78,10 +78,10 @@
   .card h2{margin:6px 0 6px;font-family:var(--serif);font-weight:700;font-size:24px;letter-spacing:.2px;color:var(--forest);}
   .card p{margin:0;color:var(--muted);font-size:14px;line-height:1.45;}
   .card[data-key="spel"]{--accent:var(--sun);background:linear-gradient(150deg,#fffaf0,#fff);}
-  .card[data-key="inventaris"]{--accent:var(--leaf);}
-  .card[data-key="bestellingen"]{--accent:var(--sun);}
-  .card[data-key="manuals"]{--accent:var(--water);}
-  .card[data-key="instellingen"]{--accent:var(--bark);}
+  .card[data-key="inventaris"]{--accent:var(--leaf);background:linear-gradient(150deg,#eef8f0,#fff);}
+  .card[data-key="bestellingen"]{--accent:#e2683f;background:linear-gradient(150deg,#fff3ee,#fff);}
+  .card[data-key="manuals"]{--accent:var(--water);background:linear-gradient(150deg,#edf6fb,#fff);}
+  .card[data-key="instellingen"]{--accent:var(--bark);background:linear-gradient(150deg,#f6f1ea,#fff);}
 
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
@@ -335,6 +335,10 @@
   }
   [data-theme="dark"] .mededeling{background:linear-gradient(120deg,#22301f,#18271f);}
   [data-theme="dark"] .card[data-key="spel"]{background:linear-gradient(150deg,#26301f,#18271f);}
+  [data-theme="dark"] .card[data-key="inventaris"]{background:linear-gradient(150deg,#1b2e22,#18271f);}
+  [data-theme="dark"] .card[data-key="bestellingen"]{background:linear-gradient(150deg,#2e241d,#18271f);}
+  [data-theme="dark"] .card[data-key="manuals"]{background:linear-gradient(150deg,#1b2b30,#18271f);}
+  [data-theme="dark"] .card[data-key="instellingen"]{background:linear-gradient(150deg,#2a241c,#18271f);}
   [data-theme="dark"] .lowstock{background:linear-gradient(120deg,#2a201e,#18271f);border-color:#5a3530;}
   [data-theme="dark"] .lowstock .ls-pill{border-color:#5a3530;}
   [data-theme="dark"] .invrow .stk input{background:var(--panel2);color:var(--text);}
