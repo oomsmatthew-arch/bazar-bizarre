@@ -238,6 +238,9 @@
 
   /* ---- statistiek ---- */
   .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px;}
+  /* kaarten vullen het gezondheid-vak (zelfde hoogte als de waarschuwingen) */
+  .beheertop .gezondheid{display:flex;flex-direction:column;}
+  .beheertop .gezondheid #statGrid{flex:1;grid-auto-rows:1fr;}
   .statcard{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:18px 18px;min-height:92px;
     display:flex;flex-direction:column;justify-content:center;}
   .statcard .v{font-size:30px;font-weight:800;color:var(--forest);font-family:var(--serif);line-height:1.05;}
@@ -414,7 +417,7 @@
     <!-- BEHEER (wachtwoord) -->
     <div class="invpane" id="pane-beheer">
       <div class="beheertop">
-        <div class="field">
+        <div class="field gezondheid">
           <div class="h">Voorraad-gezondheid</div>
           <div class="statgrid" id="statGrid"></div>
           <div class="statlist" id="statTop"></div>
@@ -1040,9 +1043,9 @@ function renderStats(){
   document.getElementById('statGrid').innerHTML=
     card(totaal,'Prijzen op voorraad · '+ps.t,ps.c)+
     card(bk,'Boekjes op voorraad · '+bs.t,bs.c)+
-    card(uitverkocht,'Soorten uitverkocht','grey')+
     card(levVal,levLbl);
   const el=document.getElementById('statTop'); if(el) el.innerHTML='';
+  renderLowstock(); // melding op de homepagina meteen mee bijwerken
 }
 let beheerOnlyUse=false;
 let beheerCat='all';
@@ -1253,8 +1256,12 @@ if('serviceWorker' in navigator){
 applyTheme(); show('home'); updateSys();
 // Gedeelde database: bij wijzigingen (ook van collega's) het juiste scherm verversen
 BBInv.setOnChange(()=>{
-  renderHome();
-  if(document.getElementById('inventaris').classList.contains('active')) renderInventaris();
+  renderHome(); // o.a. de voorraad-meldingen op de homepagina
+  if(document.getElementById('inventaris').classList.contains('active')){
+    if(document.getElementById('pane-stock').classList.contains('active')){renderInvSum();renderInvStock();}
+    if(document.getElementById('pane-formulieren').classList.contains('active')) renderFormulieren();
+    if(document.getElementById('pane-beheer').classList.contains('active')) renderStats();
+  }
 });
 renderHome();
 BBInv.init();
