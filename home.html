@@ -560,9 +560,10 @@
   <!-- CONTACTEN -->
   <div class="view" id="contacten">
     <p class="hint">Telefoonnummers en e-mails van het team en de leveranciers. Tik een nummer om te bellen, of een e-mail om te mailen. Wordt op dit toestel bewaard.</p>
+    <div class="manualsbar"><button class="btn" id="contBeheerBtn">🔒 Beheer</button></div>
     <input type="text" id="contZoek" class="finp zoek" placeholder="Zoek op naam, rol of leverancier…">
     <div class="contlist" id="contlist"></div>
-    <div class="contadd">
+    <div class="contadd" id="contAddBox">
       <div class="h">Nieuw contact</div>
       <input type="text" id="contNaam" class="finp" placeholder="Naam">
       <input type="text" id="contRol" class="finp" placeholder="Rol / functie (bv. Teamleader, Leverancier boekjes)">
@@ -892,7 +893,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v24';
+const APP_VERSION='v25';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1994,27 +1995,42 @@ function loadContacten(){try{const r=localStorage.getItem(K_CONTACTEN);if(r){con
 let contacten=loadContacten();
 function saveContacten(){try{localStorage.setItem(K_CONTACTEN,JSON.stringify(contacten));}catch(e){}}
 function telLink(t){return 'tel:'+String(t).replace(/[^+0-9]/g,'');}
+let contBeheer=false;
 function renderContacten(){
   const box=document.getElementById('contlist'); if(!box)return;
   const q=(document.getElementById('contZoek').value||'').toLowerCase().trim();
   const lijst=contacten.filter(c=>!q||((c.naam||'')+' '+(c.rol||'')).toLowerCase().indexOf(q)>=0);
   box.innerHTML='';
-  if(!lijst.length){ box.innerHTML='<div class="contempty">'+(q?'Geen contact gevonden.':'Nog geen contacten. Voeg er hieronder een toe.')+'</div>'; return; }
+  if(!lijst.length){ box.innerHTML='<div class="contempty">'+(q?'Geen contact gevonden.':(contBeheer?'Nog geen contacten. Voeg er hieronder een toe.':'Nog geen contacten.'))+'</div>'; return; }
   lijst.forEach(c=>{
     const i=contacten.indexOf(c);
     const links=[];
     if(c.tel) links.push('<a href="'+telLink(c.tel)+'">📞 '+esc(c.tel)+'</a>');
     if(c.mail) links.push('<a class="mail" href="mailto:'+esc(c.mail)+'">✉️ '+esc(c.mail)+'</a>');
     const card=document.createElement('div'); card.className='contcard';
-    card.innerHTML='<button class="cdel" title="Verwijderen">✕</button>'+
+    card.innerHTML=(contBeheer?'<button class="cdel" title="Verwijderen">✕</button>':'')+
       '<div class="cnaam">'+esc(c.naam)+'</div>'+
       (c.rol?'<div class="crol">'+esc(c.rol)+'</div>':'')+
       (links.length?'<div class="clinks">'+links.join('')+'</div>':'');
-    card.querySelector('.cdel').onclick=()=>{ if(!confirm('Contact "'+(c.naam||'')+'" verwijderen?'))return; contacten.splice(i,1); saveContacten(); renderContacten(); };
+    if(contBeheer) card.querySelector('.cdel').onclick=()=>{ if(!confirm('Contact "'+(c.naam||'')+'" verwijderen?'))return; contacten.splice(i,1); saveContacten(); renderContacten(); };
     box.appendChild(card);
   });
 }
-document.getElementById('openContacten').onclick=()=>{ renderContacten(); show('contacten'); };
+function setContBeheer(on){
+  contBeheer=on;
+  const btn=document.getElementById('contBeheerBtn');
+  btn.textContent=on?'✓ Klaar met beheren':'🔒 Beheer';
+  btn.classList.toggle('primary',on);
+  document.getElementById('contAddBox').style.display=on?'':'none';
+  renderContacten();
+}
+document.getElementById('contBeheerBtn').onclick=()=>{
+  if(contBeheer){ setContBeheer(false); return; }
+  const p=prompt('Wachtwoord voor beheer:'); if(p===null) return;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  setContBeheer(true);
+};
+document.getElementById('openContacten').onclick=()=>{ setContBeheer(false); show('contacten'); };
 document.getElementById('contZoek').addEventListener('input',renderContacten);
 document.getElementById('contAdd').onclick=()=>{
   const naam=document.getElementById('contNaam').value.trim();
