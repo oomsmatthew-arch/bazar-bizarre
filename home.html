@@ -239,6 +239,12 @@
     font-size:14px;padding:9px 14px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow);}
   .btab.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
   .bpane{display:none;} .bpane.active{display:block;}
+  /* financieel: bedragkaarten passend maken (lopen anders tegen de rand op gsm) */
+  #finKas, #finStatus{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+  .statcard.money{min-height:0;padding:14px 16px;}
+  .statcard.money .v{font-size:22px;letter-spacing:-.3px;white-space:nowrap;}
+  .statcard.money .l{margin-top:5px;}
+  @media(max-width:560px){ .statcard.money .v{font-size:19px;} }
   /* financieel: groepstabellen */
   .fintab{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow);}
   .finrow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--line);}
@@ -733,7 +739,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v17';
+const APP_VERSION='v18';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1552,7 +1558,7 @@ function renderBestellingen(){
 }
 
 // ---- Financieel ----
-function statCard(label,val,cls){ return '<div class="statcard '+(cls||'')+'"><div class="v">'+val+'</div><div class="l">'+esc(label)+'</div></div>'; }
+function statCard(label,val,cls){ return '<div class="statcard money '+(cls||'')+'"><div class="v">'+val+'</div><div class="l">'+esc(label)+'</div></div>'; }
 function finGroep(list,key){
   const m={};
   list.forEach(b=>{ const k=(b[key]||'').trim()||'(geen)'; if(!m[k])m[k]={n:0,tot:0}; m[k].n++; m[k].tot+=bestelTotaal(b); });
@@ -1572,7 +1578,7 @@ function renderFinancieel(){
   let ontv=0, open=0;
   list.forEach(b=>{ const t=bestelTotaal(b); if(b.status==='Uitgepakt'||b.status==='In loods') ontv+=t; else open+=t; });
   document.getElementById('finStatus').innerHTML=
-    statCard('Ontvangen (in loods + uitgepakt)',eur(ontv),'green')+statCard('Nog te ontvangen (besteld + onderweg)',eur(open),'orange');
+    statCard('Al ontvangen',eur(ontv),'green')+statCard('Nog te ontvangen',eur(open),'orange');
   document.getElementById('finCat').innerHTML=finTabel(finGroep(list,'cat'));
   document.getElementById('finLev').innerHTML=finTabel(finGroep(list,'leverancier'));
 }
