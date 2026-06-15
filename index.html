@@ -236,7 +236,14 @@
     background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 15px;}
   .tally-total b{color:var(--gold);font-size:22px;margin-left:4px;}
   .prijs{display:flex;align-items:center;gap:10px;background:var(--panel);
-    border:1px solid var(--line);border-radius:12px;padding:8px 12px;}
+    border:1px solid var(--line);border-radius:12px;padding:8px 12px;position:relative;}
+  .prijsdd{display:none;position:absolute;left:8px;right:8px;top:calc(100% - 2px);z-index:40;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;max-height:260px;overflow-y:auto;
+    box-shadow:0 12px 28px rgba(0,0,0,.5);}
+  .prijsdd.open{display:block;}
+  .prijsdd-it{padding:12px 13px;font-size:15px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--line);}
+  .prijsdd-it:last-child{border-bottom:none;}
+  .prijsdd-it:active,.prijsdd-it:hover{background:var(--panel);}
   .prijs .pn{flex:0 0 34px;height:34px;border-radius:8px;display:grid;place-items:center;
     font-weight:800;background:var(--bg);color:var(--gold);border:1px solid var(--line);font-size:15px;}
   .prijs input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);
@@ -582,23 +589,34 @@ function renderControle(){
   });
   const tot=document.querySelector('[data-total="controle"]');
   if(tot) tot.textContent=state.controle.reduce((a,b)=>a+(b||0),0);
-  // keuzelijst met de beschikbare inventaris-prijzen (typen om te filteren of kiezen)
-  let dl=document.getElementById('prijslijst');
-  if(!dl){ dl=document.createElement('datalist'); dl.id='prijslijst'; document.body.appendChild(dl); }
-  // alleen prijzen die 'in gebruik' zijn én voorraad hebben (stock > 0)
-  const namen=(window.BBInv?BBInv.getPrijzen():[])
+  // eigen keuzelijst (werkt op gsm én pc) — enkel 'in gebruik' + voorraad > 0
+  const opties=(window.BBInv?BBInv.getPrijzen():[])
     .filter(p=>p.inGebruik && (p.stock||0)>0)
     .map(x=>x.naam).filter(Boolean).sort((a,b)=>a.localeCompare(b));
-  dl.innerHTML=namen.map(n=>'<option value="'+esc(n).replace(/"/g,'&quot;')+'"></option>').join('');
   const p=document.querySelector('[data-grid="prijzen"]'); p.innerHTML='';
   for(let i=0;i<8;i++){
+    const idx=i;
     const row=document.createElement('div'); row.className='prijs';
     row.innerHTML=`<span class="pn">${i+1}</span>`;
     const inp=document.createElement('input');
     inp.type='text'; inp.placeholder='Kies of typ een prijs…'; inp.value=state.prijzen[i]||'';
-    inp.setAttribute('list','prijslijst');
-    inp.oninput=e=>{state.prijzen[i]=e.target.value;save();};
-    row.appendChild(inp); p.appendChild(row);
+    const dd=document.createElement('div'); dd.className='prijsdd';
+    function ddRender(){
+      const q=(inp.value||'').toLowerCase().trim();
+      const m=opties.filter(n=>!q||n.toLowerCase().includes(q));
+      dd.innerHTML='';
+      if(!m.length){dd.classList.remove('open');return;}
+      m.slice(0,80).forEach(n=>{
+        const it=document.createElement('div'); it.className='prijsdd-it'; it.textContent=n;
+        it.addEventListener('pointerdown',e=>{e.preventDefault();inp.value=n;state.prijzen[idx]=n;save();dd.classList.remove('open');inp.blur();});
+        dd.appendChild(it);
+      });
+      dd.classList.add('open');
+    }
+    inp.oninput=()=>{state.prijzen[idx]=inp.value;save();ddRender();};
+    inp.addEventListener('focus',ddRender);
+    inp.addEventListener('blur',()=>setTimeout(()=>dd.classList.remove('open'),200));
+    row.appendChild(inp); row.appendChild(dd); p.appendChild(row);
   }
 }
 function renderTrolley(){
