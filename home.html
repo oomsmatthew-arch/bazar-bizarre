@@ -240,9 +240,11 @@
   .statcard.orange .v{color:#b8791a;}
   .statcard.grey .v{color:var(--muted);}
   /* Beheer: statistiek + voorraad-waarschuwingen naast elkaar */
-  .beheertop{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+  .beheertop{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-bottom:24px;}
   @media(max-width:720px){.beheertop{grid-template-columns:1fr;}}
   .beheertop .field{margin:0;}
+  /* consistente ruimte tussen de blokken in Beheer */
+  #pane-beheer > .field{margin-top:24px;}
   .statlist{margin:10px 2px 0;font-size:14px;color:var(--text);line-height:1.7;}
   .statlist b{color:var(--forest);}
 
@@ -431,7 +433,7 @@
         <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
       </div>
 
-      <div class="field" style="margin-top:18px;">
+      <div class="field">
         <div class="h">Prijs toevoegen</div>
         <div class="addrow">
           <select id="invNewCat">
@@ -455,7 +457,7 @@
       </div>
       <div class="invlist" id="beheerList"></div>
 
-      <div class="field" style="margin-top:18px;">
+      <div class="field">
         <div class="h">Exporteren</div>
         <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of kopieer rechtstreeks naar Google Sheets / Excel.</p>
         <div class="row">
