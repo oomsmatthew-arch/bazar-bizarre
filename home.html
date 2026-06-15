@@ -232,13 +232,15 @@
 
   /* ---- statistiek ---- */
   .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px;}
-  .statcard{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
-  .statcard .v{font-size:26px;font-weight:800;color:var(--forest);font-family:var(--serif);line-height:1.1;}
-  .statcard .l{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+  .statcard{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:18px 18px;min-height:92px;
+    display:flex;flex-direction:column;justify-content:center;}
+  .statcard .v{font-size:30px;font-weight:800;color:var(--forest);font-family:var(--serif);line-height:1.05;}
+  .statcard .l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.5px;line-height:1.3;}
   .statcard.neg .v{color:#c0392b;}
   .statcard.red .v{color:#c0392b;}
   .statcard.orange .v{color:#b8791a;}
   .statcard.grey .v{color:var(--muted);}
+  .statcard.green .v{color:var(--leaf);}
   /* Beheer: statistiek + voorraad-waarschuwingen naast elkaar */
   .beheertop{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-bottom:24px;}
   @media(max-width:720px){.beheertop{grid-template-columns:1fr;}}
@@ -1005,14 +1007,19 @@ function renderBeheer(){
 function renderStats(){
   const pr=BBInv.getPrijzen().filter(p=>p.inGebruik);
   const dK=getDrempel(), dA=getDrempel2();
-  let uit=0,bijna=0,aandacht=0;
-  pr.forEach(p=>{const s=p.stock||0; if(s<=0)uit++; else if(s<=dK)bijna++; else if(s<=dA)aandacht++;});
+  // TOTALEN: aantal stuks op voorraad per groep (niet het aantal soorten)
+  let totaal=0,sBijna=0,sAandacht=0,sGoed=0,nUit=0;
+  pr.forEach(p=>{const s=p.stock||0; if(s>0)totaal+=s;
+    if(s<=0)nUit++; else if(s<=dK)sBijna+=s; else if(s<=dA)sAandacht+=s; else sGoed+=s;});
+  const bk=BBInv.getBoekjes().stock||0, bkLaag=bk<=getDrempelBoekjes();
   const card=(v,l,cls)=>'<div class="statcard'+(cls?' '+cls:'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
   document.getElementById('statGrid').innerHTML=
-    card(pr.length,'Prijzen in gebruik')+
-    card(bijna,'🔴 Prijzen bijna op (≤'+dK+')','red')+
-    card(aandacht,'🟠 Prijzen aandacht ('+(dK+1)+'–'+dA+')','orange')+
-    card(uit,'⚫ Prijzen uitverkocht (0)','grey');
+    card(totaal,'Prijzen op voorraad (totaal)')+
+    card(sBijna,'🔴 Bijna op (≤'+dK+')','red')+
+    card(sAandacht,'🟠 Aandacht ('+(dK+1)+'–'+dA+')','orange')+
+    card(sGoed,'🟢 Goed op voorraad (>'+dA+')','green')+
+    card(nUit,'⚫ Soorten uitverkocht','grey')+
+    card(bk,'📕 Boekjes voorraad',bkLaag?'red':'');
   const el=document.getElementById('statTop'); if(el) el.innerHTML='';
 }
 let beheerOnlyUse=false;
