@@ -1067,13 +1067,23 @@ document.querySelectorAll('.bchip').forEach(c=>{
   c.onclick=()=>{document.querySelectorAll('.bchip').forEach(x=>x.classList.remove('active'));
     c.classList.add('active');beheerCat=c.dataset.bcat;renderBeheerList();};
 });
-let invAddFoto='';
-document.getElementById('invAddFoto').onclick=()=>pickFoto(url=>{
-  if(!url){alert('Kon de foto niet verwerken.');return;}
-  invAddFoto=url;
-  const prev=document.getElementById('invAddFotoPrev'); prev.src=url; prev.style.display='block';
-});
+let invAddFoto='', invAddFotoBusy=false;
+document.getElementById('invAddFoto').onclick=()=>{
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0]; if(!f) return;
+    invAddFotoBusy=true; const btn=document.getElementById('invAdd'); btn.textContent='Foto laden…';
+    fileToThumb(f,url=>{
+      invAddFotoBusy=false; btn.textContent='Toevoegen';
+      if(!url){alert('Kon de foto niet verwerken. Gebruik een gewone foto (jpg/png), bv. via een schermafbeelding.');return;}
+      invAddFoto=url;
+      const prev=document.getElementById('invAddFotoPrev'); prev.src=url; prev.style.display='block';
+    });
+  };
+  inp.click();
+};
 document.getElementById('invAdd').onclick=()=>{
+  if(invAddFotoBusy){alert('De foto wordt nog verwerkt — heel even wachten.');return;}
   const naam=document.getElementById('invNewNaam').value.trim();
   const cat=document.getElementById('invNewCat').value;
   const stock=+document.getElementById('invNewStock').value||0;

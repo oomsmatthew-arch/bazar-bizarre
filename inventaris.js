@@ -61,6 +61,8 @@
   // (of de standaardlijst). Zo gaat niets verloren bij de overstap.
   async function migrateIfEmpty(){
     if(cache.prijzen.length) return;
+    if(localStorage.getItem('bb_migrated_v1')==='1') return; // voorkomt dubbele migratie (home+index delen opslag)
+    localStorage.setItem('bb_migrated_v1','1');
     let seed=[];
     try{const raw=localStorage.getItem('bb_inv_prijzen'); if(raw) seed=JSON.parse(raw)||[];}catch(e){}
     if(!seed.length && window.INVENTARIS_DEFAULT){
