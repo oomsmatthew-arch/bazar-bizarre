@@ -46,6 +46,13 @@
   .navbtn:active{transform:translateY(1px);}
   .navbtn.home{display:none;}
   .navbtn.home.show{display:block;}
+  /* gsm: compactere balk + Instellingen als tandwiel-icoon i.p.v. het woord */
+  @media(max-width:560px){
+    .topbar{gap:8px;padding:12px 12px;}
+    .navbtn{font-size:13px;padding:9px 11px;}
+    #gearBtn{font-size:0;padding:9px 11px;}
+    #gearBtn::before{content:"⚙";font-size:19px;}
+  }
 
   /* ---- mededeling ---- */
   .mededeling{margin-top:18px;border:1px solid var(--line);border-radius:18px;overflow:hidden;
@@ -172,6 +179,19 @@
   .thumbx{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;
     background:#a23b30;color:#fff;font-size:11px;font-weight:800;cursor:pointer;line-height:1;
     display:grid;place-items:center;box-shadow:var(--shadow);}
+  /* foto-vensters (bron kiezen / camera / bekijken) */
+  .cammodal{position:fixed;inset:0;background:rgba(8,16,20,.85);display:none;z-index:120;
+    align-items:center;justify-content:center;padding:14px;}
+  .cammodal.open{display:flex;}
+  .cammodal-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;
+    max-width:560px;width:100%;box-shadow:var(--shadow);}
+  .cammodal-box.choose{max-width:340px;display:flex;flex-direction:column;gap:10px;}
+  .cammodal-title{font-family:var(--serif);color:var(--forest);font-size:18px;margin-bottom:4px;}
+  #camVideo{width:100%;border-radius:12px;background:#000;display:block;max-height:68vh;}
+  .cammodal-bar{display:flex;gap:10px;margin-top:12px;}
+  .cammodal-bar .btn{flex:1;}
+  #fotoView{cursor:zoom-out;}
+  #fotoView img{max-width:96vw;max-height:90vh;border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);}
   .invrow .nm{flex:1;min-width:0;}
   .invrow .nm .t{font-weight:700;font-size:15px;color:var(--text);}
   .invrow .nm .c{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
@@ -508,6 +528,24 @@
     <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
   </footer>
 </div>
+
+<!-- Foto: bron kiezen -->
+<div class="cammodal" id="fotoKies"><div class="cammodal-box choose">
+  <div class="cammodal-title">Foto toevoegen</div>
+  <button class="btn primary" id="kiesCam">📸 Maak een foto</button>
+  <button class="btn" id="kiesFile">🖼️ Kies uit bestanden</button>
+  <button class="btn clear" id="kiesAnnuleer">Annuleren</button>
+</div></div>
+<!-- Camera -->
+<div class="cammodal" id="camModal"><div class="cammodal-box">
+  <video id="camVideo" autoplay playsinline muted></video>
+  <div class="cammodal-bar">
+    <button class="btn clear" id="camCancel">Annuleren</button>
+    <button class="btn primary" id="camShot">📸 Vastleggen</button>
+  </div>
+</div></div>
+<!-- Foto bekijken -->
+<div class="cammodal" id="fotoView"><img id="fotoViewImg" alt=""></div>
 
 <!-- VIEWER MODAL -->
 <div class="modal" id="viewer">
@@ -892,6 +930,36 @@ function fileToThumb(file,cb){
     img.onerror=()=>cb(null); img.src=r.result;};
   r.onerror=()=>cb(null); r.readAsDataURL(file);
 }
+// ---- Foto-bron kiezen (camera of bestand) ----
+let fotoCb=null;
+function chooseFoto(cb){ fotoCb=cb; document.getElementById('fotoKies').classList.add('open'); }
+function pickFile(cb){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=()=>{const f=inp.files&&inp.files[0]; if(f) fileToThumb(f,cb);}; inp.click(); }
+document.getElementById('kiesCam').onclick=()=>{document.getElementById('fotoKies').classList.remove('open');openCamera(fotoCb);};
+document.getElementById('kiesFile').onclick=()=>{document.getElementById('fotoKies').classList.remove('open');pickFile(fotoCb);};
+document.getElementById('kiesAnnuleer').onclick=()=>document.getElementById('fotoKies').classList.remove('open');
+// ---- Camera (live foto → JPEG) ----
+let camStream=null;
+function openCamera(cb){
+  const m=document.getElementById('camModal'), v=document.getElementById('camVideo');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('Camera niet beschikbaar op dit toestel — kies een foto uit bestanden.');return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false}).then(s=>{
+    camStream=s; v.srcObject=s; if(v.play)v.play().catch(()=>{}); m.classList.add('open');
+    document.getElementById('camShot').onclick=()=>{
+      let w=v.videoWidth,h=v.videoHeight; if(!w||!h){alert('Camera nog niet klaar, probeer opnieuw.');return;}
+      const max=400; if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(v,0,0,w,h);
+      let url=null; try{url=c.toDataURL('image/jpeg',0.7);}catch(e){}
+      closeCamera(); if(url&&cb)cb(url);
+    };
+  }).catch(e=>{alert('Kan de camera niet openen ('+((e&&e.name)||e)+'). Geef toestemming voor de camera, of kies een foto uit bestanden.');});
+}
+function closeCamera(){ const m=document.getElementById('camModal'); m.classList.remove('open');
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;} const v=document.getElementById('camVideo'); if(v)v.srcObject=null; }
+document.getElementById('camCancel').onclick=closeCamera;
+// ---- Foto bekijken (vergroot) ----
+function viewFoto(url){ if(!url)return; document.getElementById('fotoViewImg').src=url; document.getElementById('fotoView').classList.add('open'); }
+document.getElementById('fotoView').onclick=()=>document.getElementById('fotoView').classList.remove('open');
 function prijsRow(p){
   const row=document.createElement('div'); row.className='invrow';
   row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
@@ -901,9 +969,9 @@ function prijsRow(p){
   // foto-thumbnail vooraan
   const tw=document.createElement('div'); tw.className='thumbwrap';
   tw.innerHTML=p.foto?('<img class="thumb" src="'+p.foto+'" alt=""><button type="button" class="thumbx" title="Foto verwijderen">✕</button>'):'<div class="thumb ph">📷</div>';
-  tw.querySelector('.thumb').onclick=()=>pickFoto(url=>{
-    if(!url){alert('Kon de foto niet verwerken.');return;}
-    if(!BBInv.setFoto(p.id,url)){alert('Onvoldoende opslagruimte om de foto te bewaren. Gebruik kleinere of minder foto’s.');return;}
+  tw.querySelector('.thumb').onclick=()=>chooseFoto(url=>{
+    if(!url) return;
+    BBInv.setFoto(p.id,url);
     renderBeheerList();
   });
   if(p.foto) tw.querySelector('.thumbx').onclick=e=>{e.stopPropagation();if(confirm('Foto verwijderen?')){BBInv.setFoto(p.id,'');renderBeheerList();}};
@@ -949,6 +1017,7 @@ function stockRow(p){
   row.innerHTML=(p.foto?'<img class="thumb ro" src="'+p.foto+'" alt="">':'<div class="thumb ph ro">📷</div>')+
     '<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
     '<div class="stocknum'+((p.stock||0)<0?' neg':'')+'">'+(p.stock||0)+'</div>';
+  if(p.foto){const t=row.querySelector('.thumb'); if(t){t.style.cursor='zoom-in'; t.onclick=()=>viewFoto(p.foto);}}
   return row;
 }
 function boekjesStockRow(){
@@ -1067,23 +1136,13 @@ document.querySelectorAll('.bchip').forEach(c=>{
   c.onclick=()=>{document.querySelectorAll('.bchip').forEach(x=>x.classList.remove('active'));
     c.classList.add('active');beheerCat=c.dataset.bcat;renderBeheerList();};
 });
-let invAddFoto='', invAddFotoBusy=false;
-document.getElementById('invAddFoto').onclick=()=>{
-  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
-  inp.onchange=()=>{
-    const f=inp.files&&inp.files[0]; if(!f) return;
-    invAddFotoBusy=true; const btn=document.getElementById('invAdd'); btn.textContent='Foto laden…';
-    fileToThumb(f,url=>{
-      invAddFotoBusy=false; btn.textContent='Toevoegen';
-      if(!url){alert('Kon de foto niet verwerken. Gebruik een gewone foto (jpg/png), bv. via een schermafbeelding.');return;}
-      invAddFoto=url;
-      const prev=document.getElementById('invAddFotoPrev'); prev.src=url; prev.style.display='block';
-    });
-  };
-  inp.click();
-};
+let invAddFoto='';
+document.getElementById('invAddFoto').onclick=()=>chooseFoto(url=>{
+  if(!url) return;
+  invAddFoto=url;
+  const prev=document.getElementById('invAddFotoPrev'); prev.src=url; prev.style.display='block';
+});
 document.getElementById('invAdd').onclick=()=>{
-  if(invAddFotoBusy){alert('De foto wordt nog verwerkt — heel even wachten.');return;}
   const naam=document.getElementById('invNewNaam').value.trim();
   const cat=document.getElementById('invNewCat').value;
   const stock=+document.getElementById('invNewStock').value||0;
