@@ -105,7 +105,7 @@
     const rows=cache.prijzen.filter(p=>ids.indexOf(p.id)>=0).map(toRow);
     if(rows.length) sb.from('prijzen').upsert(rows).then(err);
   }
-  function setStock(id,v){ const p=cache.prijzen.find(x=>x.id===id); if(p)p.stock=Math.round(v||0); queue(id); }
+  function setStock(id,v){ const p=cache.prijzen.find(x=>x.id===id); if(p){p.stock=Math.round(v||0); if(p.stock<=0)p.inGebruik=false;} queue(id); }
   function setPrijzen(arr){ cache.prijzen=arr; arr.forEach(p=>dirty.add(p.id)); clearTimeout(flushT); flushT=setTimeout(flush,400); }
   function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; sb.from('boekjes').upsert({id:1,stock:cache.boekjes.stock}).then(err); }
   function addPrijs(cat,naam,stock,foto){
@@ -118,7 +118,7 @@
 
   function submitFormulier(f){
     const byId={}; cache.prijzen.forEach(p=>byId[p.id]=p); const changed=new Set();
-    const expand=arr=>(arr||[]).map(it=>{const p=byId[it.id]; const n=Math.max(1,+it.n||1); if(p){p.stock=(p.stock||0)-n;changed.add(p.id);} return {id:it.id,naam:p?p.naam:'(verwijderd)',n};});
+    const expand=arr=>(arr||[]).map(it=>{const p=byId[it.id]; const n=Math.max(1,+it.n||1); if(p){p.stock=(p.stock||0)-n; if(p.stock<=0)p.inGebruik=false; changed.add(p.id);} return {id:it.id,naam:p?p.naam:'(verwijderd)',n};});
     const kleine=expand(f.kleine), groot=expand(f.groot);
     const b=f.boekjes||{}; const used=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
     cache.boekjes.stock=(cache.boekjes.stock||0)-used;

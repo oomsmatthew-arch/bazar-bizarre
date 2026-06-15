@@ -156,6 +156,12 @@
   .invlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:8px;margin-top:6px;}
   /* beheerlijst heeft meer knoppen per rij → bredere kolommen zodat de naam niet wordt samengeknepen */
   #beheerList{grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));}
+  /* gsm: naam op regel 1, knoppen op regel 2 (pc-weergave blijft gelijk) */
+  @media(max-width:560px){
+    #beheerList .invrow{flex-wrap:wrap;row-gap:10px;}
+    #beheerList .invrow .nm{flex:1 1 calc(100% - 62px);min-width:0;}
+    #beheerList .invrow .del{margin-left:auto;}
+  }
   .invrow.span{grid-column:1/-1;}
   .invrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);}
@@ -904,7 +910,9 @@ function prijsRow(p){
   row.prepend(tw);
   const inp=row.querySelector('.stk input');
   const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
-    if(t){BBInv.setStock(p.id,v);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
+    if(t){BBInv.setStock(p.id,v);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);
+    if(v<=0){p.inGebruik=false;const ub=row.querySelector('.use');if(ub){ub.classList.remove('on');ub.textContent='✗ Niet in gebruik';}}
+    renderInvSum();renderStats();};
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
   row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
   inp.onchange=()=>commit(+inp.value||0);
