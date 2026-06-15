@@ -80,7 +80,22 @@
   .card[data-key="spel"]{--accent:var(--sun);background:linear-gradient(150deg,#fffaf0,#fff);}
   .card[data-key="inventaris"]{--accent:var(--leaf);background:linear-gradient(150deg,#eef8f0,#fff);}
   .card[data-key="bestellingen"]{--accent:#e2683f;background:linear-gradient(150deg,#fff3ee,#fff);}
+  .card[data-key="contacten"]{--accent:#8a5cc7;background:linear-gradient(150deg,#f4eefb,#fff);}
   .card[data-key="manuals"]{--accent:var(--water);background:linear-gradient(150deg,#edf6fb,#fff);}
+  /* Contacten */
+  .contlist{display:flex;flex-direction:column;gap:10px;margin:4px 0 18px;}
+  .contcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid #8a5cc7;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);}
+  .contcard .cnaam{font-weight:700;font-size:16px;color:var(--text);}
+  .contcard .crol{font-size:13px;color:var(--muted);margin-top:1px;}
+  .contcard .clinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;}
+  .contcard .clinks a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:14px;font-weight:600;
+    padding:7px 12px;border-radius:999px;background:var(--panel2);color:var(--forest);border:1px solid var(--line);}
+  .contcard .clinks a.mail{color:#8a5cc7;}
+  .contcard .cdel{float:right;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:2px 4px;}
+  .contempty{color:var(--muted);font-style:italic;padding:8px 2px;}
+  .contadd{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:6px;}
+  .contadd .h{font-weight:700;color:var(--text);margin-bottom:10px;}
+  .contadd .finp{margin-bottom:9px;}
   .card[data-key="instellingen"]{--accent:var(--bark);background:linear-gradient(150deg,#f6f1ea,#fff);}
 
   /* ---- views ---- */
@@ -387,6 +402,7 @@
   [data-theme="dark"] .card[data-key="spel"]{background:linear-gradient(150deg,#26301f,#18271f);}
   [data-theme="dark"] .card[data-key="inventaris"]{background:linear-gradient(150deg,#1b2e22,#18271f);}
   [data-theme="dark"] .card[data-key="bestellingen"]{background:linear-gradient(150deg,#2e241d,#18271f);}
+  [data-theme="dark"] .card[data-key="contacten"]{background:linear-gradient(150deg,#241d2e,#18271f);}
   [data-theme="dark"] .card[data-key="manuals"]{background:linear-gradient(150deg,#1b2b30,#18271f);}
   [data-theme="dark"] .card[data-key="instellingen"]{background:linear-gradient(150deg,#2a241c,#18271f);}
   [data-theme="dark"] .lowstock{background:linear-gradient(120deg,#2a201e,#18271f);border-color:#5a3530;}
@@ -456,6 +472,11 @@
         <h2>Besteloverzicht</h2>
         <p>Overzicht van bestellingen: status, aantal, kosten, leverancier en leverdatum.</p>
       </div>
+      <div class="card" data-key="contacten" id="openContacten">
+        <div class="rnd">Handig</div>
+        <h2>Contacten</h2>
+        <p>Telefoonnummers en e-mails van het team en leveranciers.</p>
+      </div>
       <div class="card" data-key="manuals" id="openManuals">
         <div class="rnd">Naslag</div>
         <h2>Online manuals</h2>
@@ -498,6 +519,21 @@
     <input type="text" id="manualsZoek" class="finp zoek" placeholder="Zoek in alle handleidingen en video's…">
     <div class="crumbs" id="crumbs"></div>
     <div class="filelist" id="filelist"></div>
+  </div>
+
+  <!-- CONTACTEN -->
+  <div class="view" id="contacten">
+    <p class="hint">Telefoonnummers en e-mails van het team en de leveranciers. Tik een nummer om te bellen, of een e-mail om te mailen. Wordt op dit toestel bewaard.</p>
+    <input type="text" id="contZoek" class="finp zoek" placeholder="Zoek op naam, rol of leverancier…">
+    <div class="contlist" id="contlist"></div>
+    <div class="contadd">
+      <div class="h">Nieuw contact</div>
+      <input type="text" id="contNaam" class="finp" placeholder="Naam">
+      <input type="text" id="contRol" class="finp" placeholder="Rol / functie (bv. Teamleader, Leverancier boekjes)">
+      <input type="tel" id="contTel" class="finp" placeholder="Telefoon (optioneel)">
+      <input type="email" id="contMail" class="finp" placeholder="E-mail (optioneel)">
+      <button class="btn" id="contAdd">Contact toevoegen</button>
+    </div>
   </div>
 
   <!-- INVENTARIS -->
@@ -800,7 +836,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v22';
+const APP_VERSION='v23';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -809,6 +845,7 @@ const K_DREMPEL2='bb_home_drempel2';     // oranje: aandacht gevraagd
 const K_DREMPEL_BK='bb_home_drempel_boekjes'; // boekjes-voorraad melding
 const K_BESTELMAIL='bb_home_bestelmail';
 const K_THEME='bb_home_theme';
+const K_CONTACTEN='bb_contacten';
 const DEFAULT_PIN='3920';
 const DEFAULT_DREMPEL=16;
 const DEFAULT_DREMPEL2=24;
@@ -901,14 +938,14 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
-  // Instellingen-knop verbergen in de inventaris (daar hoort beheer thuis, niet de algemene instellingen)
-  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen') ? 'none' : '';
+  // Instellingen-knop verbergen waar beheer apart geregeld is (inventaris, bestellingen, manuals)
+  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals') ? 'none' : '';
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
@@ -1890,6 +1927,47 @@ function openBestelModal(id){
 function closeBestelModal(){ document.getElementById('bestelModal').classList.remove('open'); bestelEditId=null; }
 
 document.getElementById('openBestellingen').onclick=()=>{ showBestelTab('overzicht'); show('bestellingen'); };
+
+// ---------------- CONTACTEN ----------------
+const CONTACTEN_DEFAULT=[
+  {naam:'Receptie',rol:'Center Parcs — receptie',tel:'',mail:''},
+  {naam:'Technische dienst',rol:'Center Parcs — techniek',tel:'',mail:''}
+];
+function loadContacten(){try{const r=localStorage.getItem(K_CONTACTEN);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}return CONTACTEN_DEFAULT.slice();}
+let contacten=loadContacten();
+function saveContacten(){try{localStorage.setItem(K_CONTACTEN,JSON.stringify(contacten));}catch(e){}}
+function telLink(t){return 'tel:'+String(t).replace(/[^+0-9]/g,'');}
+function renderContacten(){
+  const box=document.getElementById('contlist'); if(!box)return;
+  const q=(document.getElementById('contZoek').value||'').toLowerCase().trim();
+  const lijst=contacten.filter(c=>!q||((c.naam||'')+' '+(c.rol||'')).toLowerCase().indexOf(q)>=0);
+  box.innerHTML='';
+  if(!lijst.length){ box.innerHTML='<div class="contempty">'+(q?'Geen contact gevonden.':'Nog geen contacten. Voeg er hieronder een toe.')+'</div>'; return; }
+  lijst.forEach(c=>{
+    const i=contacten.indexOf(c);
+    const links=[];
+    if(c.tel) links.push('<a href="'+telLink(c.tel)+'">📞 '+esc(c.tel)+'</a>');
+    if(c.mail) links.push('<a class="mail" href="mailto:'+esc(c.mail)+'">✉️ '+esc(c.mail)+'</a>');
+    const card=document.createElement('div'); card.className='contcard';
+    card.innerHTML='<button class="cdel" title="Verwijderen">✕</button>'+
+      '<div class="cnaam">'+esc(c.naam)+'</div>'+
+      (c.rol?'<div class="crol">'+esc(c.rol)+'</div>':'')+
+      (links.length?'<div class="clinks">'+links.join('')+'</div>':'');
+    card.querySelector('.cdel').onclick=()=>{ if(!confirm('Contact "'+(c.naam||'')+'" verwijderen?'))return; contacten.splice(i,1); saveContacten(); renderContacten(); };
+    box.appendChild(card);
+  });
+}
+document.getElementById('openContacten').onclick=()=>{ renderContacten(); show('contacten'); };
+document.getElementById('contZoek').addEventListener('input',renderContacten);
+document.getElementById('contAdd').onclick=()=>{
+  const naam=document.getElementById('contNaam').value.trim();
+  if(!naam){alert('Geef minstens een naam.');return;}
+  contacten.push({naam,rol:document.getElementById('contRol').value.trim(),
+    tel:document.getElementById('contTel').value.trim(),mail:document.getElementById('contMail').value.trim()});
+  saveContacten();
+  ['contNaam','contRol','contTel','contMail'].forEach(id=>document.getElementById(id).value='');
+  renderContacten();
+};
 document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
 document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
 document.getElementById('bestelBoekjaar').onchange=e=>{ bestelBoekjaar=e.target.value; renderBestelList(); };
