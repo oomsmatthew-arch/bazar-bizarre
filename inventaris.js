@@ -217,6 +217,14 @@
     cache.bestellingen=cache.bestellingen.filter(b=>b.id!==id);
     saveBestelBackup(); if(bestelOK) sb.from('bestellingen').delete().eq('id',id).then(err);
   }
+  async function resetBestellingen(){
+    const seed=bestelSeed();
+    if(bestelOK){
+      await sb.from('bestellingen').delete().neq('id','');
+      for(let i=0;i<seed.length;i+=40){ const r=await sb.from('bestellingen').insert(seed.slice(i,i+40).map(bestelToRow)); err(r); }
+    }
+    cache.bestellingen=seed.slice(); saveBestelBackup(); fire();
+  }
 
   // Inventaris terugzetten naar de standaardlijst
   async function resetInventaris(){
@@ -269,7 +277,7 @@
   window.BBInv={init,setOnChange:fn=>{onChange=fn;},isReady:()=>ready,
     seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
-    getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,
+    getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,
     submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
 })();

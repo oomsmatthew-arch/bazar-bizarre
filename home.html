@@ -234,6 +234,18 @@
     padding:7px 11px;cursor:pointer;font-size:13px;}
 
   /* ---- bestellingen ---- */
+  /* tabbladen (zelfde look als de inventaris-tabs) */
+  .btab{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;
+    font-size:14px;padding:9px 14px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow);}
+  .btab.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  .bpane{display:none;} .bpane.active{display:block;}
+  /* financieel: groepstabellen */
+  .fintab{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow);}
+  .finrow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--line);}
+  .finrow:first-child{border-top:none;}
+  .finrow .fk{flex:1;min-width:0;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .finrow .fn{flex:0 0 auto;color:var(--muted);font-size:12px;font-weight:700;}
+  .finrow .fv{flex:0 0 auto;font-weight:800;color:var(--forest);min-width:96px;text-align:right;}
   /* filter-/sorteerbalk */
   .bestelctrls{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 12px;}
   .bsel{background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:13px;font-weight:700;
@@ -581,29 +593,69 @@
   <!-- BESTELLINGEN -->
   <div class="view" id="bestellingen">
     <p class="hint">Overzicht van alle bestellingen. Voeg toe, pas aan en volg de status op. Wijzigingen worden automatisch bewaard<span id="bestelDeeltMee"> en met alle toestellen gedeeld</span>.</p>
-    <div class="invsum" id="bestelSum"></div>
-    <div class="row" style="margin:0 2px 12px;">
-      <button class="btn primary" id="bestelNieuw">➕ Nieuwe bestelling</button>
-      <button class="btn" id="bestelExport">⬇ Exporteren (CSV)</button>
+    <div class="invtabs">
+      <button class="btab active" data-btab="overzicht">Overzicht</button>
+      <button class="btab" data-btab="financieel">💶 Financieel</button>
+      <button class="btab" data-btab="beheer">🔒 Beheer</button>
     </div>
-    <input type="text" id="bestelZoek" class="finp zoek" placeholder="Zoek op bestelling, categorie of leverancier…">
-    <div class="invfilter" id="bestelFilter"></div>
-    <div class="bestelctrls">
-      <select id="bestelAfd" class="bsel">
-        <option value="all">Alle afdelingen</option>
-        <option value="ENT">Alleen ENT</option>
-        <option value="BAY">Alleen BAY</option>
-        <option value="HSB">Alleen HSB</option>
-      </select>
-      <select id="bestelLev" class="bsel"></select>
-      <select id="bestelSort" class="bsel">
-        <option value="datum-desc">Datum: nieuwste eerst</option>
-        <option value="datum-asc">Datum: oudste eerst</option>
-        <option value="prijs-desc">Prijs: hoog → laag</option>
-        <option value="prijs-asc">Prijs: laag → hoog</option>
-      </select>
+
+    <!-- OVERZICHT -->
+    <div class="bpane active" id="bpane-overzicht">
+      <div class="invsum" id="bestelSum"></div>
+      <div class="row" style="margin:0 2px 12px;">
+        <button class="btn primary" id="bestelNieuw">➕ Nieuwe bestelling</button>
+      </div>
+      <input type="text" id="bestelZoek" class="finp zoek" placeholder="Zoek op bestelling, categorie of leverancier…">
+      <div class="invfilter" id="bestelFilter"></div>
+      <div class="bestelctrls">
+        <select id="bestelAfd" class="bsel">
+          <option value="all">Alle afdelingen</option>
+          <option value="ENT">Alleen ENT</option>
+          <option value="BAY">Alleen BAY</option>
+          <option value="HSB">Alleen HSB</option>
+        </select>
+        <select id="bestelLev" class="bsel"></select>
+        <select id="bestelSort" class="bsel">
+          <option value="datum-desc">Datum: nieuwste eerst</option>
+          <option value="datum-asc">Datum: oudste eerst</option>
+          <option value="prijs-desc">Prijs: hoog → laag</option>
+          <option value="prijs-asc">Prijs: laag → hoog</option>
+        </select>
+      </div>
+      <div id="bestelList"></div>
     </div>
-    <div id="bestelList"></div>
+
+    <!-- FINANCIEEL -->
+    <div class="bpane" id="bpane-financieel">
+      <p class="hint" style="margin:0 2px 12px;">Kosten per afdeling en wat er al ontvangen is. Geannuleerde bestellingen tellen niet mee.</p>
+      <div class="h" style="margin:0 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Kosten per afdeling</div>
+      <div class="statgrid" id="finKas"></div>
+      <div class="h" style="margin:22px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Ontvangen vs. nog te ontvangen</div>
+      <div class="statgrid" id="finStatus"></div>
+      <div class="h" style="margin:22px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Per categorie</div>
+      <div id="finCat"></div>
+      <div class="h" style="margin:22px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Per leverancier</div>
+      <div id="finLev"></div>
+    </div>
+
+    <!-- BEHEER -->
+    <div class="bpane" id="bpane-beheer">
+      <div class="field">
+        <div class="h">Exporteren</div>
+        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of open in Google Sheets / Excel.</p>
+        <div class="row"><button class="btn primary" id="bestelExport">⬇ Bestellingen (CSV)</button></div>
+      </div>
+      <div class="field">
+        <div class="h">Afdrukken</div>
+        <p class="hint" style="margin:0 0 10px;">Een nette lijst om mee te nemen of door te geven.</p>
+        <div class="row"><button class="btn" id="bestelPrint">🖨️ Bestellijst afdrukken</button></div>
+      </div>
+      <div class="field">
+        <div class="h">Terugzetten naar startlijst</div>
+        <p class="hint" style="margin:0 0 10px;">Zet de bestellingen terug naar de oorspronkelijke Excel-lijst (april t/m juni). Eigen toevoegingen en wijzigingen gaan verloren.</p>
+        <div class="row"><button class="btn" id="bestelReset">Terug naar startlijst</button></div>
+      </div>
+    </div>
   </div>
 
   <footer>
@@ -681,7 +733,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v16';
+const APP_VERSION='v17';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1423,6 +1475,7 @@ document.getElementById('invReset').onclick=()=>{
 // ================= BESTELLINGEN =================
 const BESTEL_STATUSSEN=['Besteld','Onderweg','In loods','Uitgepakt','Geannuleerd'];
 let bestelEditId=null, bestelStatusFilter='all', bestelQuery='', bestelAfd='all', bestelLev='all', bestelSort='datum-desc';
+let bestelUnlocked=false, bestelTab='overzicht';
 function eur(n){ n=+n||0; try{return n.toLocaleString('nl-BE',{style:'currency',currency:'EUR'});}catch(e){return '€ '+n.toFixed(2);} }
 function dmy(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
 function dmShort(iso){ if(!iso) return '—'; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]:iso; }
@@ -1497,6 +1550,53 @@ function renderBestellingen(){
   document.getElementById('bestelSort').value=bestelSort;
   renderBestelSum(); renderBestelFilter(); renderBestelList();
 }
+
+// ---- Financieel ----
+function statCard(label,val,cls){ return '<div class="statcard '+(cls||'')+'"><div class="v">'+val+'</div><div class="l">'+esc(label)+'</div></div>'; }
+function finGroep(list,key){
+  const m={};
+  list.forEach(b=>{ const k=(b[key]||'').trim()||'(geen)'; if(!m[k])m[k]={n:0,tot:0}; m[k].n++; m[k].tot+=bestelTotaal(b); });
+  return Object.keys(m).map(k=>({k,n:m[k].n,tot:m[k].tot})).sort((a,b)=>b.tot-a.tot||b.n-a.n);
+}
+function finTabel(rows){
+  if(!rows.length) return '<div class="empty-note">Nog niets.</div>';
+  return '<div class="fintab">'+rows.map(r=>'<div class="finrow"><span class="fk">'+esc(r.k)+'</span><span class="fn">'+r.n+'×</span><span class="fv">'+eur(r.tot)+'</span></div>').join('')+'</div>';
+}
+function renderFinancieel(){
+  const list=BBInv.getBestellingen().filter(b=>b.status!=='Geannuleerd');
+  let ent=0,bay=0,hsb=0;
+  list.forEach(b=>{ ent+=+b.ent||0; bay+=+b.bay||0; hsb+=+b.hsb||0; });
+  const tot=ent+bay+hsb;
+  document.getElementById('finKas').innerHTML=
+    statCard('ENT',eur(ent))+statCard('BAY',eur(bay))+statCard('HSB',eur(hsb))+statCard('Totaal',eur(tot),'green');
+  let ontv=0, open=0;
+  list.forEach(b=>{ const t=bestelTotaal(b); if(b.status==='Uitgepakt'||b.status==='In loods') ontv+=t; else open+=t; });
+  document.getElementById('finStatus').innerHTML=
+    statCard('Ontvangen (in loods + uitgepakt)',eur(ontv),'green')+statCard('Nog te ontvangen (besteld + onderweg)',eur(open),'orange');
+  document.getElementById('finCat').innerHTML=finTabel(finGroep(list,'cat'));
+  document.getElementById('finLev').innerHTML=finTabel(finGroep(list,'leverancier'));
+}
+
+// ---- tabbladen (Beheer met wachtwoord, net als de inventaris) ----
+function showBestelTab(t){
+  if(t==='beheer' && !bestelUnlocked){
+    const p=prompt('Wachtwoord voor beheer:');
+    if(p===null) return;
+    if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+    bestelUnlocked=true;
+  }
+  bestelTab=t;
+  document.querySelectorAll('.btab').forEach(x=>x.classList.toggle('active',x.dataset.btab===t));
+  document.querySelectorAll('.bpane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('bpane-'+t).classList.add('active');
+  if(t==='overzicht') renderBestellingen();
+  else if(t==='financieel') renderFinancieel();
+}
+document.querySelectorAll('.btab').forEach(b=>{ b.onclick=()=>showBestelTab(b.dataset.btab); });
+function renderBestelActief(){
+  if(bestelTab==='financieel') renderFinancieel();
+  else renderBestellingen();
+}
 function openBestelModal(id){
   bestelEditId=id||null;
   const b = id ? BBInv.getBestellingen().find(x=>x.id===id) : null;
@@ -1511,7 +1611,7 @@ function openBestelModal(id){
 }
 function closeBestelModal(){ document.getElementById('bestelModal').classList.remove('open'); bestelEditId=null; }
 
-document.getElementById('openBestellingen').onclick=()=>{ renderBestellingen(); show('bestellingen'); };
+document.getElementById('openBestellingen').onclick=()=>{ showBestelTab('overzicht'); show('bestellingen'); };
 document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
 document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
 document.getElementById('bestelAfd').onchange=e=>{ bestelAfd=e.target.value; renderBestelList(); };
@@ -1546,6 +1646,21 @@ document.getElementById('bestelExport').onclick=()=>{
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bestellingen.csv'; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
+document.getElementById('bestelReset').onclick=()=>{
+  if(!confirm('De bestellingen terugzetten naar de oorspronkelijke Excel-lijst?\nEigen toevoegingen en wijzigingen gaan verloren.')) return;
+  BBInv.resetBestellingen().then(()=>{ renderBestelActief(); alert('Bestellingen hersteld naar de startlijst.'); });
+};
+document.getElementById('bestelPrint').onclick=()=>{
+  const list=BBInv.getBestellingen().slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+  const rows=list.map(b=>'<tr><td>'+esc(dmy(b.datum))+'</td><td>'+esc(b.cat)+'</td><td>'+esc(b.info)+'</td><td>'+esc(b.status)+'</td><td>'+esc(b.aantal)+'</td><td class="n">'+(+b.ent?eur(b.ent):'')+'</td><td class="n">'+(+b.bay?eur(b.bay):'')+'</td><td class="n">'+(+b.hsb?eur(b.hsb):'')+'</td><td>'+esc(b.leverancier)+'</td><td>'+esc(dmy(b.leverdatum))+'</td><td>'+esc(b.opm)+'</td></tr>').join('');
+  const body='<h1>Bestellingen — overzicht</h1><div class="sub">Afgedrukt op '+dmy(new Date().toISOString().slice(0,10))+'</div>'+
+    '<table><tr><th>Datum</th><th>Categorie</th><th>Bestelling</th><th>Status</th><th>Aantal</th><th class="n">ENT</th><th class="n">BAY</th><th class="n">HSB</th><th>Leverancier</th><th>Geleverd</th><th>Opmerkingen</th></tr>'+rows+'</table>';
+  const css='body{font-family:Arial,Helvetica,sans-serif;color:#1d2e22;margin:20px;}h1{font-size:19px;margin:0 0 4px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}table{border-collapse:collapse;width:100%;font-size:12px;}th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;vertical-align:top;}td.n,th.n{text-align:right;white-space:nowrap;}';
+  const w=window.open('','_blank');
+  if(!w){ alert('Kon het afdrukvenster niet openen (popup geblokkeerd?).'); return; }
+  w.document.open(); w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Bestellingen</title><style>'+css+'</style></head><body>'+body+'</body></html>'); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
+};
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('bestelModal').classList.contains('open')) closeBestelModal(); });
 
 // ---------------- OFFLINE-STATUS + VERSIE ----------------
@@ -1575,7 +1690,7 @@ BBInv.setOnChange(()=>{
     if(document.getElementById('pane-formulieren').classList.contains('active')) renderFormulieren();
     if(document.getElementById('pane-beheer').classList.contains('active')) renderStats();
   }
-  if(document.getElementById('bestellingen').classList.contains('active')) renderBestellingen();
+  if(document.getElementById('bestellingen').classList.contains('active')) renderBestelActief();
 });
 renderHome();
 BBInv.init();
