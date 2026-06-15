@@ -727,3 +727,22 @@ window.INVENTARIS_DEFAULT = {
   }
  ]
 };
+
+// Standaard startlijst voor "Bestellingen" — overgenomen uit het Excel-overzicht
+// (BJ2025-2026 — OVERZICHT BESTELLINGEN, april t/m juni). Beheer dit verder in de app,
+// onder de kaart "Bestellingen" op de homepagina.
+window.BESTELLINGEN_DEFAULT = [
+ {datum:"2026-04-16", cat:"CGT",             info:"Boekjes",                                          status:"Besteld",   aantal:"8",          ent:0,       bay:0,       hsb:0, leverancier:"CP print",    leverdatum:"",           opm:""},
+ {datum:"2026-04-16", cat:"Live",            info:"Rubberen matten, DJ Poolparty",                    status:"Besteld",   aantal:"3",          ent:203.70,  bay:0,       hsb:0, leverancier:"manutan",     leverdatum:"",           opm:""},
+ {datum:"2026-04-06", cat:"CGT",             info:"Prijzen",                                          status:"Uitgepakt", aantal:"",           ent:1250.00, bay:0,       hsb:0, leverancier:"Ready4Bingo", leverdatum:"2026-04-17", opm:"Pakbon door Lien"},
+ {datum:"2026-04-23", cat:"Bay workshop",    info:"Knutselmateriaal",                                 status:"Uitgepakt", aantal:"",           ent:0,       bay:1066.48, hsb:0, leverancier:"Lobbes",      leverdatum:"2026-05-05", opm:"Pakbon door Jennifer"},
+ {datum:"2026-04-28", cat:"Onderhoud",       info:"Boma alco spray",                                  status:"Uitgepakt", aantal:"12 flessen", ent:88.56,   bay:0,       hsb:0, leverancier:"BOMA",        leverdatum:"2026-05-19", opm:"Pakbon door Christel"},
+ {datum:"2026-04-28", cat:"Schmink",         info:"Wattenschijfjes + afwasmiddel",                    status:"Besteld",   aantal:"",           ent:39.40,   bay:0,       hsb:0, leverancier:"Solucious",   leverdatum:"",           opm:"geannuleerd, afhalen bij foodstore iov Sabine"},
+ {datum:"2026-04-28", cat:"O&F",             info:"Postkaarten O&F schrijven",                        status:"Uitgepakt", aantal:"1 doos",     ent:0,       bay:0,       hsb:0, leverancier:"CP print",    leverdatum:"2026-01-06", opm:""},
+ {datum:"2026-05-13", cat:"Hotspot",         info:"Marshmallows",                                     status:"Besteld",   aantal:"50",         ent:0,       bay:0,       hsb:0, leverancier:"Sligro",      leverdatum:"",           opm:""},
+ {datum:"2026-05-21", cat:"Bay workshop",    info:"Verf om te knutselen en ander knutselmateriaal",   status:"Uitgepakt", aantal:"",           ent:0,       bay:644.22,  hsb:0, leverancier:"Lobbes",      leverdatum:"2026-06-08", opm:"Pakbon Jennifer"},
+ {datum:"2026-05-21", cat:"Bay activiteiten",info:"Goud en give away",                                status:"Uitgepakt", aantal:"",           ent:0,       bay:418.00,  hsb:0, leverancier:"Espa",        leverdatum:"2026-06-08", opm:"Pakbon Jennifer"},
+ {datum:"2026-05-27", cat:"Techniek",        info:"Kabel",                                            status:"Besteld",   aantal:"",           ent:7.30,    bay:0,       hsb:0, leverancier:"Thomann",     leverdatum:"",           opm:""},
+ {datum:"2026-06-01", cat:"CGT",             info:"Prijzen",                                          status:"Besteld",   aantal:"8 dozen",    ent:1280.00, bay:0,       hsb:0, leverancier:"Ready4Bingo", leverdatum:"",           opm:""},
+ {datum:"2026-05-28", cat:"Bay activiteiten",info:"schmink",                                          status:"Besteld",   aantal:"",           ent:0,       bay:301.75,  hsb:0, leverancier:"Noddies",     leverdatum:"",           opm:""}
+];

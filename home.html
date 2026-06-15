@@ -79,6 +79,7 @@
   .card p{margin:0;color:var(--muted);font-size:14px;line-height:1.45;}
   .card[data-key="spel"]{--accent:var(--sun);background:linear-gradient(150deg,#fffaf0,#fff);}
   .card[data-key="inventaris"]{--accent:var(--leaf);}
+  .card[data-key="bestellingen"]{--accent:var(--sun);}
   .card[data-key="manuals"]{--accent:var(--water);}
   .card[data-key="instellingen"]{--accent:var(--bark);}
 
@@ -232,6 +233,43 @@
   .subrec .rm{margin-top:10px;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:700;border-radius:10px;
     padding:7px 11px;cursor:pointer;font-size:13px;}
 
+  /* ---- bestellingen ---- */
+  .bestelcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
+    margin-bottom:10px;box-shadow:var(--shadow);}
+  .bestelcard .bc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .bestelcard .bc-datum{font-size:12px;color:var(--muted);font-weight:700;}
+  .bestelcard .bc-cat{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;
+    color:var(--forest);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;}
+  .bestelcard .bc-edit{margin-left:auto;border:1px solid var(--line);background:var(--panel2);color:var(--forest);
+    font-weight:700;border-radius:10px;padding:7px 12px;cursor:pointer;font-size:13px;}
+  .bestelcard h4{margin:2px 0 8px;font-family:var(--serif);color:var(--text);font-size:18px;line-height:1.2;}
+  .bestelcard .bc-meta{display:flex;flex-wrap:wrap;gap:7px 8px;margin-bottom:6px;}
+  .bc-chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px;
+    font-size:12px;font-weight:700;color:var(--text);}
+  .bc-chip b{color:var(--forest);font-weight:800;}
+  .bc-chip.ent b{color:#2f8f6b;} .bc-chip.bay b{color:#1f6b9a;} .bc-chip.hsb b{color:#9a6b15;}
+  .bestelcard .bc-opm{font-size:13px;color:var(--muted);line-height:1.45;margin-top:4px;}
+  /* status-badge */
+  .stbadge{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;border-radius:999px;
+    padding:3px 11px;border:1px solid;}
+  .stbadge.s-besteld{color:#b8791a;background:#fff8ec;border-color:#f0d29a;}
+  .stbadge.s-onderweg{color:#1f6b9a;background:#e8f3fb;border-color:#aacfe8;}
+  .stbadge.s-inloods{color:#7a5a2b;background:#f6efe2;border-color:#ddc79a;}
+  .stbadge.s-uitgepakt{color:#1f6b43;background:#e7f6ec;border-color:#a8d8b8;}
+  .stbadge.s-geannuleerd{color:#a23b30;background:#fdecea;border-color:#e2b6b0;text-decoration:line-through;}
+  /* samenvatting: totalen per kas */
+  .invsum .pill.ent b{color:#2f8f6b;} .invsum .pill.bay b{color:#1f6b9a;} .invsum .pill.hsb b{color:#9a6b15;}
+  /* formulier in de modal */
+  .cammodal-box.bestelbox{max-width:560px;max-height:92vh;overflow:auto;}
+  .bestelform label{display:block;font-size:13px;color:var(--muted);margin:12px 0 5px;font-weight:700;}
+  .bestelform .finp{font-size:16px;}
+  .bestelform .bf2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .bestelform .bf3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .bestelform .bf3 > div{display:flex;flex-direction:column;}
+  .bestelform .kaslbl{font-size:11px;font-weight:800;letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase;}
+  .bestelform .kaslbl.ent{color:#2f8f6b;} .bestelform .kaslbl.bay{color:#1f6b9a;} .bestelform .kaslbl.hsb{color:#9a6b15;}
+  @media(max-width:520px){.bestelform .bf2{grid-template-columns:1fr;}}
+
   /* ---- lage-voorraad melding ---- */
   .lowstock{margin-top:18px;border:1px solid #e7b9b0;border-radius:18px;overflow:hidden;
     background:linear-gradient(120deg,#fff3f0,#fff);position:relative;box-shadow:var(--shadow);display:none;}
@@ -355,6 +393,11 @@
         <div class="rnd">Beheer</div>
         <h2>Inventaris lijst BB</h2>
         <p>Voorraad beheren, leveringen en formulieren.</p>
+      </div>
+      <div class="card" data-key="bestellingen" id="openBestellingen">
+        <div class="rnd">Beheer</div>
+        <h2>Bestellingen</h2>
+        <p>Overzicht van bestellingen: status, aantal, kosten, leverancier en leverdatum.</p>
       </div>
       <div class="card" data-key="manuals" id="openManuals">
         <div class="rnd">Naslag</div>
@@ -523,6 +566,19 @@
 
   </div>
 
+  <!-- BESTELLINGEN -->
+  <div class="view" id="bestellingen">
+    <p class="hint">Overzicht van alle bestellingen. Voeg toe, pas aan en volg de status op. Wijzigingen worden automatisch bewaard<span id="bestelDeeltMee"> en met alle toestellen gedeeld</span>.</p>
+    <div class="invsum" id="bestelSum"></div>
+    <div class="row" style="margin:0 2px 12px;">
+      <button class="btn primary" id="bestelNieuw">➕ Nieuwe bestelling</button>
+      <button class="btn" id="bestelExport">⬇ Exporteren (CSV)</button>
+    </div>
+    <input type="text" id="bestelZoek" class="finp zoek" placeholder="Zoek op bestelling, categorie of leverancier…">
+    <div class="invfilter" id="bestelFilter"></div>
+    <div id="bestelList"></div>
+  </div>
+
   <footer>
     Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
     <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
@@ -547,6 +603,42 @@
 <!-- Foto bekijken -->
 <div class="cammodal" id="fotoView"><img id="fotoViewImg" alt=""></div>
 
+<!-- BESTELLING bewerken -->
+<div class="cammodal" id="bestelModal"><div class="cammodal-box bestelbox">
+  <div class="cammodal-title" id="bestelModalTitle">Nieuwe bestelling</div>
+  <div class="bestelform">
+    <label>Bestelling (wat)</label>
+    <input type="text" id="bfInfo" class="finp" placeholder="bv. Prijzen, Knutselmateriaal…">
+    <div class="bf2">
+      <div><label>Besteldatum</label><input type="date" id="bfDatum" class="finp"></div>
+      <div><label>Status</label>
+        <select id="bfStatus" class="finp"></select>
+      </div>
+    </div>
+    <div class="bf2">
+      <div><label>Categorie</label><input type="text" id="bfCat" class="finp" list="bfCatList" placeholder="bv. CGT, Bay workshop…"><datalist id="bfCatList"></datalist></div>
+      <div><label>Aantal / eenheid</label><input type="text" id="bfAantal" class="finp" placeholder="bv. 8, 12 flessen"></div>
+    </div>
+    <label>Kosten (€)</label>
+    <div class="bf3">
+      <div><span class="kaslbl ent">ENT</span><input type="number" id="bfEnt" class="finp" min="0" step="0.01" placeholder="0"></div>
+      <div><span class="kaslbl bay">BAY</span><input type="number" id="bfBay" class="finp" min="0" step="0.01" placeholder="0"></div>
+      <div><span class="kaslbl hsb">HSB</span><input type="number" id="bfHsb" class="finp" min="0" step="0.01" placeholder="0"></div>
+    </div>
+    <div class="bf2">
+      <div><label>Leverancier</label><input type="text" id="bfLeverancier" class="finp" list="bfLevList" placeholder="bv. Ready4Bingo"><datalist id="bfLevList"></datalist></div>
+      <div><label>Leverdatum</label><input type="date" id="bfLeverdatum" class="finp"></div>
+    </div>
+    <label>Opmerkingen</label>
+    <textarea id="bfOpm" class="finp" style="min-height:70px;resize:vertical;" placeholder="bv. Pakbon door Lien"></textarea>
+  </div>
+  <div class="cammodal-bar">
+    <button class="btn clear" id="bestelAnnuleer">Annuleren</button>
+    <button class="btn primary" id="bestelOpslaan">Opslaan</button>
+  </div>
+  <div class="row" style="margin-top:10px;"><button class="btn" id="bestelVerwijder" style="display:none;border-color:#e2b6b0;color:#a23b30;background:#fff;">🗑 Verwijderen</button></div>
+</div></div>
+
 <!-- VIEWER MODAL -->
 <div class="modal" id="viewer">
   <div class="mbar">
@@ -562,7 +654,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v13';
+const APP_VERSION='v14';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -663,14 +755,14 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Bestellingen'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
   // Instellingen-knop verbergen in de inventaris (daar hoort beheer thuis, niet de algemene instellingen)
-  document.getElementById('gearBtn').style.display = (view==='inventaris') ? 'none' : '';
+  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen') ? 'none' : '';
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
@@ -1301,6 +1393,120 @@ document.getElementById('invReset').onclick=()=>{
   BBInv.resetInventaris().then(()=>{ renderInventaris(); alert('Inventaris hersteld naar de startlijst.'); });
 };
 
+// ================= BESTELLINGEN =================
+const BESTEL_STATUSSEN=['Besteld','Onderweg','In loods','Uitgepakt','Geannuleerd'];
+let bestelEditId=null, bestelStatusFilter='all', bestelQuery='';
+function eur(n){ n=+n||0; try{return n.toLocaleString('nl-BE',{style:'currency',currency:'EUR'});}catch(e){return '€ '+n.toFixed(2);} }
+function dmy(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
+function stClass(s){ return 's-'+String(s||'').toLowerCase().replace(/\s+/g,''); }
+
+function renderBestelSum(){
+  const list=BBInv.getBestellingen();
+  const counts={}; BESTEL_STATUSSEN.forEach(s=>counts[s]=0);
+  let ent=0,bay=0,hsb=0;
+  list.forEach(b=>{ counts[b.status]=(counts[b.status]||0)+1; ent+=+b.ent||0; bay+=+b.bay||0; hsb+=+b.hsb||0; });
+  let html='<span class="pill"><b>'+list.length+'</b> totaal</span>';
+  BESTEL_STATUSSEN.forEach(s=>{ if(counts[s]) html+='<span class="pill"><b>'+counts[s]+'</b> '+esc(s.toLowerCase())+'</span>'; });
+  if(ent) html+='<span class="pill ent">ENT <b>'+eur(ent)+'</b></span>';
+  if(bay) html+='<span class="pill bay">BAY <b>'+eur(bay)+'</b></span>';
+  if(hsb) html+='<span class="pill hsb">HSB <b>'+eur(hsb)+'</b></span>';
+  document.getElementById('bestelSum').innerHTML=html;
+}
+function renderBestelFilter(){
+  const el=document.getElementById('bestelFilter');
+  const mk=(key,label)=>'<button class="chip'+(bestelStatusFilter===key?' active':'')+'" data-bf="'+esc(key)+'">'+esc(label)+'</button>';
+  el.innerHTML=mk('all','Alle')+BESTEL_STATUSSEN.map(s=>mk(s,s)).join('');
+  el.querySelectorAll('[data-bf]').forEach(c=>c.onclick=()=>{bestelStatusFilter=c.dataset.bf;renderBestelFilter();renderBestelList();});
+}
+function bestelCardHtml(b){
+  let chips='';
+  if(b.aantal) chips+='<span class="bc-chip">Aantal <b>'+esc(b.aantal)+'</b></span>';
+  if(b.leverancier) chips+='<span class="bc-chip">Leverancier <b>'+esc(b.leverancier)+'</b></span>';
+  if(b.leverdatum) chips+='<span class="bc-chip">Geleverd <b>'+dmy(b.leverdatum)+'</b></span>';
+  if(+b.ent) chips+='<span class="bc-chip ent">ENT <b>'+eur(b.ent)+'</b></span>';
+  if(+b.bay) chips+='<span class="bc-chip bay">BAY <b>'+eur(b.bay)+'</b></span>';
+  if(+b.hsb) chips+='<span class="bc-chip hsb">HSB <b>'+eur(b.hsb)+'</b></span>';
+  return '<div class="bestelcard">'+
+    '<div class="bc-top">'+
+      '<span class="bc-datum">'+(b.datum?dmy(b.datum):'—')+'</span>'+
+      (b.cat?'<span class="bc-cat">'+esc(b.cat)+'</span>':'')+
+      '<span class="stbadge '+stClass(b.status)+'">'+esc(b.status)+'</span>'+
+      '<button class="bc-edit" data-edit="'+b.id+'">Bewerken</button>'+
+    '</div>'+
+    '<h4>'+esc(b.info||'(zonder omschrijving)')+'</h4>'+
+    (chips?'<div class="bc-meta">'+chips+'</div>':'')+
+    (b.opm?'<div class="bc-opm">'+esc(b.opm)+'</div>':'')+
+  '</div>';
+}
+function renderBestelList(){
+  const q=bestelQuery.toLowerCase().trim();
+  let list=BBInv.getBestellingen().slice();
+  if(bestelStatusFilter!=='all') list=list.filter(b=>b.status===bestelStatusFilter);
+  if(q) list=list.filter(b=>((b.info||'')+' '+(b.cat||'')+' '+(b.leverancier||'')+' '+(b.opm||'')).toLowerCase().includes(q));
+  list.sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||(b.ts||0)-(a.ts||0));
+  const el=document.getElementById('bestelList');
+  if(!list.length){ el.innerHTML='<div class="empty-note">Geen bestellingen'+(q||bestelStatusFilter!=='all'?' voor deze filter':'. Voeg er een toe met ➕ Nieuwe bestelling')+'.</div>'; return; }
+  el.innerHTML=list.map(bestelCardHtml).join('');
+  el.querySelectorAll('[data-edit]').forEach(btn=>btn.onclick=()=>openBestelModal(btn.dataset.edit));
+}
+function renderBestellingen(){
+  document.getElementById('bestelDeeltMee').style.display = BBInv.isBestelGedeeld()?'':'none';
+  const sel=document.getElementById('bfStatus');
+  if(!sel.options.length) sel.innerHTML=BESTEL_STATUSSEN.map(s=>'<option>'+s+'</option>').join('');
+  const cats=[...new Set(BBInv.getBestellingen().map(b=>b.cat).filter(Boolean))].sort();
+  const levs=[...new Set(BBInv.getBestellingen().map(b=>b.leverancier).filter(Boolean))].sort();
+  document.getElementById('bfCatList').innerHTML=cats.map(c=>'<option value="'+esc(c)+'">').join('');
+  document.getElementById('bfLevList').innerHTML=levs.map(l=>'<option value="'+esc(l)+'">').join('');
+  renderBestelSum(); renderBestelFilter(); renderBestelList();
+}
+function openBestelModal(id){
+  bestelEditId=id||null;
+  const b = id ? BBInv.getBestellingen().find(x=>x.id===id) : null;
+  document.getElementById('bestelModalTitle').textContent = b?'Bestelling bewerken':'Nieuwe bestelling';
+  const v=(idd,val)=>{document.getElementById(idd).value=val;};
+  v('bfInfo',b?b.info:''); v('bfDatum',b?b.datum:''); v('bfStatus',b?b.status:'Besteld');
+  v('bfCat',b?b.cat:''); v('bfAantal',b?b.aantal:'');
+  v('bfEnt',b&&+b.ent?b.ent:''); v('bfBay',b&&+b.bay?b.bay:''); v('bfHsb',b&&+b.hsb?b.hsb:'');
+  v('bfLeverancier',b?b.leverancier:''); v('bfLeverdatum',b?b.leverdatum:''); v('bfOpm',b?b.opm:'');
+  document.getElementById('bestelVerwijder').style.display = b?'':'none';
+  document.getElementById('bestelModal').classList.add('open');
+}
+function closeBestelModal(){ document.getElementById('bestelModal').classList.remove('open'); bestelEditId=null; }
+
+document.getElementById('openBestellingen').onclick=()=>{ renderBestellingen(); show('bestellingen'); };
+document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
+document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
+document.getElementById('bestelAnnuleer').onclick=closeBestelModal;
+document.getElementById('bestelModal').addEventListener('click',e=>{ if(e.target.id==='bestelModal') closeBestelModal(); });
+document.getElementById('bestelOpslaan').onclick=()=>{
+  const g=idd=>document.getElementById(idd).value;
+  const data={
+    info:g('bfInfo').trim(), datum:g('bfDatum'), status:g('bfStatus'),
+    cat:g('bfCat').trim(), aantal:g('bfAantal').trim(),
+    ent:parseFloat(g('bfEnt'))||0, bay:parseFloat(g('bfBay'))||0, hsb:parseFloat(g('bfHsb'))||0,
+    leverancier:g('bfLeverancier').trim(), leverdatum:g('bfLeverdatum'), opm:g('bfOpm').trim()
+  };
+  if(!data.info && !data.cat){ alert('Vul minstens een omschrijving of categorie in.'); return; }
+  if(bestelEditId) BBInv.updateBestelling(bestelEditId,data); else BBInv.addBestelling(data);
+  closeBestelModal(); renderBestellingen();
+};
+document.getElementById('bestelVerwijder').onclick=()=>{
+  if(!bestelEditId) return;
+  if(!confirm('Deze bestelling verwijderen?')) return;
+  BBInv.removeBestelling(bestelEditId); closeBestelModal(); renderBestellingen();
+};
+document.getElementById('bestelExport').onclick=()=>{
+  const rows=[['Besteldatum','Categorie','Bestelling','Status','Aantal/eenheid','Kosten ENT','Kosten BAY','Kosten HSB','Leverancier','Leverdatum','Opmerkingen']];
+  BBInv.getBestellingen().slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||'')).forEach(b=>{
+    rows.push([b.datum,b.cat,b.info,b.status,b.aantal,(+b.ent||0).toFixed(2).replace('.',','),(+b.bay||0).toFixed(2).replace('.',','),(+b.hsb||0).toFixed(2).replace('.',','),b.leverancier,b.leverdatum,b.opm]);
+  });
+  const csv=rows.map(r=>r.map(c=>{c=String(c==null?'':c);return /[";\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bestellingen.csv'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('bestelModal').classList.contains('open')) closeBestelModal(); });
+
 // ---------------- OFFLINE-STATUS + VERSIE ----------------
 function updateSys(){
   const stat=document.getElementById('sysStat'), txt=document.getElementById('sysStatTxt');
@@ -1328,6 +1534,7 @@ BBInv.setOnChange(()=>{
     if(document.getElementById('pane-formulieren').classList.contains('active')) renderFormulieren();
     if(document.getElementById('pane-beheer').classList.contains('active')) renderStats();
   }
+  if(document.getElementById('bestellingen').classList.contains('active')) renderBestellingen();
 });
 renderHome();
 BBInv.init();

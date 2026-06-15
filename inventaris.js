@@ -8,7 +8,11 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[]};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[]};
+  // Bestellingen: gedeeld via Supabase als de tabel 'bestellingen' bestaat; anders
+  // bewaren we ze lokaal op dit toestel (zodat de functie meteen werkt).
+  let bestelOK=false;
+  const K_BESTEL_BACKUP='bb_bestellingen';
 
   function uid(){return 'i'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);}
   function fire(){ if(onChange) try{onChange();}catch(e){console.error(e);} }
@@ -18,6 +22,8 @@
   const fromRow=r=>({id:r.id,cat:r.cat,naam:r.naam,stock:r.stock||0,inGebruik:!!r.in_gebruik,foto:r.foto||''});
   const toRow=p=>({id:p.id,cat:p.cat==='groot'?'groot':'klein',naam:p.naam||'',stock:+p.stock||0,in_gebruik:!!p.inGebruik,foto:p.foto||''});
   const mapForm=r=>({id:r.id,ts:r.ts,namen:r.namen||'',kleine:r.kleine||[],groot:r.groot||[],boekjes:r.boekjes||{},finale:r.finale||'',opmerking:r.opmerking||''});
+  const mapBestel=r=>({id:r.id,ts:r.ts||0,datum:r.besteldatum||'',cat:r.categorie||'',info:r.info||'',status:r.status||'Besteld',aantal:r.aantal||'',ent:+r.kost_ent||0,bay:+r.kost_bay||0,hsb:+r.kost_hsb||0,leverancier:r.leverancier||'',leverdatum:r.leverdatum||'',opm:r.opmerking||''});
+  const bestelToRow=b=>({id:b.id,ts:b.ts||0,besteldatum:b.datum||'',categorie:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',kost_ent:+b.ent||0,kost_bay:+b.bay||0,kost_hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',opmerking:b.opm||''});
 
   // ---------------- INIT ----------------
   async function init(){
@@ -25,6 +31,7 @@
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     await loadAll();
     await migrateIfEmpty();
+    await migrateBestelIfNeeded();
     subscribe();
     ready=true;
     fire();
@@ -42,12 +49,21 @@
       if(f.data) cache.formulieren=f.data.map(mapForm);
       if(l.data) cache.leveringen=l.data.slice();
     }catch(e){console.error('Laden mislukt:',e);}
+    // Bestellingen apart: als de tabel nog niet bestaat, val terug op de lokale kopie.
+    try{
+      const be=await sb.from('bestellingen').select('*');
+      if(be.error){ bestelOK=false; loadBestelBackup(); }
+      else { bestelOK=true; cache.bestellingen=(be.data||[]).map(mapBestel); if(cache.bestellingen.length) saveBestelBackup(); }
+    }catch(e){ bestelOK=false; loadBestelBackup(); }
   }
+  function loadBestelBackup(){ try{const r=localStorage.getItem(K_BESTEL_BACKUP); cache.bestellingen=r?(JSON.parse(r)||[]):[];}catch(e){cache.bestellingen=[];} }
+  function saveBestelBackup(){ try{localStorage.setItem(K_BESTEL_BACKUP,JSON.stringify(cache.bestellingen));}catch(e){} }
   async function reloadTable(t){
     if(t==='prijzen'){const r=await sb.from('prijzen').select('*'); if(r.data)cache.prijzen=r.data.map(fromRow);}
     else if(t==='boekjes'){const r=await sb.from('boekjes').select('*').eq('id',1).maybeSingle(); cache.boekjes={stock:r&&r.data?(r.data.stock||0):0};}
     else if(t==='formulieren'){const r=await sb.from('formulieren').select('*'); if(r.data)cache.formulieren=r.data.map(mapForm);}
     else if(t==='leveringen'){const r=await sb.from('leveringen').select('*'); if(r.data)cache.leveringen=r.data.slice();}
+    else if(t==='bestellingen'&&bestelOK){const r=await sb.from('bestellingen').select('*'); if(r.data){cache.bestellingen=r.data.map(mapBestel); saveBestelBackup();}}
   }
   function subscribe(){
     try{
@@ -92,11 +108,41 @@
     }catch(e){}
   }
 
+  // Bestellingen vullen: bij een lege (gedeelde of lokale) lijst starten we met de
+  // standaardlijst uit het Excel-overzicht. Bestaat de gedeelde tabel en is die leeg
+  // terwijl we lokaal al iets hebben, dan uploaden we de lokale kopie.
+  function bestelSeed(){
+    const def=window.BESTELLINGEN_DEFAULT||[];
+    return def.map((b,i)=>Object.assign({id:uid(),ts:Date.now()+i},JSON.parse(JSON.stringify(b))));
+  }
+  async function migrateBestelIfNeeded(){
+    const SEEDED='bb_bestel_seed_v1'; // standaardlijst maar één keer plaatsen
+    if(bestelOK){
+      if(!cache.bestellingen.length){
+        let backup=[]; try{const r=localStorage.getItem(K_BESTEL_BACKUP); backup=r?(JSON.parse(r)||[]):[];}catch(e){}
+        let seed=[];
+        if(backup.length) seed=backup;                                 // lokale kopie → gedeeld zetten
+        else if(localStorage.getItem(SEEDED)!=='1') seed=bestelSeed();  // allereerste keer: standaardlijst
+        if(seed.length){
+          for(let i=0;i<seed.length;i+=40){ const r=await sb.from('bestellingen').insert(seed.slice(i,i+40).map(bestelToRow)); err(r); }
+          cache.bestellingen=seed.slice(); saveBestelBackup();
+        }
+      }
+      localStorage.setItem(SEEDED,'1'); // gedeelde tabel is in gebruik → nooit meer automatisch vullen
+    }else{
+      // geen gedeelde tabel: lokaal werken; lege lijst krijgt eenmalig de standaardlijst
+      if(!cache.bestellingen.length && localStorage.getItem(SEEDED)!=='1'){ cache.bestellingen=bestelSeed(); saveBestelBackup(); }
+      localStorage.setItem(SEEDED,'1');
+    }
+  }
+
   // ---------------- GETTERS (synchroon, uit cache) ----------------
   const getPrijzen=()=>cache.prijzen;
   const getBoekjes=()=>cache.boekjes;
   const getFormulieren=()=>cache.formulieren;
   const getLeveringen=()=>cache.leveringen;
+  const getBestellingen=()=>cache.bestellingen;
+  const isBestelGedeeld=()=>bestelOK;
 
   // ---------------- SCHRIJVEN (optimistisch + achtergrond naar DB) ----------------
   // gdebouncede bulk-upsert voor stock-aanpassingen
@@ -156,6 +202,22 @@
   function setFormulieren(arr){ const keep={}; arr.forEach(f=>keep[f.id]=1); cache.formulieren.filter(f=>!keep[f.id]).forEach(f=>sb.from('formulieren').delete().eq('id',f.id).then(err)); cache.formulieren=arr; }
   function setLeveringen(arr){ const keep={}; arr.forEach(l=>keep[l.id]=1); cache.leveringen.filter(l=>!keep[l.id]).forEach(l=>sb.from('leveringen').delete().eq('id',l.id).then(err)); cache.leveringen=arr; }
 
+  // ---- Bestellingen (optimistisch + naar DB als de gedeelde tabel bestaat) ----
+  function bestelClean(b){ return {datum:b.datum||'',cat:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',ent:+b.ent||0,bay:+b.bay||0,hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',opm:b.opm||''}; }
+  function bestelSave(rec){ saveBestelBackup(); if(bestelOK) sb.from('bestellingen').upsert(bestelToRow(rec)).then(err); }
+  function addBestelling(b){
+    const rec=Object.assign({id:uid(),ts:Date.now()},bestelClean(b));
+    cache.bestellingen.push(rec); bestelSave(rec); return rec;
+  }
+  function updateBestelling(id,patch){
+    const rec=cache.bestellingen.find(x=>x.id===id); if(!rec) return null;
+    Object.assign(rec,bestelClean(Object.assign({},rec,patch))); bestelSave(rec); return rec;
+  }
+  function removeBestelling(id){
+    cache.bestellingen=cache.bestellingen.filter(b=>b.id!==id);
+    saveBestelBackup(); if(bestelOK) sb.from('bestellingen').delete().eq('id',id).then(err);
+  }
+
   // Inventaris terugzetten naar de standaardlijst
   async function resetInventaris(){
     await sb.from('prijzen').delete().neq('id','');
@@ -207,6 +269,7 @@
   window.BBInv={init,setOnChange:fn=>{onChange=fn;},isReady:()=>ready,
     seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
+    getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,
     submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
 })();
