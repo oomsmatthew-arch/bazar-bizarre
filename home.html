@@ -614,6 +614,14 @@
       <input type="text" id="bestelZoek" class="finp zoek" placeholder="Zoek op bestelling, categorie of leverancier…">
       <div class="invfilter" id="bestelFilter"></div>
       <div class="bestelctrls">
+        <select id="bestelBoekjaar" class="bsel"></select>
+        <select id="bestelKwartaal" class="bsel">
+          <option value="all">Heel boekjaar</option>
+          <option value="1">K1 (okt–dec)</option>
+          <option value="2">K2 (jan–mrt)</option>
+          <option value="3">K3 (apr–jun)</option>
+          <option value="4">K4 (jul–sep)</option>
+        </select>
         <select id="bestelAfd" class="bsel">
           <option value="all">Alle afdelingen</option>
           <option value="ENT">Alleen ENT</option>
@@ -739,7 +747,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v18';
+const APP_VERSION='v19';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1481,7 +1489,10 @@ document.getElementById('invReset').onclick=()=>{
 // ================= BESTELLINGEN =================
 const BESTEL_STATUSSEN=['Besteld','Onderweg','In loods','Uitgepakt','Geannuleerd'];
 let bestelEditId=null, bestelStatusFilter='all', bestelQuery='', bestelAfd='all', bestelLev='all', bestelSort='datum-desc';
-let bestelUnlocked=false, bestelTab='overzicht';
+let bestelUnlocked=false, bestelTab='overzicht', bestelBoekjaar='all', bestelKwartaal='all';
+// Boekjaar start in oktober: okt–dec hoort bij het boekjaar dat dat jaar begint.
+function boekjaarVan(iso){ if(!iso) return ''; const p=String(iso).split('-'); if(p.length<2) return ''; const y=+p[0], m=+p[1]; const start=m>=10?y:y-1; return start+'-'+(start+1); }
+function kwartaalVan(iso){ if(!iso) return 0; const m=+String(iso).split('-')[1]; if(m>=10) return 1; if(m<=3) return 2; if(m<=6) return 3; return 4; }
 function eur(n){ n=+n||0; try{return n.toLocaleString('nl-BE',{style:'currency',currency:'EUR'});}catch(e){return '€ '+n.toFixed(2);} }
 function dmy(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
 function dmShort(iso){ if(!iso) return '—'; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]:iso; }
@@ -1523,6 +1534,8 @@ function bestelRowHtml(b){
 function renderBestelList(){
   const q=bestelQuery.toLowerCase().trim();
   let list=BBInv.getBestellingen().slice();
+  if(bestelBoekjaar!=='all') list=list.filter(b=>boekjaarVan(b.datum)===bestelBoekjaar);
+  if(bestelKwartaal!=='all') list=list.filter(b=>String(kwartaalVan(b.datum))===bestelKwartaal);
   if(bestelStatusFilter!=='all') list=list.filter(b=>b.status===bestelStatusFilter);
   if(bestelAfd!=='all') list=list.filter(b=> bestelAfd==='ENT'?+b.ent>0 : bestelAfd==='BAY'?+b.bay>0 : +b.hsb>0);
   if(bestelLev!=='all') list=list.filter(b=>b.leverancier===bestelLev);
@@ -1533,7 +1546,7 @@ function renderBestelList(){
     if(bestelSort==='prijs-asc') return bestelTotaal(a)-bestelTotaal(b);
     return (b.datum||'').localeCompare(a.datum||'')||(b.ts||0)-(a.ts||0); // datum-desc
   });
-  const gefilterd=(bestelStatusFilter!=='all'||bestelAfd!=='all'||bestelLev!=='all'||q);
+  const gefilterd=(bestelStatusFilter!=='all'||bestelAfd!=='all'||bestelLev!=='all'||bestelBoekjaar!=='all'||bestelKwartaal!=='all'||q);
   const el=document.getElementById('bestelList');
   if(!list.length){ el.innerHTML='<div class="empty-note">Geen bestellingen'+(gefilterd?' voor deze filter':'. Voeg er een toe met ➕ Nieuwe bestelling')+'.</div>'; return; }
   el.innerHTML='<div class="besteltabel">'+list.map(bestelRowHtml).join('')+'</div>';
@@ -1552,6 +1565,13 @@ function renderBestellingen(){
   if(bestelLev!=='all' && levs.indexOf(bestelLev)<0) bestelLev='all';
   levSel.innerHTML='<option value="all">Alle leveranciers</option>'+levs.map(l=>'<option value="'+esc(l)+'">'+esc(l)+'</option>').join('');
   levSel.value=bestelLev;
+  // boekjaar-filter vullen (nieuwste eerst)
+  const bjs=[...new Set(BBInv.getBestellingen().map(b=>boekjaarVan(b.datum)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const bjSel=document.getElementById('bestelBoekjaar');
+  if(bestelBoekjaar!=='all' && bjs.indexOf(bestelBoekjaar)<0) bestelBoekjaar='all';
+  bjSel.innerHTML='<option value="all">Alle boekjaren</option>'+bjs.map(j=>'<option value="'+j+'">Boekjaar '+j+'</option>').join('');
+  bjSel.value=bestelBoekjaar;
+  document.getElementById('bestelKwartaal').value=bestelKwartaal;
   document.getElementById('bestelAfd').value=bestelAfd;
   document.getElementById('bestelSort').value=bestelSort;
   renderBestelSum(); renderBestelFilter(); renderBestelList();
@@ -1620,6 +1640,8 @@ function closeBestelModal(){ document.getElementById('bestelModal').classList.re
 document.getElementById('openBestellingen').onclick=()=>{ showBestelTab('overzicht'); show('bestellingen'); };
 document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
 document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
+document.getElementById('bestelBoekjaar').onchange=e=>{ bestelBoekjaar=e.target.value; renderBestelList(); };
+document.getElementById('bestelKwartaal').onchange=e=>{ bestelKwartaal=e.target.value; renderBestelList(); };
 document.getElementById('bestelAfd').onchange=e=>{ bestelAfd=e.target.value; renderBestelList(); };
 document.getElementById('bestelLev').onchange=e=>{ bestelLev=e.target.value; renderBestelList(); };
 document.getElementById('bestelSort').onchange=e=>{ bestelSort=e.target.value; renderBestelList(); };
