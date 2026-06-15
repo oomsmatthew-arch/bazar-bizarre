@@ -8,15 +8,77 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[]};
-  // Bestellingen: gedeeld via Supabase als de tabel 'bestellingen' bestaat; anders
-  // bewaren we ze lokaal op dit toestel (zodat de functie meteen werkt).
-  let bestelOK=false;
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[]};
+  // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
+  // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
+  let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false;
   const K_BESTEL_BACKUP='bb_bestellingen';
+  const K_CONTACTEN_BACKUP='bb_contacten';
+  const K_CHECKLISTEN_BACKUP='bb_checklisten';
+  const K_LOGBOEK_BACKUP='bb_logboek';
+  const K_CACHE='bb_cache_v1';
+  const K_OUTBOX='bb_outbox';
 
   function uid(){return 'i'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);}
   function fire(){ if(onChange) try{onChange();}catch(e){console.error(e);} }
   function err(r){ if(r&&r.error) console.error('Supabase:', r.error.message||r.error); }
+
+  // ---- Algemene back-up per tabel (lokaal, zodat een ontbrekende tabel toch werkt) ----
+  function saveBackup(cacheKey,backupKey){ try{localStorage.setItem(backupKey,JSON.stringify(cache[cacheKey]));}catch(e){} }
+  function loadBackup(cacheKey,backupKey){ try{const r=localStorage.getItem(backupKey); cache[cacheKey]=r?(JSON.parse(r)||[]):[];}catch(e){cache[cacheKey]=[];} }
+  function loadBestelBackup(){ loadBackup('bestellingen',K_BESTEL_BACKUP); }
+  function saveBestelBackup(){ saveBackup('bestellingen',K_BESTEL_BACKUP); }
+
+  // ---- Volledige offline-fallback: laatst bekende gegevens (zonder foto's, om plaats te sparen) ----
+  function persistCache(){
+    try{
+      const slim={
+        prijzen: cache.prijzen.map(p=>({id:p.id,cat:p.cat,naam:p.naam,stock:p.stock,inGebruik:p.inGebruik,foto:''})),
+        boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: cache.leveringen,
+        bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek
+      };
+      localStorage.setItem(K_CACHE,JSON.stringify(slim));
+    }catch(e){}
+  }
+  function loadCacheFallback(){
+    try{ const r=localStorage.getItem(K_CACHE); if(!r) return false; const c=JSON.parse(r); if(!c) return false;
+      cache.prijzen=c.prijzen||[]; cache.boekjes=c.boekjes||{stock:0}; cache.formulieren=c.formulieren||[];
+      cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
+      cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; return true;
+    }catch(e){ return false; }
+  }
+
+  // ---- Outbox: wijzigingen die nog naar de database moeten (overleven offline) ----
+  let outbox=[]; try{const r=localStorage.getItem(K_OUTBOX); outbox=r?(JSON.parse(r)||[]):[];}catch(e){outbox=[];}
+  let flushing=false;
+  function saveOutbox(){ try{localStorage.setItem(K_OUTBOX,JSON.stringify(outbox));}catch(e){} }
+  function pendingCount(){ return outbox.length; }
+  function enqueue(op){ outbox.push(op); saveOutbox(); persistCache(); flushOutbox(); }
+  function dbInsert(table,payload){ enqueue({op:'insert',table,payload}); }
+  function dbUpsert(table,payload){ enqueue({op:'upsert',table,payload}); }
+  function dbUpdate(table,col,val,payload){ enqueue({op:'update',table,col,val,payload}); }
+  function dbDelete(table,col,val){ enqueue({op:'delete',table,col,val}); }
+  async function flushOutbox(){
+    if(flushing||!sb||!outbox.length) return;
+    if(typeof navigator!=='undefined' && navigator.onLine===false) return;
+    flushing=true;
+    try{
+      while(outbox.length){
+        const op=outbox[0]; let res;
+        try{
+          const q=sb.from(op.table);
+          if(op.op==='insert') res=await q.insert(op.payload);
+          else if(op.op==='upsert') res=await q.upsert(op.payload);
+          else if(op.op==='update') res=await q.update(op.payload).eq(op.col,op.val);
+          else if(op.op==='delete') res=await q.delete().eq(op.col,op.val);
+          else { outbox.shift(); saveOutbox(); continue; }
+        }catch(e){ break; } // netwerk weg → wachtrij behouden, later opnieuw proberen
+        if(res && res.error){ console.error('Outbox:',res.error.message||res.error); outbox.shift(); saveOutbox(); continue; }
+        outbox.shift(); saveOutbox();
+      }
+    } finally { flushing=false; fire(); }
+  }
+  if(typeof window!=='undefined'){ window.addEventListener('online',()=>flushOutbox()); }
 
   // ---- mapping database <-> app (app gebruikt inGebruik, db gebruikt in_gebruik) ----
   const fromRow=r=>({id:r.id,cat:r.cat,naam:r.naam,stock:r.stock||0,inGebruik:!!r.in_gebruik,foto:r.foto||''});
@@ -24,6 +86,12 @@
   const mapForm=r=>({id:r.id,ts:r.ts,namen:r.namen||'',kleine:r.kleine||[],groot:r.groot||[],boekjes:r.boekjes||{},finale:r.finale||'',opmerking:r.opmerking||''});
   const mapBestel=r=>({id:r.id,ts:r.ts||0,datum:r.besteldatum||'',cat:r.categorie||'',info:r.info||'',status:r.status||'Besteld',aantal:r.aantal||'',ent:+r.kost_ent||0,bay:+r.kost_bay||0,hsb:+r.kost_hsb||0,leverancier:r.leverancier||'',leverdatum:r.leverdatum||'',door:r.door||'',opm:r.opmerking||''});
   const bestelToRow=b=>({id:b.id,ts:b.ts||0,besteldatum:b.datum||'',categorie:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',kost_ent:+b.ent||0,kost_bay:+b.bay||0,kost_hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opmerking:b.opm||''});
+  const mapContact=r=>({id:r.id,naam:r.naam||'',rol:r.rol||'',tel:r.tel||'',mail:r.mail||'',ts:r.ts||0});
+  const contactToRow=c=>({id:c.id,naam:c.naam||'',rol:c.rol||'',tel:c.tel||'',mail:c.mail||'',ts:c.ts||0});
+  const mapChecklist=r=>({id:r.id,naam:r.naam||'',items:Array.isArray(r.items)?r.items:(r.items?(function(){try{return JSON.parse(r.items)}catch(e){return []}})():[]),pos:+r.pos||0,ts:r.ts||0});
+  const checklistToRow=c=>({id:c.id,naam:c.naam||'',items:c.items||[],pos:+c.pos||0,ts:c.ts||0});
+  const mapLog=r=>({id:r.id,ts:r.ts||0,datum:r.datum||'',auteur:r.auteur||'',tekst:r.tekst||'',klaar:!!r.klaar});
+  const logToRow=l=>({id:l.id,ts:l.ts||0,datum:l.datum||'',auteur:l.auteur||'',tekst:l.tekst||'',klaar:!!l.klaar});
 
   // ---------------- INIT ----------------
   async function init(){
@@ -33,11 +101,48 @@
     await migrateIfEmpty();
     await migrateBestelIfNeeded();
     await topUpBestelDefaults();
+    await migrateSharedLists();
     subscribe();
+    flushOutbox(); // eventuele offline gemaakte wijzigingen alsnog doorsturen
     ready=true;
     fire();
   }
+  // Bestaande lokale lijsten delen zodra de gedeelde tabel bestaat en nog leeg is.
+  async function migrateListToShared(table,toRowFn,cacheKey,backupKey,okGetter){
+    if(!okGetter() || cache[cacheKey].length) return;
+    const FLAG='bb_sharedseed_'+table;
+    if(localStorage.getItem(FLAG)==='1') return; // dit toestel deelde de lijst al eerder
+    let backup=[]; try{const r=localStorage.getItem(backupKey); backup=r?(JSON.parse(r)||[]):[];}catch(e){}
+    if(backup.length){
+      for(let i=0;i<backup.length;i+=40){ const r=await sb.from(table).insert(backup.slice(i,i+40).map(toRowFn)); err(r); }
+      cache[cacheKey]=backup.slice();
+    }
+    localStorage.setItem(FLAG,'1');
+  }
+  function defaultChecklist(){
+    const items=['Boekjes geteld en klaar','Super Deals op het rek','Trolley Tunes muziek klaar','How Much? potten + weegschaal klaar','Crazy Coins munten klaar','Finalevragen voorbereid','Micro getest','Geluid/muziek getest','Prijzentafel klaar','Controleblad bij de hand'].map(t=>({text:t,done:false}));
+    return {id:uid(),naam:'Pre-spel checklist',items,pos:0,ts:Date.now()};
+  }
+  async function migrateSharedLists(){
+    await migrateListToShared('contacten',contactToRow,'contacten',K_CONTACTEN_BACKUP,()=>contactenOK);
+    await migrateListToShared('checklisten',checklistToRow,'checklisten',K_CHECKLISTEN_BACKUP,()=>checklistenOK);
+    await migrateListToShared('logboek',logToRow,'logboek',K_LOGBOEK_BACKUP,()=>logboekOK);
+    if(checklistenOK && !cache.checklisten.length && localStorage.getItem('bb_sharedseed_checklisten_def')!=='1'){
+      const def=defaultChecklist(); const r=await sb.from('checklisten').insert(checklistToRow(def)); err(r);
+      cache.checklisten=[def]; saveBackup('checklisten',K_CHECKLISTEN_BACKUP);
+      localStorage.setItem('bb_sharedseed_checklisten_def','1');
+    }
+  }
+  // Eén gedeelde tabel laden; valt terug op de lokale back-up als de tabel nog niet bestaat.
+  async function loadShared(table,cacheKey,mapFn,backupKey,setOK){
+    try{
+      const r=await sb.from(table).select('*');
+      if(r.error){ setOK(false); loadBackup(cacheKey,backupKey); }
+      else { setOK(true); cache[cacheKey]=(r.data||[]).map(mapFn); if(cache[cacheKey].length) saveBackup(cacheKey,backupKey); }
+    }catch(e){ setOK(false); loadBackup(cacheKey,backupKey); }
+  }
   async function loadAll(){
+    let online=true;
     try{
       const [p,b,f,l]=await Promise.all([
         sb.from('prijzen').select('*'),
@@ -45,26 +150,30 @@
         sb.from('formulieren').select('*'),
         sb.from('leveringen').select('*')
       ]);
+      if(p.error||b.error||f.error||l.error) throw (p.error||b.error||f.error||l.error);
       if(p.data) cache.prijzen=p.data.map(fromRow);
       cache.boekjes={stock: b&&b.data? (b.data.stock||0) : 0};
       if(f.data) cache.formulieren=f.data.map(mapForm);
       if(l.data) cache.leveringen=l.data.slice();
-    }catch(e){console.error('Laden mislukt:',e);}
-    // Bestellingen apart: als de tabel nog niet bestaat, val terug op de lokale kopie.
-    try{
-      const be=await sb.from('bestellingen').select('*');
-      if(be.error){ bestelOK=false; loadBestelBackup(); }
-      else { bestelOK=true; cache.bestellingen=(be.data||[]).map(mapBestel); if(cache.bestellingen.length) saveBestelBackup(); }
-    }catch(e){ bestelOK=false; loadBestelBackup(); }
+    }catch(e){ online=false; console.error('Laden mislukt (offline?):',e); }
+    if(!online){ loadCacheFallback(); return; } // geen internet → laatst bewaarde gegevens tonen
+    // Gedeelde extra tabellen (vallen lokaal terug als ze nog niet bestaan).
+    await loadShared('bestellingen','bestellingen',mapBestel,K_BESTEL_BACKUP,v=>bestelOK=v);
+    await loadShared('contacten','contacten',mapContact,K_CONTACTEN_BACKUP,v=>contactenOK=v);
+    await loadShared('checklisten','checklisten',mapChecklist,K_CHECKLISTEN_BACKUP,v=>checklistenOK=v);
+    await loadShared('logboek','logboek',mapLog,K_LOGBOEK_BACKUP,v=>logboekOK=v);
+    persistCache();
   }
-  function loadBestelBackup(){ try{const r=localStorage.getItem(K_BESTEL_BACKUP); cache.bestellingen=r?(JSON.parse(r)||[]):[];}catch(e){cache.bestellingen=[];} }
-  function saveBestelBackup(){ try{localStorage.setItem(K_BESTEL_BACKUP,JSON.stringify(cache.bestellingen));}catch(e){} }
   async function reloadTable(t){
     if(t==='prijzen'){const r=await sb.from('prijzen').select('*'); if(r.data)cache.prijzen=r.data.map(fromRow);}
     else if(t==='boekjes'){const r=await sb.from('boekjes').select('*').eq('id',1).maybeSingle(); cache.boekjes={stock:r&&r.data?(r.data.stock||0):0};}
     else if(t==='formulieren'){const r=await sb.from('formulieren').select('*'); if(r.data)cache.formulieren=r.data.map(mapForm);}
     else if(t==='leveringen'){const r=await sb.from('leveringen').select('*'); if(r.data)cache.leveringen=r.data.slice();}
     else if(t==='bestellingen'&&bestelOK){const r=await sb.from('bestellingen').select('*'); if(r.data){cache.bestellingen=r.data.map(mapBestel); saveBestelBackup();}}
+    else if(t==='contacten'&&contactenOK){const r=await sb.from('contacten').select('*'); if(r.data){cache.contacten=r.data.map(mapContact); saveBackup('contacten',K_CONTACTEN_BACKUP);}}
+    else if(t==='checklisten'&&checklistenOK){const r=await sb.from('checklisten').select('*'); if(r.data){cache.checklisten=r.data.map(mapChecklist); saveBackup('checklisten',K_CHECKLISTEN_BACKUP);}}
+    else if(t==='logboek'&&logboekOK){const r=await sb.from('logboek').select('*'); if(r.data){cache.logboek=r.data.map(mapLog); saveBackup('logboek',K_LOGBOEK_BACKUP);}}
+    persistCache();
   }
   function subscribe(){
     try{
@@ -165,26 +274,78 @@
   const getBestellingen=()=>cache.bestellingen;
   const isBestelGedeeld=()=>bestelOK;
 
+  // ---------------- CONTACTEN (gedeeld) ----------------
+  const getContacten=()=>cache.contacten;
+  function saveContactBackup(){ saveBackup('contacten',K_CONTACTEN_BACKUP); }
+  function addContact(c){
+    const rec={id:uid(),ts:Date.now(),naam:c.naam||'',rol:c.rol||'',tel:c.tel||'',mail:c.mail||''};
+    cache.contacten.push(rec); saveContactBackup();
+    if(contactenOK) dbUpsert('contacten',contactToRow(rec)); else persistCache(); return rec;
+  }
+  function updateContact(id,patch){
+    const r=cache.contacten.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveContactBackup();
+    if(contactenOK) dbUpsert('contacten',contactToRow(r)); else persistCache(); return r;
+  }
+  function removeContact(id){
+    cache.contacten=cache.contacten.filter(c=>c.id!==id); saveContactBackup();
+    if(contactenOK) dbDelete('contacten','id',id); else persistCache();
+  }
+
+  // ---------------- CHECKLISTS (gedeeld) ----------------
+  const getChecklisten=()=>cache.checklisten.slice().sort((a,b)=>(a.pos||0)-(b.pos||0)||(a.ts||0)-(b.ts||0));
+  function saveChecklistBackup(){ saveBackup('checklisten',K_CHECKLISTEN_BACKUP); }
+  function chkPersist(rec){ saveChecklistBackup(); if(checklistenOK) dbUpsert('checklisten',checklistToRow(rec)); else persistCache(); }
+  function addChecklist(naam){
+    const maxPos=cache.checklisten.reduce((m,l)=>Math.max(m,l.pos||0),0);
+    const rec={id:uid(),naam:naam||'Nieuwe lijst',items:[],pos:maxPos+1,ts:Date.now()};
+    cache.checklisten.push(rec); chkPersist(rec); return rec;
+  }
+  function saveChecklist(rec){ // rec = volledig lijst-object (naam/items gewijzigd)
+    const r=cache.checklisten.find(x=>x.id===rec.id); if(!r) return null;
+    r.naam=rec.naam; r.items=rec.items; chkPersist(r); return r;
+  }
+  function removeChecklist(id){
+    cache.checklisten=cache.checklisten.filter(l=>l.id!==id); saveChecklistBackup();
+    if(checklistenOK) dbDelete('checklisten','id',id); else persistCache();
+  }
+
+  // ---------------- LOGBOEK / OVERDRACHT (gedeeld) ----------------
+  const getLogboek=()=>cache.logboek.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  function saveLogBackup(){ saveBackup('logboek',K_LOGBOEK_BACKUP); }
+  function addLog(entry){
+    const rec={id:uid(),ts:Date.now(),datum:entry.datum||'',auteur:entry.auteur||'',tekst:entry.tekst||'',klaar:!!entry.klaar};
+    cache.logboek.push(rec); saveLogBackup();
+    if(logboekOK) dbUpsert('logboek',logToRow(rec)); else persistCache(); return rec;
+  }
+  function updateLog(id,patch){
+    const r=cache.logboek.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveLogBackup();
+    if(logboekOK) dbUpsert('logboek',logToRow(r)); else persistCache(); return r;
+  }
+  function removeLog(id){
+    cache.logboek=cache.logboek.filter(l=>l.id!==id); saveLogBackup();
+    if(logboekOK) dbDelete('logboek','id',id); else persistCache();
+  }
+
   // ---------------- SCHRIJVEN (optimistisch + achtergrond naar DB) ----------------
   // gdebouncede bulk-upsert voor stock-aanpassingen
   let dirty=new Set(), flushT=null;
-  function queue(id){ dirty.add(id); clearTimeout(flushT); flushT=setTimeout(flush,500); }
+  function queue(id){ dirty.add(id); persistCache(); clearTimeout(flushT); flushT=setTimeout(flush,500); }
   function flush(){
     const ids=[...dirty]; dirty.clear(); if(!ids.length) return;
     const rows=cache.prijzen.filter(p=>ids.indexOf(p.id)>=0).map(toRow);
-    if(rows.length) sb.from('prijzen').upsert(rows).then(err);
+    if(rows.length) dbUpsert('prijzen',rows);
   }
   function setStock(id,v){ const p=cache.prijzen.find(x=>x.id===id); if(p){const old=p.stock||0; p.stock=Math.round(v||0); if(p.stock<=0)p.inGebruik=false; else if(old<=0)p.inGebruik=true;} queue(id); }
   function setPrijzen(arr){ cache.prijzen=arr; arr.forEach(p=>dirty.add(p.id)); clearTimeout(flushT); flushT=setTimeout(flush,400); }
-  function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; sb.from('boekjes').upsert({id:1,stock:cache.boekjes.stock}).then(err); }
+  function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); }
   function addPrijs(cat,naam,stock,foto){
     const s=+stock||0;
     const rec={id:uid(),cat:cat==='groot'?'groot':'klein',naam:naam||'',stock:s,inGebruik:s>0,foto:foto||''};
-    cache.prijzen.push(rec); sb.from('prijzen').insert(toRow(rec)).then(err); return rec;
+    cache.prijzen.push(rec); dbInsert('prijzen',toRow(rec)); return rec;
   }
-  function removePrijs(id){ cache.prijzen=cache.prijzen.filter(p=>p.id!==id); sb.from('prijzen').delete().eq('id',id).then(err); }
-  function setFoto(id,dataUrl){ const p=cache.prijzen.find(x=>x.id===id); if(!p)return false; p.foto=dataUrl||''; sb.from('prijzen').update({foto:p.foto}).eq('id',id).then(err); return true; }
-  function setGebruik(id,val){ const p=cache.prijzen.find(x=>x.id===id); if(p){p.inGebruik=!!val; sb.from('prijzen').update({in_gebruik:!!val}).eq('id',id).then(err);} }
+  function removePrijs(id){ cache.prijzen=cache.prijzen.filter(p=>p.id!==id); dbDelete('prijzen','id',id); }
+  function setFoto(id,dataUrl){ const p=cache.prijzen.find(x=>x.id===id); if(!p)return false; p.foto=dataUrl||''; dbUpdate('prijzen','id',id,{foto:p.foto}); return true; }
+  function setGebruik(id,val){ const p=cache.prijzen.find(x=>x.id===id); if(p){p.inGebruik=!!val; dbUpdate('prijzen','id',id,{in_gebruik:!!val});} }
 
   function submitFormulier(f){
     const byId={}; cache.prijzen.forEach(p=>byId[p.id]=p); const changed=new Set();
@@ -195,15 +356,15 @@
     const rec={id:uid(),ts:Date.now(),namen:f.namen||'',kleine,groot,boekjes:{gereserveerd:+b.gereserveerd||0,extra:+b.extra||0,gratis:+b.gratis||0},finale:f.finale||'',opmerking:f.opmerking||''};
     cache.formulieren.push(rec);
     const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRow);
-    if(rows.length) sb.from('prijzen').upsert(rows).then(err);
-    sb.from('boekjes').upsert({id:1,stock:cache.boekjes.stock}).then(err);
-    sb.from('formulieren').insert({id:rec.id,ts:rec.ts,namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,finale:rec.finale,opmerking:rec.opmerking}).then(err);
+    if(rows.length) dbUpsert('prijzen',rows);
+    dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
+    dbInsert('formulieren',{id:rec.id,ts:rec.ts,namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,finale:rec.finale,opmerking:rec.opmerking});
     return rec;
   }
   function addLevering(lev){
-    if(lev.boekjes){ cache.boekjes.stock=(cache.boekjes.stock||0)+(+lev.boekjes||0); sb.from('boekjes').upsert({id:1,stock:cache.boekjes.stock}).then(err); }
+    if(lev.boekjes){ cache.boekjes.stock=(cache.boekjes.stock||0)+(+lev.boekjes||0); dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); }
     const rec={id:uid(),ts:Date.now(),datum:lev.datum||'',boekjes:+lev.boekjes||0,tekst:lev.tekst||''};
-    cache.leveringen.push(rec); sb.from('leveringen').insert(rec).then(err); return rec;
+    cache.leveringen.push(rec); dbInsert('leveringen',rec); return rec;
   }
   function undoLastFormulier(){
     if(!cache.formulieren.length) return null;
@@ -214,18 +375,18 @@
     const b=rec.boekjes||{}; const used=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
     cache.boekjes.stock=(cache.boekjes.stock||0)+used;
     const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRow);
-    if(rows.length) sb.from('prijzen').upsert(rows).then(err);
-    sb.from('boekjes').upsert({id:1,stock:cache.boekjes.stock}).then(err);
-    sb.from('formulieren').delete().eq('id',rec.id).then(err);
+    if(rows.length) dbUpsert('prijzen',rows);
+    dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
+    dbDelete('formulieren','id',rec.id);
     return rec;
   }
   // verwijderen via "set(filter(...))"-patroon: bepaal welke rij wegviel en wis die in de DB
-  function setFormulieren(arr){ const keep={}; arr.forEach(f=>keep[f.id]=1); cache.formulieren.filter(f=>!keep[f.id]).forEach(f=>sb.from('formulieren').delete().eq('id',f.id).then(err)); cache.formulieren=arr; }
-  function setLeveringen(arr){ const keep={}; arr.forEach(l=>keep[l.id]=1); cache.leveringen.filter(l=>!keep[l.id]).forEach(l=>sb.from('leveringen').delete().eq('id',l.id).then(err)); cache.leveringen=arr; }
+  function setFormulieren(arr){ const keep={}; arr.forEach(f=>keep[f.id]=1); cache.formulieren.filter(f=>!keep[f.id]).forEach(f=>dbDelete('formulieren','id',f.id)); cache.formulieren=arr; persistCache(); }
+  function setLeveringen(arr){ const keep={}; arr.forEach(l=>keep[l.id]=1); cache.leveringen.filter(l=>!keep[l.id]).forEach(l=>dbDelete('leveringen','id',l.id)); cache.leveringen=arr; persistCache(); }
 
   // ---- Bestellingen (optimistisch + naar DB als de gedeelde tabel bestaat) ----
   function bestelClean(b){ return {datum:b.datum||'',cat:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',ent:+b.ent||0,bay:+b.bay||0,hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opm:b.opm||''}; }
-  function bestelSave(rec){ saveBestelBackup(); if(bestelOK) sb.from('bestellingen').upsert(bestelToRow(rec)).then(err); }
+  function bestelSave(rec){ saveBestelBackup(); if(bestelOK) dbUpsert('bestellingen',bestelToRow(rec)); else persistCache(); }
   function addBestelling(b){
     const rec=Object.assign({id:uid(),ts:Date.now()},bestelClean(b));
     cache.bestellingen.push(rec); bestelSave(rec); return rec;
@@ -236,7 +397,7 @@
   }
   function removeBestelling(id){
     cache.bestellingen=cache.bestellingen.filter(b=>b.id!==id);
-    saveBestelBackup(); if(bestelOK) sb.from('bestellingen').delete().eq('id',id).then(err);
+    saveBestelBackup(); if(bestelOK) dbDelete('bestellingen','id',id); else persistCache();
   }
   async function resetBestellingen(){
     const seed=bestelSeed();
@@ -299,6 +460,10 @@
     seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
     getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,
+    getContacten,addContact,updateContact,removeContact,isContactenGedeeld:()=>contactenOK,
+    getChecklisten,addChecklist,saveChecklist,removeChecklist,isChecklistenGedeeld:()=>checklistenOK,
+    getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
+    pendingCount,flushOutbox,
     submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
 })();

@@ -82,6 +82,7 @@
   .card[data-key="bestellingen"]{--accent:#e2683f;background:linear-gradient(150deg,#fff3ee,#fff);}
   .card[data-key="checklisten"]{--accent:#1faa6b;background:linear-gradient(150deg,#e8f8ef,#fff);}
   .card[data-key="contacten"]{--accent:#8a5cc7;background:linear-gradient(150deg,#f4eefb,#fff);}
+  .card[data-key="logboek"]{--accent:#d98a2b;background:linear-gradient(150deg,#fdf3e3,#fff);}
   .card[data-key="manuals"]{--accent:var(--water);background:linear-gradient(150deg,#edf6fb,#fff);}
   /* Contacten */
   .contlist{display:flex;flex-direction:column;gap:10px;margin:4px 0 18px;}
@@ -129,6 +130,23 @@
   .chkempty{color:var(--muted);font-style:italic;padding:8px 2px;}
   .chkacties{display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px;}
   .chkacties .btn{font-size:13px;}
+  /* Logboek / overdracht */
+  .logadd{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:16px;}
+  .logadd textarea{width:100%;min-height:72px;margin-bottom:9px;resize:vertical;font-family:inherit;}
+  .logaddrow{display:flex;gap:8px;}
+  .logaddrow .finp{flex:1;min-width:0;margin:0;}
+  .logaddrow .btn{flex:0 0 auto;}
+  .loglist{display:flex;flex-direction:column;gap:10px;}
+  .logcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid #d98a2b;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);}
+  .logcard.klaar{opacity:.6;border-left-color:var(--muted);}
+  .logcard .logmeta{font-size:12px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between;gap:8px;}
+  .logcard .logmeta b{color:var(--text);}
+  .logcard .logtxt{font-size:15px;color:var(--text);white-space:pre-wrap;word-break:break-word;line-height:1.45;}
+  .logcard.klaar .logtxt{text-decoration:line-through;}
+  .logacties{display:flex;gap:8px;margin-top:10px;}
+  .logacties button{border:1px solid var(--line);background:var(--panel2);color:var(--forest);border-radius:8px;padding:5px 11px;font-size:13px;font-weight:600;cursor:pointer;}
+  .logacties button.del{color:var(--muted);}
+  .logempty{color:var(--muted);font-style:italic;padding:8px 2px;}
   .card[data-key="instellingen"]{--accent:var(--bark);background:linear-gradient(150deg,#f6f1ea,#fff);}
 
   /* ---- views ---- */
@@ -437,12 +455,16 @@
   [data-theme="dark"] .card[data-key="bestellingen"]{background:linear-gradient(150deg,#2e241d,#18271f);}
   [data-theme="dark"] .card[data-key="checklisten"]{background:linear-gradient(150deg,#16301f,#18271f);}
   [data-theme="dark"] .card[data-key="contacten"]{background:linear-gradient(150deg,#241d2e,#18271f);}
+  [data-theme="dark"] .card[data-key="logboek"]{background:linear-gradient(150deg,#2e2517,#18271f);}
   [data-theme="dark"] .card[data-key="manuals"]{background:linear-gradient(150deg,#1b2b30,#18271f);}
   [data-theme="dark"] .card[data-key="instellingen"]{background:linear-gradient(150deg,#2a241c,#18271f);}
   [data-theme="dark"] .lowstock{background:linear-gradient(120deg,#2a201e,#18271f);border-color:#5a3530;}
   [data-theme="dark"] .lowstock .ls-pill{border-color:#5a3530;}
   [data-theme="dark"] .invrow .stk input{background:var(--panel2);color:var(--text);}
 
+  .syncbadge{font-size:12px;font-weight:700;color:#9a6a1a;background:#fdf3e3;border:1px solid #e8c98a;
+    border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  [data-theme="dark"] .syncbadge{color:#f0c98a;background:#2e2517;border-color:#5a4525;}
   footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12px;}
   footer .foot-line{margin-top:10px;}
 </style>
@@ -452,6 +474,7 @@
   <div class="topbar">
     <img class="logo" src="assets/logo-cp.png" alt="Center Parcs">
     <h1 id="title">Entertainment</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
     <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
     <button class="navbtn" id="gearBtn">Instellingen</button>
     <button class="navbtn home" id="homeBtn">Home</button>
@@ -515,6 +538,11 @@
         <div class="rnd">Handig</div>
         <h2>Contacten</h2>
         <p>Telefoonnummers en e-mails van het team en leveranciers.</p>
+      </div>
+      <div class="card" data-key="logboek" id="openLogboek">
+        <div class="rnd">Team</div>
+        <h2>Logboek</h2>
+        <p>Overdracht tussen shifts: bijzonderheden, kapot materiaal, herinneringen.</p>
       </div>
       <div class="card" data-key="manuals" id="openManuals">
         <div class="rnd">Naslag</div>
@@ -595,6 +623,19 @@
       <button class="btn" id="chkRename">✎ Lijst hernoemen</button>
       <button class="btn" id="chkDelList">🗑 Lijst verwijderen</button>
     </div>
+  </div>
+
+  <!-- LOGBOEK / OVERDRACHT -->
+  <div class="view" id="logboek">
+    <p class="hint">Korte berichten voor je collega's: wat moet de volgende shift weten? Iedereen ziet dit — ook offline, het synct zodra er internet is.</p>
+    <div class="logadd">
+      <textarea id="logTekst" class="finp" placeholder="Schrijf een bericht voor het team…"></textarea>
+      <div class="logaddrow">
+        <input type="text" id="logNaam" class="finp" placeholder="Van (jouw naam)">
+        <button class="btn primary" id="logAdd">Plaatsen</button>
+      </div>
+    </div>
+    <div class="loglist" id="loglist"></div>
   </div>
 
   <!-- INVENTARIS -->
@@ -1000,7 +1041,7 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists',logboek:'Logboek'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
@@ -1990,24 +2031,16 @@ function closeBestelModal(){ document.getElementById('bestelModal').classList.re
 
 document.getElementById('openBestellingen').onclick=()=>{ showBestelTab('overzicht'); show('bestellingen'); };
 
-// ---------------- CONTACTEN ----------------
-const CONTACTEN_DEFAULT=[
-  {naam:'Receptie',rol:'Center Parcs — receptie',tel:'',mail:''},
-  {naam:'Technische dienst',rol:'Center Parcs — techniek',tel:'',mail:''}
-];
-function loadContacten(){try{const r=localStorage.getItem(K_CONTACTEN);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}return CONTACTEN_DEFAULT.slice();}
-let contacten=loadContacten();
-function saveContacten(){try{localStorage.setItem(K_CONTACTEN,JSON.stringify(contacten));}catch(e){}}
+// ---------------- CONTACTEN (gedeeld via database) ----------------
 function telLink(t){return 'tel:'+String(t).replace(/[^+0-9]/g,'');}
 let contBeheer=false;
 function renderContacten(){
   const box=document.getElementById('contlist'); if(!box)return;
   const q=(document.getElementById('contZoek').value||'').toLowerCase().trim();
-  const lijst=contacten.filter(c=>!q||((c.naam||'')+' '+(c.rol||'')).toLowerCase().indexOf(q)>=0);
+  const lijst=BBInv.getContacten().filter(c=>!q||((c.naam||'')+' '+(c.rol||'')).toLowerCase().indexOf(q)>=0);
   box.innerHTML='';
   if(!lijst.length){ box.innerHTML='<div class="contempty">'+(q?'Geen contact gevonden.':(contBeheer?'Nog geen contacten. Voeg er hieronder een toe.':'Nog geen contacten.'))+'</div>'; return; }
   lijst.forEach(c=>{
-    const i=contacten.indexOf(c);
     const links=[];
     if(c.tel) links.push('<a href="'+telLink(c.tel)+'">📞 '+esc(c.tel)+'</a>');
     if(c.mail) links.push('<a class="mail" href="mailto:'+esc(c.mail)+'">✉️ '+esc(c.mail)+'</a>');
@@ -2016,7 +2049,7 @@ function renderContacten(){
       '<div class="cnaam">'+esc(c.naam)+'</div>'+
       (c.rol?'<div class="crol">'+esc(c.rol)+'</div>':'')+
       (links.length?'<div class="clinks">'+links.join('')+'</div>':'');
-    if(contBeheer) card.querySelector('.cdel').onclick=()=>{ if(!confirm('Contact "'+(c.naam||'')+'" verwijderen?'))return; contacten.splice(i,1); saveContacten(); renderContacten(); };
+    if(contBeheer) card.querySelector('.cdel').onclick=()=>{ if(!confirm('Contact "'+(c.naam||'')+'" verwijderen?'))return; BBInv.removeContact(c.id); renderContacten(); };
     box.appendChild(card);
   });
 }
@@ -2039,33 +2072,21 @@ document.getElementById('contZoek').addEventListener('input',renderContacten);
 document.getElementById('contAdd').onclick=()=>{
   const naam=document.getElementById('contNaam').value.trim();
   if(!naam){alert('Geef minstens een naam.');return;}
-  contacten.push({naam,rol:document.getElementById('contRol').value.trim(),
+  BBInv.addContact({naam,rol:document.getElementById('contRol').value.trim(),
     tel:document.getElementById('contTel').value.trim(),mail:document.getElementById('contMail').value.trim()});
-  saveContacten();
   ['contNaam','contRol','contTel','contMail'].forEach(id=>document.getElementById(id).value='');
   renderContacten();
 };
 
-// ---------------- CHECKLISTS (meerdere lijsten) ----------------
-const CHECKLIST_DEFAULT_ITEMS=['Boekjes geteld en klaar','Super Deals op het rek','Trolley Tunes muziek klaar',
-  'How Much? potten + weegschaal klaar','Crazy Coins munten klaar','Finalevragen voorbereid',
-  'Micro getest','Geluid/muziek getest','Prijzentafel klaar','Controleblad bij de hand'];
-let chkSeq=1; function chkNewId(){return 'l'+(chkSeq++)+'_'+checklisten.length;}
-function chkDefaultLists(){return [{id:'l0',naam:'Pre-spel checklist',items:CHECKLIST_DEFAULT_ITEMS.map(t=>({text:t,done:false}))}];}
-function loadChecklisten(){
-  try{const r=localStorage.getItem(K_CHECKLISTEN);if(r){const a=JSON.parse(r);if(Array.isArray(a)&&a.length)return a;}}catch(e){}
-  // migratie van de vroegere enkele lijst (bb_checklist)
-  try{const o=localStorage.getItem('bb_checklist');if(o){const items=JSON.parse(o);if(Array.isArray(items)&&items.length)return [{id:'l0',naam:'Pre-spel checklist',items}];}}catch(e){}
-  return chkDefaultLists();
-}
-let checklisten=loadChecklisten();
-let chkActief=checklisten[0]?checklisten[0].id:null;
+// ---------------- CHECKLISTS (gedeeld via database) ----------------
+let chkActief=null;
 let chkBeheer=false;
-function saveChecklisten(){try{localStorage.setItem(K_CHECKLISTEN,JSON.stringify(checklisten));}catch(e){}}
-function chkActieveLijst(){return checklisten.find(l=>l.id===chkActief)||checklisten[0]||null;}
+function chkActieveLijst(){ const ls=BBInv.getChecklisten(); return ls.find(l=>l.id===chkActief)||ls[0]||null; }
 function renderChkTabs(){
   const t=document.getElementById('chkTabs'); if(!t)return; t.innerHTML='';
-  checklisten.forEach(l=>{
+  const ls=BBInv.getChecklisten();
+  if(ls.length && !ls.find(l=>l.id===chkActief)) chkActief=ls[0].id;
+  ls.forEach(l=>{
     const done=l.items.filter(x=>x.done).length;
     const b=document.createElement('button'); b.className='chktab'+(l.id===chkActief?' active':'');
     b.innerHTML=esc(l.naam)+' <span class="ct">'+done+'/'+l.items.length+'</span>';
@@ -2076,7 +2097,7 @@ function renderChkTabs(){
     const add=document.createElement('button'); add.className='chktab add'; add.textContent='+ Nieuwe lijst';
     add.onclick=()=>{
       const n=prompt('Naam van de nieuwe checklist:'); if(n===null)return; const naam=n.trim(); if(!naam)return;
-      const l={id:chkNewId(),naam,items:[]}; checklisten.push(l); chkActief=l.id; saveChecklisten(); renderChecklisten();
+      const rec=BBInv.addChecklist(naam); chkActief=rec.id; renderChecklisten();
     };
     t.appendChild(add);
   }
@@ -2099,9 +2120,9 @@ function renderChecklisten(){
     const row=document.createElement('div'); row.className='chk'+(it.done?' done':'');
     row.innerHTML='<div class="chkbox">'+(it.done?'✓':'')+'</div><div class="chktxt">'+esc(it.text)+'</div>'+
       (chkBeheer?'<button class="chkdel" title="Verwijderen">✕</button>':'');
-    const toggle=()=>{ it.done=!it.done; saveChecklisten(); renderChecklisten(); };
+    const toggle=()=>{ it.done=!it.done; BBInv.saveChecklist(lijst); renderChecklisten(); };
     row.querySelector('.chkbox').onclick=toggle; row.querySelector('.chktxt').onclick=toggle;
-    if(chkBeheer) row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); saveChecklisten(); renderChecklisten(); };
+    if(chkBeheer) row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); BBInv.saveChecklist(lijst); renderChecklisten(); };
     g.appendChild(row);
   });
   if(!lijst.items.length) g.innerHTML='<div class="chkempty">'+(chkBeheer?'Nog geen items. Voeg er hieronder een toe.':'Nog geen items in deze lijst.')+'</div>';
@@ -2122,25 +2143,58 @@ document.getElementById('openChecklisten').onclick=()=>{ chkBeheer=false; render
 document.getElementById('chkAdd').onclick=()=>{
   const inp=document.getElementById('chkNew'); const v=inp.value.trim(); if(!v)return;
   const lijst=chkActieveLijst(); if(!lijst)return;
-  lijst.items.push({text:v,done:false}); inp.value=''; saveChecklisten(); renderChecklisten();
+  lijst.items.push({text:v,done:false}); inp.value=''; BBInv.saveChecklist(lijst); renderChecklisten();
 };
 document.getElementById('chkNew').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('chkAdd').click(); });
 document.getElementById('chkReset').onclick=()=>{
   const lijst=chkActieveLijst(); if(!lijst)return;
-  lijst.items.forEach(x=>x.done=false); saveChecklisten(); renderChecklisten();
+  lijst.items.forEach(x=>x.done=false); BBInv.saveChecklist(lijst); renderChecklisten();
 };
 document.getElementById('chkRename').onclick=()=>{
   const lijst=chkActieveLijst(); if(!lijst)return;
   const n=prompt('Nieuwe naam voor deze lijst:',lijst.naam); if(n===null)return; const naam=n.trim(); if(!naam)return;
-  lijst.naam=naam; saveChecklisten(); renderChecklisten();
+  lijst.naam=naam; BBInv.saveChecklist(lijst); renderChecklisten();
 };
 document.getElementById('chkDelList').onclick=()=>{
   const lijst=chkActieveLijst(); if(!lijst)return;
   if(!confirm('De checklist "'+lijst.naam+'" volledig verwijderen?'))return;
-  checklisten=checklisten.filter(l=>l.id!==lijst.id);
-  chkActief=checklisten[0]?checklisten[0].id:null;
-  saveChecklisten(); renderChecklisten();
+  BBInv.removeChecklist(lijst.id); chkActief=null; renderChecklisten();
 };
+
+// ---------------- LOGBOEK / OVERDRACHT (gedeeld via database) ----------------
+const K_LOGNAAM='bb_logboek_naam';
+function fmtLogTs(ts){ if(!ts)return ''; const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+function renderLogboek(){
+  const box=document.getElementById('loglist'); if(!box)return; box.innerHTML='';
+  const lijst=BBInv.getLogboek();
+  if(!lijst.length){ box.innerHTML='<div class="logempty">Nog geen berichten. Schrijf het eerste hierboven.</div>'; return; }
+  lijst.forEach(l=>{
+    const card=document.createElement('div'); card.className='logcard'+(l.klaar?' klaar':'');
+    card.innerHTML='<div class="logmeta"><b>'+(l.auteur?esc(l.auteur):'Onbekend')+'</b><span>'+esc(fmtLogTs(l.ts))+'</span></div>'+
+      '<div class="logtxt">'+esc(l.tekst)+'</div>'+
+      '<div class="logacties"><button class="done">'+(l.klaar?'↩ Heropenen':'✓ Afgehandeld')+'</button><button class="del">🗑 Verwijderen</button></div>';
+    card.querySelector('.done').onclick=()=>{ BBInv.updateLog(l.id,{klaar:!l.klaar}); renderLogboek(); };
+    card.querySelector('.del').onclick=()=>{ if(!confirm('Dit bericht verwijderen?'))return; BBInv.removeLog(l.id); renderLogboek(); };
+    box.appendChild(card);
+  });
+}
+document.getElementById('openLogboek').onclick=()=>{ document.getElementById('logNaam').value=localStorage.getItem(K_LOGNAAM)||''; renderLogboek(); show('logboek'); };
+document.getElementById('logAdd').onclick=()=>{
+  const tekst=document.getElementById('logTekst').value.trim();
+  if(!tekst){ alert('Schrijf eerst een bericht.'); return; }
+  const auteur=document.getElementById('logNaam').value.trim();
+  if(auteur) localStorage.setItem(K_LOGNAAM,auteur);
+  BBInv.addLog({tekst,auteur});
+  document.getElementById('logTekst').value='';
+  renderLogboek();
+};
+// Sync-indicator: toont hoeveel wijzigingen nog op internet wachten
+function updateSyncBadge(){
+  const el=document.getElementById('syncBadge'); if(!el)return;
+  const n=(window.BBInv&&BBInv.pendingCount)?BBInv.pendingCount():0;
+  if(n>0){ el.style.display=''; el.textContent='⏳ '+n+' wacht op internet'; }
+  else { el.style.display='none'; }
+}
 
 document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
 document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
@@ -2232,9 +2286,15 @@ BBInv.setOnChange(()=>{
     if(document.getElementById('pane-beheer').classList.contains('active')) renderStats();
   }
   if(document.getElementById('bestellingen').classList.contains('active')) renderBestelActief();
+  if(document.getElementById('contacten').classList.contains('active')) renderContacten();
+  if(document.getElementById('checklisten').classList.contains('active')) renderChecklisten();
+  if(document.getElementById('logboek').classList.contains('active')) renderLogboek();
+  updateSyncBadge();
 });
 renderHome();
 BBInv.init();
+updateSyncBadge();
+setInterval(updateSyncBadge,3000);
 </script>
 </body>
 </html>
