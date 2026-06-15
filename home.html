@@ -513,6 +513,7 @@
   <div class="mbody" id="viewerBody"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="inventaris-data.js"></script>
 <script src="inventaris.js"></script>
 <script>
@@ -903,7 +904,7 @@ function prijsRow(p){
   row.prepend(tw);
   const inp=row.querySelector('.stk input');
   const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
-    if(t){t.stock=v;BBInv.setPrijzen(pr);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
+    if(t){BBInv.setStock(p.id,v);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
   row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
   inp.onchange=()=>commit(+inp.value||0);
@@ -1207,9 +1208,7 @@ document.getElementById('impFile').onchange=e=>{
 };
 document.getElementById('invReset').onclick=()=>{
   if(!confirm('De volledige inventaris terugzetten naar de oorspronkelijke Excel-lijst?\nAlle stock-aanpassingen en eigen toevoegingen gaan verloren. (Formulieren en leveringen blijven staan.)'))return;
-  localStorage.removeItem('bb_inv_prijzen'); localStorage.removeItem('bb_inv_boekjes');
-  BBInv.seedIfEmpty(); renderInventaris();
-  alert('Inventaris hersteld naar de startlijst.');
+  BBInv.resetInventaris().then(()=>{ renderInventaris(); alert('Inventaris hersteld naar de startlijst.'); });
 };
 
 // ---------------- OFFLINE-STATUS + VERSIE ----------------
@@ -1230,7 +1229,14 @@ if('serviceWorker' in navigator){
 }
 
 // ---------------- INIT ----------------
-applyTheme(); renderHome(); show('home'); updateSys();
+applyTheme(); show('home'); updateSys();
+// Gedeelde database: bij wijzigingen (ook van collega's) het juiste scherm verversen
+BBInv.setOnChange(()=>{
+  renderHome();
+  if(document.getElementById('inventaris').classList.contains('active')) renderInventaris();
+});
+renderHome();
+BBInv.init();
 </script>
 </body>
 </html>

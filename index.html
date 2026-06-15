@@ -477,6 +477,7 @@
   </footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="inventaris-data.js"></script>
 <script src="inventaris.js"></script>
 <script>
@@ -1019,6 +1020,14 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
 
 function renderAll(){renderControle();renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
 renderAll(); updateAll(); show('menu'); updateRestoreBtn();
+// Gedeelde database laden + live verversen van de keuzelijsten die uit de inventaris lezen
+if(window.BBInv){
+  BBInv.setOnChange(()=>{
+    renderControle();
+    if(document.getElementById('formulier').classList.contains('active')){renderKiesLijst('klein');renderKiesLijst('groot');}
+  });
+  BBInv.init();
+}
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
 const APP_VERSION='v13';
