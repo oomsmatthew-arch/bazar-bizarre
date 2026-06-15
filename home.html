@@ -40,7 +40,8 @@
   .topbar .logo{height:48px;width:48px;border-radius:12px;display:block;object-fit:cover;
     background:var(--forest);}
   .topbar h1{margin:0;font-family:var(--serif);font-size:clamp(18px,3.4vw,26px);
-    letter-spacing:.6px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2);flex:1;}
+    letter-spacing:.6px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2);flex:1;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .navbtn{border:none;background:rgba(255,255,255,.2);color:#fff;
     font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;cursor:pointer;flex:0 0 auto;}
   .navbtn:active{transform:translateY(1px);}
@@ -52,6 +53,8 @@
     .navbtn{font-size:13px;padding:9px 11px;}
     #gearBtn{font-size:0;padding:9px 11px;}
     #gearBtn::before{content:"⚙";font-size:19px;}
+    .syncbadge{padding:4px 8px;}
+    .syncbadge .lbl{display:none;}
   }
 
   /* ---- mededeling ---- */
@@ -463,7 +466,7 @@
   [data-theme="dark"] .invrow .stk input{background:var(--panel2);color:var(--text);}
 
   .syncbadge{font-size:12px;font-weight:700;color:#9a6a1a;background:#fdf3e3;border:1px solid #e8c98a;
-    border-radius:999px;padding:4px 10px;white-space:nowrap;}
+    border-radius:999px;padding:4px 10px;white-space:nowrap;flex:0 0 auto;}
   [data-theme="dark"] .syncbadge{color:#f0c98a;background:#2e2517;border-color:#5a4525;}
   footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12px;}
   footer .foot-line{margin-top:10px;}
@@ -2192,7 +2195,7 @@ document.getElementById('logAdd').onclick=()=>{
 function updateSyncBadge(){
   const el=document.getElementById('syncBadge'); if(!el)return;
   const n=(window.BBInv&&BBInv.pendingCount)?BBInv.pendingCount():0;
-  if(n>0){ el.style.display=''; el.textContent='⏳ '+n+' wacht op internet'; }
+  if(n>0){ el.style.display=''; el.innerHTML='⏳ '+n+'<span class="lbl"> wacht op internet</span>'; }
   else { el.style.display='none'; }
 }
 
