@@ -22,8 +22,8 @@
   const fromRow=r=>({id:r.id,cat:r.cat,naam:r.naam,stock:r.stock||0,inGebruik:!!r.in_gebruik,foto:r.foto||''});
   const toRow=p=>({id:p.id,cat:p.cat==='groot'?'groot':'klein',naam:p.naam||'',stock:+p.stock||0,in_gebruik:!!p.inGebruik,foto:p.foto||''});
   const mapForm=r=>({id:r.id,ts:r.ts,namen:r.namen||'',kleine:r.kleine||[],groot:r.groot||[],boekjes:r.boekjes||{},finale:r.finale||'',opmerking:r.opmerking||''});
-  const mapBestel=r=>({id:r.id,ts:r.ts||0,datum:r.besteldatum||'',cat:r.categorie||'',info:r.info||'',status:r.status||'Besteld',aantal:r.aantal||'',ent:+r.kost_ent||0,bay:+r.kost_bay||0,hsb:+r.kost_hsb||0,leverancier:r.leverancier||'',leverdatum:r.leverdatum||'',opm:r.opmerking||''});
-  const bestelToRow=b=>({id:b.id,ts:b.ts||0,besteldatum:b.datum||'',categorie:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',kost_ent:+b.ent||0,kost_bay:+b.bay||0,kost_hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',opmerking:b.opm||''});
+  const mapBestel=r=>({id:r.id,ts:r.ts||0,datum:r.besteldatum||'',cat:r.categorie||'',info:r.info||'',status:r.status||'Besteld',aantal:r.aantal||'',ent:+r.kost_ent||0,bay:+r.kost_bay||0,hsb:+r.kost_hsb||0,leverancier:r.leverancier||'',leverdatum:r.leverdatum||'',door:r.door||'',opm:r.opmerking||''});
+  const bestelToRow=b=>({id:b.id,ts:b.ts||0,besteldatum:b.datum||'',categorie:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',kost_ent:+b.ent||0,kost_bay:+b.bay||0,kost_hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opmerking:b.opm||''});
 
   // ---------------- INIT ----------------
   async function init(){
@@ -224,7 +224,7 @@
   function setLeveringen(arr){ const keep={}; arr.forEach(l=>keep[l.id]=1); cache.leveringen.filter(l=>!keep[l.id]).forEach(l=>sb.from('leveringen').delete().eq('id',l.id).then(err)); cache.leveringen=arr; }
 
   // ---- Bestellingen (optimistisch + naar DB als de gedeelde tabel bestaat) ----
-  function bestelClean(b){ return {datum:b.datum||'',cat:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',ent:+b.ent||0,bay:+b.bay||0,hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',opm:b.opm||''}; }
+  function bestelClean(b){ return {datum:b.datum||'',cat:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',ent:+b.ent||0,bay:+b.bay||0,hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opm:b.opm||''}; }
   function bestelSave(rec){ saveBestelBackup(); if(bestelOK) sb.from('bestellingen').upsert(bestelToRow(rec)).then(err); }
   function addBestelling(b){
     const rec=Object.assign({id:uid(),ts:Date.now()},bestelClean(b));
