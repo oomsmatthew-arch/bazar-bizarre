@@ -1007,18 +1007,18 @@ function renderBeheer(){
 function renderStats(){
   const pr=BBInv.getPrijzen().filter(p=>p.inGebruik);
   const dK=getDrempel(), dA=getDrempel2();
-  // TOTALEN: aantal stuks op voorraad per groep (niet het aantal soorten)
-  let totaal=0,sBijna=0,sAandacht=0,sGoed=0,nUit=0;
+  // Eerste vak = totaal aantal stuks; de groepen = HOEVEEL PRIJZEN in elke toestand zitten.
+  let totaal=0,cBijna=0,cAandacht=0,cGoed=0,cUit=0;
   pr.forEach(p=>{const s=p.stock||0; if(s>0)totaal+=s;
-    if(s<=0)nUit++; else if(s<=dK)sBijna+=s; else if(s<=dA)sAandacht+=s; else sGoed+=s;});
+    if(s<=0)cUit++; else if(s<=dK)cBijna++; else if(s<=dA)cAandacht++; else cGoed++;});
   const bk=BBInv.getBoekjes().stock||0, bkLaag=bk<=getDrempelBoekjes();
   const card=(v,l,cls)=>'<div class="statcard'+(cls?' '+cls:'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
   document.getElementById('statGrid').innerHTML=
-    card(totaal,'Prijzen op voorraad (totaal)')+
-    card(sBijna,'🔴 Bijna op (≤'+dK+')','red')+
-    card(sAandacht,'🟠 Aandacht ('+(dK+1)+'–'+dA+')','orange')+
-    card(sGoed,'🟢 Goed op voorraad (>'+dA+')','green')+
-    card(nUit,'⚫ Soorten uitverkocht','grey')+
+    card(totaal,'Stuks op voorraad (totaal)')+
+    card(cBijna,'🔴 Prijzen bijna op (≤'+dK+')','red')+
+    card(cAandacht,'🟠 Prijzen aandacht ('+(dK+1)+'–'+dA+')','orange')+
+    card(cGoed,'🟢 Prijzen goed op voorraad (>'+dA+')','green')+
+    card(cUit,'⚫ Prijzen uitverkocht','grey')+
     card(bk,'📕 Boekjes voorraad',bkLaag?'red':'');
   const el=document.getElementById('statTop'); if(el) el.innerHTML='';
 }
