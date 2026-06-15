@@ -238,9 +238,6 @@
 
   /* ---- statistiek ---- */
   .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px;}
-  /* kaarten vullen het gezondheid-vak (zelfde hoogte als de waarschuwingen) */
-  .beheertop .gezondheid{display:flex;flex-direction:column;}
-  .beheertop .gezondheid #statGrid{flex:1;grid-auto-rows:1fr;}
   .statcard{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:18px 18px;min-height:92px;
     display:flex;flex-direction:column;justify-content:center;}
   .statcard .v{font-size:30px;font-weight:800;color:var(--forest);font-family:var(--serif);line-height:1.05;}
@@ -251,7 +248,7 @@
   .statcard.grey .v{color:var(--muted);}
   .statcard.green .v{color:var(--leaf);}
   /* Beheer: statistiek + voorraad-waarschuwingen naast elkaar */
-  .beheertop{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-bottom:24px;}
+  .beheertop{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;margin-bottom:24px;}
   @media(max-width:720px){.beheertop{grid-template-columns:1fr;}}
   .beheertop .field{margin:0;}
   /* consistente ruimte tussen de blokken in Beheer */
