@@ -922,7 +922,7 @@ function pickFoto(cb){
 function fileToThumb(file,cb){
   const r=new FileReader();
   r.onload=()=>{const img=new Image();
-    img.onload=()=>{const max=200;let w=img.width,h=img.height;
+    img.onload=()=>{const max=700;let w=img.width,h=img.height;
       if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
       const c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
@@ -947,7 +947,7 @@ function openCamera(cb){
     camStream=s; v.srcObject=s; if(v.play)v.play().catch(()=>{}); m.classList.add('open');
     document.getElementById('camShot').onclick=()=>{
       let w=v.videoWidth,h=v.videoHeight; if(!w||!h){alert('Camera nog niet klaar, probeer opnieuw.');return;}
-      const max=400; if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
+      const max=700; if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
       const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(v,0,0,w,h);
       let url=null; try{url=c.toDataURL('image/jpeg',0.7);}catch(e){}
       closeCamera(); if(url&&cb)cb(url);
