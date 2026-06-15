@@ -234,27 +234,32 @@
     padding:7px 11px;cursor:pointer;font-size:13px;}
 
   /* ---- bestellingen ---- */
-  .bestelcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
-    margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:transform .1s,box-shadow .1s,border-color .1s;}
-  .bestelcard:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(31,81,53,.16);border-color:var(--leaf);}
-  .bestelcard:active{transform:scale(.995);}
-  .bestelcard .bc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
-  .bestelcard .bc-datum{font-size:12px;color:var(--muted);font-weight:700;}
-  .bestelcard .bc-cat{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;
-    color:var(--forest);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;}
-  .bestelcard .bc-edit{margin-left:auto;border:1px solid var(--forest2);
-    background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;
-    font-weight:700;border-radius:10px;padding:7px 12px;cursor:pointer;font-size:13px;white-space:nowrap;}
-  .bestelcard h4{margin:2px 0 8px;font-family:var(--serif);color:var(--text);font-size:18px;line-height:1.2;}
-  .bestelcard .bc-meta{display:flex;flex-wrap:wrap;gap:7px 8px;margin-bottom:6px;}
-  .bc-chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px;
-    font-size:12px;font-weight:700;color:var(--text);}
-  .bc-chip b{color:var(--forest);font-weight:800;}
-  .bc-chip.ent b{color:#2f8f6b;} .bc-chip.bay b{color:#1f6b9a;} .bc-chip.hsb b{color:#9a6b15;}
-  .bestelcard .bc-opm{font-size:13px;color:var(--muted);line-height:1.45;margin-top:4px;}
+  /* filter-/sorteerbalk */
+  .bestelctrls{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 12px;}
+  .bsel{background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:13px;font-weight:700;
+    padding:8px 12px;border-radius:10px;outline:none;font-family:inherit;cursor:pointer;box-shadow:var(--shadow);}
+  .bsel:focus{border-color:var(--leaf);}
+  /* compacte lijst: één regel per bestelling (mag op gsm naar 2 regels) */
+  .besteltabel{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--panel);}
+  .bestelrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);
+    cursor:pointer;transition:background .1s;flex-wrap:wrap;}
+  .bestelrow:first-child{border-top:none;}
+  .bestelrow:hover{background:var(--panel2);}
+  .bestelrow:active{background:var(--leaf-soft);}
+  .bestelrow .br-datum{flex:0 0 48px;font-size:12px;color:var(--muted);font-weight:800;}
+  .bestelrow .br-info{flex:1 1 240px;min-width:0;white-space:nowrap;overflow:hidden;
+    display:flex;align-items:baseline;gap:8px;}
+  .bestelrow .br-info .t{font-weight:700;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0;}
+  .bestelrow .br-info .meta{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0;}
+  .bestelrow .br-bedrag{flex:0 0 auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto;}
+  .br-amt{font-size:12px;font-weight:800;border-radius:8px;padding:3px 8px;border:1px solid;white-space:nowrap;}
+  .br-amt.ent{color:#2f8f6b;border-color:#a8d8c2;background:#eaf7f0;}
+  .br-amt.bay{color:#1f6b9a;border-color:#aacfe8;background:#e8f3fb;}
+  .br-amt.hsb{color:#9a6b15;border-color:#ddc79a;background:#f6efe2;}
   /* status-badge */
-  .stbadge{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;border-radius:999px;
+  .stbadge{flex:0 0 auto;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;border-radius:999px;
     padding:3px 11px;border:1px solid;}
+  .stbadge.sm{padding:2px 8px;font-size:10px;}
   .stbadge.s-besteld{color:#b8791a;background:#fff8ec;border-color:#f0d29a;}
   .stbadge.s-onderweg{color:#1f6b9a;background:#e8f3fb;border-color:#aacfe8;}
   .stbadge.s-inloods{color:#7a5a2b;background:#f6efe2;border-color:#ddc79a;}
@@ -583,6 +588,21 @@
     </div>
     <input type="text" id="bestelZoek" class="finp zoek" placeholder="Zoek op bestelling, categorie of leverancier…">
     <div class="invfilter" id="bestelFilter"></div>
+    <div class="bestelctrls">
+      <select id="bestelAfd" class="bsel">
+        <option value="all">Alle afdelingen</option>
+        <option value="ENT">Alleen ENT</option>
+        <option value="BAY">Alleen BAY</option>
+        <option value="HSB">Alleen HSB</option>
+      </select>
+      <select id="bestelLev" class="bsel"></select>
+      <select id="bestelSort" class="bsel">
+        <option value="datum-desc">Datum: nieuwste eerst</option>
+        <option value="datum-asc">Datum: oudste eerst</option>
+        <option value="prijs-desc">Prijs: hoog → laag</option>
+        <option value="prijs-asc">Prijs: laag → hoog</option>
+      </select>
+    </div>
     <div id="bestelList"></div>
   </div>
 
@@ -661,7 +681,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v15';
+const APP_VERSION='v16';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1402,10 +1422,12 @@ document.getElementById('invReset').onclick=()=>{
 
 // ================= BESTELLINGEN =================
 const BESTEL_STATUSSEN=['Besteld','Onderweg','In loods','Uitgepakt','Geannuleerd'];
-let bestelEditId=null, bestelStatusFilter='all', bestelQuery='';
+let bestelEditId=null, bestelStatusFilter='all', bestelQuery='', bestelAfd='all', bestelLev='all', bestelSort='datum-desc';
 function eur(n){ n=+n||0; try{return n.toLocaleString('nl-BE',{style:'currency',currency:'EUR'});}catch(e){return '€ '+n.toFixed(2);} }
 function dmy(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
+function dmShort(iso){ if(!iso) return '—'; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]:iso; }
 function stClass(s){ return 's-'+String(s||'').toLowerCase().replace(/\s+/g,''); }
+function bestelTotaal(b){ return (+b.ent||0)+(+b.bay||0)+(+b.hsb||0); }
 
 function renderBestelSum(){
   const list=BBInv.getBestellingen();
@@ -1425,46 +1447,54 @@ function renderBestelFilter(){
   el.innerHTML=mk('all','Alle')+BESTEL_STATUSSEN.map(s=>mk(s,s)).join('');
   el.querySelectorAll('[data-bf]').forEach(c=>c.onclick=()=>{bestelStatusFilter=c.dataset.bf;renderBestelFilter();renderBestelList();});
 }
-function bestelCardHtml(b){
-  let chips='';
-  if(b.aantal) chips+='<span class="bc-chip">Aantal <b>'+esc(b.aantal)+'</b></span>';
-  if(b.leverancier) chips+='<span class="bc-chip">Leverancier <b>'+esc(b.leverancier)+'</b></span>';
-  if(b.leverdatum) chips+='<span class="bc-chip">Geleverd <b>'+dmy(b.leverdatum)+'</b></span>';
-  if(+b.ent) chips+='<span class="bc-chip ent">ENT <b>'+eur(b.ent)+'</b></span>';
-  if(+b.bay) chips+='<span class="bc-chip bay">BAY <b>'+eur(b.bay)+'</b></span>';
-  if(+b.hsb) chips+='<span class="bc-chip hsb">HSB <b>'+eur(b.hsb)+'</b></span>';
-  return '<div class="bestelcard" data-edit="'+b.id+'" title="Tik om te bewerken">'+
-    '<div class="bc-top">'+
-      '<span class="bc-datum">'+(b.datum?dmy(b.datum):'—')+'</span>'+
-      (b.cat?'<span class="bc-cat">'+esc(b.cat)+'</span>':'')+
-      '<span class="stbadge '+stClass(b.status)+'">'+esc(b.status)+'</span>'+
-      '<button class="bc-edit" type="button">✏️ Bewerken</button>'+
-    '</div>'+
-    '<h4>'+esc(b.info||'(zonder omschrijving)')+'</h4>'+
-    (chips?'<div class="bc-meta">'+chips+'</div>':'')+
-    (b.opm?'<div class="bc-opm">'+esc(b.opm)+'</div>':'')+
+function bestelRowHtml(b){
+  let amt='';
+  if(+b.ent) amt+='<span class="br-amt ent">ENT '+eur(b.ent)+'</span>';
+  if(+b.bay) amt+='<span class="br-amt bay">BAY '+eur(b.bay)+'</span>';
+  if(+b.hsb) amt+='<span class="br-amt hsb">HSB '+eur(b.hsb)+'</span>';
+  const meta=[b.cat,b.leverancier,b.aantal?('×'+b.aantal):''].filter(Boolean).map(esc).join(' · ');
+  return '<div class="bestelrow" data-edit="'+b.id+'" title="Tik om te bewerken">'+
+    '<span class="br-datum">'+dmShort(b.datum)+'</span>'+
+    '<span class="stbadge sm '+stClass(b.status)+'">'+esc(b.status)+'</span>'+
+    '<span class="br-info"><span class="t">'+esc(b.info||'(zonder omschrijving)')+'</span>'+
+      (meta?'<span class="meta">'+meta+'</span>':'')+'</span>'+
+    '<span class="br-bedrag">'+amt+'</span>'+
   '</div>';
 }
 function renderBestelList(){
   const q=bestelQuery.toLowerCase().trim();
   let list=BBInv.getBestellingen().slice();
   if(bestelStatusFilter!=='all') list=list.filter(b=>b.status===bestelStatusFilter);
+  if(bestelAfd!=='all') list=list.filter(b=> bestelAfd==='ENT'?+b.ent>0 : bestelAfd==='BAY'?+b.bay>0 : +b.hsb>0);
+  if(bestelLev!=='all') list=list.filter(b=>b.leverancier===bestelLev);
   if(q) list=list.filter(b=>((b.info||'')+' '+(b.cat||'')+' '+(b.leverancier||'')+' '+(b.opm||'')).toLowerCase().includes(q));
-  list.sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||(b.ts||0)-(a.ts||0));
+  list.sort((a,b)=>{
+    if(bestelSort==='datum-asc') return (a.datum||'').localeCompare(b.datum||'')||(a.ts||0)-(b.ts||0);
+    if(bestelSort==='prijs-desc') return bestelTotaal(b)-bestelTotaal(a);
+    if(bestelSort==='prijs-asc') return bestelTotaal(a)-bestelTotaal(b);
+    return (b.datum||'').localeCompare(a.datum||'')||(b.ts||0)-(a.ts||0); // datum-desc
+  });
+  const gefilterd=(bestelStatusFilter!=='all'||bestelAfd!=='all'||bestelLev!=='all'||q);
   const el=document.getElementById('bestelList');
-  if(!list.length){ el.innerHTML='<div class="empty-note">Geen bestellingen'+(q||bestelStatusFilter!=='all'?' voor deze filter':'. Voeg er een toe met ➕ Nieuwe bestelling')+'.</div>'; return; }
-  el.innerHTML=list.map(bestelCardHtml).join('');
-  // De hele kaart is aantikbaar om te bewerken (de knop zit erin en bubbelt mee).
-  el.querySelectorAll('.bestelcard[data-edit]').forEach(card=>card.onclick=()=>openBestelModal(card.dataset.edit));
+  if(!list.length){ el.innerHTML='<div class="empty-note">Geen bestellingen'+(gefilterd?' voor deze filter':'. Voeg er een toe met ➕ Nieuwe bestelling')+'.</div>'; return; }
+  el.innerHTML='<div class="besteltabel">'+list.map(bestelRowHtml).join('')+'</div>';
+  el.querySelectorAll('.bestelrow[data-edit]').forEach(r=>r.onclick=()=>openBestelModal(r.dataset.edit));
 }
 function renderBestellingen(){
   document.getElementById('bestelDeeltMee').style.display = BBInv.isBestelGedeeld()?'':'none';
   const sel=document.getElementById('bfStatus');
   if(!sel.options.length) sel.innerHTML=BESTEL_STATUSSEN.map(s=>'<option>'+s+'</option>').join('');
   const cats=[...new Set(BBInv.getBestellingen().map(b=>b.cat).filter(Boolean))].sort();
-  const levs=[...new Set(BBInv.getBestellingen().map(b=>b.leverancier).filter(Boolean))].sort();
+  const levs=[...new Set(BBInv.getBestellingen().map(b=>b.leverancier).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   document.getElementById('bfCatList').innerHTML=cats.map(c=>'<option value="'+esc(c)+'">').join('');
   document.getElementById('bfLevList').innerHTML=levs.map(l=>'<option value="'+esc(l)+'">').join('');
+  // leverancier-filter vullen (en huidige keuze behouden als die nog bestaat)
+  const levSel=document.getElementById('bestelLev');
+  if(bestelLev!=='all' && levs.indexOf(bestelLev)<0) bestelLev='all';
+  levSel.innerHTML='<option value="all">Alle leveranciers</option>'+levs.map(l=>'<option value="'+esc(l)+'">'+esc(l)+'</option>').join('');
+  levSel.value=bestelLev;
+  document.getElementById('bestelAfd').value=bestelAfd;
+  document.getElementById('bestelSort').value=bestelSort;
   renderBestelSum(); renderBestelFilter(); renderBestelList();
 }
 function openBestelModal(id){
@@ -1484,6 +1514,9 @@ function closeBestelModal(){ document.getElementById('bestelModal').classList.re
 document.getElementById('openBestellingen').onclick=()=>{ renderBestellingen(); show('bestellingen'); };
 document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
 document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
+document.getElementById('bestelAfd').onchange=e=>{ bestelAfd=e.target.value; renderBestelList(); };
+document.getElementById('bestelLev').onchange=e=>{ bestelLev=e.target.value; renderBestelList(); };
+document.getElementById('bestelSort').onchange=e=>{ bestelSort=e.target.value; renderBestelList(); };
 document.getElementById('bestelAnnuleer').onclick=closeBestelModal;
 document.getElementById('bestelModal').addEventListener('click',e=>{ if(e.target.id==='bestelModal') closeBestelModal(); });
 document.getElementById('bestelOpslaan').onclick=()=>{
