@@ -80,6 +80,7 @@
   .card[data-key="spel"]{--accent:var(--sun);background:linear-gradient(150deg,#fffaf0,#fff);}
   .card[data-key="inventaris"]{--accent:var(--leaf);background:linear-gradient(150deg,#eef8f0,#fff);}
   .card[data-key="bestellingen"]{--accent:#e2683f;background:linear-gradient(150deg,#fff3ee,#fff);}
+  .card[data-key="checklisten"]{--accent:#1faa6b;background:linear-gradient(150deg,#e8f8ef,#fff);}
   .card[data-key="contacten"]{--accent:#8a5cc7;background:linear-gradient(150deg,#f4eefb,#fff);}
   .card[data-key="manuals"]{--accent:var(--water);background:linear-gradient(150deg,#edf6fb,#fff);}
   /* Contacten */
@@ -96,6 +97,35 @@
   .contadd{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:6px;}
   .contadd .h{font-weight:700;color:var(--text);margin-bottom:10px;}
   .contadd .finp{margin-bottom:9px;}
+  /* Checklists */
+  .chktabs{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px;}
+  .chktab{border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:700;font-size:14px;
+    padding:8px 13px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+  .chktab .ct{font-size:12px;font-weight:700;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:1px 7px;}
+  .chktab.active{background:#1faa6b;border-color:#1faa6b;color:#fff;}
+  .chktab.active .ct{color:#fff;background:rgba(255,255,255,.22);border-color:transparent;}
+  .chktab.add{border-style:dashed;color:#1faa6b;background:transparent;}
+  .chkbar{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+  .chkcount{font-weight:700;font-size:14px;color:var(--text);}
+  .chkprog{flex:1;min-width:120px;height:9px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;overflow:hidden;}
+  .chkprog i{display:block;height:100%;width:0;background:#1faa6b;transition:width .2s;}
+  .chklist{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
+  .chk{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:11px 13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);}
+  .chk .chkbox{flex:0 0 28px;height:28px;border-radius:8px;border:2px solid var(--line);
+    display:grid;place-items:center;color:#fff;font-size:16px;font-weight:900;}
+  .chk .chktxt{flex:1;min-width:0;font-weight:600;font-size:15px;color:var(--text);}
+  .chk .chkdel{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:13px;}
+  .chk.done{border-color:#1faa6b;background:rgba(31,170,107,.10);}
+  .chk.done .chkbox{background:#1faa6b;border-color:#1faa6b;}
+  .chk.done .chktxt{text-decoration:line-through;color:var(--muted);}
+  .chkadd{display:flex;gap:8px;margin-bottom:14px;}
+  .chkadd .finp{flex:1;min-width:0;margin:0;}
+  .chkempty{color:var(--muted);font-style:italic;padding:8px 2px;}
+  .chkacties{display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px;}
+  .chkacties .btn{font-size:13px;}
   .card[data-key="instellingen"]{--accent:var(--bark);background:linear-gradient(150deg,#f6f1ea,#fff);}
 
   /* ---- views ---- */
@@ -402,6 +432,7 @@
   [data-theme="dark"] .card[data-key="spel"]{background:linear-gradient(150deg,#26301f,#18271f);}
   [data-theme="dark"] .card[data-key="inventaris"]{background:linear-gradient(150deg,#1b2e22,#18271f);}
   [data-theme="dark"] .card[data-key="bestellingen"]{background:linear-gradient(150deg,#2e241d,#18271f);}
+  [data-theme="dark"] .card[data-key="checklisten"]{background:linear-gradient(150deg,#16301f,#18271f);}
   [data-theme="dark"] .card[data-key="contacten"]{background:linear-gradient(150deg,#241d2e,#18271f);}
   [data-theme="dark"] .card[data-key="manuals"]{background:linear-gradient(150deg,#1b2b30,#18271f);}
   [data-theme="dark"] .card[data-key="instellingen"]{background:linear-gradient(150deg,#2a241c,#18271f);}
@@ -472,6 +503,11 @@
         <h2>Besteloverzicht</h2>
         <p>Overzicht van bestellingen: status, aantal, kosten, leverancier en leverdatum.</p>
       </div>
+      <div class="card" data-key="checklisten" id="openChecklisten">
+        <div class="rnd">Handig</div>
+        <h2>Checklists</h2>
+        <p>Afvinklijsten voor pre-spel, opkuis, materiaal… maak er zoveel als je wil.</p>
+      </div>
       <div class="card" data-key="contacten" id="openContacten">
         <div class="rnd">Handig</div>
         <h2>Contacten</h2>
@@ -533,6 +569,26 @@
       <input type="tel" id="contTel" class="finp" placeholder="Telefoon (optioneel)">
       <input type="email" id="contMail" class="finp" placeholder="E-mail (optioneel)">
       <button class="btn" id="contAdd">Contact toevoegen</button>
+    </div>
+  </div>
+
+  <!-- CHECKLISTS -->
+  <div class="view" id="checklisten">
+    <p class="hint">Maak zoveel checklists als je wil (bv. pre-spel, opkuis, materiaal). Tik een tabblad om te wisselen. Vink items af, voeg toe of verwijder — alles wordt op dit toestel bewaard.</p>
+    <div class="chktabs" id="chkTabs"></div>
+    <div class="chkbar">
+      <span class="chkcount"><b id="chkDone">0</b> / <span id="chkTot">0</span> klaar</span>
+      <span class="chkprog"><i id="chkFill"></i></span>
+      <button class="btn clear" id="chkReset">Afvinken wissen</button>
+    </div>
+    <div class="chklist" id="chkGrid"></div>
+    <div class="chkadd">
+      <input type="text" id="chkNew" class="finp" placeholder="Nieuw item toevoegen…">
+      <button class="btn" id="chkAdd">Toevoegen</button>
+    </div>
+    <div class="chkacties">
+      <button class="btn" id="chkRename">✎ Lijst hernoemen</button>
+      <button class="btn" id="chkDelList">🗑 Lijst verwijderen</button>
     </div>
   </div>
 
@@ -836,7 +892,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v23';
+const APP_VERSION='v24';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -846,6 +902,7 @@ const K_DREMPEL_BK='bb_home_drempel_boekjes'; // boekjes-voorraad melding
 const K_BESTELMAIL='bb_home_bestelmail';
 const K_THEME='bb_home_theme';
 const K_CONTACTEN='bb_contacten';
+const K_CHECKLISTEN='bb_checklisten';
 const DEFAULT_PIN='3920';
 const DEFAULT_DREMPEL=16;
 const DEFAULT_DREMPEL2=24;
@@ -938,14 +995,14 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
-  // Instellingen-knop verbergen waar beheer apart geregeld is (inventaris, bestellingen, manuals)
-  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals') ? 'none' : '';
+  // Instellingen-knop verbergen waar beheer apart geregeld is (inventaris, bestellingen, manuals, contacten)
+  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten') ? 'none' : '';
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
@@ -1968,6 +2025,85 @@ document.getElementById('contAdd').onclick=()=>{
   ['contNaam','contRol','contTel','contMail'].forEach(id=>document.getElementById(id).value='');
   renderContacten();
 };
+
+// ---------------- CHECKLISTS (meerdere lijsten) ----------------
+const CHECKLIST_DEFAULT_ITEMS=['Boekjes geteld en klaar','Super Deals op het rek','Trolley Tunes muziek klaar',
+  'How Much? potten + weegschaal klaar','Crazy Coins munten klaar','Finalevragen voorbereid',
+  'Micro getest','Geluid/muziek getest','Prijzentafel klaar','Controleblad bij de hand'];
+let chkSeq=1; function chkNewId(){return 'l'+(chkSeq++)+'_'+checklisten.length;}
+function chkDefaultLists(){return [{id:'l0',naam:'Pre-spel checklist',items:CHECKLIST_DEFAULT_ITEMS.map(t=>({text:t,done:false}))}];}
+function loadChecklisten(){
+  try{const r=localStorage.getItem(K_CHECKLISTEN);if(r){const a=JSON.parse(r);if(Array.isArray(a)&&a.length)return a;}}catch(e){}
+  // migratie van de vroegere enkele lijst (bb_checklist)
+  try{const o=localStorage.getItem('bb_checklist');if(o){const items=JSON.parse(o);if(Array.isArray(items)&&items.length)return [{id:'l0',naam:'Pre-spel checklist',items}];}}catch(e){}
+  return chkDefaultLists();
+}
+let checklisten=loadChecklisten();
+let chkActief=checklisten[0]?checklisten[0].id:null;
+function saveChecklisten(){try{localStorage.setItem(K_CHECKLISTEN,JSON.stringify(checklisten));}catch(e){}}
+function chkActieveLijst(){return checklisten.find(l=>l.id===chkActief)||checklisten[0]||null;}
+function renderChkTabs(){
+  const t=document.getElementById('chkTabs'); if(!t)return; t.innerHTML='';
+  checklisten.forEach(l=>{
+    const done=l.items.filter(x=>x.done).length;
+    const b=document.createElement('button'); b.className='chktab'+(l.id===chkActief?' active':'');
+    b.innerHTML=esc(l.naam)+' <span class="ct">'+done+'/'+l.items.length+'</span>';
+    b.onclick=()=>{ chkActief=l.id; renderChecklisten(); };
+    t.appendChild(b);
+  });
+  const add=document.createElement('button'); add.className='chktab add'; add.textContent='+ Nieuwe lijst';
+  add.onclick=()=>{
+    const n=prompt('Naam van de nieuwe checklist:'); if(n===null)return; const naam=n.trim(); if(!naam)return;
+    const l={id:chkNewId(),naam,items:[]}; checklisten.push(l); chkActief=l.id; saveChecklisten(); renderChecklisten();
+  };
+  t.appendChild(add);
+}
+function renderChecklisten(){
+  renderChkTabs();
+  const lijst=chkActieveLijst();
+  const g=document.getElementById('chkGrid'); if(!g)return; g.innerHTML='';
+  if(!lijst){
+    g.innerHTML='<div class="chkempty">Nog geen checklist. Tik op “+ Nieuwe lijst”.</div>';
+    document.getElementById('chkDone').textContent='0'; document.getElementById('chkTot').textContent='0';
+    document.getElementById('chkFill').style.width='0%'; return;
+  }
+  lijst.items.forEach((it,i)=>{
+    const row=document.createElement('div'); row.className='chk'+(it.done?' done':'');
+    row.innerHTML='<div class="chkbox">'+(it.done?'✓':'')+'</div><div class="chktxt">'+esc(it.text)+'</div><button class="chkdel" title="Verwijderen">✕</button>';
+    const toggle=()=>{ it.done=!it.done; saveChecklisten(); renderChecklisten(); };
+    row.querySelector('.chkbox').onclick=toggle; row.querySelector('.chktxt').onclick=toggle;
+    row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); saveChecklisten(); renderChecklisten(); };
+    g.appendChild(row);
+  });
+  if(!lijst.items.length) g.innerHTML='<div class="chkempty">Nog geen items. Voeg er hieronder een toe.</div>';
+  const done=lijst.items.filter(x=>x.done).length, tot=lijst.items.length;
+  document.getElementById('chkDone').textContent=done; document.getElementById('chkTot').textContent=tot;
+  document.getElementById('chkFill').style.width=(tot?done/tot*100:0)+'%';
+}
+document.getElementById('openChecklisten').onclick=()=>{ renderChecklisten(); show('checklisten'); };
+document.getElementById('chkAdd').onclick=()=>{
+  const inp=document.getElementById('chkNew'); const v=inp.value.trim(); if(!v)return;
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  lijst.items.push({text:v,done:false}); inp.value=''; saveChecklisten(); renderChecklisten();
+};
+document.getElementById('chkNew').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('chkAdd').click(); });
+document.getElementById('chkReset').onclick=()=>{
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  lijst.items.forEach(x=>x.done=false); saveChecklisten(); renderChecklisten();
+};
+document.getElementById('chkRename').onclick=()=>{
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  const n=prompt('Nieuwe naam voor deze lijst:',lijst.naam); if(n===null)return; const naam=n.trim(); if(!naam)return;
+  lijst.naam=naam; saveChecklisten(); renderChecklisten();
+};
+document.getElementById('chkDelList').onclick=()=>{
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  if(!confirm('De checklist "'+lijst.naam+'" volledig verwijderen?'))return;
+  checklisten=checklisten.filter(l=>l.id!==lijst.id);
+  chkActief=checklisten[0]?checklisten[0].id:null;
+  saveChecklisten(); renderChecklisten();
+};
+
 document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
 document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
 document.getElementById('bestelBoekjaar').onchange=e=>{ bestelBoekjaar=e.target.value; renderBestelList(); };
