@@ -235,13 +235,16 @@
 
   /* ---- bestellingen ---- */
   .bestelcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
-    margin-bottom:10px;box-shadow:var(--shadow);}
+    margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:transform .1s,box-shadow .1s,border-color .1s;}
+  .bestelcard:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(31,81,53,.16);border-color:var(--leaf);}
+  .bestelcard:active{transform:scale(.995);}
   .bestelcard .bc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
   .bestelcard .bc-datum{font-size:12px;color:var(--muted);font-weight:700;}
   .bestelcard .bc-cat{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;
     color:var(--forest);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;}
-  .bestelcard .bc-edit{margin-left:auto;border:1px solid var(--line);background:var(--panel2);color:var(--forest);
-    font-weight:700;border-radius:10px;padding:7px 12px;cursor:pointer;font-size:13px;}
+  .bestelcard .bc-edit{margin-left:auto;border:1px solid var(--forest2);
+    background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;
+    font-weight:700;border-radius:10px;padding:7px 12px;cursor:pointer;font-size:13px;white-space:nowrap;}
   .bestelcard h4{margin:2px 0 8px;font-family:var(--serif);color:var(--text);font-size:18px;line-height:1.2;}
   .bestelcard .bc-meta{display:flex;flex-wrap:wrap;gap:7px 8px;margin-bottom:6px;}
   .bc-chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px;
@@ -654,7 +657,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v14';
+const APP_VERSION='v15';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1426,12 +1429,12 @@ function bestelCardHtml(b){
   if(+b.ent) chips+='<span class="bc-chip ent">ENT <b>'+eur(b.ent)+'</b></span>';
   if(+b.bay) chips+='<span class="bc-chip bay">BAY <b>'+eur(b.bay)+'</b></span>';
   if(+b.hsb) chips+='<span class="bc-chip hsb">HSB <b>'+eur(b.hsb)+'</b></span>';
-  return '<div class="bestelcard">'+
+  return '<div class="bestelcard" data-edit="'+b.id+'" title="Tik om te bewerken">'+
     '<div class="bc-top">'+
       '<span class="bc-datum">'+(b.datum?dmy(b.datum):'—')+'</span>'+
       (b.cat?'<span class="bc-cat">'+esc(b.cat)+'</span>':'')+
       '<span class="stbadge '+stClass(b.status)+'">'+esc(b.status)+'</span>'+
-      '<button class="bc-edit" data-edit="'+b.id+'">Bewerken</button>'+
+      '<button class="bc-edit" type="button">✏️ Bewerken</button>'+
     '</div>'+
     '<h4>'+esc(b.info||'(zonder omschrijving)')+'</h4>'+
     (chips?'<div class="bc-meta">'+chips+'</div>':'')+
@@ -1447,7 +1450,8 @@ function renderBestelList(){
   const el=document.getElementById('bestelList');
   if(!list.length){ el.innerHTML='<div class="empty-note">Geen bestellingen'+(q||bestelStatusFilter!=='all'?' voor deze filter':'. Voeg er een toe met ➕ Nieuwe bestelling')+'.</div>'; return; }
   el.innerHTML=list.map(bestelCardHtml).join('');
-  el.querySelectorAll('[data-edit]').forEach(btn=>btn.onclick=()=>openBestelModal(btn.dataset.edit));
+  // De hele kaart is aantikbaar om te bewerken (de knop zit erin en bubbelt mee).
+  el.querySelectorAll('.bestelcard[data-edit]').forEach(card=>card.onclick=()=>openBestelModal(card.dataset.edit));
 }
 function renderBestellingen(){
   document.getElementById('bestelDeeltMee').style.display = BBInv.isBestelGedeeld()?'':'none';
