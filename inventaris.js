@@ -105,11 +105,12 @@
     const rows=cache.prijzen.filter(p=>ids.indexOf(p.id)>=0).map(toRow);
     if(rows.length) sb.from('prijzen').upsert(rows).then(err);
   }
-  function setStock(id,v){ const p=cache.prijzen.find(x=>x.id===id); if(p){p.stock=Math.round(v||0); if(p.stock<=0)p.inGebruik=false;} queue(id); }
+  function setStock(id,v){ const p=cache.prijzen.find(x=>x.id===id); if(p){const old=p.stock||0; p.stock=Math.round(v||0); if(p.stock<=0)p.inGebruik=false; else if(old<=0)p.inGebruik=true;} queue(id); }
   function setPrijzen(arr){ cache.prijzen=arr; arr.forEach(p=>dirty.add(p.id)); clearTimeout(flushT); flushT=setTimeout(flush,400); }
   function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; sb.from('boekjes').upsert({id:1,stock:cache.boekjes.stock}).then(err); }
   function addPrijs(cat,naam,stock,foto){
-    const rec={id:uid(),cat:cat==='groot'?'groot':'klein',naam:naam||'',stock:+stock||0,inGebruik:false,foto:foto||''};
+    const s=+stock||0;
+    const rec={id:uid(),cat:cat==='groot'?'groot':'klein',naam:naam||'',stock:s,inGebruik:s>0,foto:foto||''};
     cache.prijzen.push(rec); sb.from('prijzen').insert(toRow(rec)).then(err); return rec;
   }
   function removePrijs(id){ cache.prijzen=cache.prijzen.filter(p=>p.id!==id); sb.from('prijzen').delete().eq('id',id).then(err); }
@@ -139,7 +140,7 @@
     if(!cache.formulieren.length) return null;
     const rec=cache.formulieren.pop();
     const byId={}; cache.prijzen.forEach(p=>byId[p.id]=p); const changed=new Set();
-    const credit=arr=>(arr||[]).forEach(it=>{const p=byId[it.id]; if(p){p.stock=(p.stock||0)+(+it.n||0);changed.add(p.id);}});
+    const credit=arr=>(arr||[]).forEach(it=>{const p=byId[it.id]; if(p){const old=p.stock||0; p.stock=old+(+it.n||0); if(old<=0&&p.stock>0)p.inGebruik=true; changed.add(p.id);}});
     credit(rec.kleine); credit(rec.groot);
     const b=rec.boekjes||{}; const used=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
     cache.boekjes.stock=(cache.boekjes.stock||0)+used;

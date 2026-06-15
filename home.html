@@ -910,8 +910,8 @@ function prijsRow(p){
   row.prepend(tw);
   const inp=row.querySelector('.stk input');
   const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
-    if(t){BBInv.setStock(p.id,v);}p.stock=v;inp.value=v;inp.classList.toggle('neg',v<0);
-    if(v<=0){p.inGebruik=false;const ub=row.querySelector('.use');if(ub){ub.classList.remove('on');ub.textContent='✗ Niet in gebruik';}}
+    BBInv.setStock(p.id,v);inp.value=v;inp.classList.toggle('neg',v<0);
+    const ub=row.querySelector('.use');if(ub){ub.classList.toggle('on',!!p.inGebruik);ub.textContent=p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik';}
     renderInvSum();renderStats();};
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
   row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
