@@ -237,13 +237,19 @@
   .tally-total b{color:var(--gold);font-size:22px;margin-left:4px;}
   .prijs{display:flex;align-items:center;gap:10px;background:var(--panel);
     border:1px solid var(--line);border-radius:12px;padding:8px 12px;position:relative;}
-  .prijsdd{display:none;position:absolute;left:8px;right:8px;top:calc(100% - 2px);z-index:40;
-    background:var(--panel2);border:1px solid var(--line);border-radius:10px;max-height:260px;overflow-y:auto;
-    box-shadow:0 12px 28px rgba(0,0,0,.5);}
-  .prijsdd.open{display:block;}
-  .prijsdd-it{padding:12px 13px;font-size:15px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--line);}
-  .prijsdd-it:last-child{border-bottom:none;}
-  .prijsdd-it:active,.prijsdd-it:hover{background:var(--panel);}
+  .pmodal{position:fixed;inset:0;background:rgba(8,16,32,.72);display:none;z-index:100;padding:12px;}
+  .pmodal.open{display:flex;align-items:flex-start;justify-content:center;}
+  .pmodal-box{width:100%;max-width:520px;margin-top:34px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.55);}
+  .pmodal-head{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line);}
+  .pmodal-head .finp{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:16px;padding:11px 12px;border-radius:10px;outline:none;}
+  .pmodal-head .finp:focus{border-color:var(--gold);}
+  .pmodal-list{overflow-y:auto;padding:6px;-webkit-overflow-scrolling:touch;}
+  .pmodal-it{padding:14px 14px;font-size:16px;color:var(--text);cursor:pointer;border-radius:8px;}
+  .pmodal-it:active,.pmodal-it:hover{background:var(--panel2);}
+  .pmodal-it.muted{color:var(--muted);}
+  .pmodal-it.custom{color:var(--gold);font-style:italic;}
   .prijs .pn{flex:0 0 34px;height:34px;border-radius:8px;display:grid;place-items:center;
     font-weight:800;background:var(--bg);color:var(--gold);border:1px solid var(--line);font-size:15px;}
   .prijs input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);
@@ -482,6 +488,17 @@
   <footer>Bazar Bizarre · spelleider-tool · wijzigingen worden automatisch bewaard
     <div style="margin-top:10px;"><span id="sysStat" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:12px;font-weight:700;color:var(--muted);"><span id="sysDot" style="width:9px;height:9px;border-radius:50%;background:#999;display:inline-block;"></span><span id="sysStatTxt">Controleren…</span></span></div>
   </footer>
+
+  <!-- Prijs-keuzepopup -->
+  <div class="pmodal" id="prijsModal">
+    <div class="pmodal-box">
+      <div class="pmodal-head">
+        <input type="text" id="pmZoek" class="finp" placeholder="Zoek of typ een prijs…">
+        <button class="btn clear" id="pmClose">Sluiten</button>
+      </div>
+      <div class="pmodal-list" id="pmList"></div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -589,36 +606,47 @@ function renderControle(){
   });
   const tot=document.querySelector('[data-total="controle"]');
   if(tot) tot.textContent=state.controle.reduce((a,b)=>a+(b||0),0);
-  // eigen keuzelijst (werkt op gsm én pc) — enkel 'in gebruik' + voorraad > 0
-  const opties=(window.BBInv?BBInv.getPrijzen():[])
-    .filter(p=>p.inGebruik && (p.stock||0)>0)
-    .map(x=>x.naam).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  // tik om te kiezen → opent een keuze-popup (werkt betrouwbaar op gsm én pc)
   const p=document.querySelector('[data-grid="prijzen"]'); p.innerHTML='';
   for(let i=0;i<8;i++){
     const idx=i;
     const row=document.createElement('div'); row.className='prijs';
     row.innerHTML=`<span class="pn">${i+1}</span>`;
     const inp=document.createElement('input');
-    inp.type='text'; inp.placeholder='Kies of typ een prijs…'; inp.value=state.prijzen[i]||'';
-    const dd=document.createElement('div'); dd.className='prijsdd';
-    function ddRender(){
-      const q=(inp.value||'').toLowerCase().trim();
-      const m=opties.filter(n=>!q||n.toLowerCase().includes(q));
-      dd.innerHTML='';
-      if(!m.length){dd.classList.remove('open');return;}
-      m.slice(0,80).forEach(n=>{
-        const it=document.createElement('div'); it.className='prijsdd-it'; it.textContent=n;
-        it.addEventListener('pointerdown',e=>{e.preventDefault();inp.value=n;state.prijzen[idx]=n;save();dd.classList.remove('open');inp.blur();});
-        dd.appendChild(it);
-      });
-      dd.classList.add('open');
-    }
-    inp.oninput=()=>{state.prijzen[idx]=inp.value;save();ddRender();};
-    inp.addEventListener('focus',ddRender);
-    inp.addEventListener('blur',()=>setTimeout(()=>dd.classList.remove('open'),200));
-    row.appendChild(inp); row.appendChild(dd); p.appendChild(row);
+    inp.type='text'; inp.readOnly=true; inp.placeholder='Tik om te kiezen…'; inp.value=state.prijzen[i]||''; inp.style.cursor='pointer';
+    inp.onclick=()=>openPrijsModal(idx);
+    row.appendChild(inp); p.appendChild(row);
   }
 }
+// ---- Prijs-keuzepopup (gsm + pc) ----
+function prijsOpties(){
+  return (window.BBInv?BBInv.getPrijzen():[]).filter(p=>p.inGebruik&&(p.stock||0)>0)
+    .map(x=>x.naam).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+}
+let pmIdx=-1;
+function openPrijsModal(idx){
+  pmIdx=idx;
+  const z=document.getElementById('pmZoek'); z.value='';
+  pmRender();
+  document.getElementById('prijsModal').classList.add('open');
+  setTimeout(()=>z.focus(),60);
+}
+function pmRender(){
+  const z=document.getElementById('pmZoek'); const q=(z.value||'').toLowerCase().trim();
+  const opties=prijsOpties();
+  const m=opties.filter(n=>!q||n.toLowerCase().includes(q));
+  const list=document.getElementById('pmList'); list.innerHTML='';
+  const add=(txt,cls,fn)=>{const it=document.createElement('div');it.className='pmodal-it'+(cls?' '+cls:'');it.textContent=txt;it.onclick=fn;list.appendChild(it);};
+  add('— leeg laten —','muted',()=>pmPick(''));
+  const typed=z.value.trim();
+  if(typed && !opties.some(n=>n.toLowerCase()===typed.toLowerCase())) add('Gebruik: "'+typed+'"','custom',()=>pmPick(typed));
+  if(!m.length && !typed) add('Geen beschikbare prijzen.','muted',()=>{});
+  m.forEach(n=>add(n,'',()=>pmPick(n)));
+}
+function pmPick(name){ if(pmIdx>=0){state.prijzen[pmIdx]=name;save();renderControle();} document.getElementById('prijsModal').classList.remove('open'); }
+document.getElementById('pmZoek').oninput=pmRender;
+document.getElementById('pmClose').onclick=()=>document.getElementById('prijsModal').classList.remove('open');
+document.getElementById('prijsModal').addEventListener('click',e=>{ if(e.target.id==='prijsModal') document.getElementById('prijsModal').classList.remove('open'); });
 function renderTrolley(){
   const g=document.querySelector('[data-grid="trolley"]'); g.innerHTML='';
   TRACKS.forEach((tr,i)=>{
