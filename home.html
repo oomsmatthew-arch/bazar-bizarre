@@ -98,6 +98,9 @@
   .contadd .h{font-weight:700;color:var(--text);margin-bottom:10px;}
   .contadd .finp{margin-bottom:9px;}
   /* Checklists */
+  .chktopbar{margin:2px 0 12px;}
+  .chktopbar .btn{padding:8px 14px;font-size:13px;}
+  .chktopbar .btn.aan{background:#1faa6b;border-color:#1faa6b;color:#fff;}
   .chktabs{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px;}
   .chktab{border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:700;font-size:14px;
     padding:8px 13px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
@@ -575,7 +578,8 @@
 
   <!-- CHECKLISTS -->
   <div class="view" id="checklisten">
-    <p class="hint">Maak zoveel checklists als je wil (bv. pre-spel, opkuis, materiaal). Tik een tabblad om te wisselen. Vink items af, voeg toe of verwijder — alles wordt op dit toestel bewaard.</p>
+    <p class="hint">Vink items af om af te werken. Wil je lijsten of items toevoegen, hernoemen of verwijderen? Open dan eerst <b>🔒 Beheer</b>.</p>
+    <div class="chktopbar"><button class="btn" id="chkBeheerBtn">🔒 Beheer</button></div>
     <div class="chktabs" id="chkTabs"></div>
     <div class="chkbar">
       <span class="chkcount"><b id="chkDone">0</b> / <span id="chkTot">0</span> klaar</span>
@@ -1003,7 +1007,7 @@ function show(view){
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
   // Instellingen-knop verbergen waar beheer apart geregeld is (inventaris, bestellingen, manuals, contacten)
-  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten') ? 'none' : '';
+  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten'||view==='checklisten') ? 'none' : '';
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
@@ -2056,6 +2060,7 @@ function loadChecklisten(){
 }
 let checklisten=loadChecklisten();
 let chkActief=checklisten[0]?checklisten[0].id:null;
+let chkBeheer=false;
 function saveChecklisten(){try{localStorage.setItem(K_CHECKLISTEN,JSON.stringify(checklisten));}catch(e){}}
 function chkActieveLijst(){return checklisten.find(l=>l.id===chkActief)||checklisten[0]||null;}
 function renderChkTabs(){
@@ -2067,36 +2072,53 @@ function renderChkTabs(){
     b.onclick=()=>{ chkActief=l.id; renderChecklisten(); };
     t.appendChild(b);
   });
-  const add=document.createElement('button'); add.className='chktab add'; add.textContent='+ Nieuwe lijst';
-  add.onclick=()=>{
-    const n=prompt('Naam van de nieuwe checklist:'); if(n===null)return; const naam=n.trim(); if(!naam)return;
-    const l={id:chkNewId(),naam,items:[]}; checklisten.push(l); chkActief=l.id; saveChecklisten(); renderChecklisten();
-  };
-  t.appendChild(add);
+  if(chkBeheer){
+    const add=document.createElement('button'); add.className='chktab add'; add.textContent='+ Nieuwe lijst';
+    add.onclick=()=>{
+      const n=prompt('Naam van de nieuwe checklist:'); if(n===null)return; const naam=n.trim(); if(!naam)return;
+      const l={id:chkNewId(),naam,items:[]}; checklisten.push(l); chkActief=l.id; saveChecklisten(); renderChecklisten();
+    };
+    t.appendChild(add);
+  }
 }
 function renderChecklisten(){
   renderChkTabs();
   const lijst=chkActieveLijst();
   const g=document.getElementById('chkGrid'); if(!g)return; g.innerHTML='';
+  const bb=document.getElementById('chkBeheerBtn');
+  bb.textContent=chkBeheer?'🔓 Beheer sluiten':'🔒 Beheer'; bb.classList.toggle('aan',chkBeheer);
   if(!lijst){
-    g.innerHTML='<div class="chkempty">Nog geen checklist. Tik op “+ Nieuwe lijst”.</div>';
+    g.innerHTML='<div class="chkempty">'+(chkBeheer?'Nog geen checklist. Tik op “+ Nieuwe lijst”.':'Nog geen checklist. Open 🔒 Beheer om er een toe te voegen.')+'</div>';
     document.getElementById('chkDone').textContent='0'; document.getElementById('chkTot').textContent='0';
-    document.getElementById('chkFill').style.width='0%'; return;
+    document.getElementById('chkFill').style.width='0%';
+    document.getElementById('chkAdd').parentElement.style.display='none';
+    document.querySelector('.chkacties').style.display='none';
+    return;
   }
   lijst.items.forEach((it,i)=>{
     const row=document.createElement('div'); row.className='chk'+(it.done?' done':'');
-    row.innerHTML='<div class="chkbox">'+(it.done?'✓':'')+'</div><div class="chktxt">'+esc(it.text)+'</div><button class="chkdel" title="Verwijderen">✕</button>';
+    row.innerHTML='<div class="chkbox">'+(it.done?'✓':'')+'</div><div class="chktxt">'+esc(it.text)+'</div>'+
+      (chkBeheer?'<button class="chkdel" title="Verwijderen">✕</button>':'');
     const toggle=()=>{ it.done=!it.done; saveChecklisten(); renderChecklisten(); };
     row.querySelector('.chkbox').onclick=toggle; row.querySelector('.chktxt').onclick=toggle;
-    row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); saveChecklisten(); renderChecklisten(); };
+    if(chkBeheer) row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); saveChecklisten(); renderChecklisten(); };
     g.appendChild(row);
   });
-  if(!lijst.items.length) g.innerHTML='<div class="chkempty">Nog geen items. Voeg er hieronder een toe.</div>';
+  if(!lijst.items.length) g.innerHTML='<div class="chkempty">'+(chkBeheer?'Nog geen items. Voeg er hieronder een toe.':'Nog geen items in deze lijst.')+'</div>';
   const done=lijst.items.filter(x=>x.done).length, tot=lijst.items.length;
   document.getElementById('chkDone').textContent=done; document.getElementById('chkTot').textContent=tot;
   document.getElementById('chkFill').style.width=(tot?done/tot*100:0)+'%';
+  // Beheer-elementen tonen/verbergen
+  document.getElementById('chkAdd').parentElement.style.display=chkBeheer?'':'none';
+  document.querySelector('.chkacties').style.display=chkBeheer?'':'none';
 }
-document.getElementById('openChecklisten').onclick=()=>{ renderChecklisten(); show('checklisten'); };
+document.getElementById('chkBeheerBtn').onclick=()=>{
+  if(chkBeheer){ chkBeheer=false; renderChecklisten(); return; }
+  const p=prompt('Wachtwoord:'); if(p===null)return;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  chkBeheer=true; renderChecklisten();
+};
+document.getElementById('openChecklisten').onclick=()=>{ chkBeheer=false; renderChecklisten(); show('checklisten'); };
 document.getElementById('chkAdd').onclick=()=>{
   const inp=document.getElementById('chkNew'); const v=inp.value.trim(); if(!v)return;
   const lijst=chkActieveLijst(); if(!lijst)return;
