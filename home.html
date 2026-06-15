@@ -127,6 +127,16 @@
   .item .title{font-weight:700;font-size:16px;color:var(--text);line-height:1.2;}
   .item .sub{font-size:12px;color:var(--muted);margin-top:2px;}
   .item .chev{color:var(--muted);font-size:20px;flex:0 0 auto;}
+  /* ---- manuals beheer ---- */
+  .manualsbar{display:flex;justify-content:flex-end;gap:8px;margin:0 2px 12px;}
+  .manualsbar .btn{padding:8px 14px;font-size:13px;}
+  .mtoolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+  .mtoolbar .btn{font-size:13px;padding:9px 14px;}
+  .item.beheer{cursor:default;}
+  .item.beheer:hover{transform:none;box-shadow:var(--shadow);}
+  .item .tap{display:flex;align-items:center;gap:14px;flex:1;min-width:0;background:none;border:none;
+    padding:0;margin:0;cursor:pointer;font:inherit;color:inherit;text-align:left;}
+  .item .acts{display:flex;gap:6px;flex:0 0 auto;}
   .empty-note{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:18px;
     color:var(--muted);font-size:14px;line-height:1.5;}
 
@@ -484,6 +494,7 @@
   <!-- ONLINE MANUALS -->
   <div class="view" id="manuals">
     <p class="hint">Blader door de handleidingen en video's. Tik een map om te openen, of een bestand om te bekijken.</p>
+    <div class="manualsbar"><button class="btn" id="manualsBeheerBtn">🔒 Beheer</button></div>
     <input type="text" id="manualsZoek" class="finp zoek" placeholder="Zoek in alle handleidingen en video's…">
     <div class="crumbs" id="crumbs"></div>
     <div class="filelist" id="filelist"></div>
@@ -789,7 +800,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v21';
+const APP_VERSION='v22';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -958,13 +969,26 @@ document.getElementById('changePin').onclick=()=>{
 };
 
 // ---------------- ONLINE MANUALS ----------------
+const K_MANUALS='bb_manuals';
 let MANUALS=null;
 let manualsPath=[];
+let manualsBeheer=false;
 
 function fileBadge(type){return type==='video'?'FILM':type==='link'?'LINK':'PDF';}
 
+// Bewaart de hele mappenstructuur op dit toestel (zoals de rest van de app).
+function saveManuals(){
+  if(!MANUALS||MANUALS.__error) return;
+  try{localStorage.setItem(K_MANUALS,JSON.stringify({folders:MANUALS.folders||[],items:MANUALS.items||[]}));}catch(e){}
+}
+
 async function loadManuals(){
   if(MANUALS) return MANUALS;
+  // Eerst kijken of er een eigen, op dit toestel bewaarde versie is.
+  try{
+    const saved=localStorage.getItem(K_MANUALS);
+    if(saved){ MANUALS=JSON.parse(saved); if(MANUALS&&typeof MANUALS==='object') return MANUALS; }
+  }catch(e){ MANUALS=null; }
   try{
     const res=await fetch('manuals.json',{cache:'no-store'});
     if(!res.ok) throw new Error('http '+res.status);
@@ -1020,7 +1044,8 @@ function renderManualsSearch(q){
 }
 function renderManuals(){
   const q=(document.getElementById('manualsZoek').value||'').toLowerCase().trim();
-  if(q&&MANUALS&&!MANUALS.__error){ renderManualsSearch(q); return; }
+  // Tijdens beheer blijven we altijd in de bladermodus (zoeken zou bewerken verwarrend maken).
+  if(!manualsBeheer && q && MANUALS && !MANUALS.__error){ renderManualsSearch(q); return; }
   renderCrumbs();
   const list=document.getElementById('filelist'); list.innerHTML='';
   if(MANUALS&&MANUALS.__error){
@@ -1032,27 +1057,109 @@ function renderManuals(){
   const node=currentFolder();
   const folders=node.folders||[];
   const items=node.items||[];
+  if(manualsBeheer){
+    const bar=document.createElement('div'); bar.className='mtoolbar';
+    const addF=document.createElement('button'); addF.className='btn primary'; addF.textContent='+ Nieuwe map';
+    addF.onclick=()=>manualsAddFolder(node);
+    const addI=document.createElement('button'); addI.className='btn'; addI.textContent='+ Nieuw bestand';
+    addI.onclick=()=>manualsAddItem(node);
+    bar.appendChild(addF); bar.appendChild(addI); list.appendChild(bar);
+  }
   if(!folders.length&&!items.length){
-    list.innerHTML='<div class="empty-note">Deze map is nog leeg. Leg je PDF of video in de map '+
-      'manuals en voeg ze toe in manuals.json.</div>';
+    const note=document.createElement('div'); note.className='empty-note';
+    note.textContent=manualsBeheer
+      ? 'Deze map is nog leeg. Gebruik de knoppen hierboven om een map of bestand toe te voegen.'
+      : 'Deze map is nog leeg.';
+    list.appendChild(note);
     return;
   }
-  folders.forEach(f=>{
-    const el=document.createElement('button'); el.className='item folder';
+  folders.forEach((f,i)=>{
     const count=(f.folders||[]).length+(f.items||[]).length;
-    el.innerHTML='<div class="ic">MAP</div><div class="info"><div class="title">'+esc(f.name)+
-      '</div><div class="sub">'+count+(count===1?' item':' items')+'</div></div><div class="chev">›</div>';
-    el.onclick=()=>{manualsPath.push(f.name);renderManuals();};
-    list.appendChild(el);
+    const sub=count+(count===1?' item':' items');
+    const inner='<div class="ic">MAP</div><div class="info"><div class="title">'+esc(f.name)+
+      '</div><div class="sub">'+sub+'</div></div>'+(manualsBeheer?'':'<div class="chev">›</div>');
+    list.appendChild(manualsRow('item folder',inner,()=>{manualsPath.push(f.name);renderManuals();},
+      manualsBeheer?()=>manualsEditFolder(node,i):null,
+      manualsBeheer?()=>manualsDelete(node,'folders',i,'map "'+f.name+'"'):null));
   });
-  items.forEach(it=>{
-    const el=document.createElement('button'); el.className='item '+(it.type||'pdf');
-    const sub=it.type==='video'?'Video':it.type==='link'?'Externe link':'PDF document';
-    el.innerHTML='<div class="ic">'+fileBadge(it.type)+'</div><div class="info"><div class="title">'+
-      esc(it.title||it.src)+'</div><div class="sub">'+(it.desc?esc(it.desc):sub)+'</div></div><div class="chev">›</div>';
-    el.onclick=()=>openItem(it);
-    list.appendChild(el);
+  items.forEach((it,i)=>{
+    const dsub=it.type==='video'?'Video':it.type==='link'?'Externe link':'PDF document';
+    const inner='<div class="ic">'+fileBadge(it.type)+'</div><div class="info"><div class="title">'+
+      esc(it.title||it.src)+'</div><div class="sub">'+(it.desc?esc(it.desc):dsub)+'</div></div>'+
+      (manualsBeheer?'':'<div class="chev">›</div>');
+    list.appendChild(manualsRow('item '+(it.type||'pdf'),inner,()=>openItem(it),
+      manualsBeheer?()=>manualsEditItem(node,i):null,
+      manualsBeheer?()=>manualsDelete(node,'items',i,'"'+(it.title||it.src)+'"'):null));
   });
+}
+
+// Bouwt één rij. Zonder beheer: de hele rij is klikbaar. Met beheer: klikbaar deel + bewerk/verwijder.
+function manualsRow(cls,innerHTML,onTap,onEdit,onDel){
+  if(!onEdit&&!onDel){
+    const b=document.createElement('button'); b.className=cls; b.innerHTML=innerHTML;
+    b.onclick=onTap; return b;
+  }
+  const row=document.createElement('div'); row.className=cls+' beheer';
+  const tap=document.createElement('button'); tap.className='tap'; tap.innerHTML=innerHTML; tap.onclick=onTap;
+  const acts=document.createElement('div'); acts.className='acts';
+  if(onEdit){const e=document.createElement('button');e.className='mgbtn';e.title='Bewerken';e.textContent='✎';e.onclick=onEdit;acts.appendChild(e);}
+  if(onDel){const d=document.createElement('button');d.className='mgbtn del';d.title='Verwijderen';d.textContent='🗑';d.onclick=onDel;acts.appendChild(d);}
+  row.appendChild(tap); row.appendChild(acts); return row;
+}
+
+// ---- beheer-acties voor manuals ----
+function manualsTypeKies(huidig){
+  const a=prompt('Wat voor bestand is dit?\n1 = PDF\n2 = Video\n3 = Link (webadres)',
+    huidig==='video'?'2':huidig==='link'?'3':'1');
+  if(a===null) return null;
+  const t=a.trim();
+  return t==='2'?'video':t==='3'?'link':t==='1'?'pdf':null;
+}
+function manualsAddFolder(node){
+  const v=prompt('Naam van de nieuwe map:'); if(v===null) return;
+  const naam=v.trim(); if(!naam) return;
+  if(!node.folders) node.folders=[];
+  if(node.folders.some(f=>f.name.toLowerCase()===naam.toLowerCase())){alert('Er is al een map met die naam.');return;}
+  node.folders.push({name:naam,folders:[],items:[]});
+  saveManuals(); renderManuals();
+}
+function manualsEditFolder(node,i){
+  const f=node.folders[i];
+  const v=prompt('Nieuwe naam voor de map:',f.name); if(v===null) return;
+  const naam=v.trim(); if(!naam||naam===f.name) return;
+  if(node.folders.some((x,j)=>j!==i&&x.name.toLowerCase()===naam.toLowerCase())){alert('Er is al een map met die naam.');return;}
+  f.name=naam; saveManuals(); renderManuals();
+}
+function manualsAddItem(node){
+  const t=manualsTypeKies('pdf'); if(!t) return;
+  const titel=prompt('Titel (wat de gebruiker ziet):'); if(titel===null) return;
+  const ti=titel.trim(); if(!ti) return;
+  const hint=t==='link'?'Webadres, bv. https://www.voorbeeld.be'
+    :t==='video'?'Pad naar de video, bv. manuals/uitleg.mp4'
+    :'Pad naar de PDF, bv. manuals/handleiding.pdf';
+  const src=prompt(hint); if(src===null) return;
+  const s=src.trim(); if(!s) return;
+  const desc=prompt('Korte omschrijving (mag leeg):','')||'';
+  if(!node.items) node.items=[];
+  const it={title:ti,type:t,src:s}; if(desc.trim()) it.desc=desc.trim();
+  node.items.push(it);
+  saveManuals(); renderManuals();
+}
+function manualsEditItem(node,i){
+  const it=node.items[i];
+  const t=manualsTypeKies(it.type); if(!t) return;
+  const titel=prompt('Titel:',it.title||''); if(titel===null) return;
+  const ti=titel.trim(); if(!ti) return;
+  const src=prompt('Pad of webadres:',it.src||''); if(src===null) return;
+  const s=src.trim(); if(!s) return;
+  const desc=prompt('Korte omschrijving (mag leeg):',it.desc||''); if(desc===null) return;
+  it.title=ti; it.type=t; it.src=s;
+  if(desc.trim()) it.desc=desc.trim(); else delete it.desc;
+  saveManuals(); renderManuals();
+}
+function manualsDelete(node,key,i,wat){
+  if(!confirm('Weet je zeker dat je '+wat+' wilt verwijderen?')) return;
+  node[key].splice(i,1); saveManuals(); renderManuals();
 }
 
 // ---------------- VIEWER ----------------
@@ -1085,8 +1192,24 @@ viewer.addEventListener('click',e=>{ if(e.target===viewer) closeViewer(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&viewer.classList.contains('open')) closeViewer(); });
 
 document.getElementById('manualsZoek').oninput=()=>{ if(MANUALS) renderManuals(); };
+function setManualsBeheer(on){
+  manualsBeheer=on;
+  const btn=document.getElementById('manualsBeheerBtn');
+  btn.textContent=on?'✓ Klaar met beheren':'🔒 Beheer';
+  btn.classList.toggle('primary',on);
+  document.getElementById('manualsZoek').style.display=on?'none':'';
+  if(on) document.getElementById('manualsZoek').value='';
+}
+document.getElementById('manualsBeheerBtn').onclick=()=>{
+  if(manualsBeheer){ setManualsBeheer(false); renderManuals(); return; }
+  if(MANUALS&&MANUALS.__error){ alert('De manuals konden niet geladen worden, beheren kan nu niet.'); return; }
+  const p=prompt('Wachtwoord voor beheer:'); if(p===null) return;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  setManualsBeheer(true); renderManuals();
+};
 document.getElementById('openManuals').onclick=async()=>{
   show('manuals');
+  setManualsBeheer(false);
   document.getElementById('manualsZoek').value='';
   document.getElementById('filelist').innerHTML='<div class="empty-note">Laden</div>';
   await loadManuals();

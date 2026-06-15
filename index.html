@@ -60,6 +60,24 @@
   .card[data-key="coins"]{background:linear-gradient(150deg,#155041,#0d3128);border-left:5px solid var(--green);}
   .menu .finale{grid-column:1/-1;background:linear-gradient(120deg,#13294a,#0e3d30);border-left:5px solid var(--gold);}
   .menu .finale h2{color:var(--gold);}
+  .card[data-key="checklist"]{background:linear-gradient(150deg,#163a26,#11233a);border-left:5px solid var(--ok);}
+  /* ---- checklist ---- */
+  .chklist{display:grid;gap:9px;}
+  .chk{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:11px 13px;cursor:pointer;user-select:none;}
+  .chk:hover{background:var(--panel2);}
+  .chk .chkbox{flex:0 0 28px;height:28px;border-radius:8px;border:2px solid var(--line);
+    display:grid;place-items:center;color:#fff;font-size:16px;font-weight:900;}
+  .chk .chktxt{flex:1;min-width:0;font-weight:700;font-size:15px;}
+  .chk .chkdel{flex:0 0 auto;border:1px solid var(--red);background:transparent;color:#f0a3ad;
+    border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:13px;}
+  .chk.done{border-color:var(--ok);background:rgba(52,210,123,.12);}
+  .chk.done .chkbox{background:var(--ok);border-color:var(--ok);}
+  .chk.done .chktxt{text-decoration:line-through;color:var(--muted);}
+  .chkadd{display:flex;gap:8px;margin-top:14px;}
+  .chkadd input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:16px;padding:10px 12px;border-radius:10px;outline:none;}
+  .chkadd input:focus{border-color:var(--gold);}
   .wipe{grid-column:1/-1;margin-top:8px;background:transparent;border:1px solid var(--red);
     color:#f0a3ad;font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer;
     transition:background .14s;}
@@ -295,6 +313,12 @@
 
   <!-- MENU -->
   <div class="menu view active" id="menu">
+    <div class="card checklist" data-key="checklist" data-view="checklist">
+      <div class="rnd">Vóór de start</div>
+      <h2>✅ Checklist</h2>
+      <p>Loop alles na vóór je begint</p>
+      <div class="prog"><i data-prog="checklist"></i></div>
+    </div>
     <div class="card controle" data-key="controle" data-view="controle">
       <div class="rnd">Vooraf</div>
       <h2>Controle lijst</h2>
@@ -333,6 +357,21 @@
       <button id="afsluitSpel" class="finishbtn">✓ Spel afsluiten &amp; opslaan</button>
       <button id="wisSessie" class="wipe">Wis volledige sessie</button>
       <button id="herstelSessie" class="restore">Laatst verwijderde sessie</button>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="view" id="checklist">
+    <p class="hint">Vink alles af vóór je het spel start. Je kunt items toevoegen of verwijderen — de lijst wordt op dit toestel bewaard.</p>
+    <div class="bar">
+      <span class="count"><b data-done="checklist">0</b> / <span data-total="checklist">0</span> klaar</span>
+      <span class="progress"><i data-fill="checklist"></i></span>
+      <button class="btn clear" id="chkReset">Afvinken wissen</button>
+    </div>
+    <div class="chklist" data-grid="checklist"></div>
+    <div class="chkadd">
+      <input type="text" id="chkNew" placeholder="Nieuw item toevoegen…">
+      <button class="btn" id="chkAdd">Toevoegen</button>
     </div>
   </div>
 
@@ -717,7 +756,7 @@ function updateAll(){
 const titles={menu:"Bazar Bizarre",controle:"Controle lijst",superdeals:"Ronde 1 · Super Deals",
   trolley:"Ronde 2 · Trolley Tunes",howmuch:"Ronde 3 · How Much?",
   coins:"Ronde 4 · Crazy Coins",finale:"Finalespel",admin:"Beheer · Archief",
-  formulier:"Spel afsluiten · Formulier",formulierKlaar:"Doorgestuurd"};
+  formulier:"Spel afsluiten · Formulier",formulierKlaar:"Doorgestuurd",checklist:"Checklist"};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
@@ -1064,7 +1103,35 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
   };
 });
 
-function renderAll(){renderControle();renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
+// ---------------- CHECKLIST (pre-spel) ----------------
+const CHECKLIST_KEY='bb_checklist';
+const CHECKLIST_DEFAULT=['Boekjes geteld en klaar','Super Deals op het rek','Trolley Tunes muziek klaar',
+  'How Much? potten + weegschaal klaar','Crazy Coins munten klaar','Finalevragen voorbereid',
+  'Micro getest','Geluid/muziek getest','Prijzentafel klaar','Controleblad bij de hand'];
+function loadChecklist(){try{const r=localStorage.getItem(CHECKLIST_KEY);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}return CHECKLIST_DEFAULT.map(t=>({text:t,done:false}));}
+let checklist=loadChecklist();
+function saveChecklist(){try{localStorage.setItem(CHECKLIST_KEY,JSON.stringify(checklist));}catch(e){}}
+function renderChecklist(){
+  const g=document.querySelector('[data-grid="checklist"]'); if(!g)return; g.innerHTML='';
+  checklist.forEach((it,i)=>{
+    const row=document.createElement('div'); row.className='chk'+(it.done?' done':'');
+    row.innerHTML='<div class="chkbox">'+(it.done?'✓':'')+'</div><div class="chktxt">'+esc(it.text)+'</div><button class="chkdel" title="Verwijderen">✕</button>';
+    const toggle=()=>{it.done=!it.done;saveChecklist();renderChecklist();};
+    row.querySelector('.chkbox').onclick=toggle; row.querySelector('.chktxt').onclick=toggle;
+    row.querySelector('.chkdel').onclick=e=>{e.stopPropagation();checklist.splice(i,1);saveChecklist();renderChecklist();};
+    g.appendChild(row);
+  });
+  const done=checklist.filter(x=>x.done).length, tot=checklist.length, pct=tot?done/tot*100:0;
+  const d=document.querySelector('[data-done="checklist"]'); if(d)d.textContent=done;
+  const t=document.querySelector('[data-total="checklist"]'); if(t)t.textContent=tot;
+  const f=document.querySelector('[data-fill="checklist"]'); if(f)f.style.width=pct+'%';
+  const p=document.querySelector('[data-prog="checklist"]'); if(p)p.style.width=pct+'%';
+}
+document.getElementById('chkAdd').onclick=()=>{const inp=document.getElementById('chkNew');const v=inp.value.trim();if(!v)return;checklist.push({text:v,done:false});inp.value='';saveChecklist();renderChecklist();};
+document.getElementById('chkNew').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('chkAdd').click();});
+document.getElementById('chkReset').onclick=()=>{checklist.forEach(x=>x.done=false);saveChecklist();renderChecklist();};
+
+function renderAll(){renderChecklist();renderControle();renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
 renderAll(); updateAll(); show('menu'); updateRestoreBtn();
 // Gedeelde database laden + live verversen van de keuzelijsten die uit de inventaris lezen
 if(window.BBInv){
