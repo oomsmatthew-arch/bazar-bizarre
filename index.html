@@ -723,7 +723,8 @@ function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||"Bazar Bizarre";
-  document.getElementById('homeBtn').classList.toggle('show',view!=='menu');
+  document.getElementById('homeBtn').classList.toggle('show',view!=='menu'); // ‹ Menu: enkel in een ronde
+  document.getElementById('naarHome').classList.toggle('show',view==='menu'); // Home: enkel op het rondeoverzicht
   window.scrollTo(0,0);
 }
 document.querySelectorAll('.card').forEach(c=>{
