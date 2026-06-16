@@ -274,6 +274,14 @@
   .cammodal-bar{display:flex;gap:10px;margin-top:12px;}
   .cammodal-bar .btn{flex:1;}
   #fotoView{cursor:zoom-out;}
+  /* Manuals-formulier (eigen popup) */
+  .cammodal-box.manualbox{max-width:440px;width:100%;text-align:left;max-height:92vh;overflow:auto;}
+  .mlbl{display:block;font-size:13px;color:var(--muted);margin:12px 0 5px;font-weight:600;}
+  .mtypes{display:flex;gap:8px;}
+  .mtype{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:700;
+    padding:11px 6px;border-radius:10px;cursor:pointer;font-size:14px;}
+  .mtype.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  #manualKies{width:100%;}
   #fotoView img{max-width:96vw;max-height:90vh;border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);}
   .invrow .nm{flex:1;min-width:0;}
   .invrow .nm .t{font-weight:700;font-size:15px;color:var(--text);}
@@ -899,6 +907,33 @@
     <button class="btn primary" id="camShot">📸 Vastleggen</button>
   </div>
 </div></div>
+<!-- Manual toevoegen/bewerken (eigen formulier-popup) -->
+<div class="cammodal" id="manualModal"><div class="cammodal-box manualbox">
+  <div class="cammodal-title" id="manualModalTitle">Nieuw bestand</div>
+  <label class="mlbl">Wat voor bestand is dit?</label>
+  <div class="mtypes">
+    <button type="button" class="mtype active" data-mtype="pdf">📄 PDF</button>
+    <button type="button" class="mtype" data-mtype="video">🎬 Video</button>
+    <button type="button" class="mtype" data-mtype="link">🔗 Link</button>
+  </div>
+  <label class="mlbl">Titel (wat de gebruiker ziet)</label>
+  <input type="text" id="manualTitel" class="finp" placeholder="bv. Handleiding Bazar Bizarre">
+  <label class="mlbl">Korte omschrijving (optioneel)</label>
+  <input type="text" id="manualDesc" class="finp" placeholder="bv. uitleg voor nieuwe collega's">
+  <div id="manualFileRow">
+    <label class="mlbl">Bestand</label>
+    <button type="button" class="btn" id="manualKies">📎 Bestand kiezen</button>
+    <div id="manualFileName" class="hint" style="margin:6px 2px 0;"></div>
+  </div>
+  <div id="manualLinkRow" style="display:none;">
+    <label class="mlbl">Webadres</label>
+    <input type="text" id="manualUrl" class="finp" placeholder="https://www.voorbeeld.be">
+  </div>
+  <div class="cammodal-bar">
+    <button class="btn clear" id="manualAnnuleer">Annuleren</button>
+    <button class="btn primary" id="manualOpslaan">Toevoegen</button>
+  </div>
+</div></div>
 <!-- Foto bekijken -->
 <div class="cammodal" id="fotoView"><img id="fotoViewImg" alt=""></div>
 
@@ -1315,43 +1350,63 @@ function manualsUpload(accept,cb){
   };
   inp.click();
 }
-function manualsAddItem(node){
-  const t=manualsTypeKies('pdf'); if(!t) return;
-  const titel=prompt('Titel (wat de gebruiker ziet):'); if(titel===null) return;
-  const ti=titel.trim(); if(!ti) return;
-  const desc=(prompt('Korte omschrijving (mag leeg):','')||'').trim();
-  const finish=(src)=>{
-    if(!src) return;
-    if(!node.items) node.items=[];
-    const it={title:ti,type:t,src}; if(desc) it.desc=desc;
-    node.items.push(it);
-    saveManuals(); renderManuals();
-  };
-  if(t==='link'){
-    const src=prompt('Webadres, bv. https://www.voorbeeld.be'); if(src===null) return;
-    finish(src.trim());
-  }else{
-    manualsUpload(t==='video'?'video/*':'application/pdf,.pdf', url=>finish(url));
-  }
+// ---- Manual-formulier (eigen popup i.p.v. browser-vragen) ----
+let mmNode=null, mmIndex=-1, mmType='pdf', mmFile=null, mmExistingSrc='';
+function mmSetType(t){
+  mmType=t;
+  document.querySelectorAll('#manualModal .mtype').forEach(b=>b.classList.toggle('active',b.dataset.mtype===t));
+  document.getElementById('manualFileRow').style.display=(t==='link')?'none':'';
+  document.getElementById('manualLinkRow').style.display=(t==='link')?'':'none';
 }
-function manualsEditItem(node,i){
-  const it=node.items[i];
-  const titel=prompt('Titel:',it.title||''); if(titel===null) return;
-  const ti=titel.trim(); if(!ti) return;
-  const desc=prompt('Korte omschrijving (mag leeg):',it.desc||''); if(desc===null) return;
-  it.title=ti; if(desc.trim()) it.desc=desc.trim(); else delete it.desc;
-  const done=()=>{ saveManuals(); renderManuals(); };
-  const vervang = it.type==='link'
-    ? confirm('Wil je het webadres vervangen?')
-    : confirm('Wil je het bestand vervangen door een nieuw bestand?');
-  if(!vervang){ done(); return; }
-  if(it.type==='link'){
-    const src=prompt('Nieuw webadres:',it.src||''); if(src===null){ done(); return; }
-    const s=src.trim(); if(s) it.src=s; done();
-  }else{
-    manualsUpload(it.type==='video'?'video/*':'application/pdf,.pdf', url=>{ if(url) it.src=url; done(); });
-  }
+function openManualModal(node,index){
+  mmNode=node; mmIndex=(index==null?-1:index); mmFile=null;
+  const it=(mmIndex>=0)?node.items[mmIndex]:null;
+  mmExistingSrc=it?(it.src||''):'';
+  document.getElementById('manualModalTitle').textContent=it?'Bestand bewerken':'Nieuw bestand';
+  document.getElementById('manualTitel').value=it?(it.title||''):'';
+  document.getElementById('manualDesc').value=it?(it.desc||''):'';
+  document.getElementById('manualUrl').value=(it&&it.type==='link')?(it.src||''):'';
+  document.getElementById('manualOpslaan').textContent=it?'Opslaan':'Toevoegen';
+  mmSetType(it?(it.type||'pdf'):'pdf');
+  document.getElementById('manualFileName').textContent=(it&&it.type!=='link')?'Er staat al een bestand. Kies enkel een nieuw bestand als je het wil vervangen.':'';
+  document.getElementById('manualModal').classList.add('open');
 }
+function closeManualModal(){ document.getElementById('manualModal').classList.remove('open'); mmFile=null; }
+document.querySelectorAll('#manualModal .mtype').forEach(b=>b.onclick=()=>mmSetType(b.dataset.mtype));
+document.getElementById('manualAnnuleer').onclick=closeManualModal;
+document.getElementById('manualModal').addEventListener('click',e=>{ if(e.target.id==='manualModal') closeManualModal(); });
+document.getElementById('manualKies').onclick=()=>{
+  const accept=(mmType==='video')?'video/*':'application/pdf,.pdf';
+  const inp=document.createElement('input'); inp.type='file'; inp.accept=accept;
+  inp.onchange=()=>{ mmFile=(inp.files&&inp.files[0])||null; document.getElementById('manualFileName').textContent=mmFile?('Gekozen: '+mmFile.name):''; };
+  inp.click();
+};
+document.getElementById('manualOpslaan').onclick=async()=>{
+  const ti=document.getElementById('manualTitel').value.trim();
+  if(!ti){ alert('Geef een titel in.'); return; }
+  const desc=document.getElementById('manualDesc').value.trim();
+  let src=mmExistingSrc;
+  if(mmType==='link'){
+    src=document.getElementById('manualUrl').value.trim();
+    if(!src){ alert('Geef een webadres in.'); return; }
+  }else if(mmFile){
+    uploadBusy(true,'Bezig met uploaden…\n'+(mmFile.name||''));
+    try{ src=await BBInv.uploadFile(mmFile); }
+    catch(e){ uploadBusy(false); alert('Uploaden mislukt: '+(e&&e.message?e.message:e)+'\n\nControleer of de bucket "manuals" bestaat en of je internet hebt.'); return; }
+    uploadBusy(false);
+  }
+  if(!src){ alert(mmType==='link'?'Geef een webadres in.':'Kies eerst een bestand.'); return; }
+  if(mmIndex>=0){
+    const it=mmNode.items[mmIndex]; it.title=ti; it.type=mmType; it.src=src; if(desc) it.desc=desc; else delete it.desc;
+  }else{
+    if(!mmNode.items) mmNode.items=[];
+    const it={title:ti,type:mmType,src}; if(desc) it.desc=desc;
+    mmNode.items.push(it);
+  }
+  closeManualModal(); saveManuals(); renderManuals();
+};
+function manualsAddItem(node){ openManualModal(node,-1); }
+function manualsEditItem(node,i){ openManualModal(node,i); }
 function manualsDelete(node,key,i,wat){
   if(!confirm('Weet je zeker dat je '+wat+' wilt verwijderen?')) return;
   node[key].splice(i,1); saveManuals(); renderManuals();
