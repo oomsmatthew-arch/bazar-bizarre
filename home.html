@@ -478,7 +478,7 @@
 <body>
 <div class="wrap">
   <div class="topbar">
-    <img class="logo" src="assets/logo-cp.png" alt="Center Parcs">
+    <img class="logo" id="homeLogo" src="assets/logo-cp.png" alt="Center Parcs" title="Naar de startpagina" style="cursor:pointer">
     <h1 id="title">Entertainment</h1>
     <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
     <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
@@ -651,6 +651,7 @@
       <button class="invtab active" data-tab="stock">Stock</button>
       <button class="invtab" data-tab="boekjes">Boekjes</button>
       <button class="invtab" data-tab="formulieren">Formulieren</button>
+      <button class="invtab" data-tab="leveringen">Leveringen</button>
       <button class="invtab" data-tab="beheer">🔒 Beheer</button>
     </div>
 
@@ -695,17 +696,6 @@
           <div class="row"><button class="btn primary" id="saveLowstock">Opslaan</button></div>
         </div>
       </div>
-      <div class="field">
-        <div class="h">Nieuwe levering registreren</div>
-        <label for="levDatum">Datum</label>
-        <input type="date" id="levDatum" class="finp">
-        <label for="levBoekjes">Boekjes geleverd (komt bij de boekjes-voorraad)</label>
-        <input type="number" id="levBoekjes" class="finp" min="0" value="0">
-        <label for="levTekst">Notitie (optioneel)</label>
-        <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
-        <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
-      </div>
-
       <div class="field">
         <div class="h">Prijs toevoegen</div>
         <div class="addrow">
@@ -764,6 +754,22 @@
     <div class="invpane" id="pane-formulieren">
       <p class="hint"><b id="formCount">0</b> doorgestuurde formulieren vanuit Bazar Bizarre.</p>
       <div id="formList"></div>
+    </div>
+
+    <!-- LEVERINGEN -->
+    <div class="invpane" id="pane-leveringen">
+      <div class="field">
+        <div class="h">Nieuwe levering registreren</div>
+        <label for="levDatum">Datum</label>
+        <input type="date" id="levDatum" class="finp">
+        <label for="levBoekjes">Boekjes geleverd (komt bij de boekjes-voorraad)</label>
+        <input type="number" id="levBoekjes" class="finp" min="0" value="0">
+        <label for="levTekst">Notitie / opmerking (optioneel)</label>
+        <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
+        <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
+      </div>
+      <div class="h" style="margin:24px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Geregistreerde leveringen</div>
+      <div id="levList"></div>
     </div>
 
   </div>
@@ -1058,6 +1064,7 @@ function show(view){
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
+document.getElementById('homeLogo').onclick=()=>{renderHome();show('home');};
 
 // ---------------- THEMA (donker/licht) ----------------
 function applyTheme(){
@@ -1388,6 +1395,7 @@ document.querySelectorAll('.invtab').forEach(b=>{
     if(t==='stock'){renderInvSum();renderInvStock();}
     else if(t==='boekjes') renderBoekjes();
     else if(t==='formulieren') renderFormulieren();
+    else if(t==='leveringen') renderLeveringen();
     else if(t==='beheer') renderBeheer();
   };
 });
@@ -2289,6 +2297,7 @@ BBInv.setOnChange(()=>{
   if(document.getElementById('inventaris').classList.contains('active')){
     if(document.getElementById('pane-stock').classList.contains('active')){renderInvSum();renderInvStock();}
     if(document.getElementById('pane-formulieren').classList.contains('active')) renderFormulieren();
+    if(document.getElementById('pane-leveringen').classList.contains('active')) renderLeveringen();
     if(document.getElementById('pane-beheer').classList.contains('active')) renderStats();
   }
   if(document.getElementById('bestellingen').classList.contains('active')) renderBestelActief();
