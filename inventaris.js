@@ -8,10 +8,10 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],manualsdoc:null};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],manualsdoc:null,appconfig:null,spelarchief:null};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
-  let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, manualsdocOK=false;
+  let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
   const K_BESTEL_BACKUP='bb_bestellingen';
   const K_CONTACTEN_BACKUP='bb_contacten';
   const K_CHECKLISTEN_BACKUP='bb_checklisten';
@@ -35,7 +35,7 @@
       const slim={
         prijzen: cache.prijzen.map(p=>({id:p.id,cat:p.cat,naam:p.naam,stock:p.stock,inGebruik:p.inGebruik,foto:''})),
         boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: cache.leveringen,
-        bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, manualsdoc: cache.manualsdoc
+        bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
       };
       localStorage.setItem(K_CACHE,JSON.stringify(slim));
     }catch(e){}
@@ -44,7 +44,7 @@
     try{ const r=localStorage.getItem(K_CACHE); if(!r) return false; const c=JSON.parse(r); if(!c) return false;
       cache.prijzen=c.prijzen||[]; cache.boekjes=c.boekjes||{stock:0}; cache.formulieren=c.formulieren||[];
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
-      cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.manualsdoc=c.manualsdoc||null; return true;
+      cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null; return true;
     }catch(e){ return false; }
   }
 
@@ -162,13 +162,18 @@
     await loadShared('contacten','contacten',mapContact,K_CONTACTEN_BACKUP,v=>contactenOK=v);
     await loadShared('checklisten','checklisten',mapChecklist,K_CHECKLISTEN_BACKUP,v=>checklistenOK=v);
     await loadShared('logboek','logboek',mapLog,K_LOGBOEK_BACKUP,v=>logboekOK=v);
-    // Manuals-boom: één rij met de hele mappenstructuur (id=1, data jsonb)
-    try{
-      const r=await sb.from('manualsdoc').select('*').eq('id',1).maybeSingle();
-      if(r.error){ manualsdocOK=false; }
-      else { manualsdocOK=true; cache.manualsdoc=r.data?(r.data.data||null):null; }
-    }catch(e){ manualsdocOK=false; }
+    // Enkel-rij documenten (id=1, data jsonb): manuals-boom, app-instellingen, spel-archief
+    await loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v);
+    await loadDoc('appconfig','appconfig',v=>appconfigOK=v);
+    await loadDoc('spelarchief','spelarchief',v=>spelarchiefOK=v);
     persistCache();
+  }
+  async function loadDoc(table,cacheKey,setOK){
+    try{
+      const r=await sb.from(table).select('*').eq('id',1).maybeSingle();
+      if(r.error){ setOK(false); }
+      else { setOK(true); cache[cacheKey]=r.data?(r.data.data||null):null; }
+    }catch(e){ setOK(false); }
   }
   async function reloadTable(t){
     if(t==='prijzen'){const r=await sb.from('prijzen').select('*'); if(r.data)cache.prijzen=r.data.map(fromRow);}
@@ -180,6 +185,8 @@
     else if(t==='checklisten'&&checklistenOK){const r=await sb.from('checklisten').select('*'); if(r.data){cache.checklisten=r.data.map(mapChecklist); saveBackup('checklisten',K_CHECKLISTEN_BACKUP);}}
     else if(t==='logboek'&&logboekOK){const r=await sb.from('logboek').select('*'); if(r.data){cache.logboek=r.data.map(mapLog); saveBackup('logboek',K_LOGBOEK_BACKUP);}}
     else if(t==='manualsdoc'&&manualsdocOK){const r=await sb.from('manualsdoc').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.manualsdoc=r.data?(r.data.data||null):null;}}
+    else if(t==='appconfig'&&appconfigOK){const r=await sb.from('appconfig').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.appconfig=r.data?(r.data.data||null):null;}}
+    else if(t==='spelarchief'&&spelarchiefOK){const r=await sb.from('spelarchief').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.spelarchief=r.data?(r.data.data||null):null;}}
     persistCache();
   }
   function subscribe(){
@@ -341,6 +348,21 @@
     try{localStorage.setItem(K_MANUALS_BACKUP,JSON.stringify(tree));}catch(e){}
     if(manualsdocOK) dbUpsert('manualsdoc',{id:1,data:tree}); else persistCache();
   }
+  // ---------------- APP-INSTELLINGEN (gedeeld document) ----------------
+  const getConfig=()=>cache.appconfig;
+  function saveConfig(obj){
+    cache.appconfig=obj;
+    try{localStorage.setItem('bb_appconfig',JSON.stringify(obj));}catch(e){}
+    if(appconfigOK) dbUpsert('appconfig',{id:1,data:obj}); else persistCache();
+  }
+  // ---------------- SPEL-ARCHIEF (gedeeld document) ----------------
+  const getArchief=()=>cache.spelarchief;
+  function saveArchief(arr){
+    cache.spelarchief=arr;
+    try{localStorage.setItem('bb_spelarchief',JSON.stringify(arr));}catch(e){}
+    if(spelarchiefOK) dbUpsert('spelarchief',{id:1,data:arr}); else persistCache();
+  }
+
   // Upload een bestand naar Supabase Storage (bucket 'manuals') en geef de publieke URL terug.
   async function uploadFile(file){
     if(!sb) throw new Error('Geen verbinding. Upload lukt alleen met internet.');
@@ -491,6 +513,8 @@
     getChecklisten,addChecklist,saveChecklist,removeChecklist,isChecklistenGedeeld:()=>checklistenOK,
     getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
     getManualsTree,saveManualsTree,uploadFile,isManualsGedeeld:()=>manualsdocOK,
+    getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
+    getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     pendingCount,flushOutbox,
     submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};

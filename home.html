@@ -1021,6 +1021,50 @@ if(localStorage.getItem('bb_drempel_v2')!=='1'){
   localStorage.setItem('bb_drempel_v2','1');
 }
 function getBestelMail(){return localStorage.getItem(K_BESTELMAIL)||'';}
+
+// ---- Gedeelde instellingen (appconfig): alles online houden + offline syncen ----
+let cfgApplying=false;
+function pushConfig(){
+  if(!(window.BBInv&&BBInv.saveConfig)) return;
+  BBInv.saveConfig({
+    mededeling: localStorage.getItem(K_MED)||'',
+    drempel: getDrempel(), drempel2: getDrempel2(), drempelBk: getDrempelBoekjes(),
+    pin: localStorage.getItem(K_PIN)||DEFAULT_PIN,
+    links: getLinks(), bestelmail: localStorage.getItem(K_BESTELMAIL)||'',
+    bestelCats: (typeof mgCats!=='undefined'?mgCats:[]),
+    bestelLevs: (typeof mgLevs!=='undefined'?mgLevs:[]),
+    bestelStats: (typeof mgStats!=='undefined'?mgStats:[]),
+    bestelOntvangen: (typeof ontvangenStats!=='undefined'?ontvangenStats:[]),
+    bestelBjExtra: (typeof mgBjExtra!=='undefined'?mgBjExtra:[])
+  });
+}
+function pullConfig(){
+  const c=(window.BBInv&&BBInv.getConfig)?BBInv.getConfig():null;
+  if(!c||typeof c!=='object') return false;
+  cfgApplying=true;
+  try{
+    if(c.mededeling!=null) localStorage.setItem(K_MED,c.mededeling);
+    if(c.drempel!=null) localStorage.setItem(K_DREMPEL,String(c.drempel));
+    if(c.drempel2!=null) localStorage.setItem(K_DREMPEL2,String(c.drempel2));
+    if(c.drempelBk!=null) localStorage.setItem(K_DREMPEL_BK,String(c.drempelBk));
+    if(c.pin) localStorage.setItem(K_PIN,c.pin);
+    if(c.links) localStorage.setItem(K_LINKS,JSON.stringify(c.links));
+    if(c.bestelmail!=null) localStorage.setItem(K_BESTELMAIL,c.bestelmail);
+    if(Array.isArray(c.bestelCats)&&typeof mgCats!=='undefined'){ mgCats=c.bestelCats; lsSave('bb_bestel_cats',mgCats); }
+    if(Array.isArray(c.bestelLevs)&&typeof mgLevs!=='undefined'){ mgLevs=c.bestelLevs; lsSave('bb_bestel_levs',mgLevs); }
+    if(Array.isArray(c.bestelStats)&&typeof mgStats!=='undefined'){ mgStats=c.bestelStats; lsSave('bb_bestel_stats',mgStats); }
+    if(Array.isArray(c.bestelOntvangen)&&typeof ontvangenStats!=='undefined'){ ontvangenStats=c.bestelOntvangen; lsSave('bb_bestel_ontvangen',ontvangenStats); }
+    if(Array.isArray(c.bestelBjExtra)&&typeof mgBjExtra!=='undefined'){ mgBjExtra=c.bestelBjExtra; lsSave('bb_bestel_bj_extra',mgBjExtra); }
+  }finally{ cfgApplying=false; }
+  return true;
+}
+function syncConfig(){
+  const c=(window.BBInv&&BBInv.getConfig)?BBInv.getConfig():null;
+  if(c&&typeof c==='object'&&Object.keys(c).length){ pullConfig(); }
+  else if(window.BBInv&&BBInv.isConfigGedeeld&&BBInv.isConfigGedeeld()&&localStorage.getItem('bb_cfg_seeded')!=='1'){
+    localStorage.setItem('bb_cfg_seeded','1'); pushConfig(); // eerste toestel: huidige instellingen delen
+  }
+}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ---------------- HOME RENDER ----------------
@@ -1136,14 +1180,14 @@ document.getElementById('openSettings').onclick=openSettings;
 
 document.getElementById('saveMededeling').onclick=()=>{
   localStorage.setItem(K_MED,document.getElementById('setMededeling').value);
-  renderHome();
+  pushConfig(); renderHome();
   alert('Mededeling opgeslagen.');
 };
 document.getElementById('clearMededeling').onclick=()=>{
   if(!confirm('De mededeling wissen?'))return;
   localStorage.removeItem(K_MED);
   document.getElementById('setMededeling').value='';
-  renderHome();
+  pushConfig(); renderHome();
 };
 document.getElementById('saveLowstock').onclick=()=>{
   const d=parseInt(document.getElementById('setDrempel').value,10);
@@ -1152,7 +1196,7 @@ document.getElementById('saveLowstock').onclick=()=>{
   localStorage.setItem(K_DREMPEL,isNaN(d)||d<0?DEFAULT_DREMPEL:d);
   localStorage.setItem(K_DREMPEL2,isNaN(d2)||d2<0?DEFAULT_DREMPEL2:d2);
   localStorage.setItem(K_DREMPEL_BK,isNaN(dbk)||dbk<0?DEFAULT_DREMPEL_BK:dbk);
-  renderLowstock();
+  pushConfig(); renderLowstock();
   alert('Opgeslagen. De waarschuwingen op de homepagina zijn bijgewerkt.');
 };
 document.getElementById('changePin').onclick=()=>{
@@ -1160,7 +1204,7 @@ document.getElementById('changePin').onclick=()=>{
   if(cur!==getPin()){alert('Onjuist wachtwoord.');return;}
   const n=prompt('Nieuw wachtwoord, drie tot acht cijfers:'); if(n===null) return;
   if(!/^\d{3,8}$/.test(n)){alert('Gebruik drie tot acht cijfers.');return;}
-  localStorage.setItem(K_PIN,n); alert('Wachtwoord gewijzigd.');
+  localStorage.setItem(K_PIN,n); pushConfig(); alert('Wachtwoord gewijzigd.');
 };
 
 // ---------------- ONLINE MANUALS ----------------
@@ -1916,7 +1960,7 @@ document.getElementById('invReset').onclick=()=>{
 // aan met wat al in de bestellingen voorkomt, zodat niets verloren gaat.
 const DEFAULT_STATUSSEN=['Besteld','Onderweg','In loods','Uitgepakt','Geannuleerd'];
 function lsArr(k,def){ try{const r=localStorage.getItem(k); return r?(JSON.parse(r)||def.slice()):def.slice();}catch(e){return def.slice();} }
-function lsSave(k,a){ try{localStorage.setItem(k,JSON.stringify(a));}catch(e){} }
+function lsSave(k,a){ try{localStorage.setItem(k,JSON.stringify(a));}catch(e){} if(!cfgApplying && /^bb_bestel_/.test(k) && window.BBInv && BBInv.saveConfig) pushConfig(); }
 let mgCats=lsArr('bb_bestel_cats',[]);
 let mgLevs=lsArr('bb_bestel_levs',[]);
 let mgStats=lsArr('bb_bestel_stats',DEFAULT_STATUSSEN);
@@ -2399,6 +2443,7 @@ if('serviceWorker' in navigator){
 applyTheme(); show('home'); updateSys();
 // Gedeelde database: bij wijzigingen (ook van collega's) het juiste scherm verversen
 BBInv.setOnChange(()=>{
+  syncConfig(); // gedeelde instellingen + keuzelijsten ophalen/zaaien
   renderHome(); // o.a. de voorraad-meldingen op de homepagina
   if(document.getElementById('inventaris').classList.contains('active')){
     if(document.getElementById('pane-stock').classList.contains('active')){renderInvSum();renderInvStock();}

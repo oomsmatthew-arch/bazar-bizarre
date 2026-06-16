@@ -939,9 +939,31 @@ const GAMESKEY='bazarbizarre_games';
 const PINKEY='bazarbizarre_pin';
 const DEFAULT_PIN='3920';   // standaard pincode — kan je wijzigen in het beheerscherm
 
-function loadGames(){try{return JSON.parse(localStorage.getItem(GAMESKEY))||[];}catch(e){return[];}}
-function saveGames(a){try{localStorage.setItem(GAMESKEY,JSON.stringify(a));}catch(e){}}
-function getPin(){return localStorage.getItem(PINKEY)||DEFAULT_PIN;}
+function loadGames(){
+  const a=(window.BBInv&&BBInv.getArchief)?BBInv.getArchief():null;
+  if(Array.isArray(a)) return a;
+  try{return JSON.parse(localStorage.getItem(GAMESKEY))||[];}catch(e){return[];}
+}
+function saveGames(a){
+  try{localStorage.setItem(GAMESKEY,JSON.stringify(a));}catch(e){}
+  if(window.BBInv&&BBInv.saveArchief) BBInv.saveArchief(a); // gedeeld + offline-sync
+}
+function getPin(){
+  const c=(window.BBInv&&BBInv.getConfig)?BBInv.getConfig():null;
+  if(c&&c.pin) return c.pin;
+  return localStorage.getItem(PINKEY)||DEFAULT_PIN;
+}
+// Het gedeelde archief op dit toestel spiegelen; eerste keer het lokale archief delen.
+function syncArchief(){
+  if(!(window.BBInv&&BBInv.isArchiefGedeeld&&BBInv.isArchiefGedeeld())) return;
+  const a=BBInv.getArchief();
+  if(Array.isArray(a)){ try{localStorage.setItem(GAMESKEY,JSON.stringify(a));}catch(e){} }
+  else if(localStorage.getItem('bb_archief_seeded')!=='1'){
+    localStorage.setItem('bb_archief_seeded','1');
+    let local=[]; try{local=JSON.parse(localStorage.getItem(GAMESKEY))||[];}catch(e){}
+    BBInv.saveArchief(local);
+  }
+}
 
 // huidig spel als momentopname (datum, naam, prijzen, samenvatting, finale)
 function snapshotGame(label){
@@ -1117,7 +1139,9 @@ function changePin(){
   if(cur!==getPin()){alert('Onjuiste pincode.');return;}
   const n=prompt('Nieuwe pincode (3 tot 8 cijfers):'); if(n===null) return;
   if(!/^\d{3,8}$/.test(n)){alert('Gebruik 3 tot 8 cijfers.');return;}
-  localStorage.setItem(PINKEY,n); alert('Pincode gewijzigd.');
+  localStorage.setItem(PINKEY,n);
+  if(window.BBInv&&BBInv.saveConfig){ BBInv.saveConfig(Object.assign({},BBInv.getConfig()||{},{pin:n})); }
+  alert('Pincode gewijzigd.');
 }
 
 function finaleText(g){
@@ -1247,8 +1271,10 @@ renderAll(); updateAll(); show('menu'); updateRestoreBtn();
 // Gedeelde database laden + live verversen van de keuzelijsten die uit de inventaris lezen
 if(window.BBInv){
   BBInv.setOnChange(()=>{
+    syncArchief(); // gedeeld spel-archief ophalen/zaaien
     renderControle();
     if(document.getElementById('formulier').classList.contains('active')){renderKiesLijst('klein');renderKiesLijst('groot');}
+    if(document.getElementById('admin').classList.contains('active')) renderAdmin();
   });
   BBInv.init();
 }
