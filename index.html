@@ -308,28 +308,17 @@
   .tr-txt.loading{color:var(--muted);animation:blink 1s infinite;}
   .tr-txt.err{color:var(--pink);font-size:15px;}
 
-  /* antwoord-reveal */
-  .reveal-stage{display:flex;flex-direction:column;align-items:center;gap:24px;}
-  .reel{width:200px;height:200px;border-radius:50%;position:relative;overflow:hidden;background:#0a1730;
-    border:3px solid var(--gold);box-shadow:0 0 45px rgba(255,210,63,.4),inset 0 0 30px rgba(0,0,0,.6);display:grid;place-items:center;}
-  .reel-sweep{position:absolute;inset:0;background:conic-gradient(from 0deg,rgba(255,210,63,0),rgba(255,210,63,.5));
-    animation:sweep 1s linear infinite;}
-  .reel .count{position:relative;font-family:var(--serif);font-size:98px;font-weight:800;color:#fff;text-shadow:0 0 22px rgba(255,210,63,.75);}
-  .count.pop{animation:countpop .5s ease-out;}
-  .reveal-label{font-size:clamp(19px,3.4vw,30px);color:var(--text);font-weight:700;}
-  .reveal-label .dots i{display:inline-block;animation:blink 1.2s infinite;}
-  .reveal-label .dots i:nth-child(2){animation-delay:.2s;}
-  .reveal-label .dots i:nth-child(3){animation-delay:.4s;}
-  .reveal-bar{width:100%;max-width:520px;height:9px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;}
-  .reveal-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--pink));border-radius:6px;}
+  /* antwoord-reveal: eerst "The answer is…", dan klikken om te onthullen */
+  .reveal-intro{display:flex;flex-direction:column;align-items:center;gap:16px;cursor:pointer;}
+  .reveal-sub{font-size:clamp(15px,2.4vw,22px);color:var(--muted);line-height:1.4;}
+  .reveal-tap{margin-top:8px;font-size:14px;color:var(--gold);font-weight:700;animation:blink 1.4s infinite;}
   .a-flag{font-size:clamp(17px,3vw,26px);color:var(--gold);margin-bottom:18px;font-weight:700;}
   .a-big{font-family:var(--serif);font-size:clamp(34px,8vw,92px);font-weight:800;color:#fff;line-height:1.15;max-width:900px;margin:0 auto;
-    text-shadow:0 0 32px rgba(255,210,63,.6);animation:abig .7s cubic-bezier(.2,1.3,.4,1) both;}
-  .flashfx{position:fixed;inset:0;background:#fff;animation:flashfx .5s ease-out forwards;pointer-events:none;z-index:2;}
-  @keyframes sweep{to{transform:rotate(360deg);}}
-  @keyframes countpop{0%{transform:scale(1.6);opacity:.15;}100%{transform:scale(1);opacity:1;}}
-  @keyframes blink{0%,100%{opacity:.2;}50%{opacity:1;}}
-  @keyframes abig{0%{transform:scale(.4);opacity:0;filter:blur(8px);}100%{transform:scale(1);opacity:1;filter:blur(0);}}
+    text-shadow:0 0 32px rgba(255,210,63,.6);animation:abig .6s cubic-bezier(.2,1.3,.4,1) both;}
+  .a-big+.tr-grid{margin-top:34px;}
+  .flashfx{position:fixed;inset:0;background:#fff;animation:flashfx .45s ease-out forwards;pointer-events:none;z-index:2;}
+  @keyframes blink{0%,100%{opacity:.25;}50%{opacity:1;}}
+  @keyframes abig{0%{transform:scale(.5);opacity:0;filter:blur(7px);}100%{transform:scale(1);opacity:1;filter:blur(0);}}
   @keyframes flashfx{0%{opacity:.85;}100%{opacity:0;}}
 
   .hint{font-size:13px;color:var(--muted);margin:0 2px 14px;line-height:1.4;}
@@ -800,8 +789,26 @@ async function translate(text,target){
   return out;
 }
 
-let _revealTimers=[];
-function clearReveal(){_revealTimers.forEach(t=>clearTimeout(t));_revealTimers=[];}
+const TR_LANGS=[
+  {code:'en',flag:'🇬🇧',name:'English'},
+  {code:'fr',flag:'🇫🇷',name:'Français'},
+  {code:'de',flag:'🇩🇪',name:'Deutsch'}
+];
+function transGridHtml(){
+  return '<div class="tr-grid">'+TR_LANGS.map(l=>'<div class="tr" data-code="'+l.code+'">'+
+    '<div class="tr-head"><span class="flag">'+l.flag+'</span><span class="lang">'+l.name+'</span></div>'+
+    '<div class="tr-txt loading">…</div></div>').join('')+'</div>';
+}
+function fillTransGrid(scope,text){
+  TR_LANGS.forEach(l=>{
+    const cell=scope.querySelector('.tr[data-code="'+l.code+'"] .tr-txt');
+    if(!cell) return;
+    if(!text.trim()){cell.textContent='—';cell.classList.remove('loading');return;}
+    translate(text,l.code)
+      .then(t=>{cell.textContent=t;cell.classList.remove('loading');})
+      .catch(()=>{cell.textContent='(vertaling niet beschikbaar — controleer internet)';cell.classList.add('err');cell.classList.remove('loading');});
+  });
+}
 function openPresent(){
   const p=document.getElementById('present');
   p.classList.add('open'); p.setAttribute('aria-hidden','false');
@@ -811,63 +818,40 @@ function closePresent(){
   const p=document.getElementById('present');
   p.classList.remove('open'); p.setAttribute('aria-hidden','true');
   document.body.style.overflow='';
-  clearReveal();
   document.getElementById('presentInner').innerHTML='';
 }
 
 // Toon de vraag groot + automatisch vertaald (EN/FR/DE)
 function presentQuestion(text){
-  clearReveal();
-  const langs=[
-    {code:'en',flag:'🇬🇧',name:'English'},
-    {code:'fr',flag:'🇫🇷',name:'Français'},
-    {code:'de',flag:'🇩🇪',name:'Deutsch'}
-  ];
   const inner=document.getElementById('presentInner');
   inner.innerHTML=
     '<div class="q-flag">🇳🇱 Vraag</div>'+
     '<div class="q-big">'+(escHtml(text)||'—')+'</div>'+
-    '<div class="tr-grid">'+
-      langs.map(l=>'<div class="tr" data-code="'+l.code+'">'+
-        '<div class="tr-head"><span class="flag">'+l.flag+'</span><span class="lang">'+l.name+'</span></div>'+
-        '<div class="tr-txt loading">…</div></div>').join('')+
-    '</div>';
+    transGridHtml();
   openPresent();
-  langs.forEach(l=>{
-    const cell=inner.querySelector('.tr[data-code="'+l.code+'"] .tr-txt');
-    if(!text.trim()){cell.textContent='—';cell.classList.remove('loading');return;}
-    translate(text,l.code)
-      .then(t=>{cell.textContent=t;cell.classList.remove('loading');})
-      .catch(()=>{cell.textContent='(vertaling niet beschikbaar — controleer internet)';cell.classList.add('err');cell.classList.remove('loading');});
-  });
+  fillTransGrid(inner,text);
 }
 
-// Onthul het antwoord met een filmische 8-seconden aftelling
+// Antwoord: eerst "The answer is…", dan klikken om het antwoord (met vertaling) te onthullen
 function presentAnswer(text){
-  clearReveal();
   const inner=document.getElementById('presentInner');
   inner.innerHTML=
-    '<div class="reveal-stage">'+
-      '<div class="reel"><div class="reel-sweep"></div><div class="count" id="revealCount">8</div></div>'+
-      '<div class="reveal-label">Het antwoord komt eraan<span class="dots"><i>.</i><i>.</i><i>.</i></span></div>'+
-      '<div class="reveal-bar"><i id="revealBar"></i></div>'+
+    '<div class="reveal-intro" id="revealIntro">'+
+      '<div class="a-big">The answer is…</div>'+
+      '<div class="reveal-sub">Het antwoord is… &middot; La réponse est… &middot; Die Antwort ist…</div>'+
+      '<div class="reveal-tap">👆 Klik om het antwoord te tonen</div>'+
     '</div>';
   openPresent();
-  const bar=document.getElementById('revealBar');
-  const cnt=document.getElementById('revealCount');
-  requestAnimationFrame(()=>{ bar.style.transition='width 8s linear'; bar.style.width='100%'; });
-  for(let s=1;s<=7;s++){
-    _revealTimers.push(setTimeout(()=>{
-      cnt.textContent=8-s;
-      cnt.classList.remove('pop'); void cnt.offsetWidth; cnt.classList.add('pop');
-    }, s*1000));
-  }
-  _revealTimers.push(setTimeout(()=>{
-    inner.innerHTML=
-      '<div class="flashfx"></div>'+
-      '<div class="a-flag">🎉 Het antwoord</div>'+
-      '<div class="a-big">'+(escHtml(text)||'—')+'</div>';
-  }, 8000));
+  inner.querySelector('#revealIntro').onclick=()=>revealAnswer(text);
+}
+function revealAnswer(text){
+  const inner=document.getElementById('presentInner');
+  inner.innerHTML=
+    '<div class="flashfx"></div>'+
+    '<div class="a-flag">🎉 Het antwoord</div>'+
+    '<div class="a-big">'+(escHtml(text)||'—')+'</div>'+
+    transGridHtml();
+  fillTransGrid(inner,text);
 }
 
 document.getElementById('presentClose').onclick=closePresent;
