@@ -1134,25 +1134,31 @@ let manualsBeheer=false;
 
 function fileBadge(type){return type==='video'?'FILM':type==='link'?'LINK':'PDF';}
 
-// Bewaart de hele mappenstructuur op dit toestel (zoals de rest van de app).
+// Bewaart de hele mappenstructuur in de GEDEELDE database (en lokaal als back-up).
 function saveManuals(){
   if(!MANUALS||MANUALS.__error) return;
-  try{localStorage.setItem(K_MANUALS,JSON.stringify({folders:MANUALS.folders||[],items:MANUALS.items||[]}));}catch(e){}
+  const tree={folders:MANUALS.folders||[],items:MANUALS.items||[]};
+  try{localStorage.setItem(K_MANUALS,JSON.stringify(tree));}catch(e){}
+  if(window.BBInv&&BBInv.saveManualsTree) BBInv.saveManualsTree(tree);
 }
 
 async function loadManuals(){
   if(MANUALS) return MANUALS;
-  // Eerst kijken of er een eigen, op dit toestel bewaarde versie is.
+  // 1) Gedeelde database (zien alle toestellen hetzelfde).
+  const tree=(window.BBInv&&BBInv.getManualsTree)?BBInv.getManualsTree():null;
+  if(tree&&typeof tree==='object'){ MANUALS=tree; return MANUALS; }
+  // 2) Lokale back-up op dit toestel.
   try{
     const saved=localStorage.getItem(K_MANUALS);
     if(saved){ MANUALS=JSON.parse(saved); if(MANUALS&&typeof MANUALS==='object') return MANUALS; }
   }catch(e){ MANUALS=null; }
+  // 3) Startlijst uit manuals.json (eenmalig zaadje).
   try{
     const res=await fetch('manuals.json',{cache:'no-store'});
     if(!res.ok) throw new Error('http '+res.status);
     MANUALS=await res.json();
   }catch(e){
-    MANUALS={__error:String(e)};
+    MANUALS={folders:[],items:[]};
   }
   return MANUALS;
 }
@@ -1288,32 +1294,63 @@ function manualsEditFolder(node,i){
   if(node.folders.some((x,j)=>j!==i&&x.name.toLowerCase()===naam.toLowerCase())){alert('Er is al een map met die naam.');return;}
   f.name=naam; saveManuals(); renderManuals();
 }
+// Kleine bezig-melding tijdens het uploaden
+function uploadBusy(on,txt){
+  let b=document.getElementById('uploadBusy');
+  if(!b){ b=document.createElement('div'); b.id='uploadBusy';
+    b.style.cssText='position:fixed;inset:0;background:rgba(8,16,32,.6);display:grid;place-items:center;z-index:300;color:#fff;font-weight:700;font-size:18px;text-align:center;padding:20px;';
+    document.body.appendChild(b); }
+  b.textContent=txt||'Bezig met uploaden…';
+  b.style.display=on?'grid':'none';
+}
+// Bestand kiezen + uploaden naar Supabase Storage, daarna de publieke URL teruggeven.
+function manualsUpload(accept,cb){
+  if(!(window.BBInv&&BBInv.uploadFile)){ alert('Uploaden is nu niet beschikbaar.'); return; }
+  const inp=document.createElement('input'); inp.type='file'; inp.accept=accept;
+  inp.onchange=async()=>{
+    const file=inp.files&&inp.files[0]; if(!file) return;
+    uploadBusy(true,'Bezig met uploaden…\n'+(file.name||''));
+    try{ const url=await BBInv.uploadFile(file); uploadBusy(false); cb(url,file); }
+    catch(e){ uploadBusy(false); alert('Uploaden mislukt: '+(e&&e.message?e.message:e)+'\n\nControleer of de opslag-bucket "manuals" in Supabase bestaat en of je internet hebt.'); }
+  };
+  inp.click();
+}
 function manualsAddItem(node){
   const t=manualsTypeKies('pdf'); if(!t) return;
   const titel=prompt('Titel (wat de gebruiker ziet):'); if(titel===null) return;
   const ti=titel.trim(); if(!ti) return;
-  const hint=t==='link'?'Webadres, bv. https://www.voorbeeld.be'
-    :t==='video'?'Pad naar de video, bv. manuals/uitleg.mp4'
-    :'Pad naar de PDF, bv. manuals/handleiding.pdf';
-  const src=prompt(hint); if(src===null) return;
-  const s=src.trim(); if(!s) return;
-  const desc=prompt('Korte omschrijving (mag leeg):','')||'';
-  if(!node.items) node.items=[];
-  const it={title:ti,type:t,src:s}; if(desc.trim()) it.desc=desc.trim();
-  node.items.push(it);
-  saveManuals(); renderManuals();
+  const desc=(prompt('Korte omschrijving (mag leeg):','')||'').trim();
+  const finish=(src)=>{
+    if(!src) return;
+    if(!node.items) node.items=[];
+    const it={title:ti,type:t,src}; if(desc) it.desc=desc;
+    node.items.push(it);
+    saveManuals(); renderManuals();
+  };
+  if(t==='link'){
+    const src=prompt('Webadres, bv. https://www.voorbeeld.be'); if(src===null) return;
+    finish(src.trim());
+  }else{
+    manualsUpload(t==='video'?'video/*':'application/pdf,.pdf', url=>finish(url));
+  }
 }
 function manualsEditItem(node,i){
   const it=node.items[i];
-  const t=manualsTypeKies(it.type); if(!t) return;
   const titel=prompt('Titel:',it.title||''); if(titel===null) return;
   const ti=titel.trim(); if(!ti) return;
-  const src=prompt('Pad of webadres:',it.src||''); if(src===null) return;
-  const s=src.trim(); if(!s) return;
   const desc=prompt('Korte omschrijving (mag leeg):',it.desc||''); if(desc===null) return;
-  it.title=ti; it.type=t; it.src=s;
-  if(desc.trim()) it.desc=desc.trim(); else delete it.desc;
-  saveManuals(); renderManuals();
+  it.title=ti; if(desc.trim()) it.desc=desc.trim(); else delete it.desc;
+  const done=()=>{ saveManuals(); renderManuals(); };
+  const vervang = it.type==='link'
+    ? confirm('Wil je het webadres vervangen?')
+    : confirm('Wil je het bestand vervangen door een nieuw bestand?');
+  if(!vervang){ done(); return; }
+  if(it.type==='link'){
+    const src=prompt('Nieuw webadres:',it.src||''); if(src===null){ done(); return; }
+    const s=src.trim(); if(s) it.src=s; done();
+  }else{
+    manualsUpload(it.type==='video'?'video/*':'application/pdf,.pdf', url=>{ if(url) it.src=url; done(); });
+  }
 }
 function manualsDelete(node,key,i,wat){
   if(!confirm('Weet je zeker dat je '+wat+' wilt verwijderen?')) return;
@@ -1370,7 +1407,9 @@ document.getElementById('openManuals').onclick=async()=>{
   setManualsBeheer(false);
   document.getElementById('manualsZoek').value='';
   document.getElementById('filelist').innerHTML='<div class="empty-note">Laden</div>';
-  await loadManuals();
+  // Altijd de meest recente gedeelde versie pakken indien beschikbaar.
+  const tr=(window.BBInv&&BBInv.getManualsTree)?BBInv.getManualsTree():null;
+  if(tr&&typeof tr==='object'){ MANUALS=tr; } else { await loadManuals(); }
   manualsPath=[];
   renderManuals();
 };
@@ -2314,6 +2353,10 @@ BBInv.setOnChange(()=>{
   if(document.getElementById('contacten').classList.contains('active')) renderContacten();
   if(document.getElementById('checklisten').classList.contains('active')) renderChecklisten();
   if(document.getElementById('logboek').classList.contains('active')) renderLogboek();
+  if(document.getElementById('manuals').classList.contains('active') && !manualsBeheer){
+    const tr=(window.BBInv&&BBInv.getManualsTree)?BBInv.getManualsTree():null;
+    if(tr&&typeof tr==='object'){ MANUALS=tr; renderManuals(); }
+  }
   updateSyncBadge();
 });
 renderHome();
