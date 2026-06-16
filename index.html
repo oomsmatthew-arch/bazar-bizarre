@@ -191,8 +191,9 @@
   }
 
   /* trolley list */
-  .tracklist{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
-  @media(max-width:680px){.tracklist{grid-template-columns:1fr;}}
+  /* 1–20 onder elkaar in de linkerkolom, 21–40 in de rechterkolom */
+  .tracklist{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(20,auto);grid-auto-flow:column;gap:9px;}
+  @media(max-width:680px){.tracklist{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row;}}
   .track{display:flex;align-items:center;gap:11px;background:var(--panel);
     border:1px solid var(--line);border-radius:11px;padding:7px 9px;cursor:pointer;user-select:none;}
   .track:hover{background:var(--panel2);}
@@ -256,6 +257,11 @@
   .pmodal-it:active,.pmodal-it:hover{background:var(--panel2);}
   .pmodal-it.muted{color:var(--muted);}
   .pmodal-it.custom{color:var(--gold);font-style:italic;}
+  .pmodal-it.pm-prize{display:flex;align-items:center;gap:12px;}
+  .pm-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line);
+    flex:0 0 auto;background:var(--panel2);display:block;}
+  .pm-thumb.ph{display:grid;place-items:center;font-size:20px;color:var(--muted);}
+  .pm-name{flex:1;min-width:0;}
   .prijs .pn{flex:0 0 34px;height:34px;border-radius:8px;display:grid;place-items:center;
     font-weight:800;background:var(--bg);color:var(--gold);border:1px solid var(--line);font-size:15px;}
   .prijs input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);
@@ -580,7 +586,7 @@ const TRACKS = [
   ["Je t'aime moi non plus","Serge Gainsbourg/Jane Birkin"],["Jolene","Dolly Parton"],
   ["La ballade des gens heureux","Gérard Lenorman"],["Last Christmas","Wham"],
   ["Les lacs du Connemara","Michel Sardou"],["Levitating","Dua Lipa"],["Oh champs elysées","Joe Dassin"],
-  ["Rolling in the deep","Adele"],["Same love","Macklemore"],["Bohemian Rhapsody","Queen"],
+  ["Rolling in the deep","Adele"],["Same love","Macklemore"],["Seven Nation Army","The White Stripes"],
   ["Shotgun","George Ezra"],["Sign of the times","Harry Styles"],["Smells like teen spirit","Nirvana"],
   ["Smoke on the water","Deep Purple"],["Somewhere over the rainbow","Judy Garland & others"],
   ["The final countdown","Europe"],["The shape of you","Ed Sheeran"],
@@ -684,13 +690,21 @@ function pmRender(){
   const z=document.getElementById('pmZoek'); const q=(z.value||'').toLowerCase().trim();
   const opties=prijsOpties();
   const m=opties.filter(n=>!q||n.toLowerCase().includes(q));
+  const fotoBy={}; (window.BBInv?BBInv.getPrijzen():[]).forEach(p=>{ if(p.naam) fotoBy[p.naam]=p.foto||''; });
   const list=document.getElementById('pmList'); list.innerHTML='';
   const add=(txt,cls,fn)=>{const it=document.createElement('div');it.className='pmodal-it'+(cls?' '+cls:'');it.textContent=txt;it.onclick=fn;list.appendChild(it);};
   add('— leeg laten —','muted',()=>pmPick(''));
   const typed=z.value.trim();
   if(typed && !opties.some(n=>n.toLowerCase()===typed.toLowerCase())) add('Gebruik: "'+typed+'"','custom',()=>pmPick(typed));
   if(!m.length && !typed) add('Geen beschikbare prijzen.','muted',()=>{});
-  m.forEach(n=>add(n,'',()=>pmPick(n)));
+  m.forEach(n=>{
+    const foto=fotoBy[n];
+    const it=document.createElement('div'); it.className='pmodal-it pm-prize';
+    it.innerHTML=(foto?'<img class="pm-thumb" src="'+foto+'" alt="">':'<span class="pm-thumb ph">📷</span>')+'<span class="pm-name"></span>';
+    it.querySelector('.pm-name').textContent=n;
+    it.onclick=()=>pmPick(n);
+    list.appendChild(it);
+  });
 }
 function pmPick(name){ if(pmIdx>=0){state.prijzen[pmIdx]=name;save();renderControle();} document.getElementById('prijsModal').classList.remove('open'); }
 document.getElementById('pmZoek').oninput=pmRender;
@@ -818,11 +832,13 @@ function closePresent(){
   const p=document.getElementById('present');
   p.classList.remove('open'); p.setAttribute('aria-hidden','true');
   document.body.style.overflow='';
+  _pendingReveal=null;
   document.getElementById('presentInner').innerHTML='';
 }
 
 // Toon de vraag groot + automatisch vertaald (EN/FR/DE)
 function presentQuestion(text){
+  _pendingReveal=null;
   const inner=document.getElementById('presentInner');
   inner.innerHTML=
     '<div class="q-flag">🇳🇱 Vraag</div>'+
@@ -832,19 +848,21 @@ function presentQuestion(text){
   fillTransGrid(inner,text);
 }
 
-// Antwoord: eerst "The answer is…", dan klikken om het antwoord (met vertaling) te onthullen
+// Antwoord: eerst "The answer is…", dan tik je ergens op het scherm om het antwoord (met vertaling) te onthullen
+let _pendingReveal=null;
 function presentAnswer(text){
+  _pendingReveal=text;
   const inner=document.getElementById('presentInner');
   inner.innerHTML=
-    '<div class="reveal-intro" id="revealIntro">'+
+    '<div class="reveal-intro">'+
       '<div class="a-big">The answer is…</div>'+
       '<div class="reveal-sub">Het antwoord is… &middot; La réponse est… &middot; Die Antwort ist…</div>'+
-      '<div class="reveal-tap">👆 Klik om het antwoord te tonen</div>'+
+      '<div class="reveal-tap">👆 Tik op het scherm om het antwoord te tonen</div>'+
     '</div>';
   openPresent();
-  inner.querySelector('#revealIntro').onclick=()=>revealAnswer(text);
 }
 function revealAnswer(text){
+  _pendingReveal=null;
   const inner=document.getElementById('presentInner');
   inner.innerHTML=
     '<div class="flashfx"></div>'+
@@ -855,7 +873,11 @@ function revealAnswer(text){
 }
 
 document.getElementById('presentClose').onclick=closePresent;
-document.getElementById('present').addEventListener('click',e=>{ if(e.target.id==='present') closePresent(); });
+document.getElementById('present').addEventListener('click',e=>{
+  if(e.target.closest('.present-close')) return;                    // ✕ heeft zijn eigen afhandeling
+  if(_pendingReveal!==null){ revealAnswer(_pendingReveal); return; } // tik = antwoord tonen
+  if(e.target.id==='present') closePresent();                       // tik naast de inhoud = sluiten
+});
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('present').classList.contains('open')) closePresent(); });
 
 function updateAll(){

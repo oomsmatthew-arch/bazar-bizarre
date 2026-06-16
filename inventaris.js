@@ -364,6 +364,7 @@
   function addLevering(lev){
     if(lev.boekjes){ cache.boekjes.stock=(cache.boekjes.stock||0)+(+lev.boekjes||0); dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); }
     const rec={id:uid(),ts:Date.now(),datum:lev.datum||'',boekjes:+lev.boekjes||0,tekst:lev.tekst||''};
+    if(lev.foto) rec.foto=lev.foto; // foto enkel meesturen als er een is (kolom 'foto' nodig in tabel leveringen)
     cache.leveringen.push(rec); dbInsert('leveringen',rec); return rec;
   }
   function undoLastFormulier(){

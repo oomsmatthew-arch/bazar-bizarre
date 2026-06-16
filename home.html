@@ -697,6 +697,21 @@
         </div>
       </div>
       <div class="field">
+        <div class="h">Nieuwe levering registreren</div>
+        <label for="levDatum">Datum</label>
+        <input type="date" id="levDatum" class="finp">
+        <label for="levBoekjes">Boekjes geleverd (komt bij de boekjes-voorraad)</label>
+        <input type="number" id="levBoekjes" class="finp" min="0" value="0">
+        <label for="levTekst">Notitie / opmerking (optioneel)</label>
+        <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
+        <div class="row" style="margin-top:10px;align-items:center;">
+          <button class="btn" id="levFotoBtn">📷 Foto</button>
+          <img id="levFotoPrev" class="thumb" alt="" style="display:none">
+          <button class="btn primary" id="levAdd">Levering toevoegen</button>
+        </div>
+      </div>
+
+      <div class="field">
         <div class="h">Prijs toevoegen</div>
         <div class="addrow">
           <select id="invNewCat">
@@ -756,19 +771,9 @@
       <div id="formList"></div>
     </div>
 
-    <!-- LEVERINGEN -->
+    <!-- LEVERINGEN (overzicht) -->
     <div class="invpane" id="pane-leveringen">
-      <div class="field">
-        <div class="h">Nieuwe levering registreren</div>
-        <label for="levDatum">Datum</label>
-        <input type="date" id="levDatum" class="finp">
-        <label for="levBoekjes">Boekjes geleverd (komt bij de boekjes-voorraad)</label>
-        <input type="number" id="levBoekjes" class="finp" min="0" value="0">
-        <label for="levTekst">Notitie / opmerking (optioneel)</label>
-        <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
-        <div class="row"><button class="btn primary" id="levAdd">Levering toevoegen</button></div>
-      </div>
-      <div class="h" style="margin:24px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Geregistreerde leveringen</div>
+      <p class="hint">Overzicht van alle geregistreerde leveringen (datum, boekjes en notitie). Een nieuwe levering registreer je onder 🔒 Beheer.</p>
       <div id="levList"></div>
     </div>
 
@@ -1659,14 +1664,17 @@ document.getElementById('invAdd').onclick=()=>{
 };
 
 // ---- Leveringen ----
+let levFoto='';
+document.getElementById('levFotoBtn').onclick=()=>chooseFoto(url=>{ levFoto=url||''; const p=document.getElementById('levFotoPrev'); if(p){p.src=levFoto;p.style.display=levFoto?'':'none';} });
 document.getElementById('levAdd').onclick=()=>{
   const datum=document.getElementById('levDatum').value;
   const boekjes=+document.getElementById('levBoekjes').value||0;
   const tekst=document.getElementById('levTekst').value.trim();
-  if(!boekjes&&!tekst){alert('Vul minstens boekjes of een notitie in.');return;}
-  BBInv.addLevering({datum,boekjes,tekst});
+  if(!boekjes&&!tekst&&!levFoto){alert('Vul minstens boekjes, een notitie of een foto in.');return;}
+  BBInv.addLevering({datum,boekjes,tekst,foto:levFoto});
   document.getElementById('levBoekjes').value='0';
   document.getElementById('levTekst').value='';
+  levFoto=''; const p=document.getElementById('levFotoPrev'); if(p){p.src='';p.style.display='none';}
   renderInvSum();renderStats();renderLeveringen();
   alert('Levering geregistreerd.');
 };
@@ -1681,8 +1689,10 @@ function renderLeveringen(){
     if(l.boekjes) parts.push('<b>'+l.boekjes+'</b> boekjes');
     if(l.prijsNaam&&l.prijsAantal) parts.push('<b>'+l.prijsAantal+'</b>× '+esc(l.prijsNaam));
     if(l.tekst) parts.push(esc(l.tekst));
-    d.innerHTML='<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
+    const fotoHtml=l.foto?'<img class="thumb ro" src="'+l.foto+'" alt="" style="float:right;margin-left:10px;cursor:zoom-in">':'';
+    d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
       '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
+    if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
     d.querySelector('.rm').onclick=()=>{if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
     wrap.appendChild(d);
   });
