@@ -218,8 +218,10 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .modal .mbar button{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;
     font-size:14px;padding:9px 14px;border-radius:10px;cursor:pointer;}
-  .modal .mbody{flex:1;min-height:0;border-radius:14px;overflow:hidden;background:#000;display:grid;}
-  .modal .mbody iframe,.modal .mbody video{width:100%;height:100%;border:0;display:block;background:#000;}
+  .modal .mbody{flex:1;min-height:0;border-radius:14px;overflow:hidden;background:#000;
+    display:flex;align-items:center;justify-content:center;}
+  .modal .mbody iframe{width:100%;height:100%;border:0;display:block;background:#000;}
+  .modal .mbody video{max-width:100%;max-height:100%;width:auto;height:auto;display:block;background:#000;}
 
   /* ---- inventaris ---- */
   .finp{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:16px;
