@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entertainment</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2f6450">
@@ -404,6 +404,8 @@
   .bestelform .kaslbl{font-size:11px;font-weight:800;letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase;}
   .bestelform .kaslbl.ent{color:#2f8f6b;} .bestelform .kaslbl.bay{color:#1f6b9a;} .bestelform .kaslbl.hsb{color:#9a6b15;}
   @media(max-width:520px){.bestelform .bf2{grid-template-columns:1fr;}}
+  /* héél smalle gsm: kosten-vakjes (ENT/BAY/HSB) onder elkaar zodat ze niet knellen */
+  @media(max-width:360px){.bestelform .bf3{grid-template-columns:1fr;}}
 
   /* ---- lage-voorraad melding ---- */
   .lowstock{margin-top:18px;border:1px solid #e7b9b0;border-radius:18px;overflow:hidden;
