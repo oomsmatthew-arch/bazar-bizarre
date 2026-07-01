@@ -101,6 +101,19 @@
     }).catch(()=>{});
   }
 
+  // ---- Checklist-media (foto/video) offline bewaren in IndexedDB, per id ----
+  // Video's zijn te groot voor localStorage; we bewaren het bestand (blob) in IndexedDB
+  // en houden in het checklist-item enkel een verwijzing (id) bij.
+  const IDB_MEDIA='chkmedia:';
+  function setChkMedia(id,blob){ return idbSet(IDB_MEDIA+id,blob); }
+  function getChkMedia(id){ return idbGet(IDB_MEDIA+id); }
+  function delChkMedia(id){
+    return idbOpen().then(db=>new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).delete(IDB_MEDIA+id);
+      tx.oncomplete=()=>{db.close();res();}; tx.onerror=()=>{db.close();rej(tx.error);};
+    }));
+  }
+
   // ---- Outbox: wijzigingen die nog naar de database moeten (overleven offline) ----
   let outbox=[]; try{const r=localStorage.getItem(K_OUTBOX); outbox=r?(JSON.parse(r)||[]):[];}catch(e){outbox=[];}
   let flushing=false;
@@ -571,6 +584,7 @@
     getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,
     getContacten,addContact,updateContact,removeContact,isContactenGedeeld:()=>contactenOK,
     getChecklisten,addChecklist,saveChecklist,removeChecklist,reorderChecklisten,isChecklistenGedeeld:()=>checklistenOK,
+    setChkMedia,getChkMedia,delChkMedia,
     getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
     getManualsTree,saveManualsTree,uploadFile,isManualsGedeeld:()=>manualsdocOK,
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,

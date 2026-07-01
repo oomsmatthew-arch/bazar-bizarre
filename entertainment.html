@@ -1666,19 +1666,26 @@ function viewMedia(m){
   document.getElementById('fotoView').classList.add('open');
 }
 function viewFoto(url){ viewMedia({type:'foto',src:url}); }
+// Video-blob tonen: maak een tijdelijke object-URL en geef die vrij bij het sluiten.
+let _fotoViewUrl=null;
+function viewMediaVideoBlob(blob){
+  if(!blob)return;
+  if(_fotoViewUrl){ try{URL.revokeObjectURL(_fotoViewUrl);}catch(_){} }
+  _fotoViewUrl=URL.createObjectURL(blob);
+  viewMedia({type:'video',src:_fotoViewUrl});
+}
 function closeFotoView(){
   const vid=document.getElementById('fotoViewVid'); if(vid&&vid.pause){vid.pause();} if(vid)vid.removeAttribute('src');
+  if(_fotoViewUrl){ try{URL.revokeObjectURL(_fotoViewUrl);}catch(_){} _fotoViewUrl=null; }
   document.getElementById('fotoView').classList.remove('open');
 }
 // Alleen sluiten bij klik op de donkere achtergrond, niet op de video-bediening.
 document.getElementById('fotoView').onclick=e=>{ if(e.target===document.getElementById('fotoView')) closeFotoView(); };
-// Video kiezen (bestand). Geen verkleining mogelijk, dus waarschuwen bij grote bestanden.
+// Video kiezen (bestand). Het bestand zelf (blob) wordt bewaard in IndexedDB, dus
+// ook grote gsm-video's passen. We geven het File-object terug.
 function pickVideo(cb){
   const inp=document.createElement('input'); inp.type='file'; inp.accept='video/*';
-  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f)return;
-    if(f.size>25*1024*1024 && !confirm('Deze video is groot ('+Math.round(f.size/1048576)+' MB) en kan traag laden of veel opslag gebruiken. Toch toevoegen?')) return;
-    const r=new FileReader(); r.onload=()=>cb(r.result); r.onerror=()=>cb(null); r.readAsDataURL(f);
-  };
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; cb(f||null); };
   inp.click();
 }
 function prijsRow(p){
@@ -2326,6 +2333,9 @@ function chkMedia(it){
   return [];
 }
 function chkSetMedia(it,arr){ it.media=(arr||[]).slice(0,2); if('foto' in it) delete it.foto; }
+// Object-URL's van video-thumbnails bijhouden en vrijgeven bij elke herteken.
+let _chkThumbUrls=[];
+function _chkRevokeThumbUrls(){ _chkThumbUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(_){}}); _chkThumbUrls=[]; }
 let chkTabJustDragged=false;
 // Sleep-herschikken van de checklist-tabbladen (muis + touch).
 function chkTabDragInit(tab, cont){
@@ -2425,7 +2435,7 @@ function chkDragInit(handle, row, g, lijst){
 function renderChecklisten(){
   renderChkTabs();
   const lijst=chkActieveLijst();
-  const g=document.getElementById('chkGrid'); if(!g)return; g.innerHTML='';
+  const g=document.getElementById('chkGrid'); if(!g)return; _chkRevokeThumbUrls(); g.innerHTML='';
   const bb=document.getElementById('chkBeheerBtn');
   bb.textContent=chkBeheer?'🔓 Beheer sluiten':'🔒 Beheer'; bb.classList.toggle('aan',chkBeheer);
   if(!lijst){
@@ -2447,8 +2457,8 @@ function renderChecklisten(){
       html+='<div class="chkmedia">';
       media.forEach((m,mi)=>{
         const el = m.type==='video'
-          ? '<video class="thumb ro chkm" data-mi="'+mi+'" src="'+m.src+'" muted playsinline preload="metadata"></video><span class="vbadge">▶</span>'
-          : '<img class="thumb ro chkm" data-mi="'+mi+'" src="'+m.src+'" alt="">';
+          ? '<video class="thumb ro chkm" data-mi="'+mi+'" muted playsinline preload="metadata"></video><span class="vbadge">▶</span>'
+          : '<img class="thumb ro chkm" data-mi="'+mi+'" src="'+(m.src||'')+'" alt="">';
         html+='<div class="thumbwrap">'+el+(chkBeheer?'<button type="button" class="thumbx" data-rm="'+mi+'" title="Verwijderen">✕</button>':'')+'</div>';
       });
       if(chkBeheer && media.length<2){
@@ -2462,10 +2472,21 @@ function renderChecklisten(){
     row.innerHTML=html;
     const toggle=()=>{ it.done=!it.done; BBInv.saveChecklist(lijst); renderChecklisten(); };
     row.querySelector('.chkbox').onclick=toggle;
-    // media aanklikken → vergroten (in beide modi)
+    // media aanklikken → vergroten (in beide modi); video's laden async uit IndexedDB
     row.querySelectorAll('.chkm').forEach(elm=>{
+      const m=chkMedia(it)[+elm.dataset.mi];
       elm.style.cursor='zoom-in';
-      elm.onclick=e=>{ e.stopPropagation(); viewMedia(chkMedia(it)[+elm.dataset.mi]); };
+      if(m.type==='video'){
+        if(m.src){ elm.src=m.src; }
+        else if(m.id && BBInv.getChkMedia){ BBInv.getChkMedia(m.id).then(blob=>{ if(blob){ const u=URL.createObjectURL(blob); _chkThumbUrls.push(u); elm.src=u; elm._blob=blob; } }).catch(()=>{}); }
+        elm.onclick=e=>{ e.stopPropagation();
+          if(elm._blob) viewMediaVideoBlob(elm._blob);
+          else if(m.src) viewMedia({type:'video',src:m.src});
+          else if(m.id && BBInv.getChkMedia) BBInv.getChkMedia(m.id).then(b=>{ if(b) viewMediaVideoBlob(b); });
+        };
+      } else {
+        elm.onclick=e=>{ e.stopPropagation(); viewMedia(m); };
+      }
     });
     if(chkBeheer){
       const bewerk=()=>{ const n=prompt('Item bewerken:',it.text); if(n===null)return; const t=n.trim(); if(!t)return; it.text=t; BBInv.saveChecklist(lijst); renderChecklisten(); };
@@ -2476,19 +2497,34 @@ function renderChecklisten(){
       // media verwijderen
       row.querySelectorAll('.thumbx[data-rm]').forEach(btn=>{
         btn.onclick=e=>{ e.stopPropagation(); if(!confirm('Deze media verwijderen?'))return;
-          const arr=chkMedia(it).slice(); arr.splice(+btn.dataset.rm,1); chkSetMedia(it,arr);
+          const arr=chkMedia(it).slice(); const removed=arr.splice(+btn.dataset.rm,1)[0];
+          if(removed && removed.type==='video' && removed.id && BBInv.delChkMedia) BBInv.delChkMedia(removed.id).catch(()=>{});
+          chkSetMedia(it,arr);
           BBInv.saveChecklist(lijst); renderChecklisten(); };
       });
-      // media toevoegen (foto of video), max 2
-      const addOne=m=>{ if(!m)return; const prev=chkMedia(it).slice(); if(prev.length>=2)return;
+      // foto toevoegen (klein, direct in het item), max 2
+      const addFoto=m=>{ if(!m)return; const prev=chkMedia(it).slice(); if(prev.length>=2)return;
         chkSetMedia(it,prev.concat([m]));
         try{ BBInv.saveChecklist(lijst); }
-        catch(err){ chkSetMedia(it,prev); alert('Onvoldoende opslagruimte voor deze media. Probeer een kortere/kleinere video.'); return; }
+        catch(err){ chkSetMedia(it,prev); alert('Onvoldoende opslagruimte voor deze foto.'); return; }
         renderChecklisten(); };
       row.querySelectorAll('.chkaddmedia').forEach(btn=>{
         btn.onclick=e=>{ e.stopPropagation();
-          if(btn.dataset.add==='video') pickVideo(src=>{ if(src) addOne({type:'video',src}); });
-          else chooseFoto(url=>{ if(url) addOne({type:'foto',src:url}); });
+          if(btn.dataset.add==='video'){
+            if(!BBInv.setChkMedia){ alert('Video-opslag is niet beschikbaar op dit toestel.'); return; }
+            pickVideo(file=>{
+              if(!file) return;
+              const prev=chkMedia(it).slice(); if(prev.length>=2) return;
+              const id='v'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+              BBInv.setChkMedia(id,file).then(()=>{
+                chkSetMedia(it, prev.concat([{type:'video',id,name:file.name||'video'}]));
+                BBInv.saveChecklist(lijst);
+                renderChecklisten();
+              }).catch(()=>{ alert('Kon de video niet op dit toestel opslaan (opslag vol?).'); });
+            });
+          } else {
+            chooseFoto(url=>{ if(url) addFoto({type:'foto',src:url}); });
+          }
         };
       });
     } else {
