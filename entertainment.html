@@ -125,6 +125,17 @@
   .chk .chktxt{flex:1;min-width:0;font-weight:600;font-size:15px;color:var(--text);}
   .chk .chkdel{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);
     border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:13px;}
+  .chk .chkedit{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px;}
+  .chk .chkmove{flex:0 0 auto;display:flex;flex-direction:column;gap:2px;}
+  .chk .chkmove button{border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:6px;width:26px;height:15px;line-height:1;cursor:pointer;font-size:9px;padding:0;
+    display:grid;place-items:center;}
+  .chk .chkmove button:disabled{opacity:.3;cursor:not-allowed;}
+  .chk.beheer{cursor:default;}
+  .chk .thumb{width:46px;height:46px;border-radius:8px;}
+  .chk .thumb.ph{font-size:20px;}
+  .chk .thumb.ro{cursor:zoom-in;}
   .chk.done{border-color:#1faa6b;background:rgba(31,170,107,.10);}
   .chk.done .chkbox{background:#1faa6b;border-color:#1faa6b;}
   .chk.done .chktxt{text-decoration:line-through;color:var(--muted);}
@@ -2307,12 +2318,36 @@ function renderChecklisten(){
     return;
   }
   lijst.items.forEach((it,i)=>{
-    const row=document.createElement('div'); row.className='chk'+(it.done?' done':'');
-    row.innerHTML='<div class="chkbox">'+(it.done?'✓':'')+'</div><div class="chktxt">'+esc(it.text)+'</div>'+
-      (chkBeheer?'<button class="chkdel" title="Verwijderen">✕</button>':'');
+    const row=document.createElement('div'); row.className='chk'+(it.done?' done':'')+(chkBeheer?' beheer':'');
+    let html='<div class="chkbox">'+(it.done?'✓':'')+'</div>';
+    if(chkBeheer){
+      html+='<div class="chkmove"><button class="chkup" title="Omhoog"'+(i===0?' disabled':'')+'>▲</button><button class="chkdn" title="Omlaag"'+(i===lijst.items.length-1?' disabled':'')+'>▼</button></div>';
+      html+='<div class="thumbwrap">'+(it.foto?'<img class="thumb" src="'+it.foto+'" alt=""><button type="button" class="thumbx" title="Foto verwijderen">✕</button>':'<div class="thumb ph">📷</div>')+'</div>';
+    } else if(it.foto){
+      html+='<img class="thumb ro chkfoto" src="'+it.foto+'" alt="">';
+    }
+    html+='<div class="chktxt">'+esc(it.text)+'</div>';
+    if(chkBeheer) html+='<button class="chkedit" title="Bewerken">✎</button><button class="chkdel" title="Verwijderen">✕</button>';
+    row.innerHTML=html;
     const toggle=()=>{ it.done=!it.done; BBInv.saveChecklist(lijst); renderChecklisten(); };
-    row.querySelector('.chkbox').onclick=toggle; row.querySelector('.chktxt').onclick=toggle;
-    if(chkBeheer) row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); BBInv.saveChecklist(lijst); renderChecklisten(); };
+    row.querySelector('.chkbox').onclick=toggle;
+    if(chkBeheer){
+      const bewerk=()=>{ const n=prompt('Item bewerken:',it.text); if(n===null)return; const t=n.trim(); if(!t)return; it.text=t; BBInv.saveChecklist(lijst); renderChecklisten(); };
+      const verplaats=d=>{ const j=i+d; if(j<0||j>=lijst.items.length)return; const a=lijst.items; const tmp=a[i]; a[i]=a[j]; a[j]=tmp; BBInv.saveChecklist(lijst); renderChecklisten(); };
+      row.querySelector('.chktxt').onclick=bewerk;
+      row.querySelector('.chkedit').onclick=e=>{ e.stopPropagation(); bewerk(); };
+      row.querySelector('.chkup').onclick=e=>{ e.stopPropagation(); verplaats(-1); };
+      row.querySelector('.chkdn').onclick=e=>{ e.stopPropagation(); verplaats(1); };
+      row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); BBInv.saveChecklist(lijst); renderChecklisten(); };
+      const tb=row.querySelector('.thumb');
+      if(tb) tb.onclick=e=>{ e.stopPropagation(); chooseFoto(url=>{ if(!url)return; it.foto=url; BBInv.saveChecklist(lijst); renderChecklisten(); }); };
+      const tx=row.querySelector('.thumbx');
+      if(tx) tx.onclick=e=>{ e.stopPropagation(); if(confirm('Foto verwijderen?')){ it.foto=''; BBInv.saveChecklist(lijst); renderChecklisten(); } };
+    } else {
+      row.querySelector('.chktxt').onclick=toggle;
+      const f=row.querySelector('.chkfoto');
+      if(f){ f.style.cursor='zoom-in'; f.onclick=e=>{ e.stopPropagation(); viewFoto(it.foto); }; }
+    }
     g.appendChild(row);
   });
   if(!lijst.items.length) g.innerHTML='<div class="chkempty">'+(chkBeheer?'Nog geen items. Voeg er hieronder een toe.':'Nog geen items in deze lijst.')+'</div>';
