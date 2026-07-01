@@ -2291,13 +2291,12 @@ let chkTabJustDragged=false;
 function chkTabDragInit(tab, cont){
   tab.addEventListener('pointerdown', e=>{
     if(e.button!==undefined && e.button>0) return;
-    const startX=e.clientX, startY=e.clientY, pid=e.pointerId;
+    const startX=e.clientX, startY=e.clientY;
     let dragging=false;
     const move=ev=>{
       if(!dragging){
         if(Math.abs(ev.clientX-startX)+Math.abs(ev.clientY-startY)<8) return;
         dragging=true;
-        try{tab.setPointerCapture(pid);}catch(_){}
         tab.classList.add('dragging');
       }
       const el=document.elementFromPoint(ev.clientX,ev.clientY);
@@ -2309,11 +2308,10 @@ function chkTabDragInit(tab, cont){
       }
     };
     const up=()=>{
-      tab.removeEventListener('pointermove',move);
-      tab.removeEventListener('pointerup',up);
-      tab.removeEventListener('pointercancel',up);
+      document.removeEventListener('pointermove',move);
+      document.removeEventListener('pointerup',up);
+      document.removeEventListener('pointercancel',up);
       if(dragging){
-        try{tab.releasePointerCapture(pid);}catch(_){}
         tab.classList.remove('dragging');
         chkTabJustDragged=true; setTimeout(()=>{chkTabJustDragged=false;},0);
         const ids=[...cont.querySelectorAll('.chktab')].filter(x=>!x.classList.contains('add')).map(x=>x.dataset.id);
@@ -2321,9 +2319,9 @@ function chkTabDragInit(tab, cont){
         renderChecklisten();
       }
     };
-    tab.addEventListener('pointermove',move);
-    tab.addEventListener('pointerup',up);
-    tab.addEventListener('pointercancel',up);
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',up);
+    document.addEventListener('pointercancel',up);
   });
 }
 function renderChkTabs(){
@@ -2349,10 +2347,11 @@ function renderChkTabs(){
   }
 }
 // Sleep-herschikken van checklist-items (werkt met muis en touch via pointer events).
+// De move/up-listeners staan op document, zodat het slepen doorloopt ook als de
+// muis/vinger het kleine handvat verlaat.
 function chkDragInit(handle, row, g, lijst){
   handle.addEventListener('pointerdown', e=>{
     e.preventDefault();
-    try{handle.setPointerCapture(e.pointerId);}catch(_){}
     row.classList.add('dragging');
     const rows=()=>[...g.querySelectorAll('.chk')];
     const move=ev=>{
@@ -2366,10 +2365,9 @@ function chkDragInit(handle, row, g, lijst){
       if(before) g.insertBefore(row,before); else g.appendChild(row);
     };
     const up=()=>{
-      try{handle.releasePointerCapture(e.pointerId);}catch(_){}
-      handle.removeEventListener('pointermove',move);
-      handle.removeEventListener('pointerup',up);
-      handle.removeEventListener('pointercancel',up);
+      document.removeEventListener('pointermove',move);
+      document.removeEventListener('pointerup',up);
+      document.removeEventListener('pointercancel',up);
       row.classList.remove('dragging');
       const order=rows().map(r=>+r.dataset.idx);
       if(order.some((v,idx)=>v!==idx)){
@@ -2378,9 +2376,9 @@ function chkDragInit(handle, row, g, lijst){
       }
       renderChecklisten();
     };
-    handle.addEventListener('pointermove',move);
-    handle.addEventListener('pointerup',up);
-    handle.addEventListener('pointercancel',up);
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',up);
+    document.addEventListener('pointercancel',up);
   });
 }
 
