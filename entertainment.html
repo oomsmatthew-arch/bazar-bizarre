@@ -113,6 +113,8 @@
   .chktab.active{background:#1faa6b;border-color:#1faa6b;color:#fff;}
   .chktab.active .ct{color:#fff;background:rgba(255,255,255,.22);border-color:transparent;}
   .chktab.add{border-style:dashed;color:#1faa6b;background:transparent;}
+  .chktabs.beheer .chktab:not(.add){cursor:grab;touch-action:none;}
+  .chktab.dragging{opacity:.9;box-shadow:0 8px 20px rgba(31,81,53,.3);}
   .chkbar{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
   .chkcount{font-weight:700;font-size:14px;color:var(--text);}
   .chkprog{flex:1;min-width:120px;height:9px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;overflow:hidden;}
@@ -127,11 +129,12 @@
     border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:13px;}
   .chk .chkedit{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);
     border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px;}
-  .chk .chkmove{flex:0 0 auto;display:flex;flex-direction:column;gap:2px;}
-  .chk .chkmove button{border:1px solid var(--line);background:transparent;color:var(--muted);
-    border-radius:6px;width:26px;height:15px;line-height:1;cursor:pointer;font-size:9px;padding:0;
-    display:grid;place-items:center;}
-  .chk .chkmove button:disabled{opacity:.3;cursor:not-allowed;}
+  .chk .chkdrag{flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--muted);border-radius:8px;display:grid;place-items:center;font-size:17px;
+    cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .chk .chkdrag:active{cursor:grabbing;}
+  .chk.dragging{opacity:.95;box-shadow:0 12px 30px rgba(31,81,53,.28);position:relative;z-index:5;
+    border-color:#1faa6b;}
   .chk.beheer{cursor:default;}
   .chk .thumb{width:46px;height:46px;border-radius:8px;}
   .chk .thumb.ph{font-size:20px;}
@@ -2283,15 +2286,57 @@ document.getElementById('contAdd').onclick=()=>{
 let chkActief=null;
 let chkBeheer=false;
 function chkActieveLijst(){ const ls=BBInv.getChecklisten(); return ls.find(l=>l.id===chkActief)||ls[0]||null; }
+let chkTabJustDragged=false;
+// Sleep-herschikken van de checklist-tabbladen (muis + touch).
+function chkTabDragInit(tab, cont){
+  tab.addEventListener('pointerdown', e=>{
+    if(e.button!==undefined && e.button>0) return;
+    const startX=e.clientX, startY=e.clientY, pid=e.pointerId;
+    let dragging=false;
+    const move=ev=>{
+      if(!dragging){
+        if(Math.abs(ev.clientX-startX)+Math.abs(ev.clientY-startY)<8) return;
+        dragging=true;
+        try{tab.setPointerCapture(pid);}catch(_){}
+        tab.classList.add('dragging');
+      }
+      const el=document.elementFromPoint(ev.clientX,ev.clientY);
+      const over=el&&el.closest?el.closest('.chktab'):null;
+      if(over&&over!==tab&&over.parentElement===cont&&!over.classList.contains('add')){
+        const rect=over.getBoundingClientRect();
+        if(ev.clientX>rect.left+rect.width/2) cont.insertBefore(tab,over.nextSibling);
+        else cont.insertBefore(tab,over);
+      }
+    };
+    const up=()=>{
+      tab.removeEventListener('pointermove',move);
+      tab.removeEventListener('pointerup',up);
+      tab.removeEventListener('pointercancel',up);
+      if(dragging){
+        try{tab.releasePointerCapture(pid);}catch(_){}
+        tab.classList.remove('dragging');
+        chkTabJustDragged=true; setTimeout(()=>{chkTabJustDragged=false;},0);
+        const ids=[...cont.querySelectorAll('.chktab')].filter(x=>!x.classList.contains('add')).map(x=>x.dataset.id);
+        BBInv.reorderChecklisten(ids);
+        renderChecklisten();
+      }
+    };
+    tab.addEventListener('pointermove',move);
+    tab.addEventListener('pointerup',up);
+    tab.addEventListener('pointercancel',up);
+  });
+}
 function renderChkTabs(){
   const t=document.getElementById('chkTabs'); if(!t)return; t.innerHTML='';
+  t.classList.toggle('beheer',chkBeheer);
   const ls=BBInv.getChecklisten();
   if(ls.length && !ls.find(l=>l.id===chkActief)) chkActief=ls[0].id;
   ls.forEach(l=>{
     const done=l.items.filter(x=>x.done).length;
-    const b=document.createElement('button'); b.className='chktab'+(l.id===chkActief?' active':'');
+    const b=document.createElement('button'); b.className='chktab'+(l.id===chkActief?' active':''); b.dataset.id=l.id;
     b.innerHTML=esc(l.naam)+' <span class="ct">'+done+'/'+l.items.length+'</span>';
-    b.onclick=()=>{ chkActief=l.id; renderChecklisten(); };
+    b.onclick=()=>{ if(chkTabJustDragged)return; chkActief=l.id; renderChecklisten(); };
+    if(chkBeheer) chkTabDragInit(b,t);
     t.appendChild(b);
   });
   if(chkBeheer){
@@ -2303,6 +2348,42 @@ function renderChkTabs(){
     t.appendChild(add);
   }
 }
+// Sleep-herschikken van checklist-items (werkt met muis en touch via pointer events).
+function chkDragInit(handle, row, g, lijst){
+  handle.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    try{handle.setPointerCapture(e.pointerId);}catch(_){}
+    row.classList.add('dragging');
+    const rows=()=>[...g.querySelectorAll('.chk')];
+    const move=ev=>{
+      const y=ev.clientY;
+      let before=null;
+      for(const sib of rows()){
+        if(sib===row) continue;
+        const rect=sib.getBoundingClientRect();
+        if(y < rect.top + rect.height/2){ before=sib; break; }
+      }
+      if(before) g.insertBefore(row,before); else g.appendChild(row);
+    };
+    const up=()=>{
+      try{handle.releasePointerCapture(e.pointerId);}catch(_){}
+      handle.removeEventListener('pointermove',move);
+      handle.removeEventListener('pointerup',up);
+      handle.removeEventListener('pointercancel',up);
+      row.classList.remove('dragging');
+      const order=rows().map(r=>+r.dataset.idx);
+      if(order.some((v,idx)=>v!==idx)){
+        lijst.items=order.map(idx=>lijst.items[idx]);
+        BBInv.saveChecklist(lijst);
+      }
+      renderChecklisten();
+    };
+    handle.addEventListener('pointermove',move);
+    handle.addEventListener('pointerup',up);
+    handle.addEventListener('pointercancel',up);
+  });
+}
+
 function renderChecklisten(){
   renderChkTabs();
   const lijst=chkActieveLijst();
@@ -2319,9 +2400,10 @@ function renderChecklisten(){
   }
   lijst.items.forEach((it,i)=>{
     const row=document.createElement('div'); row.className='chk'+(it.done?' done':'')+(chkBeheer?' beheer':'');
+    row.dataset.idx=i;
     let html='<div class="chkbox">'+(it.done?'✓':'')+'</div>';
     if(chkBeheer){
-      html+='<div class="chkmove"><button class="chkup" title="Omhoog"'+(i===0?' disabled':'')+'>▲</button><button class="chkdn" title="Omlaag"'+(i===lijst.items.length-1?' disabled':'')+'>▼</button></div>';
+      html+='<div class="chkdrag" title="Sleep om te verplaatsen">⇅</div>';
       html+='<div class="thumbwrap">'+(it.foto?'<img class="thumb" src="'+it.foto+'" alt=""><button type="button" class="thumbx" title="Foto verwijderen">✕</button>':'<div class="thumb ph">📷</div>')+'</div>';
     } else if(it.foto){
       html+='<img class="thumb ro chkfoto" src="'+it.foto+'" alt="">';
@@ -2333,12 +2415,10 @@ function renderChecklisten(){
     row.querySelector('.chkbox').onclick=toggle;
     if(chkBeheer){
       const bewerk=()=>{ const n=prompt('Item bewerken:',it.text); if(n===null)return; const t=n.trim(); if(!t)return; it.text=t; BBInv.saveChecklist(lijst); renderChecklisten(); };
-      const verplaats=d=>{ const j=i+d; if(j<0||j>=lijst.items.length)return; const a=lijst.items; const tmp=a[i]; a[i]=a[j]; a[j]=tmp; BBInv.saveChecklist(lijst); renderChecklisten(); };
       row.querySelector('.chktxt').onclick=bewerk;
       row.querySelector('.chkedit').onclick=e=>{ e.stopPropagation(); bewerk(); };
-      row.querySelector('.chkup').onclick=e=>{ e.stopPropagation(); verplaats(-1); };
-      row.querySelector('.chkdn').onclick=e=>{ e.stopPropagation(); verplaats(1); };
       row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); BBInv.saveChecklist(lijst); renderChecklisten(); };
+      chkDragInit(row.querySelector('.chkdrag'), row, g, lijst);
       const tb=row.querySelector('.thumb');
       if(tb) tb.onclick=e=>{ e.stopPropagation(); chooseFoto(url=>{ if(!url)return; it.foto=url; BBInv.saveChecklist(lijst); renderChecklisten(); }); };
       const tx=row.querySelector('.thumbx');

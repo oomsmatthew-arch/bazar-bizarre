@@ -375,6 +375,13 @@
     cache.checklisten=cache.checklisten.filter(l=>l.id!==id); saveChecklistBackup();
     if(checklistenOK) dbDelete('checklisten','id',id); else persistCache();
   }
+  // nieuwe volgorde van de lijsten (array van id's) → pos bijwerken en bewaren
+  function reorderChecklisten(ids){
+    ids.forEach((id,idx)=>{ const r=cache.checklisten.find(x=>x.id===id); if(r) r.pos=idx; });
+    saveChecklistBackup();
+    if(checklistenOK){ ids.forEach(id=>{ const r=cache.checklisten.find(x=>x.id===id); if(r) dbUpsert('checklisten',checklistToRow(r)); }); }
+    else persistCache();
+  }
 
   // ---------------- LOGBOEK / OVERDRACHT (gedeeld) ----------------
   const getLogboek=()=>cache.logboek.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -563,7 +570,7 @@
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
     getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,
     getContacten,addContact,updateContact,removeContact,isContactenGedeeld:()=>contactenOK,
-    getChecklisten,addChecklist,saveChecklist,removeChecklist,isChecklistenGedeeld:()=>checklistenOK,
+    getChecklisten,addChecklist,saveChecklist,removeChecklist,reorderChecklisten,isChecklistenGedeeld:()=>checklistenOK,
     getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
     getManualsTree,saveManualsTree,uploadFile,isManualsGedeeld:()=>manualsdocOK,
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
