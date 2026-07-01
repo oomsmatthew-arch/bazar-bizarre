@@ -1046,7 +1046,7 @@ function renderKiesLijst(cat){
   items.forEach(p=>{
     const sel=fSel[cat][p.id];
     const row=document.createElement('div'); row.className='kiesrij'+(sel?' aan':'');
-    row.innerHTML=(p.foto?'<img class="kfoto" src="'+p.foto+'" alt="">':'')+'<div class="knaam">'+esc(p.naam)+'<span class="kstock">stock '+(p.stock||0)+(sel?' · '+sel+' weg':'')+(fUsage[p.id]?' · '+fUsage[p.id]+'× gegeven':'')+'</span></div>';
+    row.innerHTML=(p.foto?'<img class="kfoto" src="'+p.foto+'" alt="">':'')+'<div class="knaam">'+esc(p.naam)+'<span class="kstock">stock '+(p.stock||0)+(sel?' · '+sel+' weg':'')+'</span></div>';
     if(sel){
       const st=document.createElement('div'); st.className='qstep';
       st.innerHTML='<button type="button" class="qmin">−</button><span class="qn">'+sel+'</span><button type="button" class="qpl">+</button>';

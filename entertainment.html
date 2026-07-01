@@ -506,7 +506,6 @@
         <div class="lbl">⚠ Voorraad bijna op</div>
         <div class="ls-items" id="lowstockItems"></div>
         <div class="row">
-          <button class="btn primary" id="lowstockMail">✉ Bestellijst mailen</button>
           <button class="btn" id="lowstockGoto">Naar voorraad</button>
         </div>
       </div>
@@ -581,7 +580,8 @@
     <div class="settings">
       <div class="field">
         <div class="h">Mededeling op de homepagina</div>
-        <textarea id="setMededeling" placeholder="Typ hier de mededeling die op de home pagina verschijnt"></textarea>
+        <label for="setMededeling">Eén mededeling per regel. Staan er meerdere, dan wisselen ze op de homepagina elke 4 seconden af.</label>
+        <textarea id="setMededeling" placeholder="Typ hier een mededeling&#10;Elke nieuwe regel is een aparte mededeling"></textarea>
         <div class="row">
           <button class="btn primary" id="saveMededeling">Mededeling opslaan</button>
           <button class="btn clear" id="clearMededeling">Mededeling wissen</button>
@@ -1011,6 +1011,8 @@ const DEFAULT_DREMPEL2=24;
 const DEFAULT_DREMPEL_BK=500;
 
 function getMededeling(){return localStorage.getItem(K_MED)||'';}
+// Elke niet-lege regel is een aparte mededeling; meerdere regels roteren op de home.
+function getMededelingen(){return getMededeling().split('\n').map(s=>s.trim()).filter(Boolean);}
 function getLinks(){try{return Object.assign({inventaris:'',manuals:''},JSON.parse(localStorage.getItem(K_LINKS))||{});}catch(e){return{inventaris:'',manuals:''};}}
 function getPin(){return localStorage.getItem(K_PIN)||DEFAULT_PIN;}
 function getDrempel(){const v=parseInt(localStorage.getItem(K_DREMPEL),10);return isNaN(v)?DEFAULT_DREMPEL:v;}
@@ -1070,12 +1072,47 @@ function syncConfig(){
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ---------------- HOME RENDER ----------------
-function renderHome(){
+// ---------------- ROTERENDE MELDINGEN ----------------
+// Zowel de voorraad-banners als de mededelingen wisselen elke 4 sec af als er
+// meerdere zijn. Is er maar één, dan blijft die gewoon staan.
+let medList=[];
+const bannerActive={red:false,org:false};
+let rotIndex=0, rotTimer=null;
+const ROT_MS=4000;
+
+function activeBannerKeys(){const a=[]; if(bannerActive.red)a.push('red'); if(bannerActive.org)a.push('org'); return a;}
+
+function applyRotation(i){
+  // banners
+  const keys=activeBannerKeys();
+  let showKey=null;
+  if(keys.length===1) showKey=keys[0];
+  else if(keys.length>1) showKey=keys[i%keys.length];
+  document.getElementById('lowstockBanner').classList.toggle('show',showKey==='red');
+  document.getElementById('attentionBanner').classList.toggle('show',showKey==='org');
+  // mededelingen
   const txt=document.getElementById('mededelingTxt');
-  const m=getMededeling().trim();
-  if(m){txt.textContent=m;txt.classList.remove('empty');}
-  else{txt.textContent='Nog geen mededeling. Voeg er een toe via Instellingen.';txt.classList.add('empty');}
-  renderLowstock();
+  if(medList.length){
+    txt.textContent=medList[i%medList.length];
+    txt.classList.remove('empty');
+  } else {
+    txt.textContent='Nog geen mededeling. Voeg er een toe via Instellingen.';
+    txt.classList.add('empty');
+  }
+}
+function startRotation(){
+  if(rotTimer){clearInterval(rotTimer);rotTimer=null;}
+  rotIndex=0;
+  applyRotation(0);
+  if(activeBannerKeys().length>1 || medList.length>1){
+    rotTimer=setInterval(()=>{rotIndex++;applyRotation(rotIndex);},ROT_MS);
+  }
+}
+
+function renderHome(){
+  medList=getMededelingen();
+  computeLowstock();
+  startRotation();
 }
 
 // ---------------- LAGE VOORRAAD ----------------
@@ -1096,37 +1133,24 @@ function lowstockLists(){
   const bkStock=BBInv.getBoekjes().stock||0;
   return {kritiek,aandacht,boekjesLaag:bkStock<=dBk,boekjesStock:bkStock};
 }
-function renderLowstock(){
+function computeLowstock(){
   const {kritiek,aandacht,boekjesLaag,boekjesStock}=lowstockLists();
-  const red=document.getElementById('lowstockBanner');
-  if(kritiek.length||boekjesLaag){
-    red.classList.add('show');
+  bannerActive.red = !!(kritiek.length||boekjesLaag);
+  if(bannerActive.red){
     let html='';
     if(kritiek.length) html+='<b>'+kritiek.length+(kritiek.length===1?' prijs is':' prijzen zijn')+' (bijna) op.</b> ';
     if(boekjesLaag) html+='<b>📕 Boekjes bijna op (nog '+boekjesStock+').</b> ';
     html+='Bekijk via Naar voorraad.';
     document.getElementById('lowstockItems').innerHTML=html;
-  } else red.classList.remove('show');
-  const org=document.getElementById('attentionBanner');
-  if(aandacht.length){
-    org.classList.add('show');
+  }
+  bannerActive.org = !!aandacht.length;
+  if(bannerActive.org){
     document.getElementById('attentionItems').innerHTML=
       '<b>'+aandacht.length+(aandacht.length===1?' prijs raakt':' prijzen raken')+' laag.</b> Bekijk via Naar voorraad.';
-  } else org.classList.remove('show');
+  }
 }
 document.getElementById('lowstockGoto').onclick=()=>{ renderInventaris(); show('inventaris'); };
 document.getElementById('attentionGoto').onclick=()=>{ renderInventaris(); show('inventaris'); };
-document.getElementById('lowstockMail').onclick=()=>{
-  const {kritiek,boekjesLaag,boekjesStock}=lowstockLists();
-  if(!kritiek.length&&!boekjesLaag){alert('Niets onder de kritieke drempel.');return;}
-  const naar=getBestelMail();
-  const regels=kritiek.map(it=>'- '+it.naam+' (nog '+(it.stock||0)+' op voorraad)');
-  if(boekjesLaag) regels.unshift('- Boekjes (nog '+boekjesStock+' op voorraad)');
-  const body='Hallo,\n\nGraag bijbestellen — de volgende zijn (bijna) op:\n\n'+regels.join('\n')+'\n\nMet vriendelijke groet';
-  const url='mailto:'+encodeURIComponent(naar)+'?subject='+encodeURIComponent('Bestellijst Bazar Bizarre')+'&body='+encodeURIComponent(body);
-  window.location.href=url;
-};
-
 // koppelingskaarten (inventaris)
 document.querySelectorAll('[data-link]').forEach(a=>{
   a.addEventListener('click',e=>{
@@ -1198,7 +1222,7 @@ document.getElementById('saveLowstock').onclick=()=>{
   localStorage.setItem(K_DREMPEL,isNaN(d)||d<0?DEFAULT_DREMPEL:d);
   localStorage.setItem(K_DREMPEL2,isNaN(d2)||d2<0?DEFAULT_DREMPEL2:d2);
   localStorage.setItem(K_DREMPEL_BK,isNaN(dbk)||dbk<0?DEFAULT_DREMPEL_BK:dbk);
-  pushConfig(); renderLowstock();
+  pushConfig(); renderHome();
   alert('Opgeslagen. De waarschuwingen op de homepagina zijn bijgewerkt.');
 };
 document.getElementById('changePin').onclick=()=>{
@@ -1762,7 +1786,7 @@ function renderStats(){
     card(bk,'Boekjes op voorraad · '+bs.t,bs.c)+
     card(levVal,levLbl);
   const el=document.getElementById('statTop'); if(el) el.innerHTML='';
-  renderLowstock(); // melding op de homepagina meteen mee bijwerken
+  renderHome(); // banners + mededelingen op de homepagina meteen mee bijwerken
 }
 let beheerOnlyUse=false;
 let beheerCat='all';
