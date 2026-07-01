@@ -1,8 +1,8 @@
 {
-  "name": "Bazar Bizarre — Spelleider",
-  "short_name": "Bazar Bizarre",
-  "description": "Spelleider-tool voor het Bazar Bizarre prijzenspel",
-  "start_url": "./index.html",
+  "name": "Entertainment",
+  "short_name": "Entertainment",
+  "description": "Entertainment startpagina met het Bazar Bizarre spel, inventaris en online manuals",
+  "start_url": "./entertainment.html",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f1f3d",

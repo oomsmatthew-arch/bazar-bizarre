@@ -29,7 +29,10 @@
   function loadBestelBackup(){ loadBackup('bestellingen',K_BESTEL_BACKUP); }
   function saveBestelBackup(){ saveBackup('bestellingen',K_BESTEL_BACKUP); }
 
-  // ---- Volledige offline-fallback: laatst bekende gegevens (zonder foto's, om plaats te sparen) ----
+  // ---- Volledige offline-fallback: laatst bekende gegevens ----
+  // De tekstgegevens gaan naar localStorage (klein en snel). De prijs-foto's zijn te groot
+  // voor localStorage (limiet ~5 MB), dus die bewaren we apart in IndexedDB (zie hieronder),
+  // zodat ze óók offline zichtbaar blijven zonder de slanke fallback te overladen.
   function persistCache(){
     try{
       const slim={
@@ -39,6 +42,7 @@
       };
       localStorage.setItem(K_CACHE,JSON.stringify(slim));
     }catch(e){}
+    savePhotosToIDB();
   }
   function loadCacheFallback(){
     try{ const r=localStorage.getItem(K_CACHE); if(!r) return false; const c=JSON.parse(r); if(!c) return false;
@@ -46,6 +50,55 @@
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
       cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null; return true;
     }catch(e){ return false; }
+  }
+
+  // ---- Prijs-foto's offline bewaren in IndexedDB (veel ruimer dan localStorage) ----
+  const IDB_NAME='bb_offline', IDB_STORE='kv', IDB_PHOTOKEY='prijzenfoto';
+  function idbOpen(){
+    return new Promise((res,rej)=>{
+      try{
+        const req=indexedDB.open(IDB_NAME,1);
+        req.onupgradeneeded=()=>{ const db=req.result; if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE); };
+        req.onsuccess=()=>res(req.result);
+        req.onerror=()=>rej(req.error);
+      }catch(e){ rej(e); }
+    });
+  }
+  function idbSet(key,val){
+    return idbOpen().then(db=>new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(val,key);
+      tx.oncomplete=()=>{db.close();res();}; tx.onerror=()=>{db.close();rej(tx.error);};
+    }));
+  }
+  function idbGet(key){
+    return idbOpen().then(db=>new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readonly'); const rq=tx.objectStore(IDB_STORE).get(key);
+      rq.onsuccess=()=>{db.close();res(rq.result);}; rq.onerror=()=>{db.close();rej(rq.error);};
+    }));
+  }
+  // Alleen wegschrijven wanneer de foto-verzameling echt veranderde (persistCache wordt
+  // bij elke stock-tik aangeroepen; zonder deze check zouden we telkens alle beelden herschrijven).
+  let _lastPhotoSig='';
+  function savePhotosToIDB(){
+    try{
+      if(typeof indexedDB==='undefined') return;
+      const withFoto=cache.prijzen.filter(p=>p.foto);
+      const sig=withFoto.map(p=>p.id+':'+p.foto.length).join('|');
+      if(sig===_lastPhotoSig) return;      // niets veranderd → niets doen
+      if(!withFoto.length && !_lastPhotoSig) return; // nog nooit foto's → geen lege schrijf
+      _lastPhotoSig=sig;
+      idbSet(IDB_PHOTOKEY,withFoto.map(p=>({id:p.id,foto:p.foto}))).catch(()=>{});
+    }catch(e){}
+  }
+  // Bij offline laden: de foto's terug in de cache zetten (localStorage bevat ze niet).
+  function restorePhotosFromIDB(){
+    if(typeof indexedDB==='undefined') return Promise.resolve();
+    return idbGet(IDB_PHOTOKEY).then(list=>{
+      if(!Array.isArray(list)||!list.length) return;
+      const by={}; list.forEach(x=>{ if(x&&x.id) by[x.id]=x.foto||''; });
+      cache.prijzen.forEach(p=>{ if(!p.foto && by[p.id]) p.foto=by[p.id]; });
+      _lastPhotoSig=cache.prijzen.filter(p=>p.foto).map(p=>p.id+':'+p.foto.length).join('|');
+    }).catch(()=>{});
   }
 
   // ---- Outbox: wijzigingen die nog naar de database moeten (overleven offline) ----
@@ -156,7 +209,7 @@
       if(f.data) cache.formulieren=f.data.map(mapForm);
       if(l.data) cache.leveringen=l.data.slice();
     }catch(e){ online=false; console.error('Laden mislukt (offline?):',e); }
-    if(!online){ loadCacheFallback(); return; } // geen internet → laatst bewaarde gegevens tonen
+    if(!online){ loadCacheFallback(); await restorePhotosFromIDB(); return; } // geen internet → laatst bewaarde gegevens + foto's tonen
     // Gedeelde extra tabellen (vallen lokaal terug als ze nog niet bestaan).
     await loadShared('bestellingen','bestellingen',mapBestel,K_BESTEL_BACKUP,v=>bestelOK=v);
     await loadShared('contacten','contacten',mapContact,K_CONTACTEN_BACKUP,v=>contactenOK=v);

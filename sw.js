@@ -1,7 +1,12 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v72';
-const ASSETS = ['./','./index.html','./home.html','./manifest.json',
-  './inventaris-data.js','./inventaris.js','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE = 'bazar-bizarre-v75';
+// De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
+// zonder dat je ze eerst online moet hebben geopend.
+const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
+const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./manifest.json',
+  './inventaris-data.js','./inventaris.js',
+  './assets/icon-192.png','./assets/icon-512.png','./assets/Logo_kleine_tekst.png']
+  .concat(DEALS);
 
 // Bij installatie: alles vers ophalen (geen browser-cache) en bewaren.
 self.addEventListener('install', e=>{

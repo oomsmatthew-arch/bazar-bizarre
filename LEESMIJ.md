@@ -28,9 +28,9 @@ Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na slui
 
 ## Inventaris & formulier (insourced)
 
-De inventaris zit volledig in de app zelf — geen Google of server nodig. `home.html`
-(Inventaris) en `index.html` (het spel) draaien op hetzelfde domein en **delen daardoor
-dezelfde opslag** op het toestel.
+De inventaris zit volledig in de app zelf — geen Google of server nodig. `entertainment.html`
+(Inventaris) en `bazar-bizarre-spel.html` (het spel) draaien op hetzelfde domein en **delen
+daardoor dezelfde opslag** op het toestel.
 
 - **Formulier** (in Bazar Bizarre): de knop **"Spel afsluiten"** opent een formulier waar
   je de weggegeven kleine/grote prijzen aanklikt (met zoek + aantal), boekjes invult,
@@ -48,8 +48,9 @@ dezelfde opslag** op het toestel.
 ## Mappenstructuur
 
 **Website (gaat online) — hoofdmap:**
-- `home.html` — de landingspagina (Entertainment / Center Parcs)
-- `index.html` — de spelleider-app zelf
+- `index.html` — stuurt de kale link automatisch door naar `entertainment.html`
+- `entertainment.html` — de landingspagina (Entertainment / Center Parcs)
+- `bazar-bizarre-spel.html` — de spelleider-app zelf
 - `manifest.json` — maakt de app installeerbaar
 - `sw.js` — laat de app offline werken
 - `manuals.json` — inhoudsopgave voor "Online manuals"
@@ -78,8 +79,11 @@ Je hebt al een GitHub-account, dus dit is de makkelijkste route.
 1. Ga naar https://github.com en klik rechtsboven op **+** → **New repository**.
 2. Geef een naam, bv. `bazar-bizarre`. Zet 'm op **Public**. Klik **Create repository**.
 3. Op de nieuwe repo-pagina: klik **"uploading an existing file"**.
-4. Sleep ALLE bestanden hierboven (index.html, manifest.json, sw.js, en de 2 icons)
-   in het uploadvak. Klik onderaan **Commit changes**.
+4. Sleep ALLE bestanden en mappen uit de hoofdmap (o.a. `index.html`, `entertainment.html`,
+   `bazar-bizarre-spel.html`, `manifest.json`, `sw.js`, `manuals.json`, `inventaris.js`,
+   `inventaris-data.js` en de mappen `assets/`, `deals/`, `manuals/`) in het uploadvak. Klik
+   onderaan **Commit changes**.
+   Werk je met GitHub Desktop, dan hoeft dit niet: daar commit en push je gewoon rechtstreeks.
 5. Ga naar het tabblad **Settings** → links **Pages**.
 6. Onder "Build and deployment" → Source: **Deploy from a branch**.
    Branch: **main** (of master), map: **/ (root)**. Klik **Save**.
@@ -106,7 +110,7 @@ Het icoontje verschijnt; de app opent schermvullend, zonder browserbalk.
 ---
 
 ## Iets aanpassen?
-- **Super Deals-namen, tracks of gewichten** wijzigen: dat staat bovenin `index.html`
+- **Super Deals-namen, tracks of gewichten** wijzigen: dat staat bovenin `bazar-bizarre-spel.html`
   in de lijsten `SUPERDEALS`, `TRACKS` en de gewichten-berekening. Vraag gerust of ik
   het voor je aanpas — dan hoef je niet in de code te duiken.
 - **Deal-plaatjes opnieuw maken**: leg nieuwe originelen in `_bron/_deals_backup/` en
