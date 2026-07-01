@@ -139,6 +139,11 @@
   .chk .thumb{width:46px;height:46px;border-radius:8px;}
   .chk .thumb.ph{font-size:20px;}
   .chk .thumb.ro{cursor:zoom-in;}
+  .chk .chkmedia{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:0 0 auto;}
+  .chk .thumbwrap .vbadge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    color:#fff;font-size:15px;text-shadow:0 1px 4px rgba(0,0,0,.75);pointer-events:none;}
+  .chk .chkaddmedia{flex:0 0 auto;border:1px dashed var(--line);background:var(--panel2);color:var(--muted);
+    border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:15px;display:grid;place-items:center;}
   .chk.done{border-color:#1faa6b;background:rgba(31,170,107,.10);}
   .chk.done .chkbox{background:#1faa6b;border-color:#1faa6b;}
   .chk.done .chktxt{text-decoration:line-through;color:var(--muted);}
@@ -298,7 +303,7 @@
     padding:11px 6px;border-radius:10px;cursor:pointer;font-size:14px;}
   .mtype.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
   #manualKies{width:100%;}
-  #fotoView img{max-width:96vw;max-height:90vh;border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);}
+  #fotoView img,#fotoView video{max-width:96vw;max-height:90vh;border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);background:#000;}
   .invrow .nm{flex:1;min-width:0;}
   .invrow .nm .t{font-weight:700;font-size:15px;color:var(--text);}
   .invrow .nm .c{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
@@ -953,7 +958,7 @@
   </div>
 </div></div>
 <!-- Foto bekijken -->
-<div class="cammodal" id="fotoView"><img id="fotoViewImg" alt=""></div>
+<div class="cammodal" id="fotoView"><img id="fotoViewImg" alt=""><video id="fotoViewVid" controls playsinline style="display:none"></video></div>
 
 <!-- BESTELLING bewerken -->
 <div class="cammodal" id="bestelModal"><div class="cammodal-box bestelbox">
@@ -1647,8 +1652,35 @@ function closeCamera(){ const m=document.getElementById('camModal'); m.classList
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;} const v=document.getElementById('camVideo'); if(v)v.srcObject=null; }
 document.getElementById('camCancel').onclick=closeCamera;
 // ---- Foto bekijken (vergroot) ----
-function viewFoto(url){ if(!url)return; document.getElementById('fotoViewImg').src=url; document.getElementById('fotoView').classList.add('open'); }
-document.getElementById('fotoView').onclick=()=>document.getElementById('fotoView').classList.remove('open');
+// Toont foto óf video in het volledige-scherm venster.
+function viewMedia(m){
+  if(!m||!m.src)return;
+  const img=document.getElementById('fotoViewImg'), vid=document.getElementById('fotoViewVid');
+  if(m.type==='video'){
+    img.style.display='none'; img.removeAttribute('src');
+    vid.style.display='block'; vid.src=m.src; if(vid.play)vid.play().catch(()=>{});
+  } else {
+    if(vid.pause)vid.pause(); vid.style.display='none'; vid.removeAttribute('src');
+    img.style.display='block'; img.src=m.src;
+  }
+  document.getElementById('fotoView').classList.add('open');
+}
+function viewFoto(url){ viewMedia({type:'foto',src:url}); }
+function closeFotoView(){
+  const vid=document.getElementById('fotoViewVid'); if(vid&&vid.pause){vid.pause();} if(vid)vid.removeAttribute('src');
+  document.getElementById('fotoView').classList.remove('open');
+}
+// Alleen sluiten bij klik op de donkere achtergrond, niet op de video-bediening.
+document.getElementById('fotoView').onclick=e=>{ if(e.target===document.getElementById('fotoView')) closeFotoView(); };
+// Video kiezen (bestand). Geen verkleining mogelijk, dus waarschuwen bij grote bestanden.
+function pickVideo(cb){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='video/*';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f)return;
+    if(f.size>25*1024*1024 && !confirm('Deze video is groot ('+Math.round(f.size/1048576)+' MB) en kan traag laden of veel opslag gebruiken. Toch toevoegen?')) return;
+    const r=new FileReader(); r.onload=()=>cb(r.result); r.onerror=()=>cb(null); r.readAsDataURL(f);
+  };
+  inp.click();
+}
 function prijsRow(p){
   const row=document.createElement('div'); row.className='invrow';
   row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
@@ -2286,6 +2318,14 @@ document.getElementById('contAdd').onclick=()=>{
 let chkActief=null;
 let chkBeheer=false;
 function chkActieveLijst(){ const ls=BBInv.getChecklisten(); return ls.find(l=>l.id===chkActief)||ls[0]||null; }
+// Media per checklist-item: array van {type:'foto'|'video', src}. Max 2.
+// Terugvalcompatibel met oude items die enkel een 'foto'-veld hadden.
+function chkMedia(it){
+  if(Array.isArray(it.media)) return it.media;
+  if(it.foto) return [{type:'foto',src:it.foto}];
+  return [];
+}
+function chkSetMedia(it,arr){ it.media=(arr||[]).slice(0,2); if('foto' in it) delete it.foto; }
 let chkTabJustDragged=false;
 // Sleep-herschikken van de checklist-tabbladen (muis + touch).
 function chkTabDragInit(tab, cont){
@@ -2399,32 +2439,60 @@ function renderChecklisten(){
   lijst.items.forEach((it,i)=>{
     const row=document.createElement('div'); row.className='chk'+(it.done?' done':'')+(chkBeheer?' beheer':'');
     row.dataset.idx=i;
+    const media=chkMedia(it);
     let html='<div class="chkbox">'+(it.done?'✓':'')+'</div>';
-    if(chkBeheer){
-      html+='<div class="chkdrag" title="Sleep om te verplaatsen">⇅</div>';
-      html+='<div class="thumbwrap">'+(it.foto?'<img class="thumb" src="'+it.foto+'" alt=""><button type="button" class="thumbx" title="Foto verwijderen">✕</button>':'<div class="thumb ph">📷</div>')+'</div>';
-    } else if(it.foto){
-      html+='<img class="thumb ro chkfoto" src="'+it.foto+'" alt="">';
+    if(chkBeheer) html+='<div class="chkdrag" title="Sleep om te verplaatsen">⇅</div>';
+    // media-strook (foto's/video's)
+    if(chkBeheer || media.length){
+      html+='<div class="chkmedia">';
+      media.forEach((m,mi)=>{
+        const el = m.type==='video'
+          ? '<video class="thumb ro chkm" data-mi="'+mi+'" src="'+m.src+'" muted playsinline preload="metadata"></video><span class="vbadge">▶</span>'
+          : '<img class="thumb ro chkm" data-mi="'+mi+'" src="'+m.src+'" alt="">';
+        html+='<div class="thumbwrap">'+el+(chkBeheer?'<button type="button" class="thumbx" data-rm="'+mi+'" title="Verwijderen">✕</button>':'')+'</div>';
+      });
+      if(chkBeheer && media.length<2){
+        html+='<button type="button" class="chkaddmedia" data-add="foto" title="Foto toevoegen">📷</button>';
+        html+='<button type="button" class="chkaddmedia" data-add="video" title="Video toevoegen">🎬</button>';
+      }
+      html+='</div>';
     }
     html+='<div class="chktxt">'+esc(it.text)+'</div>';
     if(chkBeheer) html+='<button class="chkedit" title="Bewerken">✎</button><button class="chkdel" title="Verwijderen">✕</button>';
     row.innerHTML=html;
     const toggle=()=>{ it.done=!it.done; BBInv.saveChecklist(lijst); renderChecklisten(); };
     row.querySelector('.chkbox').onclick=toggle;
+    // media aanklikken → vergroten (in beide modi)
+    row.querySelectorAll('.chkm').forEach(elm=>{
+      elm.style.cursor='zoom-in';
+      elm.onclick=e=>{ e.stopPropagation(); viewMedia(chkMedia(it)[+elm.dataset.mi]); };
+    });
     if(chkBeheer){
       const bewerk=()=>{ const n=prompt('Item bewerken:',it.text); if(n===null)return; const t=n.trim(); if(!t)return; it.text=t; BBInv.saveChecklist(lijst); renderChecklisten(); };
       row.querySelector('.chktxt').onclick=bewerk;
       row.querySelector('.chkedit').onclick=e=>{ e.stopPropagation(); bewerk(); };
       row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); BBInv.saveChecklist(lijst); renderChecklisten(); };
       chkDragInit(row.querySelector('.chkdrag'), row, g, lijst);
-      const tb=row.querySelector('.thumb');
-      if(tb) tb.onclick=e=>{ e.stopPropagation(); chooseFoto(url=>{ if(!url)return; it.foto=url; BBInv.saveChecklist(lijst); renderChecklisten(); }); };
-      const tx=row.querySelector('.thumbx');
-      if(tx) tx.onclick=e=>{ e.stopPropagation(); if(confirm('Foto verwijderen?')){ it.foto=''; BBInv.saveChecklist(lijst); renderChecklisten(); } };
+      // media verwijderen
+      row.querySelectorAll('.thumbx[data-rm]').forEach(btn=>{
+        btn.onclick=e=>{ e.stopPropagation(); if(!confirm('Deze media verwijderen?'))return;
+          const arr=chkMedia(it).slice(); arr.splice(+btn.dataset.rm,1); chkSetMedia(it,arr);
+          BBInv.saveChecklist(lijst); renderChecklisten(); };
+      });
+      // media toevoegen (foto of video), max 2
+      const addOne=m=>{ if(!m)return; const prev=chkMedia(it).slice(); if(prev.length>=2)return;
+        chkSetMedia(it,prev.concat([m]));
+        try{ BBInv.saveChecklist(lijst); }
+        catch(err){ chkSetMedia(it,prev); alert('Onvoldoende opslagruimte voor deze media. Probeer een kortere/kleinere video.'); return; }
+        renderChecklisten(); };
+      row.querySelectorAll('.chkaddmedia').forEach(btn=>{
+        btn.onclick=e=>{ e.stopPropagation();
+          if(btn.dataset.add==='video') pickVideo(src=>{ if(src) addOne({type:'video',src}); });
+          else chooseFoto(url=>{ if(url) addOne({type:'foto',src:url}); });
+        };
+      });
     } else {
       row.querySelector('.chktxt').onclick=toggle;
-      const f=row.querySelector('.chkfoto');
-      if(f){ f.style.cursor='zoom-in'; f.onclick=e=>{ e.stopPropagation(); viewFoto(it.foto); }; }
     }
     g.appendChild(row);
   });

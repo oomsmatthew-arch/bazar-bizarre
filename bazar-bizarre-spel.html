@@ -300,6 +300,11 @@
   .qa-q .eye,.qa-a .eye{flex:0 0 auto;background:var(--panel2);border:1px solid var(--line);color:var(--text);
     font-weight:700;font-size:13px;padding:9px 13px;border-radius:9px;cursor:pointer;min-width:84px;}
   .qa .eye:hover{border-color:var(--gold);color:var(--gold);}
+  .trstatus{margin:12px 2px 0;font-size:13px;color:var(--muted);line-height:1.4;}
+  .trstatus.ok{color:var(--ok);}
+  .trstatus.warn{color:var(--orange);}
+  .trstatus.err{color:var(--pink);}
+  .trstatus.busy{color:var(--gold);}
 
   /* ===== Presentatie-overlay (grote vraag + vertaling / antwoord-reveal) ===== */
   .present{position:fixed;inset:0;z-index:1000;display:none;overflow:auto;padding:26px 20px;
@@ -460,9 +465,11 @@
   <div class="view" id="finale">
     <p class="hint">Typ de vraag en het antwoord. Klik op <b>▶ Toon</b> bij de vraag om ze groot te tonen — automatisch vertaald in Engels, Frans en Duits. Klik op <b>▶ Toon</b> bij het antwoord voor een aftel-onthulling (na 8 sec verschijnt het antwoord).</p>
     <div class="qawrap" data-grid="qa" id="finaleQA"></div>
-    <div class="bar" style="margin-top:14px;">
+    <div class="bar" style="margin-top:14px;gap:12px;flex-wrap:wrap;">
+      <button class="btn" id="trPrewarm">⤓ Vertalingen offline klaarzetten</button>
       <button class="btn clear" data-reset="qa">Vragen wissen</button>
     </div>
+    <div id="trStatus" class="trstatus"></div>
   </div>
 
   <!-- FORMULIER (spel afsluiten → inventaris) -->
@@ -779,7 +786,7 @@ function renderFinale(){
     qr.innerHTML=`<span class="pn">${i+1}</span>`;
     const qi=document.createElement('input');
     qi.type='text'; qi.placeholder='Vraag…'; qi.value=state.vragen[i]||'';
-    qi.oninput=e=>{state.vragen[i]=e.target.value;save();};
+    qi.oninput=e=>{state.vragen[i]=e.target.value;save();schedulePrewarm();updateTrStatus();};
     const qShow=document.createElement('button');
     qShow.type='button'; qShow.className='eye'; qShow.textContent='▶ Toon';
     qShow.title='Toon de vraag groot, met vertaling';
@@ -789,7 +796,7 @@ function renderFinale(){
     const ai=document.createElement('input');
     ai.type='text'; ai.placeholder='Antwoord…'; ai.value=state.antwoorden[i]||'';
     ai.className='a';
-    ai.oninput=e=>{state.antwoorden[i]=e.target.value;save();};
+    ai.oninput=e=>{state.antwoorden[i]=e.target.value;save();schedulePrewarm();updateTrStatus();};
     const aShow=document.createElement('button');
     aShow.type='button'; aShow.className='eye'; aShow.textContent='▶ Toon';
     aShow.title='Onthul het antwoord met aftel-animatie';
@@ -797,6 +804,8 @@ function renderFinale(){
     ar.appendChild(ai); ar.appendChild(aShow);
     card.appendChild(qr); card.appendChild(ar); q.appendChild(card);
   }
+  updateTrStatus();
+  if(navigator.onLine && !finaleAllCached()) schedulePrewarm();
 }
 
 // ---------------- PRESENTATIE: grote vraag (vertaling) + antwoord-reveal ----------------
@@ -804,7 +813,12 @@ function escHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt
 
 // Automatische vertaling via gratis diensten (geen sleutel nodig). Resultaat wordt gecachet.
 // Probeert eerst Google; valt terug op MyMemory als die geblokkeerd is.
-const _trCache={};
+// De cache wordt BLIJVEND bewaard (localStorage), zodat een vraag die ooit online is
+// vertaald ook zonder internet (tijdens de finale) meteen beschikbaar is.
+const TRCACHE_KEY='bazarbizarre_trcache_v1';
+let _trCache={};
+try{ _trCache=JSON.parse(localStorage.getItem(TRCACHE_KEY))||{}; }catch(e){ _trCache={}; }
+function _saveTrCache(){ try{ localStorage.setItem(TRCACHE_KEY,JSON.stringify(_trCache)); }catch(e){} }
 async function _trGoogle(text,target){
   const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=nl&tl='+target+'&dt=t&q='+encodeURIComponent(text);
   const r=await fetch(url);
@@ -828,6 +842,7 @@ async function translate(text,target){
   try{ out=await _trGoogle(text,target); }
   catch(e){ out=await _trMyMemory(text,target); }
   _trCache[key]=out;
+  _saveTrCache();
   return out;
 }
 
@@ -851,6 +866,34 @@ function fillTransGrid(scope,text){
       .catch(()=>{cell.textContent='(vertaling niet beschikbaar — controleer internet)';cell.classList.add('err');cell.classList.remove('loading');});
   });
 }
+// ---- Offline klaarzetten: finalevragen/antwoorden vooraf vertalen + status ----
+function finaleTexts(){ return [].concat(state.vragen||[],state.antwoorden||[]).map(s=>(s||'').trim()).filter(Boolean); }
+function finaleAllCached(){ return finaleTexts().every(t=>TR_LANGS.every(l=>_trCache[l.code+'::'+t]!=null)); }
+function updateTrStatus(){
+  const st=document.getElementById('trStatus'); if(!st) return;
+  const texts=finaleTexts();
+  if(!texts.length){ st.textContent='Typ eerst een vraag of antwoord.'; st.className='trstatus'; return; }
+  if(finaleAllCached()){ st.textContent='✓ Alle vertalingen staan klaar — werkt ook offline.'; st.className='trstatus ok'; }
+  else if(!navigator.onLine){ st.textContent='Nog niet alles vertaald en geen internet. Ga online en klik op "Vertalingen offline klaarzetten".'; st.className='trstatus warn'; }
+  else { st.textContent='Nog niet alles vertaald. Klik op "Vertalingen offline klaarzetten".'; st.className='trstatus warn'; }
+}
+async function prewarmFinale(report){
+  const st=document.getElementById('trStatus');
+  const texts=finaleTexts();
+  if(report && !texts.length){ updateTrStatus(); return; }
+  if(!navigator.onLine){
+    if(st){ st.textContent='Geen internet — vertalingen kunnen nu niet worden klaargezet. Probeer opnieuw met internet.'; st.className='trstatus err'; }
+    return;
+  }
+  if(report && st){ st.textContent='Bezig met vertalen…'; st.className='trstatus busy'; }
+  const jobs=[];
+  texts.forEach(t=>TR_LANGS.forEach(l=>{ if(_trCache[l.code+'::'+t]==null) jobs.push(translate(t,l.code).catch(()=>{})); }));
+  await Promise.all(jobs);
+  updateTrStatus();
+}
+let _prewarmTimer=null;
+function schedulePrewarm(){ clearTimeout(_prewarmTimer); _prewarmTimer=setTimeout(()=>prewarmFinale(false),900); }
+
 function openPresent(){
   const p=document.getElementById('present');
   p.classList.add('open'); p.setAttribute('aria-hidden','false');
@@ -901,6 +944,9 @@ function revealAnswer(text){
 }
 
 document.getElementById('presentClose').onclick=closePresent;
+document.getElementById('trPrewarm').onclick=()=>prewarmFinale(true);
+window.addEventListener('online',updateTrStatus);
+window.addEventListener('offline',updateTrStatus);
 document.getElementById('present').addEventListener('click',e=>{
   if(e.target.closest('.present-close')) return;                    // ✕ heeft zijn eigen afhandeling
   if(_pendingReveal!==null){ revealAnswer(_pendingReveal); return; } // tik = antwoord tonen
