@@ -586,6 +586,14 @@
   .card[data-key="activiteit"]{--accent:#5b7fb0;background:linear-gradient(150deg,#eef2f9,#fff);}
   [data-theme="dark"] .card[data-key="activiteit"]{background:linear-gradient(150deg,#1c2531,#18271f);}
   .actbar{margin-bottom:12px;}
+  .actfilter{display:flex;flex-direction:column;gap:9px;margin-bottom:12px;}
+  .actfilrow{display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+  #actPersoon{max-width:220px;flex:0 1 auto;}
+  .actkinds{display:flex;gap:6px;flex-wrap:wrap;}
+  .akind{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;
+    padding:7px 13px;font-weight:700;font-size:13px;cursor:pointer;}
+  .akind:active{transform:translateY(1px);}
+  .akind.on{background:var(--forest);color:#fff;border-color:var(--forest);}
   .actlist{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:8px 12px 12px;box-shadow:var(--shadow);}
   .actday{display:inline-block;font-weight:800;color:var(--forest);margin:16px 0 8px;font-size:12px;
     text-transform:uppercase;letter-spacing:.6px;background:var(--panel2);padding:4px 12px;border-radius:999px;}
@@ -783,6 +791,18 @@
   <!-- ACTIVITEIT (wie paste wat aan — enkel voor vaste mdw) -->
   <div class="view" id="activiteit">
     <p class="hint">Overzicht van alle wijzigingen: wie heeft wat aangepast en wanneer. Enkel zichtbaar voor vaste medewerkers; wissen kan enkel met het beheer-wachtwoord.</p>
+    <div class="actfilter">
+      <input type="text" id="actZoek" class="finp zoek" placeholder="Zoek in activiteit (naam of actie)…">
+      <div class="actfilrow">
+        <select id="actPersoon" class="finp"><option value="">Iedereen</option></select>
+        <div class="actkinds" id="actKinds">
+          <button class="akind on" data-k="">Alles</button>
+          <button class="akind" data-k="add">➕ Toegevoegd</button>
+          <button class="akind" data-k="edit">✏️ Aangepast</button>
+          <button class="akind" data-k="del">🗑 Verwijderd</button>
+        </div>
+      </div>
+    </div>
     <div class="actbar"><button class="btn clear" id="actWis">🗑 Logboek wissen</button></div>
     <div class="actlist" id="actlist"></div>
   </div>
@@ -1217,7 +1237,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v34';
+const APP_VERSION='v35';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -3130,10 +3150,24 @@ function actAvatar(wie){
   const u=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers().find(x=>(x.naam||'')===wie):null;
   return '<span class="actav">'+(u?avatarInner(u):esc(initials(wie)))+'</span>';
 }
+let actQ='', actPersoonSel='', actKindSel='';
+function fillActPersonen(){
+  const sel=document.getElementById('actPersoon'); if(!sel) return;
+  const lijst=(window.BBInv&&BBInv.getActiviteit)?BBInv.getActiviteit():[];
+  const namen=[...new Set(lijst.map(a=>a.wie||'?'))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="">Iedereen</option>'+namen.map(n=>'<option>'+esc(n)+'</option>').join('');
+  sel.value=actPersoonSel;
+}
 function renderActiviteit(){
   const box=document.getElementById('actlist'); if(!box) return;
-  const lijst=(window.BBInv&&BBInv.getActiviteit)?BBInv.getActiviteit():[];
-  if(!lijst.length){ box.innerHTML='<div class="actempty">Nog geen activiteit geregistreerd.</div>'; return; }
+  fillActPersonen();
+  let lijst=(window.BBInv&&BBInv.getActiviteit)?BBInv.getActiviteit():[];
+  const totaal=lijst.length;
+  if(actQ){ const q=actQ.toLowerCase(); lijst=lijst.filter(a=>((a.wie||'')+' '+(a.actie||'')).toLowerCase().indexOf(q)>=0); }
+  if(actPersoonSel) lijst=lijst.filter(a=>(a.wie||'?')===actPersoonSel);
+  if(actKindSel) lijst=lijst.filter(a=>actKind(a.actie)===actKindSel);
+  if(!totaal){ box.innerHTML='<div class="actempty">Nog geen activiteit geregistreerd.</div>'; return; }
+  if(!lijst.length){ box.innerHTML='<div class="actempty">Geen resultaten voor deze filter.</div>'; return; }
   let html='', lastDay='';
   lijst.forEach(a=>{
     const day=fmtActDay(a.ts);
@@ -3154,6 +3188,14 @@ document.getElementById('actWis').onclick=()=>{
   if(!confirm('Alle geregistreerde activiteit wissen? Dit kan niet ongedaan gemaakt worden.')) return;
   BBInv.clearActiviteit(); renderActiviteit();
 };
+document.getElementById('actZoek').oninput=e=>{ actQ=e.target.value.trim(); renderActiviteit(); };
+document.getElementById('actPersoon').onchange=e=>{ actPersoonSel=e.target.value; renderActiviteit(); };
+document.getElementById('actKinds').addEventListener('click',e=>{
+  const b=e.target.closest('.akind'); if(!b) return;
+  actKindSel=b.getAttribute('data-k')||'';
+  document.querySelectorAll('#actKinds .akind').forEach(x=>x.classList.toggle('on', x===b));
+  renderActiviteit();
+});
 
 // ---- Profielfoto: verklein tot een klein vierkant (gecentreerd bijgesneden) ----
 function fileToSquare(file,cb){
