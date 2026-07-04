@@ -1569,6 +1569,16 @@ document.getElementById('openInventaris').onclick=()=>{ renderInventaris(); show
 
 // tabs (Beheer is met wachtwoord beveiligd zodat niet iedereen kan wijzigen)
 let invUnlocked=false;
+// Verwijderen van formulieren/leveringen is beschermd met het beheer-wachtwoord.
+// Eén keer per sessie (net als de 🔒 Beheer-tab); daarna niet meer vragen.
+function eisBeheer(actie){
+  if(invUnlocked) return true;
+  const p=prompt('Wachtwoord beheer'+(actie?' om '+actie:'')+':');
+  if(p===null) return false;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
+  invUnlocked=true;
+  return true;
+}
 document.querySelectorAll('.invtab').forEach(b=>{
   b.onclick=()=>{
     const t=b.dataset.tab;
@@ -1912,7 +1922,7 @@ function renderLeveringen(){
     d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
       '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
     if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
-    d.querySelector('.rm').onclick=()=>{if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
+    d.querySelector('.rm').onclick=()=>{if(!eisBeheer('de levering te verwijderen'))return;if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
     wrap.appendChild(d);
   });
 }
@@ -1943,7 +1953,7 @@ function renderFormulieren(){
       (f.finale?('<div class="blk"><span class="bl">Finale</span><span>'+esc(f.finale)+'</span></div>'):'')+
       (f.opmerking?('<div class="blk"><span class="bl">Opmerking</span><span>'+esc(f.opmerking)+'</span></div>'):'')+
       '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
-    d.querySelector('.rm').onclick=()=>{if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
+    d.querySelector('.rm').onclick=()=>{if(!eisBeheer('het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
     wrap.appendChild(d);
   });
 }
