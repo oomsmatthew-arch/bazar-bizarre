@@ -510,14 +510,109 @@
   [data-theme="dark"] .syncbadge{color:#f0c98a;background:#2e2517;border-color:#5a4525;}
   footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12px;}
   footer .foot-line{margin-top:10px;}
+
+  /* ---- Inlogscherm (namenlijst + persoonlijke pincode) ---- */
+  #loginOverlay{position:fixed;inset:0;z-index:9000;display:none;flex-direction:column;align-items:center;
+    justify-content:flex-start;padding:26px 16px 40px;overflow-y:auto;
+    background:
+      radial-gradient(1200px 500px at 15% -8%,rgba(123,192,138,.35),transparent 60%),
+      radial-gradient(900px 500px at 100% 0,rgba(47,143,157,.18),transparent 55%),
+      var(--bg);}
+  #loginOverlay.show{display:flex;}
+  .login-card{width:100%;max-width:560px;background:var(--panel);border:1px solid var(--line);
+    border-radius:22px;box-shadow:var(--shadow);padding:22px 20px 24px;margin-top:14px;}
+  .login-head{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+  .login-head img{height:52px;width:52px;border-radius:14px;object-fit:cover;background:var(--forest);}
+  .login-head h2{margin:0;font-family:var(--serif);font-size:22px;color:var(--forest);}
+  .login-sub{color:var(--muted);font-size:14px;margin:2px 0 18px;}
+  .name-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+  .name-tile{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:16px 12px;
+    font-size:16px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:8px;text-align:center;min-height:60px;transition:transform .05s;}
+  .name-tile:active{transform:translateY(1px);}
+  .name-tile .av{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+    border-radius:50%;background:var(--forest);color:#fff;font-size:14px;flex:0 0 auto;}
+  .login-empty{background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:20px;
+    text-align:center;color:var(--muted);}
+  .login-foot{margin-top:20px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
+  .login-link{background:none;border:none;color:var(--forest);font-weight:700;font-size:13px;cursor:pointer;
+    text-decoration:underline;padding:6px;}
+  /* pincode-paneel */
+  .pin-panel{text-align:center;}
+  .pin-who{font-size:19px;font-weight:800;color:var(--forest);margin:2px 0 4px;}
+  .pin-dots{display:flex;justify-content:center;gap:14px;margin:16px 0 8px;}
+  .pin-dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--forest);display:block;}
+  .pin-dots i.on{background:var(--forest);}
+  .pin-msg{min-height:20px;color:#b23b3b;font-size:14px;font-weight:700;margin:2px 0 6px;}
+  .pin-msg.ok{color:var(--leaf);}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:8px auto 4px;}
+  .keypad button{font-size:22px;font-weight:700;padding:16px 0;border-radius:14px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--text);cursor:pointer;}
+  .keypad button:active{transform:translateY(1px);}
+  .keypad button.wide{grid-column:span 1;font-size:15px;}
+  .pin-remember{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0 4px;
+    font-size:14px;color:var(--text);cursor:pointer;}
+  .pin-remember input{width:20px;height:20px;}
+  .pin-hint{color:var(--muted);font-size:12px;margin-top:8px;}
+  /* wissel-gebruiker knop in de balk */
+  .userbtn{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13px;
+    padding:9px 12px;border-radius:12px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;gap:6px;}
+  .userbtn:active{transform:translateY(1px);}
+  .userbtn .av{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+    border-radius:50%;background:rgba(255,255,255,.28);font-size:12px;}
+  @media(max-width:560px){ .userbtn .nm{display:none;} }
+  /* gebruikersbeheer-lijst */
+  .gebr-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);
+    border-radius:14px;background:var(--panel);margin-bottom:8px;}
+  .gebr-row .nm{flex:1;font-weight:700;}
+  .gebr-row .rol{font-size:12px;color:var(--muted);font-weight:600;}
+  .gebr-row button{border:none;border-radius:10px;padding:8px 10px;font-weight:700;cursor:pointer;font-size:13px;}
+  .gebr-row .rst{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  .gebr-row .del{background:#fdecec;color:#b23b3b;}
+  [data-theme="dark"] .gebr-row .del{background:#3a2020;color:#f0a0a0;}
 </style>
 </head>
 <body>
+
+<!-- INLOGSCHERM: kies je naam + persoonlijke pincode -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-head">
+      <img src="assets/logo-cp.png" alt="Center Parcs">
+      <div>
+        <h2>Welkom</h2>
+        <div class="login-sub" id="loginSub">Tik op je naam om in te loggen</div>
+      </div>
+    </div>
+    <!-- stap 1: namen -->
+    <div id="loginNames">
+      <div class="name-grid" id="nameGrid"></div>
+      <div class="login-foot">
+        <button class="login-link" id="loginBeheer">⚙ Namen beheren</button>
+      </div>
+    </div>
+    <!-- stap 2: pincode -->
+    <div id="loginPin" class="pin-panel" style="display:none">
+      <div class="pin-who" id="pinWho">Naam</div>
+      <div class="pin-dots"><i></i><i></i><i></i><i></i></div>
+      <div class="pin-msg" id="pinMsg"></div>
+      <div class="keypad" id="keypad">
+        <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+        <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+        <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+        <button class="wide" data-k="back">⌫</button><button data-k="0">0</button><button class="wide" data-k="cancel">↩</button>
+      </div>
+      <label class="pin-remember"><input type="checkbox" id="pinRemember"> Onthoud mij op dit toestel <span class="pin-hint">(alleen je eigen gsm)</span></label>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
   <div class="topbar">
     <img class="logo" id="homeLogo" src="assets/logo-cp.png" alt="Center Parcs" title="Naar de startpagina" style="cursor:pointer">
     <h1 id="title">Entertainment</h1>
     <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
     <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
     <button class="navbtn" id="gearBtn">Instellingen</button>
     <button class="navbtn home" id="homeBtn">Home</button>
@@ -614,12 +709,32 @@
       </div>
 
       <div class="field">
+        <div class="h">Gebruikers (inloggen)</div>
+        <label>Beheer wie kan inloggen: voeg collega's toe, geef ze een pincode of reset een vergeten code.</label>
+        <div class="row">
+          <button class="btn" id="openGebruikers">👤 Namenlijst beheren</button>
+        </div>
+      </div>
+
+      <div class="field">
         <div class="h">Wachtwoord</div>
         <div class="row">
           <button class="btn" id="changePin">Wachtwoord wijzigen</button>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- GEBRUIKERS (namenlijst beheren) -->
+  <div class="view" id="gebruikers">
+    <p class="hint">Iedereen die kan inloggen. Voeg collega's toe met een korte pincode (3–8 cijfers). Vergeten code? Tik <b>Reset</b> en geef een nieuwe. Deze lijst is gedeeld met alle toestellen.</p>
+    <div class="gebradd">
+      <div class="h">Nieuwe collega</div>
+      <input type="text" id="gebrNaam" class="finp" placeholder="Naam (bv. Jan)">
+      <input type="tel" id="gebrPin" class="finp" inputmode="numeric" maxlength="8" placeholder="Pincode (3–8 cijfers)">
+      <button class="btn primary" id="gebrAdd">Collega toevoegen</button>
+    </div>
+    <div class="gebrlist" id="gebrlist" style="margin-top:14px"></div>
   </div>
 
   <!-- ONLINE MANUALS -->
