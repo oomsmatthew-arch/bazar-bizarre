@@ -317,6 +317,12 @@
   .thumb.ro{cursor:default;}
   .stocknum{flex:0 0 auto;min-width:54px;text-align:right;font-weight:800;font-size:18px;color:var(--forest);}
   .stocknum.neg{color:#c0392b;}
+  /* Stock-lijst: 'in gebruik'-status tonen (alleen-lezen, net als in Beheer) */
+  .invrow .usetag{flex:0 0 auto;border:1px solid #a8d8b8;background:rgba(31,170,107,.13);color:#1f6b43;
+    font-weight:800;border-radius:999px;height:26px;padding:0 11px;font-size:11px;letter-spacing:.3px;
+    text-transform:uppercase;white-space:nowrap;display:inline-flex;align-items:center;}
+  .invrow .usetag.off{color:var(--muted);background:var(--panel2);border-color:var(--line);}
+  @media(max-width:560px){ #invList .invrow{flex-wrap:wrap;} }
   .invrow .del{flex:0 0 auto;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:800;
     border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:15px;}
   .invrow .use{flex:0 0 auto;border:1px solid #e2b6b0;background:#fdecea;color:#a23b30;
@@ -1754,6 +1760,7 @@ function stockRow(p){
   const row=document.createElement('div'); row.className='invrow';
   row.innerHTML=(p.foto?'<img class="thumb ro" src="'+p.foto+'" alt="">':'<div class="thumb ph ro">📷</div>')+
     '<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
+    '<span class="usetag'+(p.inGebruik?'':' off')+'" title="Telt mee voor de lage-voorraad melding?">'+(p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik')+'</span>'+
     '<div class="stocknum'+((p.stock||0)<0?' neg':'')+'">'+(p.stock||0)+'</div>';
   if(p.foto){const t=row.querySelector('.thumb'); if(t){t.style.cursor='zoom-in'; t.onclick=()=>viewFoto(p.foto);}}
   return row;
