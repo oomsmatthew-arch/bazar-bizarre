@@ -533,6 +533,9 @@
   .name-tile .av{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
     border-radius:50%;background:var(--forest);color:#fff;font-size:14px;flex:0 0 auto;}
   .name-tile .nopin{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:2px;}
+  .name-sep{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;margin:16px 2px;}
+  .name-sep::before,.name-sep::after{content:"";flex:1;height:1px;background:var(--line);}
   .login-empty{background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:20px;
     text-align:center;color:var(--muted);}
   .login-foot{margin-top:20px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
@@ -563,13 +566,16 @@
     border-radius:50%;background:rgba(255,255,255,.28);font-size:12px;}
   @media(max-width:560px){ .userbtn .nm{display:none;} }
   /* gebruikersbeheer-lijst */
-  .gebr-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);
+  .gebr-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 14px;border:1px solid var(--line);
     border-radius:14px;background:var(--panel);margin-bottom:8px;}
-  .gebr-row .nm{flex:1;font-weight:700;}
+  .gebr-row .nm{flex:1 1 130px;font-weight:700;}
   .gebr-row .rol{font-size:12px;color:var(--muted);font-weight:600;}
+  .gebr-row .rol.vastbadge{background:var(--forest);color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;}
   .gebr-row button{border:none;border-radius:10px;padding:8px 10px;font-weight:700;cursor:pointer;font-size:13px;}
   .gebr-row .rst{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
   .gebr-row .del{background:#fdecec;color:#b23b3b;}
+  .gebr-row .vast{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  .gebr-row .vast.on{background:var(--forest);color:#fff;border-color:var(--forest);}
   [data-theme="dark"] .gebr-row .del{background:#3a2020;color:#f0a0a0;}
   .gebradd{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:16px;}
   .gebradd .h{font-weight:800;margin-bottom:10px;color:var(--forest);}
@@ -601,7 +607,7 @@
     </div>
     <!-- stap 1: namen -->
     <div id="loginNames">
-      <div class="name-grid" id="nameGrid"></div>
+      <div id="nameGrid"></div>
       <div class="login-foot">
         <button class="login-link" id="loginCancel" style="display:none">← Terug (blijf ingelogd)</button>
         <button class="login-link" id="loginBeheer">⚙ Namen beheren</button>
@@ -1175,7 +1181,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v28';
+const APP_VERSION='v29';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1376,9 +1382,7 @@ document.getElementById('themeBtn').onclick=()=>{
 
 // ---------------- INSTELLINGEN (wachtwoord) ----------------
 function openSettings(){
-  const p=prompt('Wachtwoord:');
-  if(p===null) return;
-  if(p!==getPin()){alert('Onjuist wachtwoord.');return;}
+  if(!magBeheren()) return;
   document.getElementById('setMededeling').value=getMededeling();
   show('instellingen');
 }
@@ -1706,8 +1710,7 @@ function setManualsBeheer(on){
 document.getElementById('manualsBeheerBtn').onclick=()=>{
   if(manualsBeheer){ setManualsBeheer(false); renderManuals(); return; }
   if(MANUALS&&MANUALS.__error){ alert('De manuals konden niet geladen worden, beheren kan nu niet.'); return; }
-  const p=prompt('Wachtwoord voor beheer:'); if(p===null) return;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  if(!magBeheren('voor beheer')) return;
   setManualsBeheer(true); renderManuals();
 };
 document.getElementById('openManuals').onclick=async()=>{
@@ -1735,6 +1738,7 @@ let invUnlocked=false;
 // Eén keer per sessie (net als de 🔒 Beheer-tab); daarna niet meer vragen.
 function eisBeheer(actie){
   if(invUnlocked) return true;
+  if(isVasteMdw()){ invUnlocked=true; return true; }
   const p=prompt('Wachtwoord beheer'+(actie?' om '+actie:'')+':');
   if(p===null) return false;
   if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
@@ -1745,10 +1749,11 @@ document.querySelectorAll('.invtab').forEach(b=>{
   b.onclick=()=>{
     const t=b.dataset.tab;
     if(t==='beheer'&&!invUnlocked){
-      const p=prompt('Wachtwoord voor beheer:');
-      if(p===null) return;
-      if(p!==getPin()){alert('Onjuist wachtwoord.');return;}
-      invUnlocked=true;
+      if(isVasteMdw()){ invUnlocked=true; }
+      else { const p=prompt('Wachtwoord voor beheer:');
+        if(p===null) return;
+        if(p!==getPin()){alert('Onjuist wachtwoord.');return;}
+        invUnlocked=true; }
     }
     document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
@@ -2345,10 +2350,11 @@ function renderFinancieel(){
 // ---- tabbladen (Beheer met wachtwoord, net als de inventaris) ----
 function showBestelTab(t){
   if(t==='beheer' && !bestelUnlocked){
-    const p=prompt('Wachtwoord voor beheer:');
-    if(p===null) return;
-    if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
-    bestelUnlocked=true;
+    if(isVasteMdw()){ bestelUnlocked=true; }
+    else { const p=prompt('Wachtwoord voor beheer:');
+      if(p===null) return;
+      if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+      bestelUnlocked=true; }
   }
   bestelTab=t;
   document.querySelectorAll('.btab').forEach(x=>x.classList.toggle('active',x.dataset.btab===t));
@@ -2479,8 +2485,7 @@ function setContBeheer(on){
 }
 document.getElementById('contBeheerBtn').onclick=()=>{
   if(contBeheer){ setContBeheer(false); return; }
-  const p=prompt('Wachtwoord voor beheer:'); if(p===null) return;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  if(!magBeheren('voor beheer')) return;
   setContBeheer(true);
 };
 document.getElementById('openContacten').onclick=()=>{ setContBeheer(false); show('contacten'); };
@@ -2715,8 +2720,7 @@ function renderChecklisten(){
 }
 document.getElementById('chkBeheerBtn').onclick=()=>{
   if(chkBeheer){ chkBeheer=false; renderChecklisten(); return; }
-  const p=prompt('Wachtwoord:'); if(p===null)return;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  if(!magBeheren()) return;
   chkBeheer=true; renderChecklisten();
 };
 document.getElementById('openChecklisten').onclick=()=>{ chkBeheer=false; renderChecklisten(); show('checklisten'); };
@@ -2850,6 +2854,7 @@ function setCurrentUser(u,remember){
   if(u) localStorage.setItem(K_USER,JSON.stringify({id:u.id,naam:u.naam}));
   else localStorage.removeItem(K_USER);
   if(remember) localStorage.setItem(K_REMEMBER,'1'); else localStorage.removeItem(K_REMEMBER);
+  resetBeheerLocks(); // andere gebruiker → beheer-toegang opnieuw verdienen
   updateUserBtn();
 }
 function initials(naam){ const p=String(naam||'').trim().split(/\s+/); return (((p[0]||'')[0]||'?')+((p[1]||'')[0]||'')).toUpperCase(); }
@@ -2857,6 +2862,18 @@ function initials(naam){ const p=String(naam||'').trim().split(/\s+/); return ((
 function fullCurrentUser(){ const u=currentUser(); if(!u) return null; const list=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[]; return list.find(x=>x.id===u.id)||u; }
 // Avatar-inhoud: een foto als die er is, anders de initialen.
 function avatarInner(u){ return (u&&u.foto)?('<img src="'+u.foto+'" alt="">'):esc(initials(u?u.naam:'')); }
+// Vaste medewerker = heeft standaard toegang tot alle beheer (geen wachtwoord nodig).
+function isVasteMdw(){ const u=fullCurrentUser(); return !!(u && u.rol==='vast'); }
+// Toegang tot een beheerdeel: waar voor een vaste mdw, anders het wachtwoord vragen.
+function magBeheren(actie){
+  if(isVasteMdw()) return true;
+  const p=prompt('Wachtwoord'+(actie?' '+actie:'')+':'); if(p===null) return false;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
+  return true;
+}
+// Bij het wisselen/uitloggen alle 'ontgrendeld'-vlaggen wissen, zodat de volgende
+// persoon niet de beheer-toegang van de vorige erft.
+function resetBeheerLocks(){ invUnlocked=false; bestelUnlocked=false; contBeheer=false; chkBeheer=false; manualsBeheer=false; }
 function updateUserBtn(){
   const u=fullCurrentUser(), btn=document.getElementById('userBtn'); if(!btn) return;
   document.getElementById('userAv').innerHTML=u?avatarInner(u):'👤';
@@ -2907,12 +2924,20 @@ function renderLoginNames(){
   }
   sub.textContent='Tik op je naam om in te loggen';
   grid.innerHTML='';
-  users.forEach(u=>{
+  const maakTegel=u=>{
     const b=document.createElement('button'); b.className='name-tile';
     b.innerHTML='<span class="av">'+avatarInner(u)+'</span><span>'+esc(u.naam)+(u.pin?'':'<span class="nopin">geen code</span>')+'</span>';
     b.onclick=()=> u.pin ? toPin(u) : loginDirect(u);   // pinloos account = meteen binnen
-    grid.appendChild(b);
-  });
+    return b;
+  };
+  const groep=arr=>{ const g=document.createElement('div'); g.className='name-grid'; arr.forEach(u=>g.appendChild(maakTegel(u))); return g; };
+  const algemeen=users.filter(u=>u.id==='entalg');   // vast gedeeld account bovenaan
+  const rest=users.filter(u=>u.id!=='entalg');
+  if(algemeen.length){
+    grid.appendChild(groep(algemeen));
+    if(rest.length){ const sep=document.createElement('div'); sep.className='name-sep'; sep.textContent='of log in als jezelf'; grid.appendChild(sep); }
+  }
+  if(rest.length) grid.appendChild(groep(rest));
 }
 function toPin(u){
   loginSel=u; pinBuf='';
@@ -2961,8 +2986,7 @@ document.getElementById('beheerKlaar').onclick=beheerKlaar;
 
 // ---- Gebruikersbeheer (achter het beheer-wachtwoord) ----
 function openGebruikers(){
-  const p=prompt('Wachtwoord:'); if(p===null) return;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  if(!magBeheren()) return;
   openBeheerPanel();
 }
 function renderGebrList(){
@@ -2972,12 +2996,14 @@ function renderGebrList(){
   users.forEach(u=>{
     const row=document.createElement('div'); row.className='gebr-row';
     const locked = u.id==='entalg';   // vast gedeeld account: niet verwijderen/wijzigen
+    const vast = u.rol==='vast';
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
-      '<span class="nm">'+esc(u.naam)+'</span>'+
+      '<span class="nm">'+esc(u.naam)+(vast?' <span class="rol vastbadge">Vaste mdw</span>':'')+'</span>'+
       (locked
         ? '<span class="rol">🔒 vast account · geen code</span>'
-        : '<button class="foto">📷</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
+        : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'★ Vaste mdw':'☆ Vaste mdw')+'</button><button class="foto">📷</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
     if(!locked){
+      row.querySelector('.vast').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: vast?'':'vast'}); renderGebrList(); };
       row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
       row.querySelector('.rst').onclick=async()=>{
         const np=prompt('Nieuwe pincode voor '+u.naam+' (4 cijfers):'); if(np===null) return;
