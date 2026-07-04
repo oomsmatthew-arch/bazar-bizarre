@@ -8,15 +8,16 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],manualsdoc:null,appconfig:null,spelarchief:null};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],manualsdoc:null,appconfig:null,spelarchief:null};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
-  let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
+  let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
   const K_BESTEL_BACKUP='bb_bestellingen';
   const K_CONTACTEN_BACKUP='bb_contacten';
   const K_CHECKLISTEN_BACKUP='bb_checklisten';
   const K_LOGBOEK_BACKUP='bb_logboek';
   const K_GEBRUIKERS_BACKUP='bb_gebruikers';
+  const K_ACTIVITEIT_BACKUP='bb_activiteit';
   const K_CACHE='bb_cache_v1';
   const K_OUTBOX='bb_outbox';
 
@@ -39,7 +40,7 @@
       const slim={
         prijzen: cache.prijzen.map(p=>({id:p.id,cat:p.cat,naam:p.naam,stock:p.stock,inGebruik:p.inGebruik,foto:''})),
         boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: cache.leveringen,
-        bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: cache.gebruikers, manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
+        bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: cache.gebruikers, activiteit: cache.activiteit, manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
       };
       localStorage.setItem(K_CACHE,JSON.stringify(slim));
     }catch(e){}
@@ -49,7 +50,7 @@
     try{ const r=localStorage.getItem(K_CACHE); if(!r) return false; const c=JSON.parse(r); if(!c) return false;
       cache.prijzen=c.prijzen||[]; cache.boekjes=c.boekjes||{stock:0}; cache.formulieren=c.formulieren||[];
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
-      cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.gebruikers=c.gebruikers||[]; cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null; return true;
+      cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.gebruikers=c.gebruikers||[]; cache.activiteit=c.activiteit||[]; cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null; return true;
     }catch(e){ return false; }
   }
 
@@ -161,6 +162,8 @@
   const logToRow=l=>({id:l.id,ts:l.ts||0,datum:l.datum||'',auteur:l.auteur||'',tekst:l.tekst||'',klaar:!!l.klaar});
   const mapGebr=r=>({id:r.id,naam:r.naam||'',pin:r.pin||'',rol:r.rol||'',foto:r.foto||'',ts:r.ts||0});
   const gebrToRow=g=>({id:g.id,naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',foto:g.foto||'',ts:g.ts||0});
+  const mapAct=r=>({id:r.id,ts:r.ts||0,wie:r.wie||'',actie:r.actie||''});
+  const actToRow=a=>({id:a.id,ts:a.ts||0,wie:a.wie||'',actie:a.actie||''});
 
   // ---------------- INIT ----------------
   async function init(){
@@ -223,6 +226,14 @@
       else { setOK(true); cache[cacheKey]=(r.data||[]).map(mapFn); if(cache[cacheKey].length) saveBackup(cacheKey,backupKey); }
     }catch(e){ setOK(false); loadBackup(cacheKey,backupKey); }
   }
+  // Activiteitenlogboek: enkel de recentste 500 laden (kan lang worden).
+  async function loadActiviteit(){
+    try{
+      const r=await sb.from('activiteit').select('*').order('ts',{ascending:false}).limit(500);
+      if(r.error){ activiteitOK=false; loadBackup('activiteit',K_ACTIVITEIT_BACKUP); }
+      else { activiteitOK=true; cache.activiteit=(r.data||[]).map(mapAct); if(cache.activiteit.length) saveBackup('activiteit',K_ACTIVITEIT_BACKUP); }
+    }catch(e){ activiteitOK=false; loadBackup('activiteit',K_ACTIVITEIT_BACKUP); }
+  }
   async function loadAll(){
     let online=true;
     try{
@@ -245,6 +256,7 @@
     await loadShared('checklisten','checklisten',mapChecklist,K_CHECKLISTEN_BACKUP,v=>checklistenOK=v);
     await loadShared('logboek','logboek',mapLog,K_LOGBOEK_BACKUP,v=>logboekOK=v);
     await loadShared('gebruikers','gebruikers',mapGebr,K_GEBRUIKERS_BACKUP,v=>gebruikersOK=v);
+    await loadActiviteit();
     // Enkel-rij documenten (id=1, data jsonb): manuals-boom, app-instellingen, spel-archief
     await loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v);
     await loadDoc('appconfig','appconfig',v=>appconfigOK=v);
@@ -268,6 +280,7 @@
     else if(t==='checklisten'&&checklistenOK){const r=await sb.from('checklisten').select('*'); if(r.data){cache.checklisten=r.data.map(mapChecklist); saveBackup('checklisten',K_CHECKLISTEN_BACKUP);}}
     else if(t==='logboek'&&logboekOK){const r=await sb.from('logboek').select('*'); if(r.data){cache.logboek=r.data.map(mapLog); saveBackup('logboek',K_LOGBOEK_BACKUP);}}
     else if(t==='gebruikers'&&gebruikersOK){const r=await sb.from('gebruikers').select('*'); if(r.data){cache.gebruikers=r.data.map(mapGebr); saveBackup('gebruikers',K_GEBRUIKERS_BACKUP);}}
+    else if(t==='activiteit'&&activiteitOK){const r=await sb.from('activiteit').select('*').order('ts',{ascending:false}).limit(500); if(r.data){cache.activiteit=r.data.map(mapAct); saveBackup('activiteit',K_ACTIVITEIT_BACKUP);}}
     else if(t==='manualsdoc'&&manualsdocOK){const r=await sb.from('manualsdoc').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.manualsdoc=r.data?(r.data.data||null):null;}}
     else if(t==='appconfig'&&appconfigOK){const r=await sb.from('appconfig').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.appconfig=r.data?(r.data.data||null):null;}}
     else if(t==='spelarchief'&&spelarchiefOK){const r=await sb.from('spelarchief').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.spelarchief=r.data?(r.data.data||null):null;}}
@@ -378,15 +391,19 @@
   function addContact(c){
     const rec={id:uid(),ts:Date.now(),naam:c.naam||'',rol:c.rol||'',tel:c.tel||'',mail:c.mail||''};
     cache.contacten.push(rec); saveContactBackup();
-    if(contactenOK) dbUpsert('contacten',contactToRow(rec)); else persistCache(); return rec;
+    if(contactenOK) dbUpsert('contacten',contactToRow(rec)); else persistCache();
+    logAct('Contact toegevoegd: '+(rec.naam||'')); return rec;
   }
   function updateContact(id,patch){
     const r=cache.contacten.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveContactBackup();
-    if(contactenOK) dbUpsert('contacten',contactToRow(r)); else persistCache(); return r;
+    if(contactenOK) dbUpsert('contacten',contactToRow(r)); else persistCache();
+    logAct('Contact aangepast: '+(r.naam||'')); return r;
   }
   function removeContact(id){
+    const g=cache.contacten.find(c=>c.id===id);
     cache.contacten=cache.contacten.filter(c=>c.id!==id); saveContactBackup();
     if(contactenOK) dbDelete('contacten','id',id); else persistCache();
+    logAct('Contact verwijderd'+(g?': '+g.naam:''));
   }
 
   // ---------------- CHECKLISTS (gedeeld) ----------------
@@ -396,15 +413,17 @@
   function addChecklist(naam){
     const maxPos=cache.checklisten.reduce((m,l)=>Math.max(m,l.pos||0),0);
     const rec={id:uid(),naam:naam||'Nieuwe lijst',items:[],pos:maxPos+1,ts:Date.now()};
-    cache.checklisten.push(rec); chkPersist(rec); return rec;
+    cache.checklisten.push(rec); chkPersist(rec); logAct('Checklist toegevoegd: '+rec.naam); return rec;
   }
   function saveChecklist(rec){ // rec = volledig lijst-object (naam/items gewijzigd)
     const r=cache.checklisten.find(x=>x.id===rec.id); if(!r) return null;
-    r.naam=rec.naam; r.items=rec.items; chkPersist(r); return r;
+    r.naam=rec.naam; r.items=rec.items; chkPersist(r); logAct('Checklist aangepast: '+(r.naam||'')); return r;
   }
   function removeChecklist(id){
+    const l0=cache.checklisten.find(l=>l.id===id);
     cache.checklisten=cache.checklisten.filter(l=>l.id!==id); saveChecklistBackup();
     if(checklistenOK) dbDelete('checklisten','id',id); else persistCache();
+    logAct('Checklist verwijderd'+(l0?': '+l0.naam:''));
   }
   // nieuwe volgorde van de lijsten (array van id's) → pos bijwerken en bewaren
   function reorderChecklisten(ids){
@@ -420,15 +439,18 @@
   function addLog(entry){
     const rec={id:uid(),ts:Date.now(),datum:entry.datum||'',auteur:entry.auteur||'',tekst:entry.tekst||'',klaar:!!entry.klaar};
     cache.logboek.push(rec); saveLogBackup();
-    if(logboekOK) dbUpsert('logboek',logToRow(rec)); else persistCache(); return rec;
+    if(logboekOK) dbUpsert('logboek',logToRow(rec)); else persistCache();
+    logAct('Logboekbericht geplaatst'); return rec;
   }
   function updateLog(id,patch){
     const r=cache.logboek.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveLogBackup();
-    if(logboekOK) dbUpsert('logboek',logToRow(r)); else persistCache(); return r;
+    if(logboekOK) dbUpsert('logboek',logToRow(r)); else persistCache();
+    logAct(patch&&('klaar' in patch)?('Logboekbericht '+(patch.klaar?'afgehandeld':'heropend')):'Logboekbericht aangepast'); return r;
   }
   function removeLog(id){
     cache.logboek=cache.logboek.filter(l=>l.id!==id); saveLogBackup();
     if(logboekOK) dbDelete('logboek','id',id); else persistCache();
+    logAct('Logboekbericht verwijderd');
   }
 
   // ---------------- GEBRUIKERS (gedeeld) — namenlijst + persoonlijke pincode ----------------
@@ -451,6 +473,25 @@
     cache.gebruikers=cache.gebruikers.filter(g=>g.id!==id); saveGebrBackup();
     if(gebruikersOK) dbDelete('gebruikers','id',id); else persistCache();
   }
+  // ---------------- ACTIVITEIT (wie paste wat aan) — gedeeld ----------------
+  let actor=''; // naam van wie nu is ingelogd (gezet door de app)
+  function setActor(n){ actor=n||''; }
+  const getActiviteit=()=>cache.activiteit.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  function logAct(actie){
+    if(!actie) return;
+    const rec={id:uid(),ts:Date.now(),wie:actor||'?',actie:String(actie)};
+    cache.activiteit.unshift(rec);                              // nieuwste eerst
+    if(cache.activiteit.length>600) cache.activiteit.length=600; // cache begrenzen
+    saveBackup('activiteit',K_ACTIVITEIT_BACKUP);
+    if(activiteitOK) dbInsert('activiteit',actToRow(rec)); else persistCache();
+  }
+  async function clearActiviteit(){
+    cache.activiteit=[]; saveBackup('activiteit',K_ACTIVITEIT_BACKUP);
+    if(activiteitOK && sb){ try{ await sb.from('activiteit').delete().neq('id',''); }catch(e){} }
+    else persistCache();
+    fire();
+  }
+
   // Vast gedeeld account "ENT algemeen" zonder pincode (vaste id → nooit dubbel, self-healing).
   function ensureEntAlgemeen(){
     if(cache.gebruikers.some(u=>u.id==='entalg')) return;

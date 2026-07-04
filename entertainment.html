@@ -261,9 +261,10 @@
   .invsum .pill b{color:var(--leaf);}
   .invsum .pill.neg b{color:#c0392b;}
   .invfilter{display:flex;gap:8px;margin:10px 2px;flex-wrap:wrap;}
-  .chip,.bchip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
+  .chip,.bchip,.usefilter{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
     padding:6px 14px;border-radius:999px;cursor:pointer;}
   .chip.active,.bchip.active{background:var(--forest);color:#fff;border-color:var(--forest);}
+  .usefilter.active{background:rgba(31,170,107,.16);color:#1f6b43;border-color:#a8d8b8;}
   .invlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:8px;margin-top:6px;}
   /* beheerlijst heeft meer knoppen per rij → bredere kolommen zodat de naam niet wordt samengeknepen */
   #beheerList{grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));}
@@ -862,6 +863,7 @@
         <button class="chip active" data-cat="all">Alle</button>
         <button class="chip" data-cat="klein">Kleine</button>
         <button class="chip" data-cat="groot">Grote</button>
+        <button class="usefilter" id="invUseFilter">★ Alleen 'in gebruik'</button>
       </div>
       <div class="invlist" id="invList"></div>
     </div>
@@ -1302,37 +1304,32 @@ function renderHome(){
 }
 
 // ---------------- LAGE VOORRAAD ----------------
-// Enkel prijzen die in Beheer als "in gebruik" zijn aangeduid, plus de boekjes,
-// tellen mee. Zo blijft de melding kort en relevant.
-// Twee niveaus: 'kritiek' (rood, ≤ drempel) en 'aandacht' (oranje, drempel..drempel2).
-// Enkel prijzen die in Beheer als "in gebruik" zijn aangeduid tellen mee.
-function lowstockLists(){
-  const dK=getDrempel(), dA=getDrempel2(), dBk=getDrempelBoekjes();
-  const kritiek=[], aandacht=[];
-  BBInv.getPrijzen().forEach(p=>{
-    if(!p.inGebruik) return;
-    const s=p.stock||0;
-    if(s<=dK) kritiek.push({naam:p.naam,stock:s});
-    else if(s<=dA) aandacht.push({naam:p.naam,stock:s});
-  });
-  kritiek.sort((a,b)=>a.stock-b.stock); aandacht.sort((a,b)=>a.stock-b.stock);
-  const bkStock=BBInv.getBoekjes().stock||0;
-  return {kritiek,aandacht,boekjesLaag:bkStock<=dBk,boekjesStock:bkStock};
-}
+// Eén ALGEMENE melding op basis van het TOTAAL aantal prijzen-stuks dat "in gebruik"
+// is — exact hetzelfde getal als de gezondheidskaart. Niet per prijs: zolang het totaal
+// hoog genoeg is (bv. 107) staat alles goed; pas als het totaal onder de drempel zakt
+// verschijnt er een melding. Boekjes hebben hun eigen drempel.
+//   • rood  (bijna op) : totaal ≤ rode drempel, of boekjes ≤ boekjes-drempel
+//   • oranje (aandacht): rode drempel < totaal ≤ oranje drempel
 function computeLowstock(){
-  const {kritiek,aandacht,boekjesLaag,boekjesStock}=lowstockLists();
-  bannerActive.red = !!(kritiek.length||boekjesLaag);
+  const dK=getDrempel(), dA=getDrempel2(), dBk=getDrempelBoekjes();
+  let totaal=0;
+  BBInv.getPrijzen().forEach(p=>{ if(p.inGebruik){ const s=p.stock||0; if(s>0) totaal+=s; } });
+  const bkStock=BBInv.getBoekjes().stock||0;
+  const boekjesLaag=bkStock<=dBk;
+
+  bannerActive.red = (totaal<=dK) || boekjesLaag;
   if(bannerActive.red){
     let html='';
-    if(kritiek.length) html+='<b>'+kritiek.length+(kritiek.length===1?' prijs is':' prijzen zijn')+' (bijna) op.</b> ';
-    if(boekjesLaag) html+='<b>📕 Boekjes bijna op (nog '+boekjesStock+').</b> ';
+    if(totaal<=dK) html+='<b>Prijzenvoorraad bijna op (nog '+totaal+' stuks).</b> ';
+    if(boekjesLaag) html+='<b>📕 Boekjes bijna op (nog '+bkStock+').</b> ';
     html+='Bekijk via Naar voorraad.';
     document.getElementById('lowstockItems').innerHTML=html;
   }
-  bannerActive.org = !!aandacht.length;
+
+  bannerActive.org = (totaal>dK && totaal<=dA);
   if(bannerActive.org){
     document.getElementById('attentionItems').innerHTML=
-      '<b>'+aandacht.length+(aandacht.length===1?' prijs raakt':' prijzen raken')+' laag.</b> Bekijk via Naar voorraad.';
+      '<b>Prijzenvoorraad raakt laag (nog '+totaal+' stuks).</b> Bekijk via Naar voorraad.';
   }
 }
 document.getElementById('lowstockGoto').onclick=()=>{ renderInventaris(); show('inventaris'); };
@@ -1772,6 +1769,11 @@ document.querySelectorAll('.chip').forEach(c=>{
 });
 document.getElementById('invZoek').oninput=renderInvStock;
 document.getElementById('beheerZoek').oninput=renderBeheerList;
+// Stock-filter "Alleen in gebruik" (zelfde als in Beheer) — onafhankelijke toggle.
+let invOnlyUse=false;
+document.getElementById('invUseFilter').onclick=function(){
+  invOnlyUse=!invOnlyUse; this.classList.toggle('active',invOnlyUse); renderInvStock();
+};
 
 function renderInventaris(){ renderInvSum(); renderInvStock(); renderFormulieren(); }
 
@@ -1944,8 +1946,9 @@ function renderInvStock(){
   const all=BBInv.getPrijzen();
   let pr=all.slice();
   if(invCat!=='all') pr=pr.filter(p=>p.cat===invCat);
+  if(invOnlyUse) pr=pr.filter(p=>p.inGebruik);
   if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
-  if(invCat==='all'&&!q){
+  if(invCat==='all'&&!q&&!invOnlyUse){
     const kl=all.filter(p=>p.cat==='klein'), gr=all.filter(p=>p.cat==='groot');
     const sum=a=>a.reduce((s,p)=>s+(p.stock||0),0);
     list.appendChild(summaryRow('Boekjes','voorraad',BBInv.getBoekjes().stock||0,'📕'));
@@ -1955,7 +1958,7 @@ function renderInvStock(){
   }
   pr.sort((a,b)=>a.naam.localeCompare(b.naam));
   pr.forEach(p=>list.appendChild(stockRow(p)));
-  if(!pr.length&&!(invCat==='all'&&!q)) list.innerHTML='<div class="empty-note">Geen prijzen gevonden.</div>';
+  if(!pr.length&&!(invCat==='all'&&!q&&!invOnlyUse)) list.innerHTML='<div class="empty-note">'+(invOnlyUse?'Geen prijzen "in gebruik" gevonden.':'Geen prijzen gevonden.')+'</div>';
 }
 // BOEKJES (saldo + historiek)
 function renderBoekjes(){
