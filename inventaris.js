@@ -463,15 +463,23 @@
   function addGebruiker(g){
     const rec={id:uid(),naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',foto:g.foto||'',ts:Date.now()};
     cache.gebruikers.push(rec); saveGebrBackup();
-    if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(rec)); else persistCache(); return rec;
+    if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(rec)); else persistCache();
+    logAct('Gebruiker toegevoegd: '+(rec.naam||'')); return rec;
   }
   function updateGebruiker(id,patch){
     const r=cache.gebruikers.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveGebrBackup();
-    if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(r)); else persistCache(); return r;
+    if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(r)); else persistCache();
+    let wat='aangepast';
+    if(patch&&('rol' in patch)) wat=(patch.rol==='vast'?'ingesteld als Vaste mdw':'Vaste mdw verwijderd');
+    else if(patch&&('pin' in patch)) wat='pincode gereset';
+    else if(patch&&('foto' in patch)) wat='profielfoto gewijzigd';
+    logAct('Gebruiker '+(r.naam||'')+' — '+wat); return r;
   }
   function removeGebruiker(id){
-    cache.gebruikers=cache.gebruikers.filter(g=>g.id!==id); saveGebrBackup();
+    const g=cache.gebruikers.find(x=>x.id===id);
+    cache.gebruikers=cache.gebruikers.filter(x=>x.id!==id); saveGebrBackup();
     if(gebruikersOK) dbDelete('gebruikers','id',id); else persistCache();
+    logAct('Gebruiker verwijderd'+(g?': '+g.naam:''));
   }
   // ---------------- ACTIVITEIT (wie paste wat aan) — gedeeld ----------------
   let actor=''; // naam van wie nu is ingelogd (gezet door de app)
@@ -556,13 +564,13 @@
     dbUpsert('prijzen',fixed.map(toRow));
     return fixed.length;
   }
-  function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); }
+  function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); logAct('Boekjesvoorraad ingesteld op '+cache.boekjes.stock); }
   function addPrijs(cat,naam,stock,foto){
     const s=+stock||0;
     const rec={id:uid(),cat:cat==='groot'?'groot':'klein',naam:naam||'',stock:s,inGebruik:s>0,foto:foto||''};
-    cache.prijzen.push(rec); dbInsert('prijzen',toRow(rec)); return rec;
+    cache.prijzen.push(rec); dbInsert('prijzen',toRow(rec)); logAct('Prijs toegevoegd: '+(rec.naam||'')); return rec;
   }
-  function removePrijs(id){ cache.prijzen=cache.prijzen.filter(p=>p.id!==id); dbDelete('prijzen','id',id); }
+  function removePrijs(id){ const p=cache.prijzen.find(x=>x.id===id); cache.prijzen=cache.prijzen.filter(x=>x.id!==id); dbDelete('prijzen','id',id); logAct('Prijs verwijderd'+(p?': '+p.naam:'')); }
   function setFoto(id,dataUrl){ const p=cache.prijzen.find(x=>x.id===id); if(!p)return false; p.foto=dataUrl||''; dbUpdate('prijzen','id',id,{foto:p.foto}); return true; }
   function setGebruik(id,val){ const p=cache.prijzen.find(x=>x.id===id); if(p){p.inGebruik=!!val; dbUpdate('prijzen','id',id,{in_gebruik:!!val});} }
 
@@ -578,13 +586,15 @@
     if(rows.length) dbUpsert('prijzen',rows);
     dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
     dbInsert('formulieren',{id:rec.id,ts:rec.ts,namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,finale:rec.finale,opmerking:rec.opmerking});
+    logAct('Spel afgesloten / formulier ingezonden'+(rec.namen?': '+rec.namen:''));
     return rec;
   }
   function addLevering(lev){
     if(lev.boekjes){ cache.boekjes.stock=(cache.boekjes.stock||0)+(+lev.boekjes||0); dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); }
     const rec={id:uid(),ts:Date.now(),datum:lev.datum||'',boekjes:+lev.boekjes||0,tekst:lev.tekst||''};
     if(lev.foto) rec.foto=lev.foto; // foto enkel meesturen als er een is (kolom 'foto' nodig in tabel leveringen)
-    cache.leveringen.push(rec); dbInsert('leveringen',rec); return rec;
+    cache.leveringen.push(rec); dbInsert('leveringen',rec);
+    logAct('Levering geregistreerd'+(rec.boekjes?' (+'+rec.boekjes+' boekjes)':'')); return rec;
   }
   function undoLastFormulier(){
     if(!cache.formulieren.length) return null;
@@ -601,23 +611,28 @@
     return rec;
   }
   // verwijderen via "set(filter(...))"-patroon: bepaal welke rij wegviel en wis die in de DB
-  function setFormulieren(arr){ const keep={}; arr.forEach(f=>keep[f.id]=1); cache.formulieren.filter(f=>!keep[f.id]).forEach(f=>dbDelete('formulieren','id',f.id)); cache.formulieren=arr; persistCache(); }
-  function setLeveringen(arr){ const keep={}; arr.forEach(l=>keep[l.id]=1); cache.leveringen.filter(l=>!keep[l.id]).forEach(l=>dbDelete('leveringen','id',l.id)); cache.leveringen=arr; persistCache(); }
+  function setFormulieren(arr){ const keep={}; arr.forEach(f=>keep[f.id]=1); const weg=cache.formulieren.filter(f=>!keep[f.id]); weg.forEach(f=>dbDelete('formulieren','id',f.id)); cache.formulieren=arr; persistCache(); if(weg.length) logAct('Formulier verwijderd'); }
+  function setLeveringen(arr){ const keep={}; arr.forEach(l=>keep[l.id]=1); const weg=cache.leveringen.filter(l=>!keep[l.id]); weg.forEach(l=>dbDelete('leveringen','id',l.id)); cache.leveringen=arr; persistCache(); if(weg.length) logAct('Levering verwijderd'); }
 
   // ---- Bestellingen (optimistisch + naar DB als de gedeelde tabel bestaat) ----
   function bestelClean(b){ return {datum:b.datum||'',cat:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',ent:+b.ent||0,bay:+b.bay||0,hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opm:b.opm||''}; }
   function bestelSave(rec){ saveBestelBackup(); if(bestelOK) dbUpsert('bestellingen',bestelToRow(rec)); else persistCache(); }
   function addBestelling(b){
     const rec=Object.assign({id:uid(),ts:Date.now()},bestelClean(b));
-    cache.bestellingen.push(rec); bestelSave(rec); return rec;
+    cache.bestellingen.push(rec); bestelSave(rec); logAct('Bestelling toegevoegd: '+(rec.info||rec.cat||'')); return rec;
   }
   function updateBestelling(id,patch){
     const rec=cache.bestellingen.find(x=>x.id===id); if(!rec) return null;
-    Object.assign(rec,bestelClean(Object.assign({},rec,patch))); bestelSave(rec); return rec;
+    const oudeStatus=rec.status;
+    Object.assign(rec,bestelClean(Object.assign({},rec,patch))); bestelSave(rec);
+    const statusExtra=(rec.status&&rec.status!==oudeStatus)?(' → '+rec.status):'';
+    logAct('Bestelling aangepast: '+(rec.info||rec.cat||'')+statusExtra); return rec;
   }
   function removeBestelling(id){
+    const b0=cache.bestellingen.find(b=>b.id===id);
     cache.bestellingen=cache.bestellingen.filter(b=>b.id!==id);
     saveBestelBackup(); if(bestelOK) dbDelete('bestellingen','id',id); else persistCache();
+    logAct('Bestelling verwijderd'+(b0?': '+(b0.info||b0.cat||''):''));
   }
   async function resetBestellingen(){
     const seed=bestelSeed();
@@ -625,7 +640,7 @@
       await sb.from('bestellingen').delete().neq('id','');
       for(let i=0;i<seed.length;i+=40){ const r=await sb.from('bestellingen').insert(seed.slice(i,i+40).map(bestelToRow)); err(r); }
     }
-    cache.bestellingen=seed.slice(); saveBestelBackup(); fire();
+    cache.bestellingen=seed.slice(); saveBestelBackup(); logAct('Bestellijst hersteld naar de startlijst'); fire();
   }
 
   // Inventaris terugzetten naar de standaardlijst
@@ -637,7 +652,7 @@
     for(let i=0;i<seed.length;i+=40){ await sb.from('prijzen').insert(seed.slice(i,i+40).map(toRow)); }
     cache.prijzen=seed;
     const bk=(d.boekjesStock)||0; await sb.from('boekjes').upsert({id:1,stock:bk}); cache.boekjes={stock:bk};
-    fire();
+    logAct('Inventaris hersteld naar de startlijst'); fire();
   }
 
   function seedIfEmpty(){} // niet meer nodig (migratie regelt dit)
@@ -685,6 +700,7 @@
     setChkMedia,getChkMedia,delChkMedia,
     getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
+    setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,
     getManualsTree,saveManualsTree,uploadFile,isManualsGedeeld:()=>manualsdocOK,
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,

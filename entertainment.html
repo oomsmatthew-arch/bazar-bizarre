@@ -582,6 +582,19 @@
   .gebradd .finp{margin-bottom:10px;}
   .logfrom{flex:1;align-self:center;font-weight:700;color:var(--forest);white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis;}
+  /* Activiteit (wie paste wat aan) */
+  .card[data-key="activiteit"]{--accent:#5b7fb0;background:linear-gradient(150deg,#eef2f9,#fff);}
+  [data-theme="dark"] .card[data-key="activiteit"]{background:linear-gradient(150deg,#1c2531,#18271f);}
+  .actbar{margin-bottom:12px;}
+  .actlist{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:6px 12px;box-shadow:var(--shadow);}
+  .actday{font-weight:800;color:var(--forest);margin:14px 0 6px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.5px;border-bottom:1px solid var(--line);padding-bottom:5px;}
+  .actrow{padding:9px 2px;border-bottom:1px solid var(--panel2);}
+  .actrow:last-child{border-bottom:0;}
+  .actmeta{display:flex;gap:10px;align-items:baseline;font-size:12px;color:var(--muted);}
+  .actmeta .actwie{font-weight:800;color:var(--forest);font-size:14px;}
+  .actwat{margin-top:2px;color:var(--text);}
+  .actempty{color:var(--muted);text-align:center;padding:26px;}
   /* foto's tonen in de ronde avatars (anders initialen) */
   .name-tile .av,.userbtn .av{overflow:hidden;}
   .name-tile .av img,.userbtn .av img,.gebr-row .av img,#profAvatar img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -749,7 +762,19 @@
         <h2>Instellingen</h2>
         <p>De mededeling en koppelingen beheren met een wachtwoord.</p>
       </div>
+      <div class="card" data-key="activiteit" id="openActiviteit" style="display:none">
+        <div class="rnd">Beveiligd</div>
+        <h2>Activiteit</h2>
+        <p>Wie heeft wat aangepast — overzicht van alle wijzigingen.</p>
+      </div>
     </div>
+  </div>
+
+  <!-- ACTIVITEIT (wie paste wat aan — enkel voor vaste mdw) -->
+  <div class="view" id="activiteit">
+    <p class="hint">Overzicht van alle wijzigingen: wie heeft wat aangepast en wanneer. Enkel zichtbaar voor vaste medewerkers; wissen kan enkel met het beheer-wachtwoord.</p>
+    <div class="actbar"><button class="btn clear" id="actWis">🗑 Logboek wissen</button></div>
+    <div class="actlist" id="actlist"></div>
   </div>
 
   <!-- INSTELLINGEN -->
@@ -1182,7 +1207,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v32';
+const APP_VERSION='v33';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1301,6 +1326,7 @@ function renderHome(){
   medList=getMededelingen();
   computeLowstock();
   startRotation();
+  if(typeof updateActiviteitCard==='function') updateActiviteitCard(); // Activiteit-kaart volgens rol
 }
 
 // ---------------- LAGE VOORRAAD ----------------
@@ -1348,14 +1374,14 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists',logboek:'Logboek',gebruikers:'Gebruikers'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists',logboek:'Logboek',gebruikers:'Gebruikers',activiteit:'Activiteit'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
   // Instellingen-knop verbergen waar beheer apart geregeld is (inventaris, bestellingen, manuals, contacten)
-  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten'||view==='checklisten'||view==='gebruikers') ? 'none' : '';
+  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten'||view==='checklisten'||view==='gebruikers'||view==='activiteit') ? 'none' : '';
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
@@ -1388,6 +1414,7 @@ document.getElementById('openSettings').onclick=openSettings;
 document.getElementById('saveMededeling').onclick=()=>{
   localStorage.setItem(K_MED,document.getElementById('setMededeling').value);
   pushConfig(); renderHome();
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Mededeling aangepast');
   alert('Mededeling opgeslagen.');
 };
 document.getElementById('clearMededeling').onclick=()=>{
@@ -1411,7 +1438,9 @@ document.getElementById('changePin').onclick=()=>{
   if(cur!==getPin()){alert('Onjuist wachtwoord.');return;}
   const n=prompt('Nieuw wachtwoord, drie tot acht cijfers:'); if(n===null) return;
   if(!/^\d{3,8}$/.test(n)){alert('Gebruik drie tot acht cijfers.');return;}
-  localStorage.setItem(K_PIN,n); pushConfig(); alert('Wachtwoord gewijzigd.');
+  localStorage.setItem(K_PIN,n); pushConfig();
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Beheer-wachtwoord gewijzigd');
+  alert('Wachtwoord gewijzigd.');
 };
 
 // ---------------- ONLINE MANUALS ----------------
@@ -2887,6 +2916,7 @@ function magBeheren(actie){
 function resetBeheerLocks(){ invUnlocked=false; bestelUnlocked=false; contBeheer=false; chkBeheer=false; manualsBeheer=false; }
 function updateUserBtn(){
   const u=fullCurrentUser(), btn=document.getElementById('userBtn'); if(!btn) return;
+  if(window.BBInv&&BBInv.setActor) BBInv.setActor(u?u.naam:''); // wie de activiteit veroorzaakt
   document.getElementById('userAv').innerHTML=u?avatarInner(u):'👤';
   document.getElementById('userNm').textContent=u?u.naam:'Inloggen';
   btn.title=u?('Ingelogd als '+u.naam+' · tik voor je profiel of om te wisselen'):'Inloggen';
@@ -3047,6 +3077,36 @@ document.getElementById('gebrAdd').onclick=async()=>{
   renderGebrList();
 };
 
+// ---- Activiteit: wie paste wat aan (enkel voor vaste mdw; wissen enkel met wachtwoord) ----
+function updateActiviteitCard(){
+  const card=document.getElementById('openActiviteit');
+  if(card) card.style.display = isVasteMdw() ? '' : 'none';
+}
+function fmtActDay(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
+function fmtActTime(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes()); }
+function renderActiviteit(){
+  const box=document.getElementById('actlist'); if(!box) return;
+  const lijst=(window.BBInv&&BBInv.getActiviteit)?BBInv.getActiviteit():[];
+  if(!lijst.length){ box.innerHTML='<div class="actempty">Nog geen activiteit geregistreerd.</div>'; return; }
+  let html='', lastDay='';
+  lijst.forEach(a=>{
+    const day=fmtActDay(a.ts);
+    if(day!==lastDay){ html+='<div class="actday">'+esc(day)+'</div>'; lastDay=day; }
+    html+='<div class="actrow"><div class="actmeta"><span class="actwie">'+esc(a.wie||'?')+'</span>'+
+      '<span class="acttime">'+esc(fmtActTime(a.ts))+'</span></div>'+
+      '<div class="actwat">'+esc(a.actie||'')+'</div></div>';
+  });
+  box.innerHTML=html;
+}
+document.getElementById('openActiviteit').onclick=()=>{ if(!isVasteMdw()) return; renderActiviteit(); show('activiteit'); };
+document.getElementById('actWis').onclick=()=>{
+  // Wissen enkel met het beheer-wachtwoord (dus niet via de Vaste-mdw-bypass): enkel Matthew.
+  const p=prompt('Beheer-wachtwoord om het activiteitenlogboek te wissen:'); if(p===null) return;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  if(!confirm('Alle geregistreerde activiteit wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+  BBInv.clearActiviteit(); renderActiviteit();
+};
+
 // ---- Profielfoto: verklein tot een klein vierkant (gecentreerd bijgesneden) ----
 function fileToSquare(file,cb){
   if(!file){ cb(null); return; }
@@ -3112,6 +3172,8 @@ function bootAuth(){
 function refreshAuth(){
   updateUserBtn(); // avatar/foto in de balk bijwerken zodra de gedeelde lijst (met foto's) laadt
   updateBestelTabs(); // Financieel-tab tonen/verbergen volgens rol
+  updateActiviteitCard(); // Activiteit-kaart tonen/verbergen volgens rol
+  if(document.getElementById('activiteit').classList.contains('active')) renderActiviteit();
   if(document.getElementById('loginOverlay').classList.contains('show') && document.getElementById('loginNames').style.display!=='none') renderLoginNames();
   if(document.getElementById('loginBeheerPanel').style.display!=='none') renderGebrList();
   // hervalideer: is de ingelogde persoon nog steeds in de gedeelde lijst?
