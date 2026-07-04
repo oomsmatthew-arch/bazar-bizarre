@@ -1175,7 +1175,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v27';
+const APP_VERSION='v28';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -2971,21 +2971,26 @@ function renderGebrList(){
   if(!users.length){ box.innerHTML='<div class="login-empty">Nog geen collega\'s. Voeg er hierboven een toe.</div>'; return; }
   users.forEach(u=>{
     const row=document.createElement('div'); row.className='gebr-row';
+    const locked = u.id==='entalg';   // vast gedeeld account: niet verwijderen/wijzigen
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
-      '<button class="foto">📷</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>';
-    row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
-    row.querySelector('.rst').onclick=async()=>{
-      const np=prompt('Nieuwe pincode voor '+u.naam+' (4 cijfers):'); if(np===null) return;
-      if(!/^\d{4}$/.test(np.trim())){ alert('De pincode moet precies 4 cijfers zijn.'); return; }
-      BBInv.updateGebruiker(u.id,{pin: await sha256(np.trim())}); alert('Pincode aangepast.');
-    };
-    row.querySelector('.del').onclick=()=>{
-      if(!confirm(u.naam+' verwijderen? Deze persoon kan dan niet meer inloggen.')) return;
-      BBInv.removeGebruiker(u.id);
-      const cu=currentUser(); if(cu&&cu.id===u.id) setCurrentUser(null,false);
-      renderGebrList();
-    };
+      (locked
+        ? '<span class="rol">🔒 vast account · geen code</span>'
+        : '<button class="foto">📷</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
+    if(!locked){
+      row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
+      row.querySelector('.rst').onclick=async()=>{
+        const np=prompt('Nieuwe pincode voor '+u.naam+' (4 cijfers):'); if(np===null) return;
+        if(!/^\d{4}$/.test(np.trim())){ alert('De pincode moet precies 4 cijfers zijn.'); return; }
+        BBInv.updateGebruiker(u.id,{pin: await sha256(np.trim())}); alert('Pincode aangepast.');
+      };
+      row.querySelector('.del').onclick=()=>{
+        if(!confirm(u.naam+' verwijderen? Deze persoon kan dan niet meer inloggen.')) return;
+        BBInv.removeGebruiker(u.id);
+        const cu=currentUser(); if(cu&&cu.id===u.id) setCurrentUser(null,false);
+        renderGebrList();
+      };
+    }
     box.appendChild(row);
   });
 }

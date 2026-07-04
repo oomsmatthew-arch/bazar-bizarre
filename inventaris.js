@@ -423,7 +423,10 @@
 
   // ---------------- GEBRUIKERS (gedeeld) — namenlijst + persoonlijke pincode ----------------
   // 'pin' bevat een gehashte code (zie entertainment.html); nooit de code zelf zichtbaar.
-  const getGebruikers=()=>cache.gebruikers.slice().sort((a,b)=>(a.naam||'').localeCompare(b.naam||''));
+  const getGebruikers=()=>cache.gebruikers.slice().sort((a,b)=>{
+    if(a.id==='entalg') return -1; if(b.id==='entalg') return 1; // "ENT algemeen" altijd bovenaan
+    return (a.naam||'').localeCompare(b.naam||'');
+  });
   function saveGebrBackup(){ saveBackup('gebruikers',K_GEBRUIKERS_BACKUP); }
   function addGebruiker(g){
     const rec={id:uid(),naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',foto:g.foto||'',ts:Date.now()};
