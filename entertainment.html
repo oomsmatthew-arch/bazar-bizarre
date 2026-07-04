@@ -533,9 +533,8 @@
   .name-tile .av{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
     border-radius:50%;background:var(--forest);color:#fff;font-size:14px;flex:0 0 auto;}
   .name-tile .nopin{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:2px;}
-  .name-sep{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;font-weight:700;
-    text-transform:uppercase;letter-spacing:.5px;margin:16px 2px;}
-  .name-sep::before,.name-sep::after{content:"";flex:1;height:1px;background:var(--line);}
+  .name-tile .nopin.vast{color:var(--forest);}
+  .name-sep{height:1px;background:var(--line);margin:16px 10px;border:0;}
   .login-empty{background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:20px;
     text-align:center;color:var(--muted);}
   .login-foot{margin-top:20px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
@@ -1181,7 +1180,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v29';
+const APP_VERSION='v30';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -2926,7 +2925,10 @@ function renderLoginNames(){
   grid.innerHTML='';
   const maakTegel=u=>{
     const b=document.createElement('button'); b.className='name-tile';
-    b.innerHTML='<span class="av">'+avatarInner(u)+'</span><span>'+esc(u.naam)+(u.pin?'':'<span class="nopin">geen code</span>')+'</span>';
+    let sub='';
+    if(!u.pin) sub='<span class="nopin">geen code</span>';
+    else if(u.rol==='vast') sub='<span class="nopin vast">Vaste mdw</span>';
+    b.innerHTML='<span class="av">'+avatarInner(u)+'</span><span>'+esc(u.naam)+sub+'</span>';
     b.onclick=()=> u.pin ? toPin(u) : loginDirect(u);   // pinloos account = meteen binnen
     return b;
   };
@@ -2935,7 +2937,7 @@ function renderLoginNames(){
   const rest=users.filter(u=>u.id!=='entalg');
   if(algemeen.length){
     grid.appendChild(groep(algemeen));
-    if(rest.length){ const sep=document.createElement('div'); sep.className='name-sep'; sep.textContent='of log in als jezelf'; grid.appendChild(sep); }
+    if(rest.length){ const sep=document.createElement('div'); sep.className='name-sep'; grid.appendChild(sep); }
   }
   if(rest.length) grid.appendChild(groep(rest));
 }
@@ -2998,10 +3000,10 @@ function renderGebrList(){
     const locked = u.id==='entalg';   // vast gedeeld account: niet verwijderen/wijzigen
     const vast = u.rol==='vast';
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
-      '<span class="nm">'+esc(u.naam)+(vast?' <span class="rol vastbadge">Vaste mdw</span>':'')+'</span>'+
+      '<span class="nm">'+esc(u.naam)+'</span>'+
       (locked
         ? '<span class="rol">🔒 vast account · geen code</span>'
-        : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'★ Vaste mdw':'☆ Vaste mdw')+'</button><button class="foto">📷</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
+        : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'✓ Vaste mdw':'Vaste mdw')+'</button><button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
     if(!locked){
       row.querySelector('.vast').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: vast?'':'vast'}); renderGebrList(); };
       row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
@@ -3121,6 +3123,36 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange',updateSys);
 }
 
+// ---------------- AUTOMATISCH VERNIEUWEN (blijft up-to-date) ----------------
+// Een tablet die de hele dag openstaat draait anders oude code. We kijken periodiek
+// of er een nieuwe versie online staat en herladen dan stil — maar alleen wanneer
+// niemand bezig is (geen open venster, en minstens ~3 min geen aanraking, of het
+// scherm staat op de achtergrond), zodat we niemand midden in het typen onderbreken.
+let updateReady=false, lastActivity=Date.now();
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{lastActivity=Date.now();},{passive:true}));
+function appIsBusy(){
+  // een open invoervenster? dan niet herladen
+  if(document.querySelector('.cammodal.open, .modal.open')) return true;
+  return false;
+}
+function tryReload(){
+  if(!updateReady) return;
+  if(document.hidden){ location.reload(); return; }
+  if(!appIsBusy() && (Date.now()-lastActivity > 180000)) location.reload();
+}
+async function checkForUpdate(){
+  if(updateReady || !navigator.onLine) return;
+  try{
+    const url=new URL('entertainment.html', location.href).href+'?_v='+Date.now();
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok) return;
+    const m=(await res.text()).match(/APP_VERSION='([^']+)'/);
+    if(m && m[1] && m[1]!==APP_VERSION){ updateReady=true; tryReload(); }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(updateReady) location.reload(); } else { checkForUpdate(); } });
+window.addEventListener('online',checkForUpdate);
+
 // ---------------- INIT ----------------
 applyTheme(); show('home'); updateSys(); bootAuth();
 // Gedeelde database: bij wijzigingen (ook van collega's) het juiste scherm verversen
@@ -3148,6 +3180,11 @@ renderHome();
 BBInv.init();
 updateSyncBadge();
 setInterval(updateSyncBadge,3000);
+// Automatisch vernieuwen: eerste check na 1 min, daarna elk kwartier; en elke 30s
+// kijken of het een geschikt moment is om (stil) te herladen bij een nieuwe versie.
+setTimeout(checkForUpdate,60000);
+setInterval(checkForUpdate,15*60*1000);
+setInterval(tryReload,30000);
 </script>
 </body>
 </html>
