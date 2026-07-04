@@ -2307,9 +2307,11 @@ function renderBestelSum(){
   list.forEach(b=>{ counts[b.status]=(counts[b.status]||0)+1; ent+=+b.ent||0; bay+=+b.bay||0; hsb+=+b.hsb||0; });
   let html='<span class="pill"><b>'+list.length+'</b> totaal</span>';
   mgStats.forEach(s=>{ if(counts[s]) html+='<span class="pill"><b>'+counts[s]+'</b> '+esc(s.toLowerCase())+'</span>'; });
-  if(ent) html+='<span class="pill ent">ENT <b>'+eur(ent)+'</b></span>';
-  if(bay) html+='<span class="pill bay">BAY <b>'+eur(bay)+'</b></span>';
-  if(hsb) html+='<span class="pill hsb">HSB <b>'+eur(hsb)+'</b></span>';
+  if(isVasteMdw()){ // financiële totalen enkel voor vaste medewerkers
+    if(ent) html+='<span class="pill ent">ENT <b>'+eur(ent)+'</b></span>';
+    if(bay) html+='<span class="pill bay">BAY <b>'+eur(bay)+'</b></span>';
+    if(hsb) html+='<span class="pill hsb">HSB <b>'+eur(hsb)+'</b></span>';
+  }
   document.getElementById('bestelSum').innerHTML=html;
 }
 function renderBestelFilter(){
@@ -2320,9 +2322,11 @@ function renderBestelFilter(){
 }
 function bestelRowHtml(b){
   let amt='';
-  if(+b.ent) amt+='<span class="br-amt ent">ENT '+eur(b.ent)+'</span>';
-  if(+b.bay) amt+='<span class="br-amt bay">BAY '+eur(b.bay)+'</span>';
-  if(+b.hsb) amt+='<span class="br-amt hsb">HSB '+eur(b.hsb)+'</span>';
+  if(isVasteMdw()){ // bedragen per bestelling enkel voor vaste medewerkers
+    if(+b.ent) amt+='<span class="br-amt ent">ENT '+eur(b.ent)+'</span>';
+    if(+b.bay) amt+='<span class="br-amt bay">BAY '+eur(b.bay)+'</span>';
+    if(+b.hsb) amt+='<span class="br-amt hsb">HSB '+eur(b.hsb)+'</span>';
+  }
   const meta=[b.cat,b.leverancier,b.aantal?('×'+b.aantal):'',b.door?('door '+b.door):''].filter(Boolean).map(esc).join(' · ');
   return '<div class="bestelrow" data-edit="'+b.id+'" title="Tik om te bewerken">'+
     '<span class="br-datum">'+dmShort(b.datum)+'</span>'+
