@@ -164,7 +164,17 @@
 
   // ---------------- INIT ----------------
   async function init(){
-    if(!window.supabase){console.error('Supabase library niet geladen');return;}
+    if(!window.supabase){
+      // Bibliotheek niet geladen (zeldzaam, bv. offline vóór ze ooit gecacht is):
+      // toch de laatst bewaarde gegevens tonen zodat lezen én inloggen offline werken.
+      // Schrijfacties wachten in de outbox tot er weer verbinding is.
+      console.warn('Supabase-bibliotheek niet geladen — lokale (offline) modus.');
+      loadCacheFallback();
+      await restorePhotosFromIDB();
+      ensureEntAlgemeen();
+      ready=true; fire();
+      return;
+    }
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     await loadAll();
     await migrateIfEmpty();
