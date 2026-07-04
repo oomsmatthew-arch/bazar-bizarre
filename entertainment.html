@@ -1180,7 +1180,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v31';
+const APP_VERSION='v32';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -2348,6 +2348,7 @@ function renderFinancieel(){
 
 // ---- tabbladen (Beheer met wachtwoord, net als de inventaris) ----
 function showBestelTab(t){
+  if(t==='financieel' && !isVasteMdw()){ return; } // financieel overzicht enkel voor vaste medewerkers
   if(t==='beheer' && !bestelUnlocked){
     if(isVasteMdw()){ bestelUnlocked=true; }
     else { const p=prompt('Wachtwoord voor beheer:');
@@ -2362,6 +2363,14 @@ function showBestelTab(t){
   if(t==='overzicht') renderBestellingen();
   else if(t==='financieel') renderFinancieel();
   else if(t==='beheer') renderBeheerLijsten();
+}
+// De Financieel-tab is enkel voor vaste medewerkers: knop verbergen en, indien nodig,
+// terugvallen op het gewone overzicht.
+function updateBestelTabs(){
+  const btn=document.querySelector('.btab[data-btab="financieel"]');
+  const mag=isVasteMdw();
+  if(btn) btn.style.display = mag ? '' : 'none';
+  if(!mag && bestelTab==='financieel') showBestelTab('overzicht');
 }
 document.querySelectorAll('.btab').forEach(b=>{ b.onclick=()=>showBestelTab(b.dataset.btab); });
 function renderBestelActief(){
@@ -2450,7 +2459,7 @@ function openBestelModal(id){
 }
 function closeBestelModal(){ document.getElementById('bestelModal').classList.remove('open'); bestelEditId=null; }
 
-document.getElementById('openBestellingen').onclick=()=>{ showBestelTab('overzicht'); show('bestellingen'); };
+document.getElementById('openBestellingen').onclick=()=>{ showBestelTab('overzicht'); updateBestelTabs(); show('bestellingen'); };
 
 // ---------------- CONTACTEN (gedeeld via database) ----------------
 function telLink(t){return 'tel:'+String(t).replace(/[^+0-9]/g,'');}
@@ -2909,7 +2918,7 @@ function toBeheer(){ loginPanel('beheer'); document.getElementById('loginSub').t
 function openBeheerPanel(){ document.getElementById('loginOverlay').classList.add('show'); toBeheer(); }
 function beheerKlaar(){ if(currentUser()) hideLogin(); else toNames(); }
 // Inloggen zonder pincode (bv. het gedeelde account "ENT algemeen").
-function loginDirect(u){ setCurrentUser(u,false); hideLogin(); toNames(); renderHome(); }
+function loginDirect(u){ setCurrentUser(u,false); hideLogin(); toNames(); show('home'); renderHome(); }
 function renderLoginNames(){
   const grid=document.getElementById('nameGrid'); if(!grid) return;
   const users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
@@ -2957,7 +2966,7 @@ async function tryPin(){
   if(ok){
     msg.className='pin-msg ok'; msg.textContent='✓ Welkom!';
     setCurrentUser(loginSel, document.getElementById('pinRemember').checked);
-    setTimeout(()=>{ hideLogin(); toNames(); renderHome(); }, 250);
+    setTimeout(()=>{ hideLogin(); toNames(); show('home'); renderHome(); }, 250);
   }else{
     msg.className='pin-msg'; msg.textContent='Onjuiste pincode, probeer opnieuw.';
     pinBuf=''; renderPinDots();
@@ -3099,6 +3108,7 @@ function bootAuth(){
 }
 function refreshAuth(){
   updateUserBtn(); // avatar/foto in de balk bijwerken zodra de gedeelde lijst (met foto's) laadt
+  updateBestelTabs(); // Financieel-tab tonen/verbergen volgens rol
   if(document.getElementById('loginOverlay').classList.contains('show') && document.getElementById('loginNames').style.display!=='none') renderLoginNames();
   if(document.getElementById('loginBeheerPanel').style.display!=='none') renderGebrList();
   // hervalideer: is de ingelogde persoon nog steeds in de gedeelde lijst?
