@@ -171,6 +171,7 @@
     await migrateBestelIfNeeded();
     await topUpBestelDefaults();
     await migrateSharedLists();
+    ensureEntAlgemeen(); // gedeeld account "ENT algemeen" (zonder pincode) altijd beschikbaar
     normalizeInGebruik(); // prijzen op 0 die nog "in gebruik" stonden opschonen + syncen
     subscribe();
     flushOutbox(); // eventuele offline gemaakte wijzigingen alsnog doorsturen
@@ -436,6 +437,13 @@
   function removeGebruiker(id){
     cache.gebruikers=cache.gebruikers.filter(g=>g.id!==id); saveGebrBackup();
     if(gebruikersOK) dbDelete('gebruikers','id',id); else persistCache();
+  }
+  // Vast gedeeld account "ENT algemeen" zonder pincode (vaste id → nooit dubbel, self-healing).
+  function ensureEntAlgemeen(){
+    if(cache.gebruikers.some(u=>u.id==='entalg')) return;
+    const rec={id:'entalg',naam:'ENT algemeen',pin:'',rol:'algemeen',foto:'',ts:Date.now()};
+    cache.gebruikers.push(rec); saveGebrBackup();
+    if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(rec)); else persistCache();
   }
 
   // ---------------- MANUALS (gedeelde mappenboom + bestand-upload) ----------------

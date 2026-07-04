@@ -532,6 +532,7 @@
   .name-tile:active{transform:translateY(1px);}
   .name-tile .av{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
     border-radius:50%;background:var(--forest);color:#fff;font-size:14px;flex:0 0 auto;}
+  .name-tile .nopin{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:2px;}
   .login-empty{background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:20px;
     text-align:center;color:var(--muted);}
   .login-foot{margin-top:20px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
@@ -619,6 +620,18 @@
       </div>
       <label class="pin-remember"><input type="checkbox" id="pinRemember"> Onthoud mij op dit toestel <span class="pin-hint">(alleen je eigen gsm)</span></label>
     </div>
+    <!-- stap 3: namen beheren (blijft binnen het inlogscherm → app blijft vergrendeld) -->
+    <div id="loginBeheerPanel" style="display:none">
+      <p class="login-sub" style="margin:0 0 14px">Voeg collega's toe met een pincode van 4 cijfers. Vergeten code? Tik <b>Reset</b>. Deze lijst is gedeeld met alle toestellen.</p>
+      <div class="gebradd">
+        <div class="h">Nieuwe collega</div>
+        <input type="text" id="gebrNaam" class="finp" placeholder="Naam (bv. Jan)">
+        <input type="tel" id="gebrPin" class="finp" inputmode="numeric" maxlength="4" placeholder="Pincode (4 cijfers)">
+        <button class="btn primary" id="gebrAdd">Collega toevoegen</button>
+      </div>
+      <div class="gebrlist" id="gebrlist" style="margin-top:14px"></div>
+      <div class="login-foot"><button class="login-link" id="beheerKlaar">← Klaar</button></div>
+    </div>
   </div>
 </div>
 
@@ -631,7 +644,18 @@
     <button class="btn primary" id="profFoto">📷 Profielfoto kiezen</button>
     <button class="btn" id="profFotoDel" style="display:none">Foto verwijderen</button>
     <button class="btn" id="profWissel">🔄 Wissel gebruiker</button>
+    <button class="btn" id="profUitloggen">🚪 Uitloggen</button>
     <button class="btn clear" id="profSluit">Sluiten</button>
+  </div>
+</div>
+
+<!-- FOTO-BRON KIEZEN (camera of galerij) voor de profielfoto -->
+<div class="cammodal" id="fotoBronModal">
+  <div class="cammodal-box choose">
+    <div class="cammodal-title">Profielfoto</div>
+    <button class="btn primary" id="bronCamera">📷 Foto maken met camera</button>
+    <button class="btn" id="bronGalerij">🖼️ Uit galerij kiezen</button>
+    <button class="btn clear" id="bronAnnuleer">Annuleren</button>
   </div>
 </div>
 
@@ -753,17 +777,6 @@
     </div>
   </div>
 
-  <!-- GEBRUIKERS (namenlijst beheren) -->
-  <div class="view" id="gebruikers">
-    <p class="hint">Iedereen die kan inloggen. Voeg collega's toe met een korte pincode (3–8 cijfers). Vergeten code? Tik <b>Reset</b> en geef een nieuwe. Deze lijst is gedeeld met alle toestellen.</p>
-    <div class="gebradd">
-      <div class="h">Nieuwe collega</div>
-      <input type="text" id="gebrNaam" class="finp" placeholder="Naam (bv. Jan)">
-      <input type="tel" id="gebrPin" class="finp" inputmode="numeric" maxlength="8" placeholder="Pincode (3–8 cijfers)">
-      <button class="btn primary" id="gebrAdd">Collega toevoegen</button>
-    </div>
-    <div class="gebrlist" id="gebrlist" style="margin-top:14px"></div>
-  </div>
 
   <!-- ONLINE MANUALS -->
   <div class="view" id="manuals">
@@ -1162,7 +1175,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v26';
+const APP_VERSION='v27';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -2869,12 +2882,18 @@ function showLogin(){ document.getElementById('loginOverlay').classList.add('sho
 function hideLogin(){ document.getElementById('loginOverlay').classList.remove('show'); }
 
 let loginSel=null, pinBuf='', pinBusy=false;
-function toNames(){
-  loginSel=null; pinBuf='';
-  document.getElementById('loginPin').style.display='none';
-  document.getElementById('loginNames').style.display='';
-  renderLoginNames();
+// Toon precies één paneel binnen het inlogscherm (namen / pincode / beheer).
+function loginPanel(which){
+  document.getElementById('loginNames').style.display = which==='names'?'':'none';
+  document.getElementById('loginPin').style.display   = which==='pin'?'':'none';
+  document.getElementById('loginBeheerPanel').style.display = which==='beheer'?'':'none';
 }
+function toNames(){ loginSel=null; pinBuf=''; loginPanel('names'); renderLoginNames(); }
+function toBeheer(){ loginPanel('beheer'); document.getElementById('loginSub').textContent='Namen beheren'; renderGebrList(); }
+function openBeheerPanel(){ document.getElementById('loginOverlay').classList.add('show'); toBeheer(); }
+function beheerKlaar(){ if(currentUser()) hideLogin(); else toNames(); }
+// Inloggen zonder pincode (bv. het gedeelde account "ENT algemeen").
+function loginDirect(u){ setCurrentUser(u,false); hideLogin(); toNames(); renderHome(); }
 function renderLoginNames(){
   const grid=document.getElementById('nameGrid'); if(!grid) return;
   const users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
@@ -2890,8 +2909,8 @@ function renderLoginNames(){
   grid.innerHTML='';
   users.forEach(u=>{
     const b=document.createElement('button'); b.className='name-tile';
-    b.innerHTML='<span class="av">'+avatarInner(u)+'</span><span>'+esc(u.naam)+'</span>';
-    b.onclick=()=>toPin(u);
+    b.innerHTML='<span class="av">'+avatarInner(u)+'</span><span>'+esc(u.naam)+(u.pin?'':'<span class="nopin">geen code</span>')+'</span>';
+    b.onclick=()=> u.pin ? toPin(u) : loginDirect(u);   // pinloos account = meteen binnen
     grid.appendChild(b);
   });
 }
@@ -2900,8 +2919,7 @@ function toPin(u){
   document.getElementById('pinWho').textContent='Hallo '+u.naam;
   const msg=document.getElementById('pinMsg'); msg.textContent=''; msg.className='pin-msg';
   document.getElementById('pinRemember').checked = localStorage.getItem(K_REMEMBER)==='1';
-  document.getElementById('loginNames').style.display='none';
-  document.getElementById('loginPin').style.display='';
+  loginPanel('pin');
   renderPinDots();
 }
 function renderPinDots(){ document.querySelectorAll('#loginPin .pin-dots i').forEach((el,i)=>el.classList.toggle('on', i<pinBuf.length)); }
@@ -2937,14 +2955,15 @@ document.getElementById('loginCancel').onclick=()=>{ if(currentUser()) hideLogin
 document.getElementById('loginBeheer').onclick=()=>{
   const p=prompt('Beheerderswachtwoord:'); if(p===null) return;
   if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
-  hideLogin(); renderGebrList(); show('gebruikers');
+  toBeheer();  // beheer binnen het inlogscherm → app blijft vergrendeld
 };
+document.getElementById('beheerKlaar').onclick=beheerKlaar;
 
 // ---- Gebruikersbeheer (achter het beheer-wachtwoord) ----
 function openGebruikers(){
   const p=prompt('Wachtwoord:'); if(p===null) return;
   if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
-  renderGebrList(); show('gebruikers');
+  openBeheerPanel();
 }
 function renderGebrList(){
   const box=document.getElementById('gebrlist'); if(!box) return;
@@ -2955,7 +2974,7 @@ function renderGebrList(){
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
       '<button class="foto">📷</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>';
-    row.querySelector('.foto').onclick=()=>pickProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
+    row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
     row.querySelector('.rst').onclick=async()=>{
       const np=prompt('Nieuwe pincode voor '+u.naam+' (4 cijfers):'); if(np===null) return;
       if(!/^\d{4}$/.test(np.trim())){ alert('De pincode moet precies 4 cijfers zijn.'); return; }
@@ -2983,25 +3002,35 @@ document.getElementById('gebrAdd').onclick=async()=>{
   renderGebrList();
 };
 
-// ---- Profielfoto kiezen (camera of galerij) → klein vierkant maken ----
-function pickProfilePhoto(cb){
-  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
-  inp.onchange=()=>{
-    const f=inp.files&&inp.files[0]; if(!f){ cb(null); return; }
-    const r=new FileReader();
-    r.onload=()=>{ const img=new Image();
-      img.onload=()=>{ const S=180, c=document.createElement('canvas'); c.width=S; c.height=S;
-        const ctx=c.getContext('2d'); const scale=Math.max(S/img.width,S/img.height);
-        const w=img.width*scale, h=img.height*scale;
-        ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);   // vierkant bijsnijden, gecentreerd
-        try{ cb(c.toDataURL('image/jpeg',0.72)); }catch(e){ cb(null); }
-      };
-      img.onerror=()=>cb(null); img.src=r.result;
+// ---- Profielfoto: verklein tot een klein vierkant (gecentreerd bijgesneden) ----
+function fileToSquare(file,cb){
+  if(!file){ cb(null); return; }
+  const r=new FileReader();
+  r.onload=()=>{ const img=new Image();
+    img.onload=()=>{ const S=180, c=document.createElement('canvas'); c.width=S; c.height=S;
+      const ctx=c.getContext('2d'), scale=Math.max(S/img.width,S/img.height), w=img.width*scale, h=img.height*scale;
+      ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
+      try{ cb(c.toDataURL('image/jpeg',0.72)); }catch(e){ cb(null); }
     };
-    r.onerror=()=>cb(null); r.readAsDataURL(f);
+    img.onerror=()=>cb(null); img.src=r.result;
   };
+  r.onerror=()=>cb(null); r.readAsDataURL(file);
+}
+// Een fotobestand kiezen: capture=true opent (op gsm/tablet) meteen de camera.
+function photoInput(capture,cb){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  if(capture) inp.setAttribute('capture','user'); // voorkant-camera (selfie) waar mogelijk
+  inp.onchange=()=>fileToSquare(inp.files&&inp.files[0],cb);
   inp.click();
 }
+// Keuzevenster: camera of galerij.
+let bronCb=null;
+function chooseProfilePhoto(cb){ bronCb=cb; document.getElementById('fotoBronModal').classList.add('open'); }
+function closeBron(){ document.getElementById('fotoBronModal').classList.remove('open'); }
+document.getElementById('bronCamera').onclick=()=>{ closeBron(); photoInput(true, url=>{ if(bronCb) bronCb(url); }); };
+document.getElementById('bronGalerij').onclick=()=>{ closeBron(); photoInput(false, url=>{ if(bronCb) bronCb(url); }); };
+document.getElementById('bronAnnuleer').onclick=closeBron;
+document.getElementById('fotoBronModal').addEventListener('click',e=>{ if(e.target.id==='fotoBronModal') closeBron(); });
 
 // ---- Mijn profiel (zelf een foto kiezen, of wisselen van gebruiker) ----
 function renderProfiel(){
@@ -3012,15 +3041,20 @@ function renderProfiel(){
 }
 function openProfiel(){ if(!currentUser()) return; renderProfiel(); document.getElementById('profielModal').classList.add('open'); }
 function closeProfiel(){ document.getElementById('profielModal').classList.remove('open'); }
-document.getElementById('profFoto').onclick=()=>pickProfilePhoto(url=>{
-  if(!url) return; const u=currentUser(); if(!u) return;
-  BBInv.updateGebruiker(u.id,{foto:url}); renderProfiel(); updateUserBtn();
-});
+document.getElementById('profFoto').onclick=async()=>{
+  const u=fullCurrentUser(); if(!u) return;
+  if(u.pin){ // eerst de eigen pincode bevestigen (pinloze accounts overslaan)
+    const entered=prompt('Je pincode om door te gaan:'); if(entered===null) return;
+    if(!(await pinMatch(u.pin,(entered||'').trim()))){ alert('Onjuiste pincode.'); return; }
+  }
+  chooseProfilePhoto(url=>{ if(!url) return; BBInv.updateGebruiker(u.id,{foto:url}); renderProfiel(); updateUserBtn(); });
+};
 document.getElementById('profFotoDel').onclick=()=>{
   const u=currentUser(); if(!u) return;
   BBInv.updateGebruiker(u.id,{foto:''}); renderProfiel(); updateUserBtn();
 };
 document.getElementById('profWissel').onclick=()=>{ closeProfiel(); showLogin(); };
+document.getElementById('profUitloggen').onclick=()=>{ closeProfiel(); setCurrentUser(null,false); showLogin(); };
 document.getElementById('profSluit').onclick=closeProfiel;
 document.getElementById('profielModal').addEventListener('click',e=>{ if(e.target.id==='profielModal') closeProfiel(); });
 
@@ -3032,8 +3066,8 @@ function bootAuth(){
 }
 function refreshAuth(){
   updateUserBtn(); // avatar/foto in de balk bijwerken zodra de gedeelde lijst (met foto's) laadt
-  if(document.getElementById('loginOverlay').classList.contains('show')) renderLoginNames();
-  if(document.getElementById('gebruikers').classList.contains('active')) renderGebrList();
+  if(document.getElementById('loginOverlay').classList.contains('show') && document.getElementById('loginNames').style.display!=='none') renderLoginNames();
+  if(document.getElementById('loginBeheerPanel').style.display!=='none') renderGebrList();
   // hervalideer: is de ingelogde persoon nog steeds in de gedeelde lijst?
   const u=currentUser(), users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
   if(u && users.length && !users.some(x=>x.id===u.id)){ setCurrentUser(null,false); showLogin(); }
