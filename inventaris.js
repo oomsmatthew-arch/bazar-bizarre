@@ -159,8 +159,8 @@
   const checklistToRow=c=>({id:c.id,naam:c.naam||'',items:c.items||[],pos:+c.pos||0,ts:c.ts||0});
   const mapLog=r=>({id:r.id,ts:r.ts||0,datum:r.datum||'',auteur:r.auteur||'',tekst:r.tekst||'',klaar:!!r.klaar});
   const logToRow=l=>({id:l.id,ts:l.ts||0,datum:l.datum||'',auteur:l.auteur||'',tekst:l.tekst||'',klaar:!!l.klaar});
-  const mapGebr=r=>({id:r.id,naam:r.naam||'',pin:r.pin||'',rol:r.rol||'',ts:r.ts||0});
-  const gebrToRow=g=>({id:g.id,naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',ts:g.ts||0});
+  const mapGebr=r=>({id:r.id,naam:r.naam||'',pin:r.pin||'',rol:r.rol||'',foto:r.foto||'',ts:r.ts||0});
+  const gebrToRow=g=>({id:g.id,naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',foto:g.foto||'',ts:g.ts||0});
 
   // ---------------- INIT ----------------
   async function init(){
@@ -425,7 +425,7 @@
   const getGebruikers=()=>cache.gebruikers.slice().sort((a,b)=>(a.naam||'').localeCompare(b.naam||''));
   function saveGebrBackup(){ saveBackup('gebruikers',K_GEBRUIKERS_BACKUP); }
   function addGebruiker(g){
-    const rec={id:uid(),naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',ts:Date.now()};
+    const rec={id:uid(),naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',foto:g.foto||'',ts:Date.now()};
     cache.gebruikers.push(rec); saveGebrBackup();
     if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(rec)); else persistCache(); return rec;
   }
