@@ -586,14 +586,24 @@
   .card[data-key="activiteit"]{--accent:#5b7fb0;background:linear-gradient(150deg,#eef2f9,#fff);}
   [data-theme="dark"] .card[data-key="activiteit"]{background:linear-gradient(150deg,#1c2531,#18271f);}
   .actbar{margin-bottom:12px;}
-  .actlist{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:6px 12px;box-shadow:var(--shadow);}
-  .actday{font-weight:800;color:var(--forest);margin:14px 0 6px;font-size:13px;text-transform:uppercase;
-    letter-spacing:.5px;border-bottom:1px solid var(--line);padding-bottom:5px;}
-  .actrow{padding:9px 2px;border-bottom:1px solid var(--panel2);}
-  .actrow:last-child{border-bottom:0;}
-  .actmeta{display:flex;gap:10px;align-items:baseline;font-size:12px;color:var(--muted);}
-  .actmeta .actwie{font-weight:800;color:var(--forest);font-size:14px;}
-  .actwat{margin-top:2px;color:var(--text);}
+  .actlist{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:8px 12px 12px;box-shadow:var(--shadow);}
+  .actday{display:inline-block;font-weight:800;color:var(--forest);margin:16px 0 8px;font-size:12px;
+    text-transform:uppercase;letter-spacing:.6px;background:var(--panel2);padding:4px 12px;border-radius:999px;}
+  .actday:first-child{margin-top:4px;}
+  .actrow{display:flex;gap:12px;align-items:flex-start;padding:11px 12px;border-left:3px solid var(--line);
+    border-radius:0 10px 10px 0;margin-bottom:2px;}
+  .actrow.k-add{border-left-color:var(--leaf);background:linear-gradient(90deg,rgba(74,155,94,.08),transparent 60%);}
+  .actrow.k-edit{border-left-color:var(--water);background:linear-gradient(90deg,rgba(47,143,157,.08),transparent 60%);}
+  .actrow.k-del{border-left-color:#d9534f;background:linear-gradient(90deg,rgba(217,83,79,.09),transparent 60%);}
+  .actrow.k-info{border-left-color:var(--sun);background:linear-gradient(90deg,rgba(245,185,66,.10),transparent 60%);}
+  .actav{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--forest);color:#fff;
+    display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;overflow:hidden;}
+  .actav img{width:100%;height:100%;object-fit:cover;display:block;}
+  .actbody{flex:1;min-width:0;}
+  .actwat{color:var(--text);font-weight:600;display:flex;gap:8px;align-items:baseline;line-height:1.35;}
+  .acticon{flex:0 0 auto;font-size:15px;}
+  .actmeta{margin-top:3px;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;}
+  .actmeta .actwie{font-weight:800;color:var(--forest);}
   .actempty{color:var(--muted);text-align:center;padding:26px;}
   /* foto's tonen in de ronde avatars (anders initialen) */
   .name-tile .av,.userbtn .av{overflow:hidden;}
@@ -1207,7 +1217,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v33';
+const APP_VERSION='v34';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -3084,6 +3094,42 @@ function updateActiviteitCard(){
 }
 function fmtActDay(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
 function fmtActTime(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes()); }
+function fmtActDayLabel(ts){
+  const d=new Date(ts), now=new Date();
+  const same=(a,b)=>a.getDate()===b.getDate()&&a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear();
+  const y=new Date(now); y.setDate(now.getDate()-1);
+  if(same(d,now)) return 'Vandaag';
+  if(same(d,y)) return 'Gisteren';
+  const dagen=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  return dagen[d.getDay()]+' '+fmtActDay(ts);
+}
+// Icoon per soort actie (op trefwoord).
+function actIcon(a){ a=(a||'').toLowerCase();
+  if(a.indexOf('bestelling')>=0||a.indexOf('bestellijst')>=0) return '📦';
+  if(a.indexOf('contact')>=0) return '📇';
+  if(a.indexOf('checklist')>=0) return '✅';
+  if(a.indexOf('logboek')>=0) return '📝';
+  if(a.indexOf('gebruiker')>=0) return '👤';
+  if(a.indexOf('prijs')>=0) return '🏷️';
+  if(a.indexOf('levering')>=0) return '🚚';
+  if(a.indexOf('boekjes')>=0) return '📚';
+  if(a.indexOf('formulier')>=0||a.indexOf('spel afgesloten')>=0) return '🎯';
+  if(a.indexOf('mededeling')>=0) return '📢';
+  if(a.indexOf('wachtwoord')>=0) return '🔑';
+  if(a.indexOf('inventaris')>=0||a.indexOf('hersteld')>=0) return '♻️';
+  return '•';
+}
+// Soort (voor de kleur van de streep).
+function actKind(a){ a=(a||'').toLowerCase();
+  if(a.indexOf('verwijderd')>=0||a.indexOf('gewist')>=0) return 'del';
+  if(a.indexOf('toegevoegd')>=0||a.indexOf('geplaatst')>=0||a.indexOf('geregistreerd')>=0||a.indexOf('afgesloten')>=0) return 'add';
+  if(a.indexOf('aangepast')>=0||a.indexOf('gewijzigd')>=0||a.indexOf('gereset')>=0||a.indexOf('hersteld')>=0||a.indexOf('afgehandeld')>=0||a.indexOf('heropend')>=0||a.indexOf('ingesteld')>=0) return 'edit';
+  return 'info';
+}
+function actAvatar(wie){
+  const u=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers().find(x=>(x.naam||'')===wie):null;
+  return '<span class="actav">'+(u?avatarInner(u):esc(initials(wie)))+'</span>';
+}
 function renderActiviteit(){
   const box=document.getElementById('actlist'); if(!box) return;
   const lijst=(window.BBInv&&BBInv.getActiviteit)?BBInv.getActiviteit():[];
@@ -3091,10 +3137,12 @@ function renderActiviteit(){
   let html='', lastDay='';
   lijst.forEach(a=>{
     const day=fmtActDay(a.ts);
-    if(day!==lastDay){ html+='<div class="actday">'+esc(day)+'</div>'; lastDay=day; }
-    html+='<div class="actrow"><div class="actmeta"><span class="actwie">'+esc(a.wie||'?')+'</span>'+
-      '<span class="acttime">'+esc(fmtActTime(a.ts))+'</span></div>'+
-      '<div class="actwat">'+esc(a.actie||'')+'</div></div>';
+    if(day!==lastDay){ html+='<div class="actday">'+esc(fmtActDayLabel(a.ts))+'</div>'; lastDay=day; }
+    html+='<div class="actrow k-'+actKind(a.actie)+'">'+actAvatar(a.wie)+
+      '<div class="actbody">'+
+        '<div class="actwat"><span class="acticon">'+actIcon(a.actie)+'</span><span>'+esc(a.actie||'')+'</span></div>'+
+        '<div class="actmeta"><span class="actwie">'+esc(a.wie||'?')+'</span><span>·</span><span>'+esc(fmtActTime(a.ts))+'</span></div>'+
+      '</div></div>';
   });
   box.innerHTML=html;
 }
