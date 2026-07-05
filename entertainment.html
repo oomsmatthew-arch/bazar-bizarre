@@ -1853,11 +1853,11 @@ function pickFoto(cb){
 function fileToThumb(file,cb){
   const r=new FileReader();
   r.onload=()=>{const img=new Image();
-    img.onload=()=>{const max=700;let w=img.width,h=img.height;
+    img.onload=()=>{const max=1000;let w=img.width,h=img.height;
       if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
       const c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      try{cb(c.toDataURL('image/jpeg',0.62));}catch(e){cb(null);}};
+      try{cb(c.toDataURL('image/jpeg',0.78));}catch(e){cb(null);}};
     img.onerror=()=>cb(null); img.src=r.result;};
   r.onerror=()=>cb(null); r.readAsDataURL(file);
 }
@@ -1874,14 +1874,33 @@ let camStream=null;
 function openCamera(cb){
   const m=document.getElementById('camModal'), v=document.getElementById('camVideo');
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('Camera niet beschikbaar op dit toestel — kies een foto uit bestanden.');return;}
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false}).then(s=>{
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}},audio:false}).then(s=>{
     camStream=s; v.srcObject=s; if(v.play)v.play().catch(()=>{}); m.classList.add('open');
-    document.getElementById('camShot').onclick=()=>{
-      let w=v.videoWidth,h=v.videoHeight; if(!w||!h){alert('Camera nog niet klaar, probeer opnieuw.');return;}
-      const max=700; if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
-      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(v,0,0,w,h);
-      let url=null; try{url=c.toDataURL('image/jpeg',0.7);}catch(e){}
+    // Beeldbron (echte foto of videoframe) verkleinen en als JPEG bewaren.
+    const bewaar=(src,natW,natH)=>{
+      let w=natW,h=natH; if(!w||!h){alert('Camera nog niet klaar, probeer opnieuw.');bezig=false;return;}
+      const max=1000; if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(src,0,0,w,h);
+      let url=null; try{url=c.toDataURL('image/jpeg',0.8);}catch(e){}
       closeCamera(); if(url&&cb)cb(url);
+    };
+    let bezig=false;
+    document.getElementById('camShot').onclick=()=>{
+      if(bezig) return; bezig=true;
+      const track=camStream&&camStream.getVideoTracks&&camStream.getVideoTracks()[0];
+      const videoFrame=()=>bewaar(v,v.videoWidth,v.videoHeight);
+      // Voorkeur: een ECHTE foto nemen (scherper dan een videoframe: stelt scherp + volle resolutie).
+      if(window.ImageCapture && track){
+        let ic=null; try{ic=new ImageCapture(track);}catch(e){}
+        if(ic){
+          ic.takePhoto()
+            .then(blob=>createImageBitmap(blob,{imageOrientation:'from-image'}))
+            .then(bm=>bewaar(bm,bm.width,bm.height))
+            .catch(()=>{ try{ ic.grabFrame().then(bm=>bewaar(bm,bm.width,bm.height)).catch(videoFrame); }catch(e){ videoFrame(); } });
+          return;
+        }
+      }
+      videoFrame();
     };
   }).catch(e=>{alert('Kan de camera niet openen ('+((e&&e.name)||e)+'). Geef toestemming voor de camera, of kies een foto uit bestanden.');});
 }
