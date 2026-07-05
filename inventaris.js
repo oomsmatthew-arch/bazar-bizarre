@@ -118,7 +118,7 @@
 
   // ---- Outbox: wijzigingen die nog naar de database moeten (overleven offline) ----
   let outbox=[]; try{const r=localStorage.getItem(K_OUTBOX); outbox=r?(JSON.parse(r)||[]):[];}catch(e){outbox=[];}
-  let flushing=false;
+  let flushing=false, retryT=null;
   function saveOutbox(){ try{localStorage.setItem(K_OUTBOX,JSON.stringify(outbox));}catch(e){} }
   function pendingCount(){ return outbox.length; }
   function enqueue(op){ outbox.push(op); saveOutbox(); persistCache(); flushOutbox(); }
@@ -132,7 +132,7 @@
     flushing=true;
     try{
       while(outbox.length){
-        const op=outbox[0]; let res;
+        const op=outbox[0]; let res, netErr=false;
         try{
           const q=sb.from(op.table);
           if(op.op==='insert') res=await q.insert(op.payload);
@@ -140,11 +140,28 @@
           else if(op.op==='update') res=await q.update(op.payload).eq(op.col,op.val);
           else if(op.op==='delete') res=await q.delete().eq(op.col,op.val);
           else { outbox.shift(); saveOutbox(); continue; }
-        }catch(e){ break; } // netwerk weg → wachtrij behouden, later opnieuw proberen
-        if(res && res.error){ console.error('Outbox:',res.error.message||res.error); outbox.shift(); saveOutbox(); continue; }
+        }catch(e){ netErr=true; } // netwerk weg → wachtrij behouden, later opnieuw proberen
+        if(netErr) break;
+        if(res && res.error){
+          // Serverfout (bv. tijdelijke time-out of een grote foto): enkele keren opnieuw
+          // proberen i.p.v. de wijziging meteen weg te gooien. Zo komt een foto die de
+          // eerste keer faalt alsnog in de database en dus op de andere toestellen.
+          op._tries=(op._tries||0)+1;
+          if(op._tries<5){ saveOutbox(); break; }
+          console.error('Outbox — opgegeven na '+op._tries+' pogingen:',res.error.message||res.error);
+          outbox.shift(); saveOutbox(); continue;
+        }
+        if(op._tries) delete op._tries;
         outbox.shift(); saveOutbox();
       }
-    } finally { flushing=false; fire(); }
+    } finally {
+      flushing=false;
+      // Bleven er wijzigingen staan (na een fout) en zijn we online? Plan een nieuwe poging.
+      if(outbox.length && !(typeof navigator!=='undefined' && navigator.onLine===false)){
+        clearTimeout(retryT); retryT=setTimeout(()=>{ retryT=null; flushOutbox(); }, 6000);
+      }
+      fire();
+    }
   }
   if(typeof window!=='undefined'){ window.addEventListener('online',()=>flushOutbox()); }
 
