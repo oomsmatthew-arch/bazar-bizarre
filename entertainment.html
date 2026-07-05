@@ -2054,8 +2054,8 @@ function renderStats(){
   const pr=BBInv.getPrijzen().filter(p=>p.inGebruik);
   const dK=getDrempel(), dA=getDrempel2();
   // Status op basis van het TOTAAL aantal stuks (niet per prijs).
-  let totaal=0,uitverkocht=0;
-  pr.forEach(p=>{const s=p.stock||0; if(s>0)totaal+=s; else uitverkocht++;});
+  let totaal=0,uitverkocht=0,totK=0,totG=0;
+  pr.forEach(p=>{const s=p.stock||0; if(s>0){ totaal+=s; if(p.cat==='groot')totG+=s; else totK+=s; } else uitverkocht++;});
   const bk=BBInv.getBoekjes().stock||0, dBk=getDrempelBoekjes();
   const stat=(v,lo,hi)=> v<=lo?{c:'red',t:'🔴 Bijna op'}:(v<=hi?{c:'orange',t:'🟠 Aandacht'}:{c:'green',t:'🟢 Goed op voorraad'});
   const ps=stat(totaal,dK,dA);
@@ -2075,6 +2075,8 @@ function renderStats(){
   const card=(v,l,cls)=>'<div class="statcard'+(cls?' '+cls:'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
   document.getElementById('statGrid').innerHTML=
     card(totaal,'Prijzen op voorraad · '+ps.t,ps.c)+
+    card(totK,'Kleine prijzen op voorraad')+
+    card(totG,'Grote prijzen op voorraad')+
     card(bk,'Boekjes op voorraad · '+bs.t,bs.c)+
     card(levVal,levLbl);
   const el=document.getElementById('statTop'); if(el) el.innerHTML='';
