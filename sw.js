@@ -1,5 +1,5 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v2.1';
+const CACHE = 'bazar-bizarre-v2.2';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);

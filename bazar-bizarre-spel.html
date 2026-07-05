@@ -140,6 +140,10 @@
   .klaarcard .kl b{color:var(--gold);}
   .klaarwarn{margin-top:12px;background:rgba(255,93,143,.12);border:1px solid var(--pink);border-radius:12px;
     padding:12px 14px;color:#ffd0db;font-size:14px;line-height:1.5;}
+  .klaarsync{margin-top:12px;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:700;line-height:1.45;}
+  .klaarsync.ok{border:1px solid var(--ok);background:rgba(52,210,123,.12);color:#bff3d6;}
+  .klaarsync.pending{border:1px solid var(--gold);background:rgba(255,210,63,.12);color:#ffe9a8;}
+  .klaarsync.offline{border:1px solid var(--pink);background:rgba(255,93,143,.12);color:#ffd0db;}
 
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
@@ -1185,8 +1189,28 @@ function renderFormulierKlaar(rec){
   html+='<div class="kl"><b>Boekjes afgeboekt:</b> '+usedBk+' (voorraad nu '+(bk.stock||0)+')</div>';
   html+='</div>';
   if(negs.length) html+='<div class="klaarwarn">⚠ Let op — onder 0 in voorraad: '+negs.join(', ')+'. Vul aan via Beheer of een levering.</div>';
+  html+='<div class="klaarsync pending" id="klaarSync">⏳ Bezig met versturen…</div>';
   document.getElementById('klaarBody').innerHTML=html;
+  updateKlaarSync();
 }
+// Live sync-status op het "Doorgestuurd"-scherm: is het spel al écht naar de gedeelde lijst verstuurd?
+// Wordt bijgewerkt telkens de wachtrij verandert (BBInv.setOnChange) en bij online/offline.
+function updateKlaarSync(){
+  const el=document.getElementById('klaarSync'); if(!el) return;
+  const pend=window.BBInv?BBInv.pendingCount():0;
+  if(!navigator.onLine){
+    el.className='klaarsync offline';
+    el.textContent='📴 Nog geen internet — wordt automatisch verstuurd zodra je verbonden bent. Je mag de app gerust sluiten.';
+  } else if(pend>0){
+    el.className='klaarsync pending';
+    el.textContent='⏳ Bezig met versturen naar de gedeelde lijst…';
+  } else {
+    el.className='klaarsync ok';
+    el.textContent='✓ Verstuurd en gesynct met de andere toestellen.';
+  }
+}
+window.addEventListener('online',updateKlaarSync);
+window.addEventListener('offline',updateKlaarSync);
 document.getElementById('klaarMenu').onclick=()=>show('menu');
 document.getElementById('klaarUndo').onclick=()=>{
   if(!confirm('Dit doorsturen ongedaan maken? De afgeboekte voorraad wordt teruggezet en het spel hersteld.'))return;
@@ -1350,12 +1374,13 @@ if(window.BBInv){
     renderControle();
     if(document.getElementById('formulier').classList.contains('active')){renderKiesLijst('klein');renderKiesLijst('groot');}
     if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+    updateKlaarSync(); // sync-status op het "Doorgestuurd"-scherm live bijwerken
   });
   BBInv.init();
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v2.1';
+const APP_VERSION='v2.2';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;
