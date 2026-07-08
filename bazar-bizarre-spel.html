@@ -568,6 +568,17 @@
       <div class="pmodal-list" id="pmList"></div>
     </div>
   </div>
+
+  <!-- Sessie terugzetten: keuzelijst (lokaal dit toestel + gedeeld over alle toestellen) -->
+  <div class="pmodal" id="sessieModal">
+    <div class="pmodal-box">
+      <div class="pmodal-head">
+        <b style="flex:1;align-self:center;color:var(--gold);font-family:var(--serif);font-size:18px;">Sessie terugzetten</b>
+        <button class="btn clear" id="sessieClose">Sluiten</button>
+      </div>
+      <div class="pmodal-list" id="sessieList"></div>
+    </div>
+  </div>
 </div>
 
 <!-- Presentatie-overlay: grote vraag (met vertaling) of antwoord-reveal -->
@@ -993,25 +1004,59 @@ function fmtTs(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,'0');
   return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}
 function updateRestoreBtn(){
   const b=document.getElementById('herstelSessie');
-  const raw=localStorage.getItem(KEYBACKUP);
-  if(!raw){b.disabled=true;b.textContent='Geen verwijderde sessie';return;}
-  try{const o=JSON.parse(raw);b.disabled=false;b.textContent='Herstel sessie van '+fmtTs(o.ts);}
-  catch(e){b.disabled=true;b.textContent='Geen verwijderde sessie';}
+  if(!b) return;
+  b.disabled=false;
+  b.textContent='↩ Sessie terugzetten';
+}
+// Volledige speelstand als momentopname (voor lokaal herstel én de gedeelde lijst).
+function snapshotSessie(label){
+  return { id:Date.now(), ts:Date.now(), label:label||'',
+    state: JSON.parse(JSON.stringify(state)),
+    counts:{ superdeals:state.superdeals.filter(Boolean).length, trolley:state.trolley.filter(Boolean).length,
+             howmuch:state.howmuch.filter(Boolean).length, coins:state.coins.filter(Boolean).length } };
 }
 document.getElementById('wisSessie').onclick=()=>{
   if(!confirm('Weet je het zeker? Dit wist ALLES van deze sessie: alle turven, aangevinkte deals/nummers/munten, prijzen en vragen.'))return;
   try{localStorage.setItem(KEYBACKUP,JSON.stringify({ts:Date.now(),data:state}));}catch(e){}
+  if(window.BBInv&&BBInv.pushSessie) BBInv.pushSessie(snapshotSessie('')); // ook delen zodat andere toestellen ze kunnen terughalen
   state=freshState();
   save();renderAll();updateAll();updateRestoreBtn();
 };
-document.getElementById('herstelSessie').onclick=()=>{
-  const raw=localStorage.getItem(KEYBACKUP);
-  if(!raw){alert('Er is geen verwijderde sessie om te herstellen.');return;}
-  let o; try{o=JSON.parse(raw);}catch(e){return;}
-  if(!confirm('De sessie van '+fmtTs(o.ts)+' terugzetten? De huidige gegevens worden vervangen.'))return;
-  state=Object.assign(freshState(),o.data);
-  save();renderAll();updateAll();
-};
+document.getElementById('herstelSessie').onclick=openSessiePicker;
+document.getElementById('sessieClose').onclick=()=>document.getElementById('sessieModal').classList.remove('open');
+document.getElementById('sessieModal').onclick=e=>{ if(e.target===document.getElementById('sessieModal')) document.getElementById('sessieModal').classList.remove('open'); };
+// Keuzelijst met recente sessies: lokaal (dit toestel) + gedeeld (alle toestellen).
+async function openSessiePicker(){
+  const modal=document.getElementById('sessieModal'), list=document.getElementById('sessieList');
+  list.innerHTML='<div class="pmodal-it muted">Laden…</div>';
+  modal.classList.add('open');
+  let shared=[];
+  try{ shared=(window.BBInv&&BBInv.getSessiesFresh)?(await BBInv.getSessiesFresh()):[]; }
+  catch(e){ shared=(window.BBInv&&BBInv.getSessies)?BBInv.getSessies():[]; }
+  const items=[];
+  try{ const raw=localStorage.getItem(KEYBACKUP); if(raw){ const o=JSON.parse(raw); if(o&&o.data) items.push({ts:o.ts,label:'Laatst gewist',state:o.data,lokaal:true}); } }catch(e){}
+  (shared||[]).forEach(s=>{ if(s&&s.state) items.push(s); });
+  const seen={}; const uniek=items.filter(s=>{ const k=s.ts||0; if(seen[k])return false; seen[k]=1; return true; });
+  uniek.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  list.innerHTML='';
+  if(!uniek.length){ list.innerHTML='<div class="pmodal-it muted">Nog geen sessies om terug te zetten.</div>'; return; }
+  uniek.forEach(s=>{
+    const c=s.counts||{}; const sub=[];
+    if(c.superdeals!=null) sub.push('Deals '+c.superdeals); if(c.trolley!=null) sub.push('Tunes '+c.trolley);
+    if(c.howmuch!=null) sub.push('How Much '+c.howmuch); if(c.coins!=null) sub.push('Coins '+c.coins);
+    const it=document.createElement('div'); it.className='pmodal-it';
+    it.innerHTML='<b>'+fmtTs(s.ts)+'</b>'+(s.label?(' · '+esc(s.label)):'')+(s.lokaal?' · <span style="color:var(--gold);">dit toestel</span>':'')+
+      (sub.length?('<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+sub.join(' · ')+'</div>'):'');
+    it.onclick=()=>{
+      if(!s.state){ alert('Deze sessie bevat geen herstelbare gegevens.'); return; }
+      if(!confirm('Deze sessie van '+fmtTs(s.ts)+' terugzetten? De huidige gegevens op dit scherm worden vervangen.')) return;
+      state=Object.assign(freshState(), s.state);
+      save(); renderAll(); updateAll(); updateRestoreBtn();
+      modal.classList.remove('open'); show('menu');
+    };
+    list.appendChild(it);
+  });
+}
 
 // ================= ARCHIEF: opgeslagen spellen =================
 const GAMESKEY='bazarbizarre_games';
@@ -1173,6 +1218,7 @@ document.getElementById('fDoorsturen').onclick=()=>{
   // archiveer ook de spel-sessie (bestaande spel-archief met turven/finale)
   const games=loadGames(); games.push(snapshotGame(namen)); saveGames(games);
   try{localStorage.setItem(KEYBACKUP,JSON.stringify({ts:Date.now(),data:state}));}catch(e){}
+  if(window.BBInv&&BBInv.pushSessie) BBInv.pushSessie(snapshotSessie(namen)); // afgesloten sessie ook delen
   state=freshState(); save(); renderAll(); updateAll(); updateRestoreBtn();
   renderFormulierKlaar(rec); show('formulierKlaar');
 };
@@ -1380,7 +1426,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v2.4';
+const APP_VERSION='v2.5';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

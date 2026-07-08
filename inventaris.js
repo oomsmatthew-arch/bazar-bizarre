@@ -8,7 +8,7 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],manualsdoc:null,appconfig:null,spelarchief:null};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],manualsdoc:null,appconfig:null,spelarchief:null};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
   let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
@@ -47,6 +47,7 @@
     savePhotosToIDB();
   }
   function loadCacheFallback(){
+    try{ cache.sessies=JSON.parse(localStorage.getItem('bb_sessies')||'[]')||[]; }catch(e){ cache.sessies=[]; }
     try{ const r=localStorage.getItem(K_CACHE); if(!r) return false; const c=JSON.parse(r); if(!c) return false;
       cache.prijzen=c.prijzen||[]; cache.boekjes=c.boekjes||{stock:0}; cache.formulieren=c.formulieren||[];
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
@@ -285,6 +286,9 @@
     await loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v);
     await loadDoc('appconfig','appconfig',v=>appconfigOK=v);
     await loadDoc('spelarchief','spelarchief',v=>spelarchiefOK=v);
+    // Gedeelde recente sessies: aparte rij (id=2) in dezelfde spelarchief-tabel — geen extra opzet nodig.
+    try{ const rs=await sb.from('spelarchief').select('data').eq('id',2).maybeSingle();
+      if(rs&&!rs.error){ cache.sessies=(rs.data&&Array.isArray(rs.data.data))?rs.data.data:[]; try{localStorage.setItem('bb_sessies',JSON.stringify(cache.sessies));}catch(e){} } }catch(e){}
     persistCache();
   }
   async function loadDoc(table,cacheKey,setOK){
@@ -559,6 +563,28 @@
     try{localStorage.setItem('bb_spelarchief',JSON.stringify(arr));}catch(e){}
     if(spelarchiefOK) dbUpsert('spelarchief',{id:1,data:arr}); else persistCache();
   }
+  // ---------------- GEDEELDE RECENTE SESSIES (herstelbare speelstand) ----------------
+  // Bewaard als aparte rij (id=2) in de spelarchief-tabel, dus geen extra Supabase-opzet
+  // nodig en het echte archief (id=1) blijft ongemoeid. Laatste 10 sessies, over alle toestellen.
+  const getSessies=()=>Array.isArray(cache.sessies)?cache.sessies:[];
+  async function getSessiesFresh(){
+    if(sb && spelarchiefOK){
+      try{ const rs=await withTimeout(sb.from('spelarchief').select('data').eq('id',2).maybeSingle(),12000);
+        if(rs && !rs.error){ cache.sessies=(rs.data&&Array.isArray(rs.data.data))?rs.data.data:[]; try{localStorage.setItem('bb_sessies',JSON.stringify(cache.sessies));}catch(e){} } }catch(e){}
+    }
+    return getSessies();
+  }
+  function saveSessies(arr){
+    cache.sessies=Array.isArray(arr)?arr:[];
+    try{localStorage.setItem('bb_sessies',JSON.stringify(cache.sessies));}catch(e){}
+    if(spelarchiefOK) dbUpsert('spelarchief',{id:2,data:cache.sessies}); else persistCache();
+  }
+  function pushSessie(snap){
+    if(!snap) return;
+    const arr=getSessies().slice();
+    arr.unshift(snap);
+    saveSessies(arr.slice(0,10)); // enkel de laatste 10 bewaren
+  }
 
   // Upload een bestand naar Supabase Storage (bucket 'manuals') en geef de publieke URL terug.
   async function uploadFile(file){
@@ -733,6 +759,7 @@
     getManualsTree,saveManualsTree,uploadFile,isManualsGedeeld:()=>manualsdocOK,
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
+    getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,
     submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
