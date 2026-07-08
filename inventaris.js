@@ -126,6 +126,12 @@
   function dbUpsert(table,payload){ enqueue({op:'upsert',table,payload}); }
   function dbUpdate(table,col,val,payload){ enqueue({op:'update',table,col,val,payload}); }
   function dbDelete(table,col,val){ enqueue({op:'delete',table,col,val}); }
+  // Verzoek met tijdslimiet: op een netwerk ZONDER echt internet (bv. TP-Link/mengpaneel)
+  // blijft een verzoek anders eindeloos hangen en loopt de app vast. Na de limiet
+  // behandelen we het als "netwerk weg" → wachtrij behouden en later opnieuw proberen.
+  function withTimeout(p,ms){
+    return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms||12000))]);
+  }
   async function flushOutbox(){
     if(flushing||!sb||!outbox.length) return;
     if(typeof navigator!=='undefined' && navigator.onLine===false) return;
@@ -134,13 +140,14 @@
       while(outbox.length){
         const op=outbox[0]; let res, netErr=false;
         try{
-          const q=sb.from(op.table);
-          if(op.op==='insert') res=await q.insert(op.payload);
-          else if(op.op==='upsert') res=await q.upsert(op.payload);
-          else if(op.op==='update') res=await q.update(op.payload).eq(op.col,op.val);
-          else if(op.op==='delete') res=await q.delete().eq(op.col,op.val);
+          const q=sb.from(op.table); let call;
+          if(op.op==='insert') call=q.insert(op.payload);
+          else if(op.op==='upsert') call=q.upsert(op.payload);
+          else if(op.op==='update') call=q.update(op.payload).eq(op.col,op.val);
+          else if(op.op==='delete') call=q.delete().eq(op.col,op.val);
           else { outbox.shift(); saveOutbox(); continue; }
-        }catch(e){ netErr=true; } // netwerk weg → wachtrij behouden, later opnieuw proberen
+          res=await withTimeout(call,12000);
+        }catch(e){ netErr=true; } // netwerk weg of time-out → wachtrij behouden, later opnieuw proberen
         if(netErr) break;
         if(res && res.error){
           // Serverfout (bv. tijdelijke time-out of een grote foto): enkele keren opnieuw
@@ -254,12 +261,12 @@
   async function loadAll(){
     let online=true;
     try{
-      const [p,b,f,l]=await Promise.all([
+      const [p,b,f,l]=await withTimeout(Promise.all([
         sb.from('prijzen').select('*'),
         sb.from('boekjes').select('*').eq('id',1).maybeSingle(),
         sb.from('formulieren').select('*'),
         sb.from('leveringen').select('*')
-      ]);
+      ]),12000);
       if(p.error||b.error||f.error||l.error) throw (p.error||b.error||f.error||l.error);
       if(p.data) cache.prijzen=p.data.map(fromRow);
       cache.boekjes={stock: b&&b.data? (b.data.stock||0) : 0};
@@ -293,6 +300,7 @@
     // te worden. Anders wist een (mogelijk verouderde) serverkopie je nog-niet-gesyncte
     // wijzigingen (bv. je boekjes-telling). Zodra alles veilig verstuurd is, herladen we weer.
     if(outbox.length || dirty.size){ return; }
+    if(t==='prijzen'){const r=await sb.from('prijzen').select('*'); if(r.data)cache.prijzen=r.data.map(fromRow);}
     else if(t==='boekjes'){const r=await sb.from('boekjes').select('*').eq('id',1).maybeSingle(); cache.boekjes={stock:r&&r.data?(r.data.stock||0):0};}
     else if(t==='formulieren'){const r=await sb.from('formulieren').select('*'); if(r.data)cache.formulieren=r.data.map(mapForm);}
     else if(t==='leveringen'){const r=await sb.from('leveringen').select('*'); if(r.data)cache.leveringen=r.data.slice();}
