@@ -288,7 +288,11 @@
     }catch(e){ setOK(false); }
   }
   async function reloadTable(t){
-    if(t==='prijzen'){const r=await sb.from('prijzen').select('*'); if(r.data)cache.prijzen=r.data.map(fromRow);}
+    // BESCHERMING TEGEN GEGEVENSVERLIES bij wifi-wissel (bv. KPN ↔ TP-Link/mengpaneel):
+    // overschrijf de lokale cache NIET zolang er nog eigen wijzigingen wachten om verstuurd
+    // te worden. Anders wist een (mogelijk verouderde) serverkopie je nog-niet-gesyncte
+    // wijzigingen (bv. je boekjes-telling). Zodra alles veilig verstuurd is, herladen we weer.
+    if(outbox.length || dirty.size){ return; }
     else if(t==='boekjes'){const r=await sb.from('boekjes').select('*').eq('id',1).maybeSingle(); cache.boekjes={stock:r&&r.data?(r.data.stock||0):0};}
     else if(t==='formulieren'){const r=await sb.from('formulieren').select('*'); if(r.data)cache.formulieren=r.data.map(mapForm);}
     else if(t==='leveringen'){const r=await sb.from('leveringen').select('*'); if(r.data)cache.leveringen=r.data.slice();}
