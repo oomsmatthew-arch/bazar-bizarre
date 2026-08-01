@@ -1213,6 +1213,7 @@ document.getElementById('fDoorsturen').onclick=()=>{
   const f={namen,kleine,groot,boekjes:bk,
     finale:document.getElementById('fFinale').value.trim(),
     opmerking:document.getElementById('fOpm').value.trim()};
+  bbSetActor(); // zorg dat de juiste naam in het activiteitenlog komt
   const rec=BBInv.submitFormulier(f);
   onthoudNaam(namen);
   // archiveer ook de spel-sessie (bestaande spel-archief met turven/finale)
@@ -1413,9 +1414,18 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
 
 function renderAll(){renderControle();renderSuperdeals();renderTrolley();renderHowmuch();renderCoins();renderFinale();}
 renderAll(); updateAll(); show('menu'); updateRestoreBtn();
+// Wie is er ingelogd? Gedeeld met de Entertainment-app via dezelfde opslag
+// (bb_current_user). Zo krijgt het activiteitenlog de juiste naam i.p.v. "?".
+function bbSetActor(){
+  try{ const u=JSON.parse(localStorage.getItem('bb_current_user')||'null');
+    if(window.BBInv&&BBInv.setActor) BBInv.setActor(u&&u.naam?u.naam:'');
+  }catch(e){}
+}
 // Gedeelde database laden + live verversen van de keuzelijsten die uit de inventaris lezen
 if(window.BBInv){
+  bbSetActor();
   BBInv.setOnChange(()=>{
+    bbSetActor(); // identiteit kan net (op een ander tabblad) gekozen zijn
     syncArchief(); // gedeeld spel-archief ophalen/zaaien
     renderControle();
     if(document.getElementById('formulier').classList.contains('active')){renderKiesLijst('klein');renderKiesLijst('groot');}
@@ -1426,7 +1436,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v2.5';
+const APP_VERSION='v2.6';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

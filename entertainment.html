@@ -829,6 +829,14 @@
         </div>
       </div>
 
+      <div class="field" id="entRememberField" style="display:none">
+        <div class="h">Ingelogd blijven op dit toestel</div>
+        <label style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);cursor:pointer;">
+          <input type="checkbox" id="entRemember" style="width:20px;height:20px;flex:0 0 auto;">
+          <span>Onthoud "ENT algemeen" op dit toestel — blijf ingelogd, ook na het wisselen tussen het spel en Entertainment. (Enkel doen op een eigen/vertrouwd toestel.)</span>
+        </label>
+      </div>
+
       <div class="field">
         <div class="h">Wachtwoord</div>
         <div class="row">
@@ -1237,7 +1245,7 @@
 <script src="inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v2.4';
+const APP_VERSION='v2.7';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1436,10 +1444,23 @@ document.getElementById('themeBtn').onclick=()=>{
 function openSettings(){
   if(!magBeheren()) return;
   document.getElementById('setMededeling').value=getMededeling();
+  // "Ingelogd blijven" enkel tonen voor het gedeelde ENT-account
+  const u=currentUser(), isEnt=!!(u&&u.id==='entalg'), fld=document.getElementById('entRememberField');
+  if(fld){
+    fld.style.display=isEnt?'':'none';
+    document.getElementById('entRemember').checked=localStorage.getItem(K_REMEMBER_ENT)==='1';
+  }
   show('instellingen');
 }
 document.getElementById('gearBtn').onclick=openSettings;
 document.getElementById('openSettings').onclick=openSettings;
+document.getElementById('entRemember').onchange=function(){
+  const on=this.checked;
+  if(on) localStorage.setItem(K_REMEMBER_ENT,'1'); else localStorage.removeItem(K_REMEMBER_ENT);
+  // meteen laten gelden voor de huidige ENT-sessie (geen her-login nodig)
+  const u=currentUser();
+  if(u&&u.id==='entalg'){ if(on) localStorage.setItem(K_REMEMBER,'1'); else localStorage.removeItem(K_REMEMBER); }
+};
 
 document.getElementById('saveMededeling').onclick=()=>{
   localStorage.setItem(K_MED,document.getElementById('setMededeling').value);
@@ -2942,6 +2963,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElemen
 // vreemden buiten te houden en te zien wie wat deed, geen bankkluis.
 const K_USER='bb_current_user';      // {id,naam} van wie op dit toestel is ingelogd
 const K_REMEMBER='bb_remember_user'; // '1' = eigen gsm → ingelogd blijven
+const K_REMEMBER_ENT='bb_remember_ent'; // per toestel: "ENT algemeen" ingelogd houden
 
 function currentUser(){ try{return JSON.parse(localStorage.getItem(K_USER)||'null');}catch(e){return null;} }
 function currentUserName(){ const u=currentUser(); return u&&u.naam?u.naam:''; }
@@ -3006,7 +3028,11 @@ function toBeheer(){ loginPanel('beheer'); document.getElementById('loginSub').t
 function openBeheerPanel(){ document.getElementById('loginOverlay').classList.add('show'); toBeheer(); }
 function beheerKlaar(){ if(currentUser()) hideLogin(); else toNames(); }
 // Inloggen zonder pincode (bv. het gedeelde account "ENT algemeen").
-function loginDirect(u){ setCurrentUser(u,false); hideLogin(); toNames(); show('home'); renderHome(); }
+function loginDirect(u){
+  // ENT algemeen mag op dit toestel ingelogd blijven als dat zo is ingesteld (Instellingen).
+  const rem=(u&&u.id==='entalg')&&localStorage.getItem(K_REMEMBER_ENT)==='1';
+  setCurrentUser(u,rem); hideLogin(); toNames(); show('home'); renderHome();
+}
 function renderLoginNames(){
   const grid=document.getElementById('nameGrid'); if(!grid) return;
   const users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
