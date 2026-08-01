@@ -45,12 +45,38 @@ daardoor dezelfde opslag** op het toestel.
 - Let op: de gegevens leven **op dat toestel**. Gebruik Export/Import om te back-uppen of
   over te zetten naar een ander toestel.
 
+## Projecten (borden met taken)
+
+De kaart **Projecten** op de homepagina opent `projecten.html`: een eigen pagina, net zoals
+het spel er één heeft, met dezelfde login en dezelfde gedeelde gegevens.
+
+- **Projectenlijst** — een kaart per project met status, voortgangsbalk, deadline en het
+  aantal open taken. Filteren op *Lopend · Afgerond · Archief · Alles* en zoeken op naam.
+- **Overzicht** — voortgang, deadline, jouw taken, wat er deze week vervalt, de laatste
+  berichten en het doel van het project.
+- **Bord** — kolommen met kaarten, te verslepen met het handvat ⠿ rechtsboven op een kaart.
+  Een kaart heeft een titel, omschrijving, wie eraan werkt, deadline, labels en subtaken.
+  Kolommen maak, hernoem, verschuif of verwijder je via het knopje ⋯ in de kolomkop.
+  Sleep je een kaart naar een kolom die "Klaar" heet, dan vinkt ze zichzelf af (en omgekeerd).
+- **Bespreking** — korte berichten per project; je eigen bericht kan je zelf verwijderen.
+
+**Wie mag wat** (in te stellen via ⚙ Instellingen → *Projecten — wie mag wat?*):
+- *Projecten aanmaken/bewerken/verwijderen*: standaard enkel **vaste medewerkers**.
+- *In een project werken* (taken maken, verslepen, afvinken, meepraten): standaard **iedereen**.
+- Een project verwijderen vraagt altijd het beheer-wachtwoord.
+
+**Eenmalig instellen:** voer `projecten-supabase.sql` één keer uit in Supabase
+(SQL Editor → New query → plakken → Run). Doe je dat niet, dan werkt Projecten gewoon, maar
+staat alles enkel op dát toestel. Onderaan de pagina zie je welke van de twee het is.
+
 ## Mappenstructuur
 
 **Website (gaat online) — hoofdmap:**
 - `index.html` — stuurt de kale link automatisch door naar `entertainment.html`
 - `entertainment.html` — de landingspagina (Entertainment / Center Parcs)
 - `bazar-bizarre-spel.html` — de spelleider-app zelf
+- `projecten.html` + `projecten.js` — de projectenmodule (borden met taken en bespreking)
+- `projecten-supabase.sql` — eenmalig uit te voeren in Supabase voor Projecten
 - `manifest.json` — maakt de app installeerbaar
 - `sw.js` — laat de app offline werken
 - `manuals.json` — inhoudsopgave voor "Online manuals"

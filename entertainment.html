@@ -87,6 +87,7 @@
   .card[data-key="contacten"]{--accent:#8a5cc7;background:linear-gradient(150deg,#f4eefb,#fff);}
   .card[data-key="logboek"]{--accent:#d98a2b;background:linear-gradient(150deg,#fdf3e3,#fff);}
   .card[data-key="manuals"]{--accent:var(--water);background:linear-gradient(150deg,#edf6fb,#fff);}
+  .card[data-key="projecten"]{--accent:#4a63c0;background:linear-gradient(150deg,#eef1fc,#fff);}
   /* Contacten */
   .contlist{display:flex;flex-direction:column;gap:10px;margin:4px 0 18px;}
   .contcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid #8a5cc7;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);}
@@ -501,6 +502,7 @@
   [data-theme="dark"] .card[data-key="contacten"]{background:linear-gradient(150deg,#241d2e,#18271f);}
   [data-theme="dark"] .card[data-key="logboek"]{background:linear-gradient(150deg,#2e2517,#18271f);}
   [data-theme="dark"] .card[data-key="manuals"]{background:linear-gradient(150deg,#1b2b30,#18271f);}
+  [data-theme="dark"] .card[data-key="projecten"]{background:linear-gradient(150deg,#1d2440,#18271f);}
   [data-theme="dark"] .card[data-key="instellingen"]{background:linear-gradient(150deg,#2a241c,#18271f);}
   [data-theme="dark"] .lowstock{background:linear-gradient(120deg,#2a201e,#18271f);border-color:#5a3530;}
   [data-theme="dark"] .lowstock .ls-pill{border-color:#5a3530;}
@@ -755,6 +757,11 @@
         <h2>Besteloverzicht</h2>
         <p>Overzicht van bestellingen: status, aantal, kosten, leverancier en leverdatum.</p>
       </div>
+      <a class="card" data-key="projecten" href="projecten.html">
+        <div class="rnd">Team</div>
+        <h2>Projecten</h2>
+        <p>Borden met taken, deadlines en bespreking — voor evenementen, opbouw en alles wat loopt.</p>
+      </a>
       <div class="card" data-key="checklisten" id="openChecklisten">
         <div class="rnd">Handig</div>
         <h2>Checklists</h2>
@@ -818,6 +825,24 @@
         <div class="row">
           <button class="btn primary" id="saveMededeling">Mededeling opslaan</button>
           <button class="btn clear" id="clearMededeling">Mededeling wissen</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Projecten — wie mag wat?</div>
+        <label for="setProjMaken">Een project aanmaken, bewerken, archiveren of verwijderen</label>
+        <select id="setProjMaken" class="finp" style="max-width:320px">
+          <option value="vast">Enkel vaste medewerkers</option>
+          <option value="iedereen">Iedereen die ingelogd is</option>
+          <option value="beheer">Enkel met het beheer-wachtwoord</option>
+        </select>
+        <label for="setProjBewerken" style="margin-top:12px">In een project werken: taken maken, verslepen en afvinken</label>
+        <select id="setProjBewerken" class="finp" style="max-width:320px">
+          <option value="iedereen">Iedereen die ingelogd is</option>
+          <option value="vast">Enkel vaste medewerkers</option>
+        </select>
+        <div class="row">
+          <button class="btn primary" id="saveProjRechten">Opslaan</button>
         </div>
       </div>
 
@@ -1256,6 +1281,8 @@ const K_BESTELMAIL='bb_home_bestelmail';
 const K_THEME='bb_home_theme';
 const K_CONTACTEN='bb_contacten';
 const K_CHECKLISTEN='bb_checklisten';
+const K_PROJ_MAKEN='bb_proj_maken';        // wie mag projecten aanmaken/bewerken
+const K_PROJ_BEWERKEN='bb_proj_bewerken';  // wie mag in een project werken
 const DEFAULT_PIN='3920';
 const DEFAULT_DREMPEL=16;
 const DEFAULT_DREMPEL2=24;
@@ -1276,6 +1303,9 @@ if(localStorage.getItem('bb_drempel_v2')!=='1'){
   localStorage.setItem('bb_drempel_v2','1');
 }
 function getBestelMail(){return localStorage.getItem(K_BESTELMAIL)||'';}
+// Rechten voor Projecten (projecten.html leest dezelfde waarden).
+function getProjMaken(){return localStorage.getItem(K_PROJ_MAKEN)||'vast';}
+function getProjBewerken(){return localStorage.getItem(K_PROJ_BEWERKEN)||'iedereen';}
 
 // ---- Gedeelde instellingen (appconfig): alles online houden + offline syncen ----
 let cfgApplying=false;
@@ -1286,6 +1316,7 @@ function pushConfig(){
     drempel: getDrempel(), drempel2: getDrempel2(), drempelBk: getDrempelBoekjes(),
     pin: localStorage.getItem(K_PIN)||DEFAULT_PIN,
     links: getLinks(), bestelmail: localStorage.getItem(K_BESTELMAIL)||'',
+    projMaken: getProjMaken(), projBewerken: getProjBewerken(),
     bestelCats: (typeof mgCats!=='undefined'?mgCats:[]),
     bestelLevs: (typeof mgLevs!=='undefined'?mgLevs:[]),
     bestelStats: (typeof mgStats!=='undefined'?mgStats:[]),
@@ -1305,6 +1336,8 @@ function pullConfig(){
     if(c.pin) localStorage.setItem(K_PIN,c.pin);
     if(c.links) localStorage.setItem(K_LINKS,JSON.stringify(c.links));
     if(c.bestelmail!=null) localStorage.setItem(K_BESTELMAIL,c.bestelmail);
+    if(c.projMaken) localStorage.setItem(K_PROJ_MAKEN,c.projMaken);
+    if(c.projBewerken) localStorage.setItem(K_PROJ_BEWERKEN,c.projBewerken);
     if(Array.isArray(c.bestelCats)&&typeof mgCats!=='undefined'){ mgCats=c.bestelCats; lsSave('bb_bestel_cats',mgCats); }
     if(Array.isArray(c.bestelLevs)&&typeof mgLevs!=='undefined'){ mgLevs=c.bestelLevs; lsSave('bb_bestel_levs',mgLevs); }
     if(Array.isArray(c.bestelStats)&&typeof mgStats!=='undefined'){ mgStats=c.bestelStats; lsSave('bb_bestel_stats',mgStats); }
@@ -1444,6 +1477,8 @@ document.getElementById('themeBtn').onclick=()=>{
 function openSettings(){
   if(!magBeheren()) return;
   document.getElementById('setMededeling').value=getMededeling();
+  document.getElementById('setProjMaken').value=getProjMaken();
+  document.getElementById('setProjBewerken').value=getProjBewerken();
   // "Ingelogd blijven" enkel tonen voor het gedeelde ENT-account
   const u=currentUser(), isEnt=!!(u&&u.id==='entalg'), fld=document.getElementById('entRememberField');
   if(fld){
@@ -1467,6 +1502,13 @@ document.getElementById('saveMededeling').onclick=()=>{
   pushConfig(); renderHome();
   if(window.BBInv&&BBInv.logAct) BBInv.logAct('Mededeling aangepast');
   alert('Mededeling opgeslagen.');
+};
+document.getElementById('saveProjRechten').onclick=()=>{
+  localStorage.setItem(K_PROJ_MAKEN,document.getElementById('setProjMaken').value);
+  localStorage.setItem(K_PROJ_BEWERKEN,document.getElementById('setProjBewerken').value);
+  pushConfig();
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Rechten voor Projecten aangepast');
+  alert('Opgeslagen. De rechten voor Projecten gelden op alle toestellen.');
 };
 document.getElementById('clearMededeling').onclick=()=>{
   if(!confirm('De mededeling wissen?'))return;
