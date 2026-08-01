@@ -8,11 +8,11 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],manualsdoc:null,appconfig:null,spelarchief:null};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],manualsdoc:null,appconfig:null,spelarchief:null};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
   let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
-  let projectenOK=false, projecttakenOK=false, projectberichtenOK=false;
+  let projectenOK=false, projecttakenOK=false, projectberichtenOK=false, projectagendaOK=false, projectdocsOK=false;
   const K_BESTEL_BACKUP='bb_bestellingen';
   const K_CONTACTEN_BACKUP='bb_contacten';
   const K_CHECKLISTEN_BACKUP='bb_checklisten';
@@ -22,6 +22,8 @@
   const K_PROJECTEN_BACKUP='bb_projecten';
   const K_PROJTAKEN_BACKUP='bb_projecttaken';
   const K_PROJBERICHTEN_BACKUP='bb_projectberichten';
+  const K_PROJAGENDA_BACKUP='bb_projectagenda';
+  const K_PROJDOCS_BACKUP='bb_projectdocs';
   const K_CACHE='bb_cache_v1';
   const K_OUTBOX='bb_outbox';
 
@@ -46,6 +48,7 @@
         boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: cache.leveringen,
         bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: cache.gebruikers, activiteit: cache.activiteit,
         projecten: cache.projecten, projecttaken: cache.projecttaken, projectberichten: cache.projectberichten,
+        projectagenda: cache.projectagenda, projectdocs: cache.projectdocs,
         manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
       };
       localStorage.setItem(K_CACHE,JSON.stringify(slim));
@@ -59,6 +62,7 @@
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
       cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.gebruikers=c.gebruikers||[]; cache.activiteit=c.activiteit||[];
       cache.projecten=c.projecten||[]; cache.projecttaken=c.projecttaken||[]; cache.projectberichten=c.projectberichten||[];
+      cache.projectagenda=c.projectagenda||[]; cache.projectdocs=c.projectdocs||[];
       cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null; return true;
     }catch(e){ return false; }
   }
@@ -215,6 +219,16 @@
     auteur:r.auteur||'',tekst:r.tekst||'',data:(r.data&&typeof r.data==='object')?r.data:{}});
   const berichtToRow=b=>({id:b.id,project_id:b.projectId||'',soort:b.soort||'bericht',ts:b.ts||0,
     auteur:b.auteur||'',tekst:b.tekst||'',data:b.data||{}});
+  const mapAgenda=r=>({id:r.id,projectId:r.project_id||'',datum:r.datum||'',van:r.van||'',tot:r.tot||'',
+    titel:r.titel||'',soort:r.soort||'afspraak',plaats:r.plaats||'',wie:arr(r.wie),notitie:r.notitie||'',
+    door:r.door||'',ts:r.ts||0});
+  const agendaToRow=a=>({id:a.id,project_id:a.projectId||'',datum:a.datum||'',van:a.van||'',tot:a.tot||'',
+    titel:a.titel||'',soort:a.soort||'afspraak',plaats:a.plaats||'',wie:a.wie||[],notitie:a.notitie||'',
+    door:a.door||'',ts:a.ts||0});
+  const mapDoc=r=>({id:r.id,projectId:r.project_id||'',naam:r.naam||'',url:r.url||'',soort:r.soort||'Overig',
+    bron:r.bron||'link',mime:r.mime||'',grootte:+r.grootte||0,taakId:r.taak_id||'',door:r.door||'',ts:r.ts||0});
+  const docToRow=d=>({id:d.id,project_id:d.projectId||'',naam:d.naam||'',url:d.url||'',soort:d.soort||'Overig',
+    bron:d.bron||'link',mime:d.mime||'',grootte:+d.grootte||0,taak_id:d.taakId||'',door:d.door||'',ts:d.ts||0});
 
   // ---------------- INIT ----------------
   async function init(){
@@ -266,6 +280,8 @@
     await migrateListToShared('projecten',projectToRow,'projecten',K_PROJECTEN_BACKUP,()=>projectenOK);
     await migrateListToShared('projecttaken',taakToRow,'projecttaken',K_PROJTAKEN_BACKUP,()=>projecttakenOK);
     await migrateListToShared('projectberichten',berichtToRow,'projectberichten',K_PROJBERICHTEN_BACKUP,()=>projectberichtenOK);
+    await migrateListToShared('projectagenda',agendaToRow,'projectagenda',K_PROJAGENDA_BACKUP,()=>projectagendaOK);
+    await migrateListToShared('projectdocs',docToRow,'projectdocs',K_PROJDOCS_BACKUP,()=>projectdocsOK);
     if(checklistenOK && !cache.checklisten.length && localStorage.getItem('bb_sharedseed_checklisten_def')!=='1'){
       const def=defaultChecklist(); const r=await sb.from('checklisten').insert(checklistToRow(def)); err(r);
       cache.checklisten=[def]; saveBackup('checklisten',K_CHECKLISTEN_BACKUP);
@@ -313,6 +329,8 @@
     await loadShared('projecten','projecten',mapProject,K_PROJECTEN_BACKUP,v=>projectenOK=v);
     await loadShared('projecttaken','projecttaken',mapTaak,K_PROJTAKEN_BACKUP,v=>projecttakenOK=v);
     await loadShared('projectberichten','projectberichten',mapBericht,K_PROJBERICHTEN_BACKUP,v=>projectberichtenOK=v);
+    await loadShared('projectagenda','projectagenda',mapAgenda,K_PROJAGENDA_BACKUP,v=>projectagendaOK=v);
+    await loadShared('projectdocs','projectdocs',mapDoc,K_PROJDOCS_BACKUP,v=>projectdocsOK=v);
     await loadActiviteit();
     // Enkel-rij documenten (id=1, data jsonb): manuals-boom, app-instellingen, spel-archief
     await loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v);
@@ -349,6 +367,8 @@
     else if(t==='projecten'&&projectenOK){const r=await sb.from('projecten').select('*'); if(r.data){cache.projecten=r.data.map(mapProject); saveBackup('projecten',K_PROJECTEN_BACKUP);}}
     else if(t==='projecttaken'&&projecttakenOK){const r=await sb.from('projecttaken').select('*'); if(r.data){cache.projecttaken=r.data.map(mapTaak); saveBackup('projecttaken',K_PROJTAKEN_BACKUP);}}
     else if(t==='projectberichten'&&projectberichtenOK){const r=await sb.from('projectberichten').select('*'); if(r.data){cache.projectberichten=r.data.map(mapBericht); saveBackup('projectberichten',K_PROJBERICHTEN_BACKUP);}}
+    else if(t==='projectagenda'&&projectagendaOK){const r=await sb.from('projectagenda').select('*'); if(r.data){cache.projectagenda=r.data.map(mapAgenda); saveBackup('projectagenda',K_PROJAGENDA_BACKUP);}}
+    else if(t==='projectdocs'&&projectdocsOK){const r=await sb.from('projectdocs').select('*'); if(r.data){cache.projectdocs=r.data.map(mapDoc); saveBackup('projectdocs',K_PROJDOCS_BACKUP);}}
     else if(t==='manualsdoc'&&manualsdocOK){const r=await sb.from('manualsdoc').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.manualsdoc=r.data?(r.data.data||null):null;}}
     else if(t==='appconfig'&&appconfigOK){const r=await sb.from('appconfig').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.appconfig=r.data?(r.data.data||null):null;}}
     else if(t==='spelarchief'&&spelarchiefOK){const r=await sb.from('spelarchief').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.spelarchief=r.data?(r.data.data||null):null;}}
@@ -557,11 +577,16 @@
     cache.projecten=cache.projecten.filter(p=>p.id!==id);
     cache.projecttaken=cache.projecttaken.filter(t=>t.projectId!==id);
     cache.projectberichten=cache.projectberichten.filter(b=>b.projectId!==id);
+    cache.projectagenda=cache.projectagenda.filter(a=>a.projectId!==id);
+    cache.projectdocs=cache.projectdocs.filter(d=>d.projectId!==id);
     saveProjBackup(); saveTaakBackup(); saveBerBackup();
+    saveBackup('projectagenda',K_PROJAGENDA_BACKUP); saveBackup('projectdocs',K_PROJDOCS_BACKUP);
     if(projectenOK) dbDelete('projecten','id',id);
     if(projecttakenOK) dbDelete('projecttaken','project_id',id);
     if(projectberichtenOK) dbDelete('projectberichten','project_id',id);
-    if(!projectenOK||!projecttakenOK||!projectberichtenOK) persistCache();
+    if(projectagendaOK) dbDelete('projectagenda','project_id',id);
+    if(projectdocsOK) dbDelete('projectdocs','project_id',id);
+    if(!projectenOK||!projecttakenOK||!projectberichtenOK||!projectagendaOK||!projectdocsOK) persistCache();
     logAct('Project verwijderd'+(p0?': '+p0.naam:''));
   }
   // Taken van één project, of van alle projecten als er geen id meegegeven wordt.
@@ -622,12 +647,71 @@
     if(projectberichtenOK) dbUpsert('projectberichten',berichtToRow(rec)); else persistCache();
     logAct('Bericht geplaatst'+projSuffix(rec.projectId)); return rec;
   }
+  function updateBericht(id,patch){
+    const r=cache.projectberichten.find(b=>b.id===id); if(!r) return null;
+    Object.assign(r,patch); saveBerBackup();
+    if(projectberichtenOK) dbUpsert('projectberichten',berichtToRow(r)); else persistCache();
+    logAct((r.soort==='verslag'?'Verslag':'Bericht')+' aangepast'+projSuffix(r.projectId)); return r;
+  }
   function removeBericht(id){
     cache.projectberichten=cache.projectberichten.filter(b=>b.id!==id); saveBerBackup();
     if(projectberichtenOK) dbDelete('projectberichten','id',id); else persistCache();
     logAct('Bericht verwijderd');
   }
   function projSuffix(projectId){ const p=getProject(projectId); return p?(' ('+p.naam+')'):''; }
+
+  // ---- Agenda van een project (afspraken, mijlpalen, leveringen) ----
+  const getAgenda=projectId=>cache.projectagenda.filter(a=>!projectId||a.projectId===projectId)
+    .slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||'')||(a.van||'').localeCompare(b.van||''));
+  function saveAgendaBackup(){ saveBackup('projectagenda',K_PROJAGENDA_BACKUP); }
+  function addAgenda(a){
+    const rec={id:uid(),projectId:a.projectId||'',datum:a.datum||'',van:a.van||'',tot:a.tot||'',
+      titel:a.titel||'',soort:a.soort||'afspraak',plaats:a.plaats||'',wie:a.wie||[],notitie:a.notitie||'',
+      door:a.door||actor||'',ts:Date.now()};
+    cache.projectagenda.push(rec); saveAgendaBackup();
+    if(projectagendaOK) dbUpsert('projectagenda',agendaToRow(rec)); else persistCache();
+    logAct('Agenda-item toegevoegd: '+rec.titel+projSuffix(rec.projectId)); return rec;
+  }
+  function updateAgenda(id,patch){
+    const r=cache.projectagenda.find(x=>x.id===id); if(!r) return null;
+    Object.assign(r,patch); saveAgendaBackup();
+    if(projectagendaOK) dbUpsert('projectagenda',agendaToRow(r)); else persistCache();
+    logAct('Agenda-item aangepast: '+(r.titel||'')+projSuffix(r.projectId)); return r;
+  }
+  function removeAgenda(id){
+    const a0=cache.projectagenda.find(a=>a.id===id);
+    cache.projectagenda=cache.projectagenda.filter(a=>a.id!==id); saveAgendaBackup();
+    if(projectagendaOK) dbDelete('projectagenda','id',id); else persistCache();
+    logAct('Agenda-item verwijderd'+(a0?': '+a0.titel:''));
+  }
+
+  // ---- Documenten van een project (bestanden en links) ----
+  // Nieuwste eerst. Vallen twee documenten in dezelfde milliseconde, dan beslist de
+  // volgorde van toevoegen — zo staat de lijst nooit willekeurig door elkaar.
+  const getDocs=projectId=>cache.projectdocs.map((d,i)=>({d:d,i:i}))
+    .filter(x=>!projectId||x.d.projectId===projectId)
+    .sort((a,b)=>(b.d.ts||0)-(a.d.ts||0)||b.i-a.i)
+    .map(x=>x.d);
+  function saveDocsBackup(){ saveBackup('projectdocs',K_PROJDOCS_BACKUP); }
+  function addDoc(d){
+    const rec={id:uid(),projectId:d.projectId||'',naam:d.naam||'',url:d.url||'',soort:d.soort||'Overig',
+      bron:d.bron||'link',mime:d.mime||'',grootte:+d.grootte||0,taakId:d.taakId||'',door:d.door||actor||'',ts:Date.now()};
+    cache.projectdocs.push(rec); saveDocsBackup();
+    if(projectdocsOK) dbUpsert('projectdocs',docToRow(rec)); else persistCache();
+    logAct('Document toegevoegd: '+rec.naam+projSuffix(rec.projectId)); return rec;
+  }
+  function updateDoc(id,patch){
+    const r=cache.projectdocs.find(d=>d.id===id); if(!r) return null;
+    Object.assign(r,patch); saveDocsBackup();
+    if(projectdocsOK) dbUpsert('projectdocs',docToRow(r)); else persistCache();
+    logAct('Document aangepast: '+(r.naam||'')+projSuffix(r.projectId)); return r;
+  }
+  function removeDoc(id){
+    const d0=cache.projectdocs.find(d=>d.id===id);
+    cache.projectdocs=cache.projectdocs.filter(d=>d.id!==id); saveDocsBackup();
+    if(projectdocsOK) dbDelete('projectdocs','id',id); else persistCache();
+    logAct('Document verwijderd'+(d0?': '+d0.naam:''));
+  }
 
   // ---------------- GEBRUIKERS (gedeeld) — namenlijst + persoonlijke pincode ----------------
   // 'pin' bevat een gehashte code (zie entertainment.html); nooit de code zelf zichtbaar.
@@ -730,10 +814,13 @@
   }
 
   // Upload een bestand naar Supabase Storage (bucket 'manuals') en geef de publieke URL terug.
-  async function uploadFile(file){
+  // Met 'map' komt het bestand in een submap terecht (bv. 'projecten/<id>'), zodat de
+  // manuals en de projectdocumenten netjes gescheiden blijven in dezelfde bucket.
+  async function uploadFile(file,map){
     if(!sb) throw new Error('Geen verbinding. Upload lukt alleen met internet.');
     const safe=(file.name||'bestand').replace(/[^\w.\-]+/g,'_');
-    const path=Date.now().toString(36)+'_'+Math.floor(Math.random()*1e6).toString(36)+'_'+safe;
+    const mapdeel=map?(String(map).replace(/[^\w\/\-]+/g,'_').replace(/^\/+|\/+$/g,'')+'/'):'';
+    const path=mapdeel+Date.now().toString(36)+'_'+Math.floor(Math.random()*1e6).toString(36)+'_'+safe;
     const up=await sb.storage.from('manuals').upload(path,file,{upsert:true,contentType:file.type||undefined});
     if(up.error) throw up.error;
     const pub=sb.storage.from('manuals').getPublicUrl(path);
@@ -899,8 +986,11 @@
     getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
     getProjecten,getProject,addProject,updateProject,removeProject,
     getTaken,addTaak,updateTaak,removeTaak,reorderTaken,verplaatsTaken,
-    getBerichten,addBericht,removeBericht,
+    getBerichten,addBericht,updateBericht,removeBericht,
+    getAgenda,addAgenda,updateAgenda,removeAgenda,
+    getDocs,addDoc,updateDoc,removeDoc,
     isProjectenGedeeld:()=>projectenOK&&projecttakenOK&&projectberichtenOK,
+    isProjectExtraGedeeld:()=>projectagendaOK&&projectdocsOK,
     STD_KOLOMMEN,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
     setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,

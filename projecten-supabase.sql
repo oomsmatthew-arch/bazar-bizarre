@@ -52,19 +52,58 @@ create table if not exists public.projectberichten (
 );
 create index if not exists projectberichten_project_idx on public.projectberichten (project_id);
 
+-- 4) De agenda: afspraken, mijlpalen, leveringen, opbouw
+create table if not exists public.projectagenda (
+  id         text primary key,
+  project_id text default '',
+  datum      text default '',              -- JJJJ-MM-DD
+  van        text default '',              -- UU:MM (mag leeg)
+  tot        text default '',
+  titel      text default '',
+  soort      text default 'afspraak',      -- afspraak / mijlpaal / levering / opbouw / afbraak
+  plaats     text default '',
+  wie        jsonb default '[]'::jsonb,
+  notitie    text default '',
+  door       text default '',
+  ts         bigint default 0
+);
+create index if not exists projectagenda_project_idx on public.projectagenda (project_id);
+
+-- 5) Documenten: geüploade bestanden en links
+create table if not exists public.projectdocs (
+  id         text primary key,
+  project_id text default '',
+  naam       text default '',
+  url        text default '',
+  soort      text default 'Overig',        -- Offerte / Draaiboek / Plan / Foto / Contract / Overig
+  bron       text default 'link',          -- bestand / link
+  mime       text default '',
+  grootte    bigint default 0,
+  taak_id    text default '',
+  door       text default '',
+  ts         bigint default 0
+);
+create index if not exists projectdocs_project_idx on public.projectdocs (project_id);
+
 -- Toegang: dezelfde open opzet als de bestaande tabellen van de app
 -- (de app gebruikt de publieke 'anon'-sleutel; de beveiliging zit in de pincode-login).
 alter table public.projecten        enable row level security;
 alter table public.projecttaken     enable row level security;
 alter table public.projectberichten enable row level security;
+alter table public.projectagenda    enable row level security;
+alter table public.projectdocs      enable row level security;
 
 drop policy if exists "app volledige toegang" on public.projecten;
 drop policy if exists "app volledige toegang" on public.projecttaken;
 drop policy if exists "app volledige toegang" on public.projectberichten;
+drop policy if exists "app volledige toegang" on public.projectagenda;
+drop policy if exists "app volledige toegang" on public.projectdocs;
 
 create policy "app volledige toegang" on public.projecten        for all using (true) with check (true);
 create policy "app volledige toegang" on public.projecttaken     for all using (true) with check (true);
 create policy "app volledige toegang" on public.projectberichten for all using (true) with check (true);
+create policy "app volledige toegang" on public.projectagenda    for all using (true) with check (true);
+create policy "app volledige toegang" on public.projectdocs      for all using (true) with check (true);
 
 -- Live meekijken (realtime): zonder dit zie je wijzigingen van een collega pas na verversen.
 do $$
@@ -72,4 +111,6 @@ begin
   begin execute 'alter publication supabase_realtime add table public.projecten';        exception when others then null; end;
   begin execute 'alter publication supabase_realtime add table public.projecttaken';     exception when others then null; end;
   begin execute 'alter publication supabase_realtime add table public.projectberichten'; exception when others then null; end;
+  begin execute 'alter publication supabase_realtime add table public.projectagenda';    exception when others then null; end;
+  begin execute 'alter publication supabase_realtime add table public.projectdocs';      exception when others then null; end;
 end $$;

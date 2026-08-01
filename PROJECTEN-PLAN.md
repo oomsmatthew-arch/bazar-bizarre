@@ -1,13 +1,15 @@
 # Projecten — uitwerking (plan)
 
-> **Stand van zaken (2 augustus 2026)**
-> **Fase 1 is gebouwd** en staat in `projecten.html` + `projecten.js`: een **eigen pagina**
-> (zoals het spel er één heeft), met de projectenlijst, het Overzicht, het **Bord** met
-> kolommen/kaarten/slepen en de **Bespreking**. Rechten zijn instelbaar via Instellingen:
-> aanmaken standaard voor vaste medewerkers, meewerken voor iedereen.
-> **Nog te doen:** agenda, documenten en verslagen (fase 2). De **plattegrond is bewust
-> uitgesteld** tot de rest zich bewezen heeft.
-> Eenmalig uitvoeren in Supabase: `projecten-supabase.sql`.
+> **Stand van zaken (2 augustus 2026) — Projecten v1.0**
+> Gebouwd in `projecten.html` + `projecten.js`: een **eigen pagina** (zoals het spel er één
+> heeft), met een eigen indigo/teal uitstraling los van het bosgroen van de rest.
+> Zes tabbladen: **Overzicht · Bord · Agenda · Documenten · Verslagen · Bespreking**.
+> Het bord is een **raster** (geen zijwaarts scrollen) en menu's/vensters zitten in de pagina
+> zelf, niet in browserdialogen. Rechten instelbaar via Instellingen: aanmaken standaard voor
+> vaste medewerkers, meewerken voor iedereen.
+> **Bewust uitgesteld:** de plattegrond met pins.
+> Eenmalig uitvoeren in Supabase: `projecten-supabase.sql` (bevat nu 5 tabellen —
+> opnieuw draaien is veilig).
 
 
 Nieuwe categorie op de homepagina, naast Inventaris / Bestellingen / Checklists / Logboek.

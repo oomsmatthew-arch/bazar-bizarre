@@ -58,7 +58,19 @@ het spel er één heeft, met dezelfde login en dezelfde gedeelde gegevens.
   Een kaart heeft een titel, omschrijving, wie eraan werkt, deadline, labels en subtaken.
   Kolommen maak, hernoem, verschuif of verwijder je via het knopje ⋯ in de kolomkop.
   Sleep je een kaart naar een kolom die "Klaar" heet, dan vinkt ze zichzelf af (en omgekeerd).
+- **Agenda** — maandkalender met afspraken, mijlpalen, leveringen, opbouw en afbraak.
+  De deadlines van je taken en de start/deadline van het project verschijnen er automatisch bij.
+  Tik een dag aan om te zien wat er die dag staat; anders toont de lijst wat er als eerste aankomt.
+- **Documenten** — bestanden uploaden (PDF, foto, video…) of een link toevoegen naar Drive of
+  Sheets. Elk document krijgt een soort (Offerte, Draaiboek, Plan, Foto, Contract, Overig) die
+  je achteraf kan wijzigen door erop te tikken. Uploaden lukt enkel met internet.
+- **Verslagen** — verslag van een overleg: datum, aanwezigen, besproken, beslissingen en
+  actiepunten. Bij elk actiepunt staat **→ maak taak**: die zet het meteen op het bord, met de
+  juiste persoon en deadline. Daarna zie je "✓ staat op het bord" met een knop om de taak te openen.
 - **Bespreking** — korte berichten per project; je eigen bericht kan je zelf verwijderen.
+
+Onderaan de pagina staat het versienummer (start op **v1.0**), zodat je op de tablet meteen
+ziet of de nieuwste versie geladen is.
 
 **Wie mag wat** (in te stellen via ⚙ Instellingen → *Projecten — wie mag wat?*):
 - *Projecten aanmaken/bewerken/verwijderen*: standaard enkel **vaste medewerkers**.

@@ -8,30 +8,32 @@
 <meta name="theme-color" content="#2f6450">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <style>
-  /* Zelfde Center Parcs-stijl als entertainment.html */
+  /* Projecten heeft een eigen gezicht: koeler indigo/teal werkblad i.p.v. het bosgroen
+     van de Entertainment-pagina, en strakke schreefloze koppen. Zelfde bouwstenen
+     (afgeronde panelen, dezelfde knoppen), zodat het herkenbaar bij de app hoort. */
   :root{
-    --bg:#eef4ea; --bg2:#e2efdf; --panel:#ffffff; --panel2:#f3f8f0; --line:#cfe0c8;
-    --forest:#2f6450; --forest2:#3a7a62; --leaf:#4a9b5e; --leaf-soft:#a9e0a0;
-    --sun:#f5b942; --bark:#7a5a3a; --water:#2f8f9d; --proj:#4a63c0;
-    --text:#1d2e22; --muted:#5e7363; --white:#ffffff;
-    --serif:"Georgia","Iowan Old Style","Times New Roman",serif;
-    --shadow:0 8px 24px rgba(31,81,53,.12);
+    --bg:#eef1f8; --bg2:#e5eaf6; --panel:#ffffff; --panel2:#f4f6fd; --line:#d9dfef;
+    --forest:#3f56ad; --forest2:#5a70cf; --leaf:#2fa8a0; --leaf-soft:#bfe6e2;
+    --sun:#f0a336; --bark:#8a6b52; --water:#3aa8c9; --proj:#4a63c0;
+    --text:#1b2233; --muted:#616d8c; --white:#ffffff;
+    --serif:system-ui,"Segoe UI Variable","Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --shadow:0 8px 24px rgba(35,48,92,.10);
   }
   :root[data-theme="dark"]{
-    --bg:#0f1a14; --bg2:#13231b; --panel:#18271f; --panel2:#1f3328; --line:#2c4536;
-    --forest:#7fd6a3; --forest2:#5cbf86; --leaf:#5cc878; --leaf-soft:#2c4536;
-    --sun:#f5b942; --bark:#c39a6b; --water:#4cc0d0; --proj:#8fa2ea;
-    --text:#e8f1ea; --muted:#9bb3a3; --white:#18271f;
-    --shadow:0 8px 24px rgba(0,0,0,.45);
+    --bg:#0f131e; --bg2:#141a28; --panel:#171d2b; --panel2:#1e2637; --line:#2c3550;
+    --forest:#93a6f0; --forest2:#7d90e0; --leaf:#4fc8bd; --leaf-soft:#26404a;
+    --sun:#f0a336; --bark:#c39a6b; --water:#5ec6dd; --proj:#8fa2ea;
+    --text:#e6eaf7; --muted:#96a1bf; --white:#171d2b;
+    --shadow:0 10px 28px rgba(0,0,0,.5);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   html,body{margin:0;padding:0;color:var(--text);
     background:
-      radial-gradient(1200px 500px at 15% -8%,rgba(123,192,138,.35),transparent 60%),
-      radial-gradient(900px 500px at 100% 0,rgba(47,143,157,.18),transparent 55%),
+      radial-gradient(1100px 460px at 12% -10%,rgba(90,112,207,.22),transparent 62%),
+      radial-gradient(900px 500px at 100% 0,rgba(58,168,201,.16),transparent 58%),
       var(--bg);
     background-attachment:fixed;
-    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overscroll-behavior:none;}
+    font-family:system-ui,"Segoe UI","Helvetica Neue",Arial,sans-serif;overscroll-behavior:none;}
   .wrap{max-width:1400px;margin:0 auto;padding:16px 14px 70px;}
 
   /* ---- top bar ---- */
@@ -39,10 +41,10 @@
     background:linear-gradient(120deg,var(--forest),var(--forest2));box-shadow:var(--shadow);
     border:1px solid rgba(255,255,255,.15);overflow:hidden;}
   .topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;
-    background:linear-gradient(90deg,var(--leaf) 0 33%,var(--sun) 33% 66%,var(--water) 66% 100%);}
+    background:linear-gradient(90deg,var(--leaf) 0 33%,var(--water) 33% 66%,#8a5cc7 66% 100%);}
   .topbar .logo{height:48px;width:48px;border-radius:12px;display:block;object-fit:cover;background:var(--forest);cursor:pointer;}
-  .topbar h1{margin:0;font-family:var(--serif);font-size:clamp(18px,3.4vw,26px);
-    letter-spacing:.6px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2);flex:1;
+  .topbar h1{margin:0;font-family:var(--serif);font-size:clamp(19px,3.4vw,26px);
+    letter-spacing:-.2px;font-weight:800;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2);flex:1;
     min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .navbtn{border:none;background:rgba(255,255,255,.2);color:#fff;
     font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;cursor:pointer;flex:0 0 auto;}
@@ -93,23 +95,23 @@
   .projgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
   .projcard{position:relative;border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px;background:var(--panel);
     box-shadow:var(--shadow);cursor:pointer;overflow:hidden;transition:transform .12s,box-shadow .12s;}
-  .projcard:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(31,81,53,.18);}
+  .projcard:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(35,48,92,.18);}
   .projcard::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--kleur,var(--proj));}
-  .projcard h3{margin:0 0 4px;font-family:var(--serif);font-size:20px;color:var(--forest);font-weight:700;
-    padding-right:70px;line-height:1.25;}
+  .projcard h3{margin:0 0 4px;font-family:var(--serif);font-size:20px;color:var(--text);font-weight:800;
+    letter-spacing:-.2px;padding-right:70px;line-height:1.25;}
   .projcard .doel{color:var(--muted);font-size:13px;line-height:1.45;margin:0 0 12px;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .status{position:absolute;top:16px;right:16px;font-size:11px;font-weight:800;letter-spacing:.6px;
     text-transform:uppercase;padding:4px 9px;border-radius:999px;background:var(--panel2);color:var(--muted);
     border:1px solid var(--line);}
-  .status.lopend{background:#e8f8ef;color:#1a7a48;border-color:#a9e0c0;}
-  .status.idee{background:#eef2fb;color:#3c53a8;border-color:#bdc9ee;}
-  .status.hold{background:#fdf3e3;color:#9a6a1a;border-color:#e8c98a;}
-  .status.afgerond{background:#f1f1f1;color:#666;border-color:#ddd;}
-  [data-theme="dark"] .status.lopend{background:#16301f;color:#7fd6a3;border-color:#2c4536;}
-  [data-theme="dark"] .status.idee{background:#1c2531;color:#8fa2ea;border-color:#33415c;}
+  .status.lopend{background:#e1f4f2;color:#17756d;border-color:#b4e4de;}
+  .status.idee{background:#e9edfb;color:#3f56ad;border-color:#c5d0f4;}
+  .status.hold{background:#fdf1e0;color:#96661a;border-color:#f0d5a8;}
+  .status.afgerond{background:#ecf0f7;color:#6a7590;border-color:#d7dded;}
+  [data-theme="dark"] .status.lopend{background:#123330;color:#4fc8bd;border-color:#26404a;}
+  [data-theme="dark"] .status.idee{background:#1b2340;color:#93a6f0;border-color:#2f3a63;}
   [data-theme="dark"] .status.hold{background:#2e2517;color:#f0c98a;border-color:#5a4525;}
-  [data-theme="dark"] .status.afgerond{background:#22302a;color:#9bb3a3;border-color:#2c4536;}
+  [data-theme="dark"] .status.afgerond{background:#1e2537;color:#96a1bf;border-color:#2c3550;}
   .balk{height:8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;}
   .balk i{display:block;height:100%;background:linear-gradient(90deg,var(--leaf),var(--forest2));width:0;}
   .projmeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12.5px;color:var(--muted);font-weight:600;}
@@ -128,7 +130,9 @@
 
   /* ---- één project: tabbladen ---- */
   .projkop{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin:18px 0 4px;}
-  .projkop h2{margin:0;font-family:var(--serif);font-size:clamp(21px,4vw,28px);color:var(--forest);flex:1;min-width:0;}
+  .projkop h2{margin:0;font-family:var(--serif);font-size:clamp(22px,4vw,30px);color:var(--text);
+    font-weight:800;letter-spacing:-.5px;flex:1;min-width:0;
+    border-left:6px solid var(--kleur,var(--proj));padding-left:12px;line-height:1.2;}
   .ptabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 18px;border-bottom:2px solid var(--line);padding-bottom:0;}
   .ptab{border:none;background:transparent;color:var(--muted);font-weight:800;font-size:15px;padding:10px 16px;
     cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;}
@@ -138,10 +142,11 @@
 
   /* ---- bord ---- */
   .bordfilter{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
-  .bord{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding-bottom:14px;
-    scroll-snap-type:x proximity;}
-  .kolom{flex:0 0 290px;background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:12px;
-    scroll-snap-align:start;display:flex;flex-direction:column;min-height:120px;}
+  /* Raster: de kolommen breken af naar een volgende rij i.p.v. zijwaarts te scrollen. */
+  .bord{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:14px;
+    align-items:start;padding-bottom:14px;}
+  .kolom{background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--kleur,var(--proj));
+    border-radius:16px;padding:12px;display:flex;flex-direction:column;min-height:120px;}
   .kolom.sleepdoel{outline:2px dashed var(--leaf);outline-offset:-4px;}
   .kolomkop{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
   .kolomkop .knaam{font-weight:800;font-size:14px;color:var(--forest);text-transform:uppercase;letter-spacing:.8px;
@@ -150,9 +155,10 @@
     border-radius:999px;padding:2px 8px;}
   .kolomkop .kmenu{border:none;background:transparent;color:var(--muted);font-size:17px;cursor:pointer;padding:2px 4px;line-height:1;}
   .kaarten{display:flex;flex-direction:column;gap:9px;min-height:20px;}
-  .kaart{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 12px;box-shadow:0 2px 6px rgba(31,81,53,.07);
-    cursor:pointer;position:relative;}
-  .kaart.dragging{opacity:.95;box-shadow:0 14px 32px rgba(31,81,53,.3);position:relative;z-index:50;}
+  .kaart{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 12px;
+    box-shadow:0 2px 6px rgba(35,48,92,.08);cursor:pointer;position:relative;}
+  .kaart:hover{border-color:var(--forest2);}
+  .kaart.dragging{opacity:.95;box-shadow:0 16px 34px rgba(35,48,92,.32);position:relative;z-index:50;}
   .kaart.klaar .ktitel{text-decoration:line-through;color:var(--muted);}
   .kaart .ktitel{font-weight:700;font-size:14.5px;line-height:1.35;word-break:break-word;}
   .kaart .klabels{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px;}
@@ -167,12 +173,12 @@
   .kaartadd input{width:100%;padding:9px 11px;border:1px dashed var(--line);border-radius:11px;background:transparent;
     color:var(--text);font-size:13.5px;font-family:inherit;}
   .kaartadd input:focus{outline:none;border-style:solid;border-color:var(--leaf);background:var(--panel);}
-  .kolomadd{flex:0 0 210px;}
-  .kolomadd button{width:100%;border:1px dashed var(--line);background:transparent;color:var(--muted);font-weight:700;
-    font-size:14px;padding:14px;border-radius:16px;cursor:pointer;}
+  .kolomadd button{width:100%;min-height:92px;border:1px dashed var(--line);background:transparent;color:var(--muted);
+    font-weight:700;font-size:14px;padding:14px;border-radius:16px;cursor:pointer;}
+  .kolomadd button:hover{border-color:var(--leaf);color:var(--forest);}
   @media(max-width:640px){
-    .kolom{flex:0 0 84vw;}
-    .kolomadd{flex:0 0 60vw;}
+    .bord{grid-template-columns:1fr;}
+    .kolomadd button{min-height:0;}
   }
 
   /* ---- taak-venster ---- */
@@ -181,7 +187,8 @@
   .modal.open{display:flex;}
   .modalbox{width:100%;max-width:620px;background:var(--bg);border:1px solid var(--line);border-radius:20px;
     box-shadow:0 20px 50px rgba(0,0,0,.35);padding:20px 20px 24px;}
-  .modalbox h3{margin:0 0 4px;font-family:var(--serif);font-size:21px;color:var(--forest);}
+  .modalbox h3{margin:0 0 4px;font-family:var(--serif);font-size:21px;color:var(--text);
+    font-weight:800;letter-spacing:-.3px;}
   .veld{margin-top:14px;}
   .veld > label{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
     color:var(--muted);margin-bottom:6px;}
@@ -208,8 +215,8 @@
   .chatlijst{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
   .bericht{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);
     max-width:640px;}
-  .bericht.eigen{margin-left:auto;background:linear-gradient(150deg,#eef8f0,var(--panel));border-color:var(--leaf-soft);}
-  [data-theme="dark"] .bericht.eigen{background:linear-gradient(150deg,#1b2e22,var(--panel));}
+  .bericht.eigen{margin-left:auto;background:linear-gradient(150deg,#eaeffc,var(--panel));border-color:#c5d0f4;}
+  [data-theme="dark"] .bericht.eigen{background:linear-gradient(150deg,#1c2340,var(--panel));border-color:#2f3a63;}
   .bericht .bkop{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;color:var(--muted);font-weight:700;}
   .bericht .bkop .av{width:24px;height:24px;border-radius:50%;background:var(--forest);color:#fff;font-size:10px;font-weight:800;
     display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto;}
@@ -224,11 +231,100 @@
   .blokken{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:6px;}
   .blok{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 17px;box-shadow:var(--shadow);}
   .blok h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);font-weight:800;}
-  .blok .groot{font-size:30px;font-weight:800;font-family:var(--serif);color:var(--text);line-height:1.1;}
+  .blok .groot{font-size:32px;font-weight:800;font-family:var(--serif);color:var(--text);
+    line-height:1.05;letter-spacing:-1px;}
   .blok ul{margin:0;padding-left:18px;font-size:14px;line-height:1.7;}
   .blok li{cursor:pointer;}
   .blok .sub{font-size:13px;color:var(--muted);line-height:1.55;}
   .doeltekst{white-space:pre-wrap;font-size:15px;line-height:1.55;}
+
+  /* ---- agenda ---- */
+  .agtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .agtop .maand{font-size:19px;font-weight:800;letter-spacing:-.3px;min-width:170px;text-transform:capitalize;}
+  .kal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:22px;}
+  .kal .dagnaam{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+    text-align:center;padding:4px 0;}
+  .kal .dag{background:var(--panel);border:1px solid var(--line);border-radius:11px;min-height:78px;padding:6px;
+    cursor:pointer;display:flex;flex-direction:column;gap:3px;overflow:hidden;}
+  .kal .dag:hover{border-color:var(--forest2);}
+  .kal .dag.leeg{background:transparent;border-color:transparent;cursor:default;}
+  .kal .dag.vandaag{border-color:var(--forest);box-shadow:inset 0 0 0 1px var(--forest);}
+  .kal .dag.gekozen{background:var(--panel2);border-color:var(--forest);}
+  .kal .dag .nr{font-size:12.5px;font-weight:800;color:var(--muted);}
+  .kal .dag.vandaag .nr{color:var(--forest);}
+  .kal .ag{font-size:10.5px;font-weight:700;line-height:1.3;padding:2px 5px;border-radius:5px;
+    background:var(--panel2);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    border-left:3px solid var(--forest2);}
+  .kal .ag.mijlpaal{border-left-color:#8a5cc7;}
+  .kal .ag.levering{border-left-color:var(--sun);}
+  .kal .ag.opbouw{border-left-color:var(--leaf);}
+  .kal .ag.afbraak{border-left-color:var(--bark);}
+  .kal .ag.taak{border-left-color:var(--water);font-style:italic;}
+  .kal .ag.telaat{border-left-color:#c0392b;color:#c0392b;}
+  .kal .meer{font-size:10px;color:var(--muted);font-weight:700;padding-left:5px;}
+  @media(max-width:560px){ .kal .dag{min-height:56px;} .kal .ag{font-size:0;padding:3px;border-left-width:6px;} }
+  .aglijst{display:flex;flex-direction:column;gap:9px;}
+  .agrij{display:flex;align-items:flex-start;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-left:4px solid var(--forest2);border-radius:13px;padding:11px 13px;box-shadow:var(--shadow);}
+  .agrij.mijlpaal{border-left-color:#8a5cc7;} .agrij.levering{border-left-color:var(--sun);}
+  .agrij.opbouw{border-left-color:var(--leaf);} .agrij.afbraak{border-left-color:var(--bark);}
+  .agrij.taak{border-left-color:var(--water);}
+  .agrij .wanneer{flex:0 0 92px;font-size:12.5px;font-weight:800;color:var(--forest);line-height:1.4;}
+  .agrij .wat{flex:1;min-width:0;}
+  .agrij .wat b{font-size:15px;}
+  .agrij .wat .sub{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.5;}
+  .agrij .knopjes{flex:0 0 auto;display:flex;gap:6px;}
+
+  /* ---- documenten ---- */
+  .doclijst{display:flex;flex-direction:column;gap:9px;}
+  .docrij{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:13px;padding:11px 13px;box-shadow:var(--shadow);}
+  .docrij .ico{flex:0 0 40px;height:40px;border-radius:11px;background:var(--panel2);display:flex;
+    align-items:center;justify-content:center;font-size:19px;}
+  .docrij .wat{flex:1;min-width:0;}
+  .docrij .wat b{font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .docrij .wat .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .doctag{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;
+    border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);}
+  .uploadbalk{display:none;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:14px;font-weight:700;color:var(--forest);}
+  .uploadbalk.bezig{display:flex;}
+
+  /* ---- verslagen ---- */
+  .verslag{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;
+    box-shadow:var(--shadow);margin-bottom:14px;}
+  .verslag .vkop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .verslag .vkop b{font-size:17px;letter-spacing:-.2px;}
+  .verslag h5{margin:14px 0 5px;font-size:11.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--forest);font-weight:800;}
+  .verslag .vtekst{font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;}
+  .actierij{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .actierij:last-child{border-bottom:none;}
+  .actierij .tx{flex:1;font-size:14.5px;}
+  .actierij .tx .sub{font-size:12px;color:var(--muted);}
+  .actierij .gedaan{font-size:12px;font-weight:800;color:var(--leaf);}
+  .aanwezig{display:flex;gap:6px;flex-wrap:wrap;}
+  .aanwezig .av{width:26px;height:26px;border-radius:50%;background:var(--forest);color:#fff;font-size:10px;
+    font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .aanwezig .av img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* ---- keuzemenu bij het ⋯-knopje ---- */
+  #popBackdrop{position:fixed;inset:0;z-index:9400;display:none;}
+  #popBackdrop.open{display:block;}
+  .popmenu{position:fixed;z-index:9500;display:none;min-width:216px;max-width:min(92vw,300px);
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 18px 44px rgba(0,0,0,.3);padding:6px;}
+  .popmenu.open{display:block;}
+  .popmenu .pkop{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
+    color:var(--muted);padding:9px 12px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .popmenu button{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;
+    color:var(--text);font-family:inherit;font-size:15px;font-weight:600;text-align:left;
+    padding:12px;border-radius:11px;cursor:pointer;}
+  .popmenu button:hover{background:var(--panel2);}
+  .popmenu button:active{background:var(--panel2);transform:translateY(1px);}
+  .popmenu button:disabled{opacity:.35;cursor:default;background:transparent;transform:none;}
+  .popmenu button.gevaar{color:#c0392b;}
+  [data-theme="dark"] .popmenu button.gevaar{color:#ff9c8f;}
+  .popmenu .scheiding{height:1px;background:var(--line);margin:5px 9px;}
 
   footer{margin-top:34px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;}
 </style>
@@ -273,6 +369,9 @@
     <div class="ptabs" id="pTabs">
       <button class="ptab active" data-p="overzicht">Overzicht</button>
       <button class="ptab" data-p="bord">Bord</button>
+      <button class="ptab" data-p="agenda">Agenda</button>
+      <button class="ptab" data-p="documenten">Documenten</button>
+      <button class="ptab" data-p="verslagen">Verslagen</button>
       <button class="ptab" data-p="bespreking">Bespreking <span id="pOngelezen"></span></button>
     </div>
 
@@ -288,6 +387,41 @@
         <input type="text" id="bordZoek" class="finp" style="max-width:230px" placeholder="Zoek in taken…">
       </div>
       <div class="bord" id="bord"></div>
+    </div>
+
+    <div class="pane" id="pane-agenda">
+      <p class="hint">Afspraken en mijlpalen van dit project. Deadlines van taken verschijnen hier automatisch mee.</p>
+      <div class="agtop">
+        <button class="btn mini" id="agVorige">←</button>
+        <span class="maand" id="agMaand">—</span>
+        <button class="btn mini" id="agVolgende">→</button>
+        <button class="btn mini" id="agVandaag">Vandaag</button>
+        <button class="btn primary" id="agNieuw" style="margin-left:auto">+ Afspraak</button>
+      </div>
+      <div class="kal" id="agKalender"></div>
+      <div class="h" style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);font-weight:800;margin:0 2px 10px" id="agLijstKop">Eerstvolgende</div>
+      <div class="aglijst" id="agLijst"></div>
+    </div>
+
+    <div class="pane" id="pane-documenten">
+      <p class="hint">Offertes, draaiboeken, plannen en foto's bij dit project. Bestanden staan online; links wijzen naar Drive, Sheets of een website.</p>
+      <div class="rij" style="margin-bottom:14px">
+        <button class="btn primary" id="docUpload">📎 Bestand toevoegen</button>
+        <button class="btn" id="docLink">🔗 Link toevoegen</button>
+        <input type="text" id="docZoek" class="finp" style="flex:1;min-width:160px;max-width:280px" placeholder="Zoek een document…">
+      </div>
+      <input type="file" id="docBestand" style="display:none">
+      <div class="uploadbalk" id="docBezig">⏳ Bezig met uploaden…</div>
+      <div class="chips" id="docFilter"></div>
+      <div class="doclijst" id="docLijst"></div>
+    </div>
+
+    <div class="pane" id="pane-verslagen">
+      <p class="hint">Verslagen van een vergadering of overleg. Van elk actiepunt maak je met één tik een taak op het bord.</p>
+      <div class="rij" style="margin-bottom:16px">
+        <button class="btn primary" id="vsNieuw">+ Nieuw verslag</button>
+      </div>
+      <div id="vsLijst"></div>
     </div>
 
     <div class="pane" id="pane-bespreking">
@@ -398,6 +532,122 @@
       <div class="rechts">
         <button class="btn clear" id="pmAnnuleer">Annuleren</button>
         <button class="btn primary" id="pmBewaar">Bewaren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AGENDA-VENSTER -->
+<div class="modal" id="agModal">
+  <div class="modalbox">
+    <h3 id="agKop">Nieuwe afspraak</h3>
+    <div class="veld">
+      <label for="agTitel">Wat</label>
+      <input type="text" id="agTitel" class="finp" placeholder="bv. Overleg met techniek">
+    </div>
+    <div class="veld">
+      <label>Soort</label>
+      <div class="keuzes" id="agSoort"></div>
+    </div>
+    <div class="rij" style="gap:12px;margin-top:14px">
+      <div style="flex:1;min-width:140px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="agDatum">Datum</label>
+        <input type="date" id="agDatum" class="finp">
+      </div>
+      <div style="flex:0 0 110px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="agVan">Van</label>
+        <input type="time" id="agVan" class="finp">
+      </div>
+      <div style="flex:0 0 110px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="agTot">Tot</label>
+        <input type="time" id="agTot" class="finp">
+      </div>
+    </div>
+    <div class="veld">
+      <label for="agPlaats">Waar</label>
+      <input type="text" id="agPlaats" class="finp" placeholder="bv. Market Dome (optioneel)">
+    </div>
+    <div class="veld">
+      <label>Wie</label>
+      <div class="keuzes" id="agWie"></div>
+    </div>
+    <div class="veld">
+      <label for="agNotitie">Notitie</label>
+      <textarea id="agNotitie" class="finp" placeholder="Extra info (optioneel)"></textarea>
+    </div>
+    <div class="modalvoet">
+      <button class="btn gevaar" id="agDel">🗑 Verwijderen</button>
+      <div class="rechts">
+        <button class="btn clear" id="agAnnuleer">Annuleren</button>
+        <button class="btn primary" id="agBewaar">Bewaren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VERSLAG-VENSTER -->
+<div class="modal" id="vsModal">
+  <div class="modalbox">
+    <h3 id="vsKop">Nieuw verslag</h3>
+    <div class="rij" style="gap:12px;margin-top:14px">
+      <div style="flex:1;min-width:150px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="vsDatum">Datum van het overleg</label>
+        <input type="date" id="vsDatum" class="finp">
+      </div>
+      <div style="flex:2;min-width:170px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="vsTitel">Titel</label>
+        <input type="text" id="vsTitel" class="finp" placeholder="bv. Wekelijks overleg">
+      </div>
+    </div>
+    <div class="veld">
+      <label>Aanwezig</label>
+      <div class="keuzes" id="vsWie"></div>
+    </div>
+    <div class="veld">
+      <label for="vsBesproken">Besproken</label>
+      <textarea id="vsBesproken" class="finp" placeholder="Waar ging het over?"></textarea>
+    </div>
+    <div class="veld">
+      <label for="vsBeslissingen">Beslissingen</label>
+      <textarea id="vsBeslissingen" class="finp" placeholder="Wat is er beslist?"></textarea>
+    </div>
+    <div class="veld">
+      <label>Actiepunten</label>
+      <div id="vsActies"></div>
+      <div class="rij" style="margin-top:9px">
+        <input type="text" id="vsActieNew" class="finp" style="flex:1;min-width:150px" placeholder="Actiepunt…">
+        <select id="vsActieWie" class="finp" style="flex:0 0 150px"></select>
+        <input type="date" id="vsActieDatum" class="finp" style="flex:0 0 150px">
+        <button class="btn mini" id="vsActieAdd">Toevoegen</button>
+      </div>
+    </div>
+    <div class="modalvoet">
+      <button class="btn gevaar" id="vsDel">🗑 Verwijderen</button>
+      <div class="rechts">
+        <button class="btn clear" id="vsAnnuleer">Annuleren</button>
+        <button class="btn primary" id="vsBewaar">Bewaren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KEUZEMENU (bij het ⋯-knopje van een kolom) -->
+<div id="popBackdrop"></div>
+<div class="popmenu" id="popMenu"></div>
+
+<!-- KLEIN VENSTER: iets typen of een vraag bevestigen -->
+<div class="modal" id="dlgModal">
+  <div class="modalbox" style="max-width:440px">
+    <h3 id="dlgKop">Titel</h3>
+    <p class="hint" id="dlgTekst" style="margin:10px 0 0"></p>
+    <div class="veld" id="dlgVeld">
+      <label id="dlgLabel" for="dlgInput">Naam</label>
+      <input type="text" id="dlgInput" class="finp">
+    </div>
+    <div class="modalvoet">
+      <div class="rechts">
+        <button class="btn clear" id="dlgAnnuleer">Annuleren</button>
+        <button class="btn primary" id="dlgOk">Bewaren</button>
       </div>
     </div>
   </div>
