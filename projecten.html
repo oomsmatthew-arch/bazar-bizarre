@@ -307,6 +307,49 @@
     font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;}
   .aanwezig .av img{width:100%;height:100%;object-fit:cover;display:block;}
 
+  /* ---- materiaal ---- */
+  .matsom{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .matsom .pill{font-size:12.5px;font-weight:700;}
+  .matstatus{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;
+    border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);cursor:pointer;}
+  .matstatus.nodig{background:#fdecea;color:#c0392b;border-color:#f0b7b0;}
+  .matstatus.besteld{background:#fdf1e0;color:#96661a;border-color:#f0d5a8;}
+  .matstatus.inhuis{background:#e1f4f2;color:#17756d;border-color:#b4e4de;}
+  .matstatus.geregeld{background:#e9edfb;color:#3f56ad;border-color:#c5d0f4;}
+  [data-theme="dark"] .matstatus.nodig{background:#2a201e;color:#ff9c8f;border-color:#5a3530;}
+  [data-theme="dark"] .matstatus.besteld{background:#2e2517;color:#f0c98a;border-color:#5a4525;}
+  [data-theme="dark"] .matstatus.inhuis{background:#123330;color:#4fc8bd;border-color:#26404a;}
+  [data-theme="dark"] .matstatus.geregeld{background:#1b2340;color:#93a6f0;border-color:#2f3a63;}
+  .matkrap{font-size:11.5px;font-weight:800;color:#c0392b;}
+  [data-theme="dark"] .matkrap{color:#ff9c8f;}
+
+  /* ---- draaiboek ---- */
+  .dbdag{margin-bottom:22px;}
+  .dbdagkop{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--forest);
+    margin:0 2px 10px;display:flex;align-items:center;gap:10px;}
+  .dbdagkop .telling{font-weight:700;color:var(--muted);letter-spacing:0;text-transform:none;font-size:12.5px;}
+  .dbrij{display:flex;align-items:flex-start;gap:14px;background:var(--panel);border:1px solid var(--line);
+    border-left:4px solid var(--forest2);border-radius:12px;padding:10px 13px;margin-bottom:7px;box-shadow:var(--shadow);}
+  .dbrij .tijd{flex:0 0 96px;font-weight:800;font-size:14px;color:var(--forest);font-variant-numeric:tabular-nums;}
+  .dbrij .wat{flex:1;min-width:0;}
+  .dbrij .wat b{font-size:15px;}
+  .dbrij .wat .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  @media(max-width:520px){ .dbrij{flex-wrap:wrap;gap:6px;} .dbrij .tijd{flex:0 0 100%;} }
+
+  /* ---- ideeën ---- */
+  .ideeadd{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow);}
+  .idee{display:flex;align-items:flex-start;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-left:4px solid var(--sun);border-radius:13px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);}
+  .idee.om{border-left-color:var(--leaf);}
+  .idee .tx{flex:1;min-width:0;font-size:15px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+  .idee .tx .sub{font-size:12px;color:var(--muted);margin-top:4px;white-space:normal;}
+
+  /* ---- evaluatie ---- */
+  .sterren{display:flex;gap:6px;}
+  .sterren button{border:1px solid var(--line);background:var(--panel);border-radius:12px;font-size:22px;
+    line-height:1;padding:7px 11px;cursor:pointer;filter:grayscale(1);opacity:.45;}
+  .sterren button.aan{filter:none;opacity:1;border-color:var(--sun);background:var(--panel2);}
+
   /* ---- keuzemenu bij het ⋯-knopje ---- */
   #popBackdrop{position:fixed;inset:0;z-index:9400;display:none;}
   #popBackdrop.open{display:block;}
@@ -369,10 +412,14 @@
     <div class="ptabs" id="pTabs">
       <button class="ptab active" data-p="overzicht">Overzicht</button>
       <button class="ptab" data-p="bord">Bord</button>
+      <button class="ptab" data-p="ideeen">Ideeën</button>
+      <button class="ptab" data-p="materiaal">Materiaal</button>
       <button class="ptab" data-p="agenda">Agenda</button>
+      <button class="ptab" data-p="draaiboek">Draaiboek</button>
       <button class="ptab" data-p="documenten">Documenten</button>
       <button class="ptab" data-p="verslagen">Verslagen</button>
       <button class="ptab" data-p="bespreking">Bespreking <span id="pOngelezen"></span></button>
+      <button class="ptab" data-p="evaluatie">Evaluatie</button>
     </div>
 
     <div class="pane active" id="pane-overzicht">
@@ -387,6 +434,63 @@
         <input type="text" id="bordZoek" class="finp" style="max-width:230px" placeholder="Zoek in taken…">
       </div>
       <div class="bord" id="bord"></div>
+    </div>
+
+    <div class="pane" id="pane-ideeen">
+      <p class="hint">Een losse inval die nog geen taak is. Blijft hier staan tot iemand er iets mee doet — met één tik zet je ze op het bord.</p>
+      <div class="ideeadd">
+        <textarea id="ideeTekst" class="finp" placeholder="Wat schiet je te binnen?"></textarea>
+        <div class="rij" style="margin-top:9px">
+          <span class="chatvan" id="ideeVan">Van: —</span>
+          <button class="btn primary" id="ideePlaats" style="margin-left:auto">Idee plaatsen</button>
+        </div>
+      </div>
+      <div id="ideeLijst" style="margin-top:18px"></div>
+    </div>
+
+    <div class="pane" id="pane-materiaal">
+      <p class="hint">Wat heb je nodig, en hoe ver staat het? Koppel een lijn aan een artikel uit de inventaris om de voorraad te zien.</p>
+      <div class="rij" style="margin-bottom:12px">
+        <button class="btn primary" id="matNieuw">+ Materiaal</button>
+        <input type="text" id="matZoek" class="finp" style="flex:1;min-width:150px;max-width:260px" placeholder="Zoek in de lijst…">
+      </div>
+      <div class="matsom" id="matSom"></div>
+      <div class="chips" id="matFilter"></div>
+      <div class="doclijst" id="matLijst"></div>
+    </div>
+
+    <div class="pane" id="pane-draaiboek">
+      <p class="hint">De minuut-per-minuut planning van de dag zelf: wie doet wat, wanneer en waar. Handig om af te drukken en mee te nemen.</p>
+      <div class="rij" style="margin-bottom:14px">
+        <button class="btn primary" id="dbNieuw">+ Regel</button>
+        <button class="btn" id="dbPrint">🖨 Afdrukken</button>
+      </div>
+      <div id="dbLijst"></div>
+    </div>
+
+    <div class="pane" id="pane-evaluatie">
+      <p class="hint">Na afloop invullen, zodat je het volgende keer niet opnieuw moet uitzoeken. Onderaan kan je dit project kopiëren als startpunt voor een volgende editie.</p>
+      <div class="veld">
+        <label>Hoe is het gegaan?</label>
+        <div class="sterren" id="evScore"></div>
+      </div>
+      <div class="veld">
+        <label for="evGoed">Wat liep goed?</label>
+        <textarea id="evGoed" class="finp" placeholder="Wat mag zeker zo blijven"></textarea>
+      </div>
+      <div class="veld">
+        <label for="evMinder">Wat kon beter?</label>
+        <textarea id="evMinder" class="finp" placeholder="Waar liepen we tegenaan"></textarea>
+      </div>
+      <div class="veld">
+        <label for="evOnthouden">Onthouden voor de volgende keer</label>
+        <textarea id="evOnthouden" class="finp" placeholder="Concrete tips voor wie het volgende keer doet"></textarea>
+      </div>
+      <div class="rij" style="margin-top:18px">
+        <button class="btn primary" id="evBewaar">Evaluatie bewaren</button>
+        <button class="btn" id="evKopie">📋 Project kopiëren voor een volgende keer</button>
+      </div>
+      <div class="meta" id="evMeta"></div>
     </div>
 
     <div class="pane" id="pane-agenda">
@@ -537,6 +641,88 @@
   </div>
 </div>
 
+<!-- MATERIAAL-VENSTER -->
+<div class="modal" id="matModal">
+  <div class="modalbox">
+    <h3 id="matKop">Materiaal toevoegen</h3>
+    <div class="veld">
+      <label for="matNaam">Wat heb je nodig?</label>
+      <input type="text" id="matNaam" class="finp" list="matInvList" placeholder="Typ een naam, of kies uit de inventaris">
+      <datalist id="matInvList"></datalist>
+      <div class="sub" id="matVoorraad" style="font-size:12.5px;color:var(--muted);margin-top:6px"></div>
+    </div>
+    <div class="rij" style="gap:12px;margin-top:14px">
+      <div style="flex:0 0 110px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="matAantal">Aantal</label>
+        <input type="number" id="matAantal" class="finp" min="0" step="1" value="1">
+      </div>
+      <div style="flex:1;min-width:120px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="matEenheid">Eenheid</label>
+        <input type="text" id="matEenheid" class="finp" placeholder="stuks, dozen, meter…">
+      </div>
+    </div>
+    <div class="veld">
+      <label>Status</label>
+      <div class="keuzes" id="matStatus"></div>
+    </div>
+    <div class="veld">
+      <label for="matOpm">Opmerking</label>
+      <textarea id="matOpm" class="finp" placeholder="bv. bij welke leverancier, of waar het ligt"></textarea>
+    </div>
+    <div class="modalvoet">
+      <button class="btn gevaar" id="matDel">🗑 Verwijderen</button>
+      <div class="rechts">
+        <button class="btn clear" id="matAnnuleer">Annuleren</button>
+        <button class="btn primary" id="matBewaar">Bewaren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DRAAIBOEK-VENSTER -->
+<div class="modal" id="dbModal">
+  <div class="modalbox">
+    <h3 id="dbKop">Regel toevoegen</h3>
+    <div class="rij" style="gap:12px;margin-top:14px">
+      <div style="flex:1;min-width:140px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="dbDatum">Dag</label>
+        <input type="date" id="dbDatum" class="finp">
+      </div>
+      <div style="flex:0 0 110px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="dbVan">Van</label>
+        <input type="time" id="dbVan" class="finp">
+      </div>
+      <div style="flex:0 0 110px">
+        <label style="display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px" for="dbTot">Tot</label>
+        <input type="time" id="dbTot" class="finp">
+      </div>
+    </div>
+    <div class="veld">
+      <label for="dbWat">Wat gebeurt er?</label>
+      <input type="text" id="dbWat" class="finp" placeholder="bv. Deuren open, muziek aan">
+    </div>
+    <div class="veld">
+      <label for="dbPlaats">Waar</label>
+      <input type="text" id="dbPlaats" class="finp" placeholder="bv. Market Dome (optioneel)">
+    </div>
+    <div class="veld">
+      <label>Wie</label>
+      <div class="keuzes" id="dbWie"></div>
+    </div>
+    <div class="veld">
+      <label for="dbOpm">Opmerking</label>
+      <textarea id="dbOpm" class="finp" placeholder="Extra info (optioneel)"></textarea>
+    </div>
+    <div class="modalvoet">
+      <button class="btn gevaar" id="dbDel">🗑 Verwijderen</button>
+      <div class="rechts">
+        <button class="btn clear" id="dbAnnuleer">Annuleren</button>
+        <button class="btn primary" id="dbBewaar">Bewaren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- AGENDA-VENSTER -->
 <div class="modal" id="agModal">
   <div class="modalbox">
@@ -653,8 +839,8 @@
   </div>
 </div>
 
-<script src="supabase.min.js"></script>
-<script src="inventaris.js"></script>
-<script src="projecten.js"></script>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/projecten.js"></script>
 </body>
 </html>

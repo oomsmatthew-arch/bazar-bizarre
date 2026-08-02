@@ -193,11 +193,17 @@ let agJaar=null, agMaandNr=null, agGekozen=''; // welke maand de agenda toont, e
 let agOpen=null, agConcept=null;               // afspraak in het venster
 let docTag='', docZoek='';                     // filter en zoekterm bij Documenten
 let vsOpen=null, vsConcept=null;               // verslag in het venster
+let matOpen=null, matConcept=null, matFilter='', matZoek=''; // materiaal
+let dbOpen=null, dbConcept=null;               // draaiboekregel in het venster
+let evScore=0;                                 // sterren bij de evaluatie
 
 function project(){ return huidigProject?(BBInv.getProject(huidigProject)||null):null; }
 function taken(pid){ return BBInv.getTaken(pid||huidigProject); }
 function kolommen(p){ return (p&&p.kolommen&&p.kolommen.length)?p.kolommen:['Te doen','Bezig','Klaar']; }
 function isKlaarKolom(naam){ return /^(klaar|gereed|afgewerkt|done|af)$/i.test(String(naam||'').trim()); }
+// De tabel 'projectberichten' bevat meer dan chat: ook verslagen, ideeën, materiaal,
+// draaiboekregels en de evaluatie. Enkel dit hoort thuis in de Bespreking.
+function isChat(b){ return !b.soort || b.soort==='bericht'; }
 function filterActief(){ return alleenMijn||verbergKlaar||!!bordZoek.trim(); }
 
 // Gelezen-stand van de bespreking (per toestel, niet gedeeld).
@@ -206,7 +212,7 @@ function zetGelezen(pid,ts){ const g=gelezen(); g[pid]=ts||Date.now(); try{local
 function ongelezenAantal(pid){
   const sinds=gelezen()[pid]||0;
   const mij=currentUserName();
-  return BBInv.getBerichten(pid).filter(b=>b.soort!=='verslag'&&(b.ts||0)>sinds&&b.auteur!==mij).length;
+  return BBInv.getBerichten(pid).filter(b=>isChat(b)&&(b.ts||0)>sinds&&b.auteur!==mij).length;
 }
 
 // ---------------- LIJST VAN PROJECTEN ----------------
@@ -278,11 +284,20 @@ function statusKlasse(s){
 // ---------------- ÉÉN PROJECT ----------------
 function openProject(id){
   huidigProject=id; huidigTab='overzicht';
+  wisFilters(); // filters van het vorige project niet meeslepen
   $('lijstView').style.display='none';
   $('projectView').style.display='';
   toonTab('overzicht');
   renderProject();
   window.scrollTo(0,0);
+}
+// Zoekvelden en filters horen bij één project; bij het wisselen zetten we ze schoon,
+// anders lijkt een ander project ineens leeg door een filter die je vergeten was.
+function wisFilters(){
+  bordZoek=''; alleenMijn=false; verbergKlaar=false;
+  matFilter=''; matZoek=''; docTag=''; docZoek='';
+  agGekozen=''; agJaar=null; agMaandNr=null;
+  ['bordZoek','matZoek','docZoek'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
 }
 function naarLijst(){
   huidigProject=null;
@@ -312,9 +327,13 @@ function renderProject(){
   $('pOngelezen').innerHTML = (ong&&huidigTab!=='bespreking') ? '<span class="ongelezen">'+ong+'</span>' : '';
   if(huidigTab==='overzicht') renderOverzicht();
   else if(huidigTab==='bord') renderBord();
+  else if(huidigTab==='ideeen') renderIdeeen();
+  else if(huidigTab==='materiaal') renderMateriaal();
   else if(huidigTab==='agenda') renderAgenda();
+  else if(huidigTab==='draaiboek') renderDraaiboek();
   else if(huidigTab==='documenten') renderDocumenten();
   else if(huidigTab==='verslagen') renderVerslagen();
+  else if(huidigTab==='evaluatie') renderEvaluatie();
   else renderBespreking();
 }
 
@@ -328,7 +347,7 @@ function renderOverzicht(){
   const mijn=ts.filter(t=>!t.klaar&&(t.wie||[]).indexOf(mij)>=0);
   const week=ts.filter(t=>{ if(t.klaar||!t.deadline) return false; const d=dagenTot(t.deadline); return d!==null&&d<=7; })
     .sort((a,b)=>(a.deadline||'').localeCompare(b.deadline||''));
-  const laatste=BBInv.getBerichten(p.id).filter(b=>b.soort!=='verslag').slice(-3).reverse();
+  const laatste=BBInv.getBerichten(p.id).filter(isChat).slice(-3).reverse();
   const dg=dagenTot(p.deadline);
   const nu=vandaag();
   const komend=agendaItems().filter(it=>(it.datum||'')>=nu).slice(0,4);
@@ -1088,12 +1107,397 @@ async function bewaarVerslag(){
   sluitVerslagVenster(); renderVerslagen();
 }
 
+// ---- Ideeën ----
+// Ideeën, materiaal, draaiboek en de evaluatie delen dezelfde opslag als de berichten;
+// het veld 'soort' houdt ze uit elkaar. Zo is er geen extra tabel in de database nodig.
+function itemsVan(soort){
+  const p=project(); if(!p) return [];
+  return BBInv.getBerichten(p.id).filter(b=>b.soort===soort);
+}
+function renderIdeeen(){
+  const p=project(); if(!p) return;
+  $('ideeVan').textContent='Van: '+(currentUserName()||'niet ingelogd');
+  const box=$('ideeLijst'); box.innerHTML='';
+  const lijst=itemsVan('idee').slice().reverse(); // nieuwste bovenaan
+  if(!lijst.length){
+    box.innerHTML='<div class="leeg">Nog geen ideeën. Gooi er hierboven eentje in — het hoeft nog niet doordacht te zijn.</div>';
+    return;
+  }
+  const mij=currentUserName();
+  lijst.forEach(b=>{
+    const d=b.data||{};
+    const opBord=d.taakId && taken().some(t=>t.id===d.taakId);
+    const el=document.createElement('div');
+    el.className='idee'+(opBord?' om':'');
+    el.innerHTML='<div class="tx">'+esc(b.tekst||'')+
+      '<div class="sub">'+esc(b.auteur||'?')+' · '+tijdKort(b.ts)+(opBord?' · staat op het bord':'')+'</div></div>'+
+      '<button class="btn mini">'+(opBord?'Openen':'→ maak taak')+'</button>'+
+      '<button class="btn mini clear">🗑</button>';
+    const [actie,del]=el.querySelectorAll('button');
+    actie.onclick=()=>{
+      if(opBord){ toonTab('bord'); setTimeout(()=>openTaak(d.taakId),60); return; }
+      if(!eisWerken()) return;
+      const t=BBInv.addTaak({projectId:p.id,kolom:kolommen(p)[0],titel:b.tekst,door:currentUserName()});
+      BBInv.updateBericht(b.id,{data:Object.assign({},d,{taakId:t.id})});
+      renderIdeeen();
+    };
+    del.onclick=async()=>{
+      if(b.auteur!==mij && !magBeheren('om een idee van iemand anders te verwijderen')) return;
+      const ja=await vraagBevestiging({titel:'Idee verwijderen?',tekst:'"'+(b.tekst||'').slice(0,90)+'"',okTekst:'Verwijderen',gevaar:true});
+      if(!ja) return;
+      BBInv.removeBericht(b.id); renderIdeeen();
+    };
+    box.appendChild(el);
+  });
+}
+function plaatsIdee(){
+  const p=project(); if(!p) return;
+  const t=$('ideeTekst').value.trim();
+  if(!t){ $('ideeTekst').focus(); return; }
+  const mij=currentUserName();
+  if(!mij){ meld('Niet ingelogd','Log eerst in via de startpagina.'); return; }
+  BBInv.addBericht({projectId:p.id,soort:'idee',auteur:mij,tekst:t,data:{taakId:''}});
+  $('ideeTekst').value=''; renderIdeeen();
+}
+
+// ---- Materiaal ----
+const MAT_STATUS=[
+  {key:'Nodig',klasse:'nodig'},
+  {key:'Besteld',klasse:'besteld'},
+  {key:'In huis',klasse:'inhuis'},
+  {key:'Geregeld',klasse:'geregeld'}
+];
+function matKlasse(s){ const x=MAT_STATUS.find(m=>m.key===s); return x?x.klasse:'nodig'; }
+// Voorraad uit de bestaande inventaris, als de lijn aan een artikel gekoppeld is.
+function voorraadVan(prijsId){
+  if(!prijsId||!window.BBInv||!BBInv.getPrijzen) return null;
+  const pr=BBInv.getPrijzen().find(x=>x.id===prijsId);
+  return pr?pr:null;
+}
+function renderMateriaal(){
+  const p=project(); if(!p) return;
+  const alle=itemsVan('materiaal');
+  const q=matZoek.trim().toLowerCase();
+
+  // Samenvatting bovenaan
+  const som=$('matSom'); som.innerHTML='';
+  MAT_STATUS.forEach(s=>{
+    const n=alle.filter(b=>((b.data||{}).status||'Nodig')===s.key).length;
+    if(!n) return;
+    som.innerHTML+='<span class="pill">'+n+' '+esc(s.key.toLowerCase())+'</span>';
+  });
+  if(!alle.length) som.innerHTML='';
+
+  const fil=$('matFilter'); fil.innerHTML='';
+  const chip=(naam,waarde)=>{
+    const b=document.createElement('button');
+    b.className='chip'+(matFilter===waarde?' active':'');
+    b.textContent=naam;
+    b.onclick=()=>{ matFilter=waarde; renderMateriaal(); };
+    fil.appendChild(b);
+  };
+  chip('Alles','');
+  MAT_STATUS.forEach(s=>chip(s.key,s.key));
+
+  let lijst=alle;
+  if(matFilter) lijst=lijst.filter(b=>((b.data||{}).status||'Nodig')===matFilter);
+  if(q) lijst=lijst.filter(b=>((b.tekst||'')+' '+((b.data||{}).opmerking||'')).toLowerCase().indexOf(q)>=0);
+
+  const box=$('matLijst'); box.innerHTML='';
+  if(!lijst.length){
+    box.innerHTML='<div class="leeg">'+(alle.length?'Niets gevonden met deze filter.'
+      :'Nog niets op de lijst. Zet hier wat je nodig hebt voor dit project.')+'</div>';
+    return;
+  }
+  lijst.forEach(b=>{
+    const d=b.data||{};
+    const status=d.status||'Nodig';
+    const pr=voorraadVan(d.prijsId);
+    const aantal=+d.aantal||0;
+    const krap=pr && aantal && (pr.stock||0)<aantal;
+    const el=document.createElement('div'); el.className='docrij';
+    el.innerHTML='<div class="ico">'+(pr?'📦':'🧰')+'</div>'+
+      '<div class="wat"><b>'+esc(b.tekst||'')+(aantal?(' <span class="sub">× '+aantal+(d.eenheid?' '+esc(d.eenheid):'')+'</span>'):'')+'</b>'+
+        '<div class="sub">'+
+          (pr?('voorraad in de inventaris: '+(pr.stock||0)+(krap?' <span class="matkrap">— te weinig</span>':'')):'niet gekoppeld aan de inventaris')+
+          (d.opmerking?' · '+esc(d.opmerking):'')+
+        '</div></div>'+
+      '<button class="matstatus '+matKlasse(status)+'" title="Status wijzigen">'+esc(status)+'</button>'+
+      '<button class="btn mini" title="Bewerken">✎</button>';
+    const [statusBtn,bewerkBtn]=el.querySelectorAll('button');
+    statusBtn.onclick=()=>{
+      if(!eisWerken()) return;
+      toonMenu(statusBtn,'Status',MAT_STATUS.map(s=>({tekst:(s.key===status?'✓ ':'')+s.key,fn:()=>{
+        BBInv.updateBericht(b.id,{data:Object.assign({},d,{status:s.key})}); renderMateriaal();
+      }})));
+    };
+    bewerkBtn.onclick=()=>openMateriaalVenster(b.id);
+    box.appendChild(el);
+  });
+}
+function openMateriaalVenster(id){
+  const p=project(); if(!p) return;
+  const b=id?itemsVan('materiaal').find(x=>x.id===id):null;
+  matOpen=id||null;
+  const d=(b&&b.data)||{};
+  matConcept = b ? {naam:b.tekst||'',aantal:d.aantal||1,eenheid:d.eenheid||'',status:d.status||'Nodig',
+                    prijsId:d.prijsId||'',opmerking:d.opmerking||''}
+                 : {naam:'',aantal:1,eenheid:'',status:'Nodig',prijsId:'',opmerking:''};
+  $('matKop').textContent = b?'Materiaal bewerken':'Materiaal toevoegen';
+  $('matNaam').value=matConcept.naam; $('matAantal').value=matConcept.aantal;
+  $('matEenheid').value=matConcept.eenheid; $('matOpm').value=matConcept.opmerking;
+  $('matDel').style.display = b?'':'none';
+  // Keuzelijst met alle artikelen uit de inventaris
+  const dl=$('matInvList'); dl.innerHTML='';
+  ((window.BBInv&&BBInv.getPrijzen)?BBInv.getPrijzen():[]).forEach(pr=>{
+    const o=document.createElement('option'); o.value=pr.naam; dl.appendChild(o);
+  });
+  renderMatStatus(); toonMatVoorraad();
+  $('matModal').classList.add('open');
+  setTimeout(()=>$('matNaam').focus(),50);
+}
+function sluitMateriaalVenster(){ $('matModal').classList.remove('open'); matOpen=null; matConcept=null; }
+function renderMatStatus(){
+  const box=$('matStatus'); box.innerHTML='';
+  MAT_STATUS.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='keuze'+(matConcept.status===s.key?' on':''); b.textContent=s.key;
+    b.onclick=()=>{ matConcept.status=s.key; renderMatStatus(); };
+    box.appendChild(b);
+  });
+}
+// Herkent de app de getypte naam uit de inventaris? Dan tonen we de voorraad en koppelen we.
+function toonMatVoorraad(){
+  const naam=$('matNaam').value.trim().toLowerCase();
+  const pr=((window.BBInv&&BBInv.getPrijzen)?BBInv.getPrijzen():[]).find(x=>(x.naam||'').toLowerCase()===naam);
+  matConcept.prijsId=pr?pr.id:'';
+  const el=$('matVoorraad');
+  el.textContent = pr ? ('✓ Gekoppeld aan de inventaris — voorraad nu: '+(pr.stock||0))
+                      : (naam?'Niet in de inventaris gevonden; dat mag, het blijft gewoon een eigen lijn.':'');
+}
+async function bewaarMateriaal(){
+  if(!eisWerken()) return;
+  const p=project(); if(!p) return;
+  matConcept.naam=$('matNaam').value.trim();
+  matConcept.aantal=Math.max(0,parseInt($('matAantal').value,10)||0);
+  matConcept.eenheid=$('matEenheid').value.trim();
+  matConcept.opmerking=$('matOpm').value.trim();
+  toonMatVoorraad();
+  if(!matConcept.naam){ await meld('Naam ontbreekt','Vul in wat je nodig hebt.'); $('matNaam').focus(); return; }
+  const data={aantal:matConcept.aantal,eenheid:matConcept.eenheid,status:matConcept.status,
+    prijsId:matConcept.prijsId,opmerking:matConcept.opmerking};
+  if(matOpen) BBInv.updateBericht(matOpen,{tekst:matConcept.naam,data:data});
+  else BBInv.addBericht({projectId:p.id,soort:'materiaal',auteur:currentUserName(),tekst:matConcept.naam,data:data});
+  sluitMateriaalVenster(); renderMateriaal();
+}
+
+// ---- Draaiboek ----
+function draaiboekItems(){
+  return itemsVan('draaiboek').slice().sort((a,b)=>{
+    const da=(a.data||{}), db2=(b.data||{});
+    return (da.datum||'').localeCompare(db2.datum||'')||(da.van||'').localeCompare(db2.van||'');
+  });
+}
+function langeDatum(iso){
+  if(!iso) return 'Zonder datum';
+  const d=new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  const dag=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][d.getDay()];
+  return dag+' '+d.getDate()+' '+MAANDEN[d.getMonth()];
+}
+function renderDraaiboek(){
+  const p=project(); if(!p) return;
+  const box=$('dbLijst'); box.innerHTML='';
+  const lijst=draaiboekItems();
+  if(!lijst.length){
+    box.innerHTML='<div class="leeg">Nog geen draaiboek. Voeg de eerste regel toe — bijvoorbeeld het uur waarop de opbouw start.</div>';
+    return;
+  }
+  const perDag={};
+  lijst.forEach(b=>{ const dag=(b.data||{}).datum||''; (perDag[dag]=perDag[dag]||[]).push(b); });
+  Object.keys(perDag).sort().forEach(dag=>{
+    const groep=document.createElement('div'); groep.className='dbdag';
+    groep.innerHTML='<div class="dbdagkop">'+esc(langeDatum(dag))+
+      '<span class="telling">'+perDag[dag].length+' regel'+(perDag[dag].length===1?'':'s')+'</span></div>';
+    perDag[dag].forEach(b=>{
+      const d=b.data||{};
+      const el=document.createElement('div'); el.className='dbrij';
+      const extra=[];
+      if(d.plaats) extra.push('📍 '+d.plaats);
+      if(d.wie&&d.wie.length) extra.push('👤 '+d.wie.join(', '));
+      if(d.opmerking) extra.push(d.opmerking);
+      el.innerHTML='<div class="tijd">'+esc(d.van||'—')+(d.tot?('–'+esc(d.tot)):'')+'</div>'+
+        '<div class="wat"><b>'+esc(b.tekst||'')+'</b>'+
+          (extra.length?'<div class="sub">'+esc(extra.join(' · '))+'</div>':'')+'</div>'+
+        '<button class="btn mini">✎</button>';
+      el.querySelector('button').onclick=()=>openDraaiboekVenster(b.id);
+      groep.appendChild(el);
+    });
+    box.appendChild(groep);
+  });
+}
+function openDraaiboekVenster(id){
+  const p=project(); if(!p) return;
+  const b=id?draaiboekItems().find(x=>x.id===id):null;
+  dbOpen=id||null;
+  const d=(b&&b.data)||{};
+  const laatste=draaiboekItems().slice(-1)[0];
+  dbConcept = b ? {wat:b.tekst||'',datum:d.datum||'',van:d.van||'',tot:d.tot||'',plaats:d.plaats||'',
+                   wie:(d.wie||[]).slice(),opmerking:d.opmerking||''}
+                : {wat:'',datum:(laatste&&(laatste.data||{}).datum)||p.deadline||vandaag(),
+                   van:'',tot:'',plaats:'',wie:[],opmerking:''};
+  $('dbKop').textContent = b?'Regel bewerken':'Regel toevoegen';
+  $('dbWat').value=dbConcept.wat; $('dbDatum').value=dbConcept.datum;
+  $('dbVan').value=dbConcept.van; $('dbTot').value=dbConcept.tot;
+  $('dbPlaats').value=dbConcept.plaats; $('dbOpm').value=dbConcept.opmerking;
+  $('dbDel').style.display = b?'':'none';
+  renderDbWie();
+  $('dbModal').classList.add('open');
+  setTimeout(()=>$('dbVan').focus(),50);
+}
+function sluitDraaiboekVenster(){ $('dbModal').classList.remove('open'); dbOpen=null; dbConcept=null; }
+function renderDbWie(){
+  const box=$('dbWie'); box.innerHTML='';
+  const users=gebruikers();
+  if(!users.length){ box.innerHTML='<span style="color:var(--muted);font-size:13px">Nog geen collega\'s in de namenlijst.</span>'; return; }
+  users.forEach(u=>{
+    const aan=dbConcept.wie.indexOf(u.naam)>=0;
+    const b=document.createElement('button');
+    b.className='keuze'+(aan?' on':'');
+    b.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+esc(u.naam);
+    b.onclick=()=>{ const i=dbConcept.wie.indexOf(u.naam); if(i>=0) dbConcept.wie.splice(i,1); else dbConcept.wie.push(u.naam); renderDbWie(); };
+    box.appendChild(b);
+  });
+}
+async function bewaarDraaiboek(){
+  if(!eisWerken()) return;
+  const p=project(); if(!p) return;
+  dbConcept.wat=$('dbWat').value.trim();
+  dbConcept.datum=$('dbDatum').value||'';
+  dbConcept.van=$('dbVan').value||''; dbConcept.tot=$('dbTot').value||'';
+  dbConcept.plaats=$('dbPlaats').value.trim(); dbConcept.opmerking=$('dbOpm').value.trim();
+  if(!dbConcept.wat){ await meld('Nog niets ingevuld','Vul in wat er op dat moment gebeurt.'); $('dbWat').focus(); return; }
+  const data={datum:dbConcept.datum,van:dbConcept.van,tot:dbConcept.tot,plaats:dbConcept.plaats,
+    wie:dbConcept.wie,opmerking:dbConcept.opmerking};
+  if(dbOpen) BBInv.updateBericht(dbOpen,{tekst:dbConcept.wat,data:data});
+  else BBInv.addBericht({projectId:p.id,soort:'draaiboek',auteur:currentUserName(),tekst:dbConcept.wat,data:data});
+  sluitDraaiboekVenster(); renderDraaiboek();
+}
+function printDraaiboek(){
+  const p=project(); if(!p) return;
+  const lijst=draaiboekItems();
+  if(!lijst.length){ meld('Niets af te drukken','Het draaiboek is nog leeg.'); return; }
+  const perDag={};
+  lijst.forEach(b=>{ const dag=(b.data||{}).datum||''; (perDag[dag]=perDag[dag]||[]).push(b); });
+  let body='<h1>'+esc(p.naam||'Project')+' — draaiboek</h1><div class="sub">Afgedrukt op '+dmy(vandaag())+'</div>';
+  Object.keys(perDag).sort().forEach(dag=>{
+    body+='<h2>'+esc(langeDatum(dag))+'</h2><table><tr><th>Tijd</th><th>Wat</th><th>Waar</th><th>Wie</th><th>Opmerking</th></tr>';
+    perDag[dag].forEach(b=>{
+      const d=b.data||{};
+      body+='<tr><td>'+esc((d.van||'')+(d.tot?'–'+d.tot:''))+'</td><td>'+esc(b.tekst||'')+'</td>'+
+        '<td>'+esc(d.plaats||'')+'</td><td>'+esc((d.wie||[]).join(', '))+'</td><td>'+esc(d.opmerking||'')+'</td></tr>';
+    });
+    body+='</table>';
+  });
+  const css='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:22px;}h1{font-size:20px;margin:0 0 4px;}'+
+    'h2{font-size:15px;margin:20px 0 6px;}.sub{color:#666;font-size:12px;}table{border-collapse:collapse;width:100%;font-size:12.5px;}'+
+    'th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top;}th{background:#f2f4fa;}';
+  const w=window.open('','_blank');
+  if(!w){ meld('Afdrukken lukt niet','Het afdrukvenster werd geblokkeerd. Sta pop-ups toe voor deze pagina.'); return; }
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Draaiboek</title><style>'+css+'</style></head><body>'+body+'</body></html>');
+  w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} },350);
+}
+
+// ---- Evaluatie ----
+function evaluatieVan(){ return itemsVan('evaluatie')[0]||null; }
+function renderEvaluatie(){
+  const p=project(); if(!p) return;
+  const ev=evaluatieVan();
+  const d=(ev&&ev.data)||{};
+  evScore=+d.score||0;
+  $('evGoed').value=d.goed||'';
+  $('evMinder').value=d.minder||'';
+  $('evOnthouden').value=d.onthouden||'';
+  $('evMeta').innerHTML = ev?('Laatst bijgewerkt door '+esc(ev.auteur||'?')+' op '+tijdKort(ev.ts)):'Nog niet ingevuld.';
+  renderEvSterren();
+}
+function renderEvSterren(){
+  const box=$('evScore'); box.innerHTML='';
+  for(let i=1;i<=5;i++){
+    const b=document.createElement('button');
+    b.className=(i<=evScore?'aan':''); b.textContent='⭐'; b.title=i+' van 5';
+    b.onclick=()=>{ evScore=(evScore===i?0:i); renderEvSterren(); };
+    box.appendChild(b);
+  }
+}
+function bewaarEvaluatie(){
+  if(!eisWerken()) return;
+  const p=project(); if(!p) return;
+  const data={score:evScore,goed:$('evGoed').value.trim(),minder:$('evMinder').value.trim(),
+    onthouden:$('evOnthouden').value.trim()};
+  const ev=evaluatieVan();
+  if(ev) BBInv.updateBericht(ev.id,{tekst:'Evaluatie',data:data,auteur:currentUserName(),ts:Date.now()});
+  else BBInv.addBericht({projectId:p.id,soort:'evaluatie',auteur:currentUserName(),tekst:'Evaluatie',data:data});
+  renderEvaluatie();
+  meld('Bewaard','De evaluatie is opgeslagen en zichtbaar voor het hele team.');
+}
+// Het project kopiëren als startpunt voor een volgende editie: dezelfde kolommen, taken,
+// materiaallijst en draaiboek — maar schoon, zonder afgevinkte taken of oude datums.
+async function kopieerProject(){
+  const p=project(); if(!p) return;
+  if(!magProjectMaken(true)) return;
+  const naam=await vraagTekst({titel:'Project kopiëren',label:'Naam van het nieuwe project',
+    waarde:volgendeNaam(p.naam||''),okTekst:'Kopiëren'});
+  if(naam===null) return;
+  const nieuweNaam=naam.trim(); if(!nieuweNaam) return;
+  const ja=await vraagBevestiging({titel:'Wat gaat er mee?',
+    tekst:'De kolommen, alle taken (niet afgevinkt en zonder deadline), de materiaallijst (alles terug op "Nodig") en het draaiboek (met de uren, zonder datum). '+
+          'Berichten, verslagen, documenten en de agenda blijven bij het oude project.',
+    okTekst:'Kopie maken'});
+  if(!ja) return;
+
+  const nieuw=BBInv.addProject({naam:nieuweNaam,doel:p.doel,status:'Idee',kleur:p.kleur,
+    verantwoordelijke:p.verantwoordelijke,kolommen:kolommen(p).slice()});
+  taken().forEach(t=>{
+    BBInv.addTaak({projectId:nieuw.id,kolom:isKlaarKolom(t.kolom)?kolommen(p)[0]:t.kolom,titel:t.titel,
+      omschrijving:t.omschrijving,wie:(t.wie||[]).slice(),deadline:'',labels:(t.labels||[]).slice(),
+      subtaken:(t.subtaken||[]).map(s=>({text:s.text,done:false})),door:currentUserName()});
+  });
+  itemsVan('materiaal').forEach(b=>{
+    const d=b.data||{};
+    BBInv.addBericht({projectId:nieuw.id,soort:'materiaal',auteur:currentUserName(),tekst:b.tekst,
+      data:{aantal:d.aantal,eenheid:d.eenheid,status:'Nodig',prijsId:d.prijsId,opmerking:d.opmerking}});
+  });
+  itemsVan('draaiboek').forEach(b=>{
+    const d=b.data||{};
+    BBInv.addBericht({projectId:nieuw.id,soort:'draaiboek',auteur:currentUserName(),tekst:b.tekst,
+      data:{datum:'',van:d.van,tot:d.tot,plaats:d.plaats,wie:(d.wie||[]).slice(),opmerking:d.opmerking}});
+  });
+  // De lessen uit de evaluatie meenemen als eerste bericht in het nieuwe project.
+  const ev=evaluatieVan();
+  if(ev&&ev.data&&(ev.data.onthouden||ev.data.minder)){
+    BBInv.addBericht({projectId:nieuw.id,auteur:currentUserName(),
+      tekst:'Uit de evaluatie van "'+(p.naam||'')+'":\n'+
+        (ev.data.onthouden?('Onthouden: '+ev.data.onthouden+'\n'):'')+
+        (ev.data.minder?('Kon beter: '+ev.data.minder):'')});
+  }
+  openProject(nieuw.id);
+}
+// "Halloween 2026" → "Halloween 2027"; anders gewoon "(kopie)" erachter.
+function volgendeNaam(naam){
+  const m=String(naam).match(/^(.*?)(\d{4})(\D*)$/);
+  if(m) return m[1]+(parseInt(m[2],10)+1)+m[3];
+  return naam+' (kopie)';
+}
+
 // ---- Bespreking ----
 function renderBespreking(){
   const p=project(); if(!p) return;
   const lijst=$('chatLijst'); lijst.innerHTML='';
   const mij=currentUserName();
-  const berichten=BBInv.getBerichten(p.id).filter(b=>b.soort!=='verslag'); // verslagen staan in hun eigen tabblad
+  const berichten=BBInv.getBerichten(p.id).filter(isChat); // enkel echte chatberichten
   $('chatVan').textContent='Van: '+(mij||'niet ingelogd');
   if(!berichten.length){
     lijst.innerHTML='<div class="leeg">Nog geen berichten. Schrijf hieronder het eerste.</div>';
@@ -1259,6 +1663,41 @@ $('pmAnnuleer').onclick=sluitProjectVenster;
 $('pmBewaar').onclick=bewaarProject;
 $('chatPlaats').onclick=plaatsBericht;
 $('chatTekst').onkeydown=e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) plaatsBericht(); };
+// ---- ideeën ----
+$('ideePlaats').onclick=plaatsIdee;
+$('ideeTekst').onkeydown=e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) plaatsIdee(); };
+
+// ---- materiaal ----
+$('matNieuw').onclick=()=>{ if(eisWerken()) openMateriaalVenster(null); };
+$('matZoek').oninput=e=>{ matZoek=e.target.value; renderMateriaal(); };
+$('matNaam').oninput=toonMatVoorraad;
+$('matAnnuleer').onclick=sluitMateriaalVenster;
+$('matBewaar').onclick=bewaarMateriaal;
+$('matDel').onclick=async()=>{
+  if(!matOpen||!eisWerken()) return;
+  const ja=await vraagBevestiging({titel:'Van de lijst halen?',tekst:$('matNaam').value,okTekst:'Verwijderen',gevaar:true});
+  if(!ja) return;
+  BBInv.removeBericht(matOpen); sluitMateriaalVenster(); renderMateriaal();
+};
+$('matModal').onclick=e=>{ if(e.target===$('matModal')) sluitMateriaalVenster(); };
+
+// ---- draaiboek ----
+$('dbNieuw').onclick=()=>{ if(eisWerken()) openDraaiboekVenster(null); };
+$('dbPrint').onclick=printDraaiboek;
+$('dbAnnuleer').onclick=sluitDraaiboekVenster;
+$('dbBewaar').onclick=bewaarDraaiboek;
+$('dbDel').onclick=async()=>{
+  if(!dbOpen||!eisWerken()) return;
+  const ja=await vraagBevestiging({titel:'Regel verwijderen?',tekst:$('dbWat').value,okTekst:'Verwijderen',gevaar:true});
+  if(!ja) return;
+  BBInv.removeBericht(dbOpen); sluitDraaiboekVenster(); renderDraaiboek();
+};
+$('dbModal').onclick=e=>{ if(e.target===$('dbModal')) sluitDraaiboekVenster(); };
+
+// ---- evaluatie ----
+$('evBewaar').onclick=bewaarEvaluatie;
+$('evKopie').onclick=kopieerProject;
+
 // ---- agenda ----
 $('agVorige').onclick=()=>{ agMaandNr--; if(agMaandNr<0){agMaandNr=11;agJaar--;} agGekozen=''; renderAgenda(); };
 $('agVolgende').onclick=()=>{ agMaandNr++; if(agMaandNr>11){agMaandNr=0;agJaar++;} agGekozen=''; renderAgenda(); };
@@ -1317,6 +1756,8 @@ document.addEventListener('keydown',e=>{
   else if($('projModal').classList.contains('open')) sluitProjectVenster();
   else if($('agModal').classList.contains('open')) sluitAgendaVenster();
   else if($('vsModal').classList.contains('open')) sluitVerslagVenster();
+  else if($('matModal').classList.contains('open')) sluitMateriaalVenster();
+  else if($('dbModal').classList.contains('open')) sluitDraaiboekVenster();
 });
 // buiten het venster tikken = sluiten
 $('taakModal').onclick=e=>{ if(e.target===$('taakModal')) sluitTaak(); };
@@ -1343,7 +1784,7 @@ function updateSync(){
   }else if(window.BBInv&&BBInv.isReady&&BBInv.isReady()){
     deel.innerHTML='⚠ Nog niet alles gedeeld: '+(kern?'de tabellen voor agenda en documenten':'de projecttabellen')+
       ' ontbreken nog in de database. Alles werkt, maar enkel op dit toestel. '+
-      'Voer <b>projecten-supabase.sql</b> (opnieuw) uit in Supabase.';
+      'Voer <b>docs/projecten-supabase.sql</b> (opnieuw) uit in Supabase.';
   }else deel.textContent='';
 }
 function herteken(){
@@ -1355,6 +1796,7 @@ function herteken(){
   if($('taakModal').classList.contains('open')||$('projModal').classList.contains('open')) return;
   if($('dlgModal').classList.contains('open')||$('popMenu').classList.contains('open')) return;
   if($('agModal').classList.contains('open')||$('vsModal').classList.contains('open')) return;
+  if($('matModal').classList.contains('open')||$('dbModal').classList.contains('open')) return;
   if(huidigProject) renderProject(); else renderLijst();
 }
 // Niet ingelogd? Dan eerst langs de startpagina, want daar staat het inlogscherm.

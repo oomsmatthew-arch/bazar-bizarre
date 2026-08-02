@@ -24,6 +24,47 @@
   const K_PROJBERICHTEN_BACKUP='bb_projectberichten';
   const K_PROJAGENDA_BACKUP='bb_projectagenda';
   const K_PROJDOCS_BACKUP='bb_projectdocs';
+  // Projectgegevens die op dit toestel zijn gemaakt terwijl de gedeelde tabel er niet was
+  // (of terwijl er geen internet was). We onthouden de id's, zodat ze later alsnog vertrekken
+  // en er niets op één tablet blijft hangen. Wat een collega verwijdert staat hier niet in
+  // en komt dus ook niet terug.
+  const K_PROJ_WACHT='bb_proj_wacht';
+  let projWacht={}; try{projWacht=JSON.parse(localStorage.getItem(K_PROJ_WACHT)||'{}')||{};}catch(e){projWacht={};}
+  function bewaarWacht(){ try{localStorage.setItem(K_PROJ_WACHT,JSON.stringify(projWacht));}catch(e){} }
+  function wachtErbij(tabel,id){
+    if(!id) return;
+    const l=projWacht[tabel]||(projWacht[tabel]=[]);
+    if(l.indexOf(id)<0){ l.push(id); bewaarWacht(); }
+  }
+  function wachtWeg(tabel,ids){
+    if(!projWacht[tabel]) return;
+    projWacht[tabel]=projWacht[tabel].filter(id=>ids.indexOf(id)<0);
+    if(!projWacht[tabel].length) delete projWacht[tabel];
+    bewaarWacht();
+  }
+  // De lokale stand van vóór het synchroniseren; loadShared overschrijft de reservekopie,
+  // dus nemen we bij het opstarten eerst een kopie.
+  let lokaalVoorSync={};
+  const PROJ_TABELLEN=[['projecten',K_PROJECTEN_BACKUP],['projecttaken',K_PROJTAKEN_BACKUP],
+    ['projectberichten',K_PROJBERICHTEN_BACKUP],['projectagenda',K_PROJAGENDA_BACKUP],
+    ['projectdocs',K_PROJDOCS_BACKUP]];
+  function bewaarLokaleProjectstand(){
+    PROJ_TABELLEN.forEach(paar=>{
+      try{ const r=localStorage.getItem(paar[1]); lokaalVoorSync[paar[0]]=r?(JSON.parse(r)||[]):[]; }
+      catch(e){ lokaalVoorSync[paar[0]]=[]; }
+    });
+  }
+  // Eenmalig bij de overstap naar deze versie: alles wat al op dit toestel staat markeren
+  // als "moet nog vertrekken". Projecten die gemaakt zijn vóór deze boekhouding bestond,
+  // zouden anders voorgoed op dat ene toestel blijven staan.
+  const K_WACHT_INIT='bb_proj_wacht_init';
+  function eenmaligWachtVullen(){
+    if(localStorage.getItem(K_WACHT_INIT)==='1') return;
+    PROJ_TABELLEN.forEach(paar=>{
+      (lokaalVoorSync[paar[0]]||[]).forEach(x=>{ if(x&&x.id) wachtErbij(paar[0],x.id); });
+    });
+    localStorage.setItem(K_WACHT_INIT,'1');
+  }
   const K_CACHE='bb_cache_v1';
   const K_OUTBOX='bb_outbox';
 
@@ -232,6 +273,8 @@
 
   // ---------------- INIT ----------------
   async function init(){
+    bewaarLokaleProjectstand(); // eerst vastleggen wat er lokaal staat, vóór het synchroniseren
+    eenmaligWachtVullen();      // bestaande projecten van vóór deze versie alsnog laten vertrekken
     if(!window.supabase){
       // Bibliotheek niet geladen (zeldzaam, bv. offline vóór ze ooit gecacht is):
       // toch de laatst bewaarde gegevens tonen zodat lezen én inloggen offline werken.
@@ -268,6 +311,30 @@
     }
     localStorage.setItem(FLAG,'1');
   }
+  // Projecten inhalen: alles wat op dit toestel is aangemaakt terwijl de gedeelde tabel
+  // er nog niet was (of terwijl er geen internet was) alsnog naar de database sturen.
+  // We vergelijken op id: wat de database al kent laten we met rust, de rest gaat mee.
+  // Anders dan bij de oude lijsten gebruiken we hier géén eenmalige vlag — die zorgde
+  // ervoor dat later lokaal aangemaakte projecten voorgoed op één toestel bleven staan.
+  async function seedProjectTable(table,toRowFn,cacheKey,backupKey,okGetter){
+    if(!okGetter()) return;
+    const wacht=(projWacht[table]||[]).slice();
+    if(!wacht.length) return;
+    // Wat nog moet vertrekken, halen we uit de stand van vóór het synchroniseren.
+    const lokaal=lokaalVoorSync[cacheKey]||[];
+    const teSturen=lokaal.filter(x=>x&&x.id&&wacht.indexOf(x.id)>=0);
+    if(!teSturen.length){ wachtWeg(table,wacht); return; } // lokaal alweer verwijderd → niets te doen
+    for(let i=0;i<teSturen.length;i+=40){
+      const r=await sb.from(table).upsert(teSturen.slice(i,i+40).map(toRowFn));
+      err(r);
+      if(r&&r.error) return; // mislukt → id's blijven wachten, we proberen het later opnieuw
+    }
+    const bekend={}; cache[cacheKey].forEach(x=>{ if(x&&x.id) bekend[x.id]=true; });
+    cache[cacheKey]=cache[cacheKey].concat(teSturen.filter(x=>!bekend[x.id]));
+    saveBackup(cacheKey,backupKey);
+    wachtWeg(table,wacht);
+    console.log('Projecten: '+teSturen.length+' rij(en) uit "'+table+'" alsnog gedeeld.');
+  }
   function defaultChecklist(){
     const items=['Boekjes geteld en klaar','Super Deals op het rek','Trolley Tunes muziek klaar','How Much? potten + weegschaal klaar','Crazy Coins munten klaar','Finalevragen voorbereid','Micro getest','Geluid/muziek getest','Prijzentafel klaar','Controleblad bij de hand'].map(t=>({text:t,done:false}));
     return {id:uid(),naam:'Pre-spel checklist',items,pos:0,ts:Date.now()};
@@ -277,11 +344,11 @@
     await migrateListToShared('checklisten',checklistToRow,'checklisten',K_CHECKLISTEN_BACKUP,()=>checklistenOK);
     await migrateListToShared('logboek',logToRow,'logboek',K_LOGBOEK_BACKUP,()=>logboekOK);
     await migrateListToShared('gebruikers',gebrToRow,'gebruikers',K_GEBRUIKERS_BACKUP,()=>gebruikersOK);
-    await migrateListToShared('projecten',projectToRow,'projecten',K_PROJECTEN_BACKUP,()=>projectenOK);
-    await migrateListToShared('projecttaken',taakToRow,'projecttaken',K_PROJTAKEN_BACKUP,()=>projecttakenOK);
-    await migrateListToShared('projectberichten',berichtToRow,'projectberichten',K_PROJBERICHTEN_BACKUP,()=>projectberichtenOK);
-    await migrateListToShared('projectagenda',agendaToRow,'projectagenda',K_PROJAGENDA_BACKUP,()=>projectagendaOK);
-    await migrateListToShared('projectdocs',docToRow,'projectdocs',K_PROJDOCS_BACKUP,()=>projectdocsOK);
+    await seedProjectTable('projecten',projectToRow,'projecten',K_PROJECTEN_BACKUP,()=>projectenOK);
+    await seedProjectTable('projecttaken',taakToRow,'projecttaken',K_PROJTAKEN_BACKUP,()=>projecttakenOK);
+    await seedProjectTable('projectberichten',berichtToRow,'projectberichten',K_PROJBERICHTEN_BACKUP,()=>projectberichtenOK);
+    await seedProjectTable('projectagenda',agendaToRow,'projectagenda',K_PROJAGENDA_BACKUP,()=>projectagendaOK);
+    await seedProjectTable('projectdocs',docToRow,'projectdocs',K_PROJDOCS_BACKUP,()=>projectdocsOK);
     if(checklistenOK && !cache.checklisten.length && localStorage.getItem('bb_sharedseed_checklisten_def')!=='1'){
       const def=defaultChecklist(); const r=await sb.from('checklisten').insert(checklistToRow(def)); err(r);
       cache.checklisten=[def]; saveBackup('checklisten',K_CHECKLISTEN_BACKUP);
@@ -546,6 +613,17 @@
   // (de kaarten op het bord) en 'projectberichten' (de bespreking). Bestaat een tabel
   // nog niet in Supabase, dan werkt alles gewoon lokaal op dit toestel verder.
   const STD_KOLOMMEN=['Te doen','Bezig','Wacht op','Klaar'];
+  // Schrijven naar een projecttabel. Bestaat de gedeelde tabel, dan gaat de wijziging via
+  // de wachtrij naar de database. Zo niet, dan onthouden we het id zodat de rij later
+  // alsnog vertrekt in plaats van op dit ene toestel te blijven staan.
+  function projSchrijf(tabel,gedeeld,rij,id){
+    if(gedeeld) dbUpsert(tabel,rij);
+    else { wachtErbij(tabel,id); persistCache(); }
+  }
+  function projWissen(tabel,gedeeld,id){
+    if(gedeeld) dbDelete(tabel,'id',id);
+    else { wachtWeg(tabel,[id]); persistCache(); }
+  }
   const getProjecten=()=>cache.projecten.slice().sort((a,b)=>(a.pos||0)-(b.pos||0)||(b.ts||0)-(a.ts||0));
   const getProject=id=>cache.projecten.find(p=>p.id===id)||null;
   function saveProjBackup(){ saveBackup('projecten',K_PROJECTEN_BACKUP); }
@@ -558,13 +636,13 @@
       verantwoordelijke:(p&&p.verantwoordelijke)||'',kolommen:(p&&p.kolommen&&p.kolommen.length)?p.kolommen.slice():STD_KOLOMMEN.slice(),
       pos:maxPos+1,archief:false,ts:Date.now()};
     cache.projecten.push(rec); saveProjBackup();
-    if(projectenOK) dbUpsert('projecten',projectToRow(rec)); else persistCache();
+    projSchrijf('projecten',projectenOK,projectToRow(rec),rec.id);
     logAct('Project aangemaakt: '+rec.naam); return rec;
   }
   function updateProject(id,patch){
     const r=cache.projecten.find(x=>x.id===id); if(!r) return null;
     Object.assign(r,patch); saveProjBackup();
-    if(projectenOK) dbUpsert('projecten',projectToRow(r)); else persistCache();
+    projSchrijf('projecten',projectenOK,projectToRow(r),r.id);
     let wat='aangepast';
     if(patch&&('archief' in patch)) wat=patch.archief?'gearchiveerd':'uit het archief gehaald';
     else if(patch&&('status' in patch)) wat='status → '+patch.status;
@@ -574,6 +652,12 @@
   // Een project verwijderen wist ook zijn taken en berichten (anders blijven die zweven).
   function removeProject(id){
     const p0=cache.projecten.find(p=>p.id===id);
+    // Wat van dit project nog stond te wachten om verstuurd te worden, hoeft niet meer.
+    wachtWeg('projecten',[id]);
+    wachtWeg('projecttaken',cache.projecttaken.filter(t=>t.projectId===id).map(t=>t.id));
+    wachtWeg('projectberichten',cache.projectberichten.filter(b=>b.projectId===id).map(b=>b.id));
+    wachtWeg('projectagenda',cache.projectagenda.filter(a=>a.projectId===id).map(a=>a.id));
+    wachtWeg('projectdocs',cache.projectdocs.filter(d=>d.projectId===id).map(d=>d.id));
     cache.projecten=cache.projecten.filter(p=>p.id!==id);
     cache.projecttaken=cache.projecttaken.filter(t=>t.projectId!==id);
     cache.projectberichten=cache.projectberichten.filter(b=>b.projectId!==id);
@@ -599,7 +683,7 @@
       wie:t.wie||[],deadline:t.deadline||'',labels:t.labels||[],subtaken:t.subtaken||[],
       pos:maxPos+1,klaar:false,klaarDoor:'',klaarTs:0,door:t.door||actor||'',ts:Date.now()};
     cache.projecttaken.push(rec); saveTaakBackup();
-    if(projecttakenOK) dbUpsert('projecttaken',taakToRow(rec)); else persistCache();
+    projSchrijf('projecttaken',projecttakenOK,taakToRow(rec),rec.id);
     logAct('Taak toegevoegd: '+rec.titel+projSuffix(rec.projectId)); return rec;
   }
   function updateTaak(id,patch,stil){
@@ -609,7 +693,7 @@
       else if(!patch.klaar && r.klaar){ r.klaarDoor=''; r.klaarTs=0; }
     }
     Object.assign(r,patch); saveTaakBackup();
-    if(projecttakenOK) dbUpsert('projecttaken',taakToRow(r)); else persistCache();
+    projSchrijf('projecttaken',projecttakenOK,taakToRow(r),r.id);
     if(!stil){
       let wat='aangepast';
       if(patch&&('klaar' in patch)) wat=patch.klaar?'afgevinkt':'heropend';
@@ -621,22 +705,21 @@
   function removeTaak(id){
     const t0=cache.projecttaken.find(t=>t.id===id);
     cache.projecttaken=cache.projecttaken.filter(t=>t.id!==id); saveTaakBackup();
-    if(projecttakenOK) dbDelete('projecttaken','id',id); else persistCache();
+    projWissen('projecttaken',projecttakenOK,id);
     logAct('Taak verwijderd'+(t0?': '+t0.titel+projSuffix(t0.projectId):''));
   }
   // Nieuwe volgorde binnen een kolom (array van taak-id's) na het slepen.
   function reorderTaken(ids,kolom){
     ids.forEach((id,idx)=>{ const r=cache.projecttaken.find(x=>x.id===id); if(r){ r.pos=idx; if(kolom) r.kolom=kolom; } });
     saveTaakBackup();
-    if(projecttakenOK){ ids.forEach(id=>{ const r=cache.projecttaken.find(x=>x.id===id); if(r) dbUpsert('projecttaken',taakToRow(r)); }); }
-    else persistCache();
+    ids.forEach(id=>{ const r=cache.projecttaken.find(x=>x.id===id); if(r) projSchrijf('projecttaken',projecttakenOK,taakToRow(r),r.id); });
   }
   // Een kolom hernoemen of verwijderen: de taken erin mee laten verhuizen.
   function verplaatsTaken(projectId,vanKolom,naarKolom){
     const lijst=cache.projecttaken.filter(t=>t.projectId===projectId&&t.kolom===vanKolom);
     if(!lijst.length) return;
     lijst.forEach(t=>{ t.kolom=naarKolom; }); saveTaakBackup();
-    if(projecttakenOK) lijst.forEach(t=>dbUpsert('projecttaken',taakToRow(t))); else persistCache();
+    lijst.forEach(t=>projSchrijf('projecttaken',projecttakenOK,taakToRow(t),t.id));
   }
   const getBerichten=projectId=>cache.projectberichten.filter(b=>!projectId||b.projectId===projectId)
     .slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
@@ -644,18 +727,18 @@
     const rec={id:uid(),projectId:b.projectId||'',soort:b.soort||'bericht',ts:Date.now(),
       auteur:b.auteur||actor||'',tekst:b.tekst||'',data:b.data||{}};
     cache.projectberichten.push(rec); saveBerBackup();
-    if(projectberichtenOK) dbUpsert('projectberichten',berichtToRow(rec)); else persistCache();
+    projSchrijf('projectberichten',projectberichtenOK,berichtToRow(rec),rec.id);
     logAct('Bericht geplaatst'+projSuffix(rec.projectId)); return rec;
   }
   function updateBericht(id,patch){
     const r=cache.projectberichten.find(b=>b.id===id); if(!r) return null;
     Object.assign(r,patch); saveBerBackup();
-    if(projectberichtenOK) dbUpsert('projectberichten',berichtToRow(r)); else persistCache();
+    projSchrijf('projectberichten',projectberichtenOK,berichtToRow(r),r.id);
     logAct((r.soort==='verslag'?'Verslag':'Bericht')+' aangepast'+projSuffix(r.projectId)); return r;
   }
   function removeBericht(id){
     cache.projectberichten=cache.projectberichten.filter(b=>b.id!==id); saveBerBackup();
-    if(projectberichtenOK) dbDelete('projectberichten','id',id); else persistCache();
+    projWissen('projectberichten',projectberichtenOK,id);
     logAct('Bericht verwijderd');
   }
   function projSuffix(projectId){ const p=getProject(projectId); return p?(' ('+p.naam+')'):''; }
@@ -669,19 +752,19 @@
       titel:a.titel||'',soort:a.soort||'afspraak',plaats:a.plaats||'',wie:a.wie||[],notitie:a.notitie||'',
       door:a.door||actor||'',ts:Date.now()};
     cache.projectagenda.push(rec); saveAgendaBackup();
-    if(projectagendaOK) dbUpsert('projectagenda',agendaToRow(rec)); else persistCache();
+    projSchrijf('projectagenda',projectagendaOK,agendaToRow(rec),rec.id);
     logAct('Agenda-item toegevoegd: '+rec.titel+projSuffix(rec.projectId)); return rec;
   }
   function updateAgenda(id,patch){
     const r=cache.projectagenda.find(x=>x.id===id); if(!r) return null;
     Object.assign(r,patch); saveAgendaBackup();
-    if(projectagendaOK) dbUpsert('projectagenda',agendaToRow(r)); else persistCache();
+    projSchrijf('projectagenda',projectagendaOK,agendaToRow(r),r.id);
     logAct('Agenda-item aangepast: '+(r.titel||'')+projSuffix(r.projectId)); return r;
   }
   function removeAgenda(id){
     const a0=cache.projectagenda.find(a=>a.id===id);
     cache.projectagenda=cache.projectagenda.filter(a=>a.id!==id); saveAgendaBackup();
-    if(projectagendaOK) dbDelete('projectagenda','id',id); else persistCache();
+    projWissen('projectagenda',projectagendaOK,id);
     logAct('Agenda-item verwijderd'+(a0?': '+a0.titel:''));
   }
 
@@ -697,19 +780,19 @@
     const rec={id:uid(),projectId:d.projectId||'',naam:d.naam||'',url:d.url||'',soort:d.soort||'Overig',
       bron:d.bron||'link',mime:d.mime||'',grootte:+d.grootte||0,taakId:d.taakId||'',door:d.door||actor||'',ts:Date.now()};
     cache.projectdocs.push(rec); saveDocsBackup();
-    if(projectdocsOK) dbUpsert('projectdocs',docToRow(rec)); else persistCache();
+    projSchrijf('projectdocs',projectdocsOK,docToRow(rec),rec.id);
     logAct('Document toegevoegd: '+rec.naam+projSuffix(rec.projectId)); return rec;
   }
   function updateDoc(id,patch){
     const r=cache.projectdocs.find(d=>d.id===id); if(!r) return null;
     Object.assign(r,patch); saveDocsBackup();
-    if(projectdocsOK) dbUpsert('projectdocs',docToRow(r)); else persistCache();
+    projSchrijf('projectdocs',projectdocsOK,docToRow(r),r.id);
     logAct('Document aangepast: '+(r.naam||'')+projSuffix(r.projectId)); return r;
   }
   function removeDoc(id){
     const d0=cache.projectdocs.find(d=>d.id===id);
     cache.projectdocs=cache.projectdocs.filter(d=>d.id!==id); saveDocsBackup();
-    if(projectdocsOK) dbDelete('projectdocs','id',id); else persistCache();
+    projWissen('projectdocs',projectdocsOK,id);
     logAct('Document verwijderd'+(d0?': '+d0.naam:''));
   }
 
