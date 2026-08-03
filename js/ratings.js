@@ -219,7 +219,7 @@ function reviewKaart(r){
 // ---- filter + reactielijst ----
 let _reviews=[];
 let _filter={zoek:'',datum:'',act:'',maand:'',score:'',taal:''};
-let _data=null; let _boekjaar=''; // gekozen boekjaar ('' = alle)
+let _data=null; let _boekjaar=''; let _boekjaarInit=false; // gekozen boekjaar ('' = alle); standaard het recentste
 // Thema-categorieën voor de activiteiten (afgeleid uit de naam) — voor de filterknopjes.
 // Een activiteit kan in meerdere thema's vallen (bv. "Orry & Vrienden Pieten Disco" = O&F én Sint).
 const ACT_CATS=[
@@ -244,7 +244,7 @@ const ACT_CANON=[
   {naam:'O&F: Pool Party', re:/(pool|paul)\s*party/i},
   {naam:'O&F: op taxibezoek', re:/taxi/i},
   {naam:'O&F: bij je cottage', re:/orry[^,]{0,30}(cottage|ferienhaus)/i},
-  {naam:'O&F: Voorleesverhaaltjes', re:/voorlees|bedtime|gute\s*nacht/i},
+  {naam:'O&F: Voorleesverhaaltjes', re:/voorlees|bedtime|gute\s*nacht|raconte|histoire/i},
   {naam:'O&F: verjaardagsfeest', re:/geburtstag|birthday|verjaardag/i},
   {naam:'O&F: Meet & Greet', re:/orry[^,]{0,25}meet\s*&\s*greet/i},
   {naam:'O&F: Show', re:/orry[^,]{0,25}:\s*show\s*$/i},
@@ -330,6 +330,7 @@ function render(data){
   _data=data;
   const bron=data.reviews;
   const bj=Array.from(new Set(bron.map(r=>boekjaarKey(r.datum)).filter(Boolean))).sort().reverse();
+  if(!_boekjaarInit && bj.length){ _boekjaar=bj[0]; _boekjaarInit=true; } // standaard het recentste boekjaar
   if(_boekjaar && bj.indexOf(_boekjaar)<0) _boekjaar='';
   const reviews = _boekjaar ? bron.filter(r=>boekjaarKey(r.datum)===_boekjaar) : bron;
   _reviews=reviews;
