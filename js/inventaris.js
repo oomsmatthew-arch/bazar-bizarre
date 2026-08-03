@@ -271,6 +271,69 @@
   const docToRow=d=>({id:d.id,project_id:d.projectId||'',naam:d.naam||'',url:d.url||'',soort:d.soort||'Overig',
     bron:d.bron||'link',mime:d.mime||'',grootte:+d.grootte||0,taak_id:d.taakId||'',door:d.door||'',ts:d.ts||0});
 
+  // ---------------- TOEGANG (gedeelde toegangscode) ----------------
+  // De sleutel bovenaan dit bestand staat leesbaar in de broncode. Dat hoort zo bij Supabase:
+  // het is geen wachtwoord maar een adreslabel. De echte grendel zit in de database zelf
+  // (zie docs/beveiliging-supabase.sql): die geeft enkel gegevens vrij aan wie aangemeld is.
+  // Daarom meldt de app zich hier eerst aan met één gedeeld account. De toegangscode typ je
+  // maar één keer per toestel — daarna onthoudt de browser de aanmelding.
+  //
+  // TEAM_EMAIL is enkel een inlognaam bij Supabase, géén werkend mailadres en géén
+  // websiteadres. Er wordt nooit mail naartoe gestuurd. Krijgt de site later een eigen
+  // domeinnaam, dan hoeft dit dus niet mee te veranderen.
+  const TEAM_EMAIL='team@entertainment.app';
+
+  async function zorgVoorToegang(){
+    try{
+      const {data}=await sb.auth.getSession();
+      if(data&&data.session) return true; // dit toestel is al aangemeld
+    }catch(e){}
+    if(!navigator.onLine) return false;   // nog nooit aangemeld én geen internet → lokale modus
+    let fout='';
+    for(;;){
+      const code=await vraagToegangscode(fout);
+      if(code===null) return false;       // "Verder zonder internet" gekozen
+      if(!code){ fout='Vul de toegangscode in.'; continue; }
+      const {error}=await sb.auth.signInWithPassword({email:TEAM_EMAIL,password:code});
+      if(!error) return true;
+      fout='Deze code klopt niet. Probeer opnieuw.';
+    }
+  }
+
+  // Eigen schermpje in code (geen HTML nodig), zodat het op alle drie de pagina's werkt.
+  function vraagToegangscode(fout){
+    return new Promise(resolve=>{
+      const ov=document.createElement('div');
+      ov.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;'+
+        'justify-content:center;padding:24px;background:#0f1f3d;'+
+        'font-family:system-ui,-apple-system,Segoe UI,sans-serif';
+      ov.innerHTML=
+        '<div style="width:100%;max-width:380px;background:#fff;border-radius:18px;padding:26px;'+
+          'box-shadow:0 18px 50px rgba(0,0,0,.35);text-align:center">'+
+        '<h2 style="margin:0 0 6px;font-size:20px;color:#0f1f3d">Toegangscode</h2>'+
+        '<p style="margin:0 0 18px;font-size:14px;line-height:1.45;color:#5a6a85">'+
+          'Vul de code van het team in. Dat hoeft maar één keer op dit toestel.</p>'+
+        '<input id="bbToegangInput" type="password" autocomplete="current-password" '+
+          'style="width:100%;box-sizing:border-box;padding:13px 14px;font-size:17px;text-align:center;'+
+          'border:2px solid #d7dceb;border-radius:12px;outline:none">'+
+        '<p id="bbToegangFout" style="margin:10px 0 0;font-size:13px;color:#c0392b;min-height:18px"></p>'+
+        '<button id="bbToegangOk" style="width:100%;margin-top:10px;padding:13px;font-size:16px;'+
+          'font-weight:700;color:#fff;background:#ff5d8f;border:0;border-radius:12px;cursor:pointer">'+
+          'Openen</button>'+
+        '<button id="bbToegangOff" style="margin-top:14px;background:none;border:0;font-size:13px;'+
+          'color:#5a6a85;text-decoration:underline;cursor:pointer">Verder zonder internet</button>'+
+        '</div>';
+      document.body.appendChild(ov);
+      const inp=ov.querySelector('#bbToegangInput');
+      if(fout) ov.querySelector('#bbToegangFout').textContent=fout;
+      const klaar=v=>{ ov.remove(); resolve(v); };
+      ov.querySelector('#bbToegangOk').onclick=()=>klaar(inp.value.trim());
+      ov.querySelector('#bbToegangOff').onclick=()=>klaar(null);
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter') klaar(inp.value.trim()); });
+      inp.focus();
+    });
+  }
+
   // ---------------- INIT ----------------
   async function init(){
     bewaarLokaleProjectstand(); // eerst vastleggen wat er lokaal staat, vóór het synchroniseren
@@ -287,6 +350,16 @@
       return;
     }
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const toegang=await zorgVoorToegang();
+    if(!toegang){
+      // Niet aangemeld (offline, of code overgeslagen): toon wat er lokaal bewaard staat.
+      // Schrijfacties wachten in de outbox tot dit toestel weer aangemeld en online is.
+      loadCacheFallback();
+      await restorePhotosFromIDB();
+      ensureEntAlgemeen();
+      ready=true; fire();
+      return;
+    }
     await loadAll();
     await migrateIfEmpty();
     await migrateBestelIfNeeded();

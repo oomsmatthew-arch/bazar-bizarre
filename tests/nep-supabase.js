@@ -60,6 +60,12 @@ function maakNepSupabase(db,ontbrekend){
   return {
     client:{
       from:query,
+      // Sinds de beveiliging (zie docs/BEVEILIGING.md) meldt de app zich eerst aan met een
+      // gedeelde toegangscode. In de test doen we alsof dit toestel al aangemeld is.
+      auth:{
+        getSession:function(){ return Promise.resolve({data:{session:{user:{email:'team@bazarbizarre.app'}}},error:null}); },
+        signInWithPassword:function(){ return Promise.resolve({data:{},error:null}); }
+      },
       channel:function(){ return {on:function(){return this;},subscribe:function(){return this;}}; },
       storage:{from:function(){ return {
         upload:function(){ return Promise.resolve({data:{},error:null}); },

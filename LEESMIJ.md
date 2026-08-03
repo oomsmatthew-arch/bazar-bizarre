@@ -119,6 +119,7 @@ staat alles enkel op dát toestel. Onderaan de pagina zie je welke van de twee h
 **`docs/` — naslag voor jou, niet nodig voor de site:**
 - `projecten-supabase.sql` — eenmalig uit te voeren in Supabase
 - `PROJECTEN-PLAN.md` — het plan en de gemaakte keuzes achter Projecten
+- `STAPPENPLAN.md` — de checklist: beveiligen, naam kiezen, eigen domeinnaam
 - `BEVEILIGING.md` — de database op slot zetten met een gedeelde toegangscode
 - `beveiliging-supabase.sql` — hoort bij bovenstaande; `beveiliging-terugdraaien.sql` is de noodknop
 - `EIGEN-DOMEIN.md` — van het github.io-adres naar een eigen domeinnaam
