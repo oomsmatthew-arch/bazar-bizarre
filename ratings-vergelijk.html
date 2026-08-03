@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ratings vergelijken</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6450">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<style>
+  :root{
+    --bg:#eef4ea; --panel:#ffffff; --panel2:#f3f8f0; --line:#cfe0c8;
+    --forest:#2f6450; --forest2:#3a7a62; --leaf:#4a9b5e; --text:#1d2e22; --muted:#5e7363;
+    --goed:#2f9e57; --let:#e08a1e; --slecht:#c0392b; --ring:#e6ece2;
+    --serif:"Georgia","Iowan Old Style","Times New Roman",serif; --shadow:0 8px 24px rgba(31,81,53,.12);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1a14; --panel:#18271f; --panel2:#1f3328; --line:#2c4536;
+    --forest:#7fd6a3; --forest2:#5cbf86; --leaf:#5cc878; --text:#e8f1ea; --muted:#9bb3a3;
+    --goed:#4fc07a; --let:#e0a24a; --slecht:#e0685c; --ring:#26362c; --shadow:0 10px 28px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;color:var(--text);background:var(--bg);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overscroll-behavior:none;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 70px;}
+  .topbar{position:relative;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:20px;
+    background:linear-gradient(120deg,var(--forest),var(--forest2));box-shadow:var(--shadow);}
+  .topbar h1{margin:0;font-family:var(--serif);font-size:clamp(18px,3.4vw,24px);font-weight:700;color:#fff;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .navbtn{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:14px;padding:10px 14px;border-radius:12px;cursor:pointer;text-decoration:none;flex:0 0 auto;}
+  .navbtn:active{transform:translateY(1px);}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px;margin-top:16px;}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);margin:0 0 10px;}
+  .hint{color:var(--muted);font-size:14px;line-height:1.5;}
+  /* periode-kiezers */
+  .periodes{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:620px){.periodes{grid-template-columns:1fr;}}
+  .per{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
+  .per h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);}
+  .per .rij2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .per label{font-size:12px;color:var(--muted);font-weight:700;}
+  .finp{background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:15px;padding:9px 11px;border-radius:10px;outline:none;font-family:inherit;}
+  .finp:focus{border-color:var(--leaf);}
+  .btn{border:1px solid var(--line);background:var(--panel2);color:var(--forest);font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;cursor:pointer;}
+  .btn.primary{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  /* koppen */
+  .koppen{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:620px){.koppen{grid-template-columns:1fr;}}
+  .kop{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;}
+  .kop .perhead{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:800;margin-bottom:8px;min-height:30px;}
+  .kop .l{font-size:12px;color:var(--muted);margin-top:6px;}
+  .donut{width:74px;height:74px;border-radius:50%;display:inline-grid;place-items:center;}
+  .donut-in{width:56px;height:56px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-weight:800;font-size:18px;color:var(--text);}
+  .bigdelta{font-size:26px;font-weight:800;font-family:var(--serif);padding:16px 0 4px;}
+  .delta.op{color:var(--goed);} .delta.neer{color:var(--slecht);} .delta.neutraal{color:var(--muted);}
+  /* tabellen */
+  .tblwrap{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;font-size:14px;}
+  th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
+  td.n,th.n{text-align:right;white-space:nowrap;}
+  .mut{color:var(--muted);font-size:12px;}
+  footer{margin-top:26px;text-align:center;color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Ratings vergelijken</h1>
+    <button class="navbtn" id="themeBtn" title="Donker/licht">🌙</button>
+    <a class="navbtn" href="ratings.html">‹ Ratings</a>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="card">
+    <p class="hint" style="margin-top:0;">Kies twee periodes en vergelijk ze. Bv. <b>december 2025</b> tegenover <b>december 2024</b>, of een hele reeks maanden. Kies bij <b>van</b> en <b>tot</b> dezelfde maand voor één maand.</p>
+    <div class="periodes">
+      <div class="per">
+        <h3>Periode A</h3>
+        <div class="rij2"><label>van</label><input type="month" id="aVan" class="finp"><label>tot</label><input type="month" id="aTot" class="finp"></div>
+      </div>
+      <div class="per">
+        <h3>Periode B</h3>
+        <div class="rij2"><label>van</label><input type="month" id="bVan" class="finp"><label>tot</label><input type="month" id="bTot" class="finp"></div>
+      </div>
+    </div>
+    <div style="margin-top:14px;"><button class="btn primary" id="vglBtn">📊 Vergelijk</button></div>
+  </div>
+
+  <div class="card" id="geenData" style="display:none;">
+    <p class="hint" style="margin:0;">Er zijn nog geen ratings ingelezen op dit toestel. Ga eerst naar <a href="ratings.html">Ratings</a> en upload een export.</p>
+  </div>
+
+  <div id="resultaat" style="display:none;">
+    <div class="card">
+      <div class="koppen">
+        <div class="kop" id="kopA"></div>
+        <div class="kop" id="kopB"></div>
+        <div class="kop" id="kopD"></div>
+      </div>
+    </div>
+    <div class="card" id="cmpAct"></div>
+    <div class="card" id="cmpTaal"></div>
+  </div>
+
+  <footer>Entertainment · De Vossemeren</footer>
+</div>
+<script src="js/ratings.js"></script>
+<script src="js/ratings-vergelijk.js"></script>
+</body>
+</html>

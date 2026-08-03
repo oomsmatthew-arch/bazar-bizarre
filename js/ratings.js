@@ -218,7 +218,7 @@ function reviewKaart(r){
 
 // ---- filter + reactielijst ----
 let _reviews=[];
-let _filter={zoek:'',datum:'',act:'',maand:'',score:''};
+let _filter={zoek:'',datum:'',act:'',maand:'',score:'',taal:''};
 let _data=null; let _boekjaar=''; // gekozen boekjaar ('' = alle)
 // Thema-categorieën voor de activiteiten (afgeleid uit de naam) — voor de filterknopjes.
 // Een activiteit kan in meerdere thema's vallen (bv. "Orry & Vrienden Pieten Disco" = O&F én Sint).
@@ -267,7 +267,7 @@ function renderPerAct(){
       tot.style.display='';
     } else { tot.innerHTML=''; tot.style.display='none'; }
   }
-  vulRijen('perActiviteit', lijst.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:''},true))));
+  vulRijen('perActiviteit', lijst.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:'',taal:''},true))));
   if(!lijst.length) $('perActiviteit').innerHTML='<p class="muted">Geen activiteiten in deze categorie.</p>';
 }
 function renderActCats(){
@@ -299,10 +299,11 @@ function renderReviews(){
     if(f.maand && maandKey(r.datum)!==f.maand) return false;
     if(f.datum && fmtISO(r.datum)!==f.datum) return false;
     if(f.score && kl(r.score)!==f.score) return false;
+    if(f.taal && taalVan(r)!==f.taal) return false;
     if(f.zoek){ const hay=((r.activiteit||'')+' '+(r.tekst||'')+' '+(r.vertaald||'')).toLowerCase(); if(hay.indexOf(f.zoek)<0) return false; }
     return true;
   }).sort((a,b)=>((b.datum?b.datum.getTime():0)-(a.datum?a.datum.getTime():0)));
-  const actief=!!(f.act||f.maand||f.datum||f.score||f.zoek);
+  const actief=!!(f.act||f.maand||f.datum||f.score||f.zoek||f.taal);
   let head=list.length+' van '+_reviews.length+' reacties';
   if(actief) head+=' · gemiddelde '+(list.length?fmtScore(avg(list.map(r=>r.score))):'–');
   $('reviewCount').textContent=head;
@@ -316,13 +317,13 @@ function zetFilter(patch,scroll){
   renderReviews();
   if(scroll){ const el=$('reviewCount'); if(el&&el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'start'}); }
 }
-function resetFilter(){ zetFilter({zoek:'',datum:'',act:'',maand:'',score:''},false); }
+function resetFilter(){ zetFilter({zoek:'',datum:'',act:'',maand:'',score:'',taal:''},false); }
 
 let _perMaand=[]; let _maandSort='nieuw'; // 'nieuw' = recentste maand bovenaan
 function renderPerMaand(){
   const arr=_perMaand.slice().sort((a,b)=>a.key.localeCompare(b.key)); // oud → nieuw
   if(_maandSort==='nieuw') arr.reverse();
-  vulRijen('perMaand', arr.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
+  vulRijen('perMaand', arr.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:'',taal:''},true))));
   const b=$('maandSort'); if(b) b.textContent=(_maandSort==='nieuw'?'nieuwste eerst':'oudste eerst')+' ⇅';
 }
 function render(data){
@@ -358,7 +359,7 @@ function render(data){
   _perMaand=perMaand; renderPerMaand();
   _perAct=perAct; renderActCats(); renderPerAct();
   const perTaal=groepeer(reviews,taalVan).sort((a,b)=>b.n-a.n);
-  vulRijen('perTaal', perTaal.map(t=>kaartRij(t.key,t.gem,t.n,null)));
+  vulRijen('perTaal', perTaal.map(t=>kaartRij(t.key,t.gem,t.n,()=>zetFilter({taal:t.key,act:'',maand:'',datum:''},true))));
   // activiteiten-keuzelijst vullen
   const namen=Array.from(new Set(reviews.map(r=>canonAct(r.activiteit)).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
   const fa=$('fAct'); if(fa) fa.innerHTML='<option value="">Alle activiteiten</option>'+namen.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
@@ -527,6 +528,7 @@ function beheerPin(){
 
 // ---------------------------------------------------------------- wiring
 document.addEventListener('DOMContentLoaded',()=>{
+  if(!document.getElementById('resultaat')) return; // andere pagina (bv. vergelijk) — enkel de gedeelde API is nodig
   initThema();
   const inp=$('fileInput');
   if(inp) inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) importFile(f); inp.value=''; };
@@ -563,4 +565,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   laadBewaard();
 });
 
+// Gedeelde API voor andere pagina's (bv. de vergelijk-pagina).
+window.Ratings={ canonAct:canonAct, groepeer:groepeer, avg:avg, fmtScore:fmtScore, kl:kl,
+  maandKey:maandKey, maandLabel:maandLabel, taalVan:taalVan, boekjaarKey:boekjaarKey, boekjaarLabel:boekjaarLabel,
+  esc:esc, fmtDate:fmtDate, MND:MND, laadReviews:laadOpgeslagenReviews };
 })();
