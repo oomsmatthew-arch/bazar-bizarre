@@ -401,9 +401,37 @@
   }
   if(typeof window!=='undefined'){ window.addEventListener('online',()=>flushOutbox()); }
 
+  // ---- Kolommen ZONDER de foto (zie haalFotosVoor hieronder) ----
+  // Een foto is bij ons een afbeelding van 1000 px die als tekst in de tabel staat: al
+  // gauw 150 kB per stuk, en de inventaris telt er 180. Die haalden we bij ELKE start mee
+  // op — megabytes, nog vóór de app bruikbaar was, en opnieuw bij elke wijziging van een
+  // collega. Nu vragen we bij het opstarten alle kolommen BEHALVE de foto, en komen de
+  // foto's er achteraf rustig bij.
+  const KOL_PRIJZEN='id,cat,naam,stock,in_gebruik';
+  const KOL_LEVERINGEN='id,ts,datum,boekjes,tekst';
+  const KOL_GEBRUIKERS='id,naam,pin,rol,ts';
+  // Vangnet: bestaat een van die kolommen (nog) niet in de tabel, dan vragen we gewoon
+  // alles op. Beter één verzoek te veel dan een lege inventaris.
+  async function selectSmal(tabel,kolommen){
+    const r=await sb.from(tabel).select(kolommen);
+    return r.error ? await sb.from(tabel).select('*') : r;
+  }
+  // Een verse lijst uit de database heeft geen foto's; die staan hier al (uit IndexedDB of
+  // van eerder). Deze zet ze terug op hun plaats, zodat ze niet van het scherm verdwijnen.
+  function behoudFotos(oud,nieuw){
+    const per={}; (oud||[]).forEach(x=>{ if(x&&x.foto) per[x.id]=x.foto; });
+    (nieuw||[]).forEach(x=>{ if(x&&!x.foto&&per[x.id]) x.foto=per[x.id]; });
+    return nieuw;
+  }
+
   // ---- mapping database <-> app (app gebruikt inGebruik, db gebruikt in_gebruik) ----
   const fromRow=r=>({id:r.id,cat:r.cat,naam:r.naam,stock:r.stock||0,inGebruik:!!r.in_gebruik,foto:r.foto||''});
   const toRow=p=>({id:p.id,cat:p.cat==='groot'?'groot':'klein',naam:p.naam||'',stock:+p.stock||0,in_gebruik:!!p.inGebruik,foto:p.foto||''});
+  // Zelfde rij, maar ZONDER de foto — voor gewone wijzigingen (voorraad, naam, in gebruik).
+  // Twee redenen: de foto verandert daar niet en is groot, én ze is misschien nog niet
+  // ingeladen (foto's komen achteraf). Zouden we ze toch meesturen, dan zetten we een lege
+  // foto over de echte in de database. De foto zelf gaat enkel mee via setFoto().
+  const toRowKaal=p=>({id:p.id,cat:p.cat==='groot'?'groot':'klein',naam:p.naam||'',stock:+p.stock||0,in_gebruik:!!p.inGebruik});
   const mapForm=r=>({id:r.id,ts:r.ts,namen:r.namen||'',kleine:r.kleine||[],groot:r.groot||[],boekjes:r.boekjes||{},finale:r.finale||'',opmerking:r.opmerking||''});
   const mapBestel=r=>({id:r.id,ts:r.ts||0,datum:r.besteldatum||'',cat:r.categorie||'',info:r.info||'',status:r.status||'Besteld',aantal:r.aantal||'',ent:+r.kost_ent||0,bay:+r.kost_bay||0,hsb:+r.kost_hsb||0,leverancier:r.leverancier||'',leverdatum:r.leverdatum||'',door:r.door||'',opm:r.opmerking||''});
   const bestelToRow=b=>({id:b.id,ts:b.ts||0,besteldatum:b.datum||'',categorie:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',kost_ent:+b.ent||0,kost_bay:+b.bay||0,kost_hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opmerking:b.opm||''});
@@ -415,6 +443,7 @@
   const logToRow=l=>({id:l.id,ts:l.ts||0,datum:l.datum||'',auteur:l.auteur||'',tekst:l.tekst||'',klaar:!!l.klaar});
   const mapGebr=r=>({id:r.id,naam:r.naam||'',pin:r.pin||'',rol:r.rol||'',foto:r.foto||'',ts:r.ts||0});
   const gebrToRow=g=>({id:g.id,naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',foto:g.foto||'',ts:g.ts||0});
+  const gebrToRowKaal=g=>({id:g.id,naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',ts:g.ts||0});  // zonder foto, zie toRowKaal
   const mapAct=r=>({id:r.id,ts:r.ts||0,wie:r.wie||'',actie:r.actie||''});
   const actToRow=a=>({id:a.id,ts:a.ts||0,wie:a.wie||'',actie:a.actie||''});
   // ---- Projecten (bord met taken + bespreking) ----
@@ -577,6 +606,9 @@
     autoOpruimen();
     ready=true;
     fire();
+    // Pas nu, met de app al bruikbaar op het scherm, de foto's die dit toestel nog mist.
+    // Bewust géén await: niets mag hierop wachten.
+    haalFotosBij();
   }
   // Bestaande lokale lijsten delen zodra de gedeelde tabel bestaat en nog leeg is.
   async function migrateListToShared(table,toRowFn,cacheKey,backupKey,okGetter){
@@ -635,11 +667,12 @@
     }
   }
   // Eén gedeelde tabel laden; valt terug op de lokale back-up als de tabel nog niet bestaat.
-  async function loadShared(table,cacheKey,mapFn,backupKey,setOK){
+  // 'kolommen' meegeven = de foto-kolom overslaan (die komt achteraf, zie haalFotosVoor).
+  async function loadShared(table,cacheKey,mapFn,backupKey,setOK,kolommen){
     try{
-      const r=await sb.from(table).select('*');
+      const r=kolommen ? await selectSmal(table,kolommen) : await sb.from(table).select('*');
       if(r.error){ setOK(false); loadBackup(cacheKey,backupKey); }
-      else { setOK(true); cache[cacheKey]=(r.data||[]).map(mapFn); if(cache[cacheKey].length) saveBackup(cacheKey,backupKey); }
+      else { setOK(true); cache[cacheKey]=behoudFotos(cache[cacheKey],(r.data||[]).map(mapFn)); if(cache[cacheKey].length) saveBackup(cacheKey,backupKey); }
     }catch(e){ setOK(false); loadBackup(cacheKey,backupKey); }
   }
   // Activiteitenlogboek: enkel de recentste 500 laden (kan lang worden).
@@ -650,20 +683,55 @@
       else { activiteitOK=true; cache.activiteit=(r.data||[]).map(mapAct); if(cache.activiteit.length) saveBackup('activiteit',K_ACTIVITEIT_BACKUP); }
     }catch(e){ activiteitOK=false; loadBackup('activiteit',K_ACTIVITEIT_BACKUP); }
   }
+  // ---- De foto's achteraf ophalen, op de achtergrond ----
+  // Eerst vragen we enkel WELKE rijen een foto hebben — dat antwoord is een lijstje id's
+  // van een paar honderd bytes. Daarna halen we alleen de foto's op die dit toestel nog
+  // niet heeft, in pakketjes van 25, en tonen we ze per pakketje. Op een toestel dat al
+  // eens gesynchroniseerd was is dat nul foto's: die staan al in IndexedDB.
+  async function haalFotosVoor(tabel,cacheKey){
+    if(!sb||!aangemeld) return false;
+    try{
+      const r=await sb.from(tabel).select('id').not('foto','is',null).neq('foto','');
+      if(r.error) return false;                       // geen foto-kolom in deze tabel
+      const heeft={}; (cache[cacheKey]||[]).forEach(x=>{ if(x&&x.foto) heeft[x.id]=1; });
+      const missen=(r.data||[]).map(x=>x.id).filter(id=>!heeft[id]);
+      if(!missen.length) return false;
+      let iets=false;
+      for(let i=0;i<missen.length;i+=25){
+        const deel=await sb.from(tabel).select('id,foto').in('id',missen.slice(i,i+25));
+        if(deel.error) break;
+        const per={}; (deel.data||[]).forEach(x=>{ if(x.foto) per[x.id]=x.foto; });
+        let nieuw=false;
+        (cache[cacheKey]||[]).forEach(x=>{ if(x&&!x.foto&&per[x.id]){ x.foto=per[x.id]; nieuw=true; } });
+        if(nieuw){ iets=true; fire(); }               // per pakketje tonen, niet aan het eind
+      }
+      return iets;
+    }catch(e){ return false; }
+  }
+  let fotosBezig=false;
+  async function haalFotosBij(){
+    if(fotosBezig) return; fotosBezig=true;           // niet twee keer tegelijk
+    try{
+      let iets=false;
+      for(const [tabel,key] of [['prijzen','prijzen'],['leveringen','leveringen'],['gebruikers','gebruikers']])
+        if(await haalFotosVoor(tabel,key)) iets=true;
+      if(iets) persistCache();                        // meteen offline bewaren (ook in IndexedDB)
+    } finally { fotosBezig=false; }
+  }
   async function loadAll(){
     let online=true;
     try{
       const [p,b,f,l]=await withTimeout(Promise.all([
-        sb.from('prijzen').select('*'),
+        selectSmal('prijzen',KOL_PRIJZEN),
         sb.from('boekjes').select('*').eq('id',1).maybeSingle(),
         sb.from('formulieren').select('*'),
-        sb.from('leveringen').select('*')
+        selectSmal('leveringen',KOL_LEVERINGEN)
       ]),12000);
       if(p.error||b.error||f.error||l.error) throw (p.error||b.error||f.error||l.error);
-      if(p.data) cache.prijzen=p.data.map(fromRow);
+      if(p.data) cache.prijzen=behoudFotos(cache.prijzen,p.data.map(fromRow));
       cache.boekjes={stock: b&&b.data? (b.data.stock||0) : 0};
       if(f.data) cache.formulieren=f.data.map(mapForm);
-      if(l.data) cache.leveringen=l.data.slice();
+      if(l.data) cache.leveringen=behoudFotos(cache.leveringen,l.data.slice());
       kernOK=true; noteSync();
     }catch(e){ online=false; kernOK=false; noteFout('Kerngegevens laden',e); console.error('Laden mislukt (offline?):',e); }
     if(!online){ loadCacheFallback(); restorePhotosFromIDB().then(fire); return; } // geen internet → laatst bewaarde gegevens tonen, foto's volgen
@@ -679,7 +747,7 @@
       loadShared('contacten','contacten',mapContact,K_CONTACTEN_BACKUP,v=>contactenOK=v),
       loadShared('checklisten','checklisten',mapChecklist,K_CHECKLISTEN_BACKUP,v=>checklistenOK=v),
       loadShared('logboek','logboek',mapLog,K_LOGBOEK_BACKUP,v=>logboekOK=v),
-      loadShared('gebruikers','gebruikers',mapGebr,K_GEBRUIKERS_BACKUP,v=>gebruikersOK=v),
+      loadShared('gebruikers','gebruikers',mapGebr,K_GEBRUIKERS_BACKUP,v=>gebruikersOK=v,KOL_GEBRUIKERS),
       loadShared('projecten','projecten',mapProject,K_PROJECTEN_BACKUP,v=>projectenOK=v),
       loadShared('projecttaken','projecttaken',mapTaak,K_PROJTAKEN_BACKUP,v=>projecttakenOK=v),
       loadShared('projectberichten','projectberichten',mapBericht,K_PROJBERICHTEN_BACKUP,v=>projectberichtenOK=v),
@@ -718,15 +786,17 @@
     // te worden. Anders wist een (mogelijk verouderde) serverkopie je nog-niet-gesyncte
     // wijzigingen (bv. je boekjes-telling). Zodra alles veilig verstuurd is, herladen we weer.
     if(outbox.length || dirty.size){ return; }
-    if(t==='prijzen'){const r=await sb.from('prijzen').select('*'); if(r.data)cache.prijzen=r.data.map(fromRow);}
+    // Ook hier zonder foto's: dit vuurt bij elke wijziging van een collega (elke voorraadtik),
+    // en de foto's die we al hebben blijven gewoon staan (behoudFotos).
+    if(t==='prijzen'){const r=await selectSmal('prijzen',KOL_PRIJZEN); if(r.data)cache.prijzen=behoudFotos(cache.prijzen,r.data.map(fromRow));}
     else if(t==='boekjes'){const r=await sb.from('boekjes').select('*').eq('id',1).maybeSingle(); cache.boekjes={stock:r&&r.data?(r.data.stock||0):0};}
     else if(t==='formulieren'){const r=await sb.from('formulieren').select('*'); if(r.data)cache.formulieren=r.data.map(mapForm);}
-    else if(t==='leveringen'){const r=await sb.from('leveringen').select('*'); if(r.data)cache.leveringen=r.data.slice();}
+    else if(t==='leveringen'){const r=await selectSmal('leveringen',KOL_LEVERINGEN); if(r.data)cache.leveringen=behoudFotos(cache.leveringen,r.data.slice());}
     else if(t==='bestellingen'&&bestelOK){const r=await sb.from('bestellingen').select('*'); if(r.data){cache.bestellingen=r.data.map(mapBestel); saveBestelBackup();}}
     else if(t==='contacten'&&contactenOK){const r=await sb.from('contacten').select('*'); if(r.data){cache.contacten=r.data.map(mapContact); saveBackup('contacten',K_CONTACTEN_BACKUP);}}
     else if(t==='checklisten'&&checklistenOK){const r=await sb.from('checklisten').select('*'); if(r.data){cache.checklisten=r.data.map(mapChecklist); saveBackup('checklisten',K_CHECKLISTEN_BACKUP);}}
     else if(t==='logboek'&&logboekOK){const r=await sb.from('logboek').select('*'); if(r.data){cache.logboek=r.data.map(mapLog); saveBackup('logboek',K_LOGBOEK_BACKUP);}}
-    else if(t==='gebruikers'&&gebruikersOK){const r=await sb.from('gebruikers').select('*'); if(r.data){cache.gebruikers=r.data.map(mapGebr); saveBackup('gebruikers',K_GEBRUIKERS_BACKUP);}}
+    else if(t==='gebruikers'&&gebruikersOK){const r=await selectSmal('gebruikers',KOL_GEBRUIKERS); if(r.data){cache.gebruikers=behoudFotos(cache.gebruikers,r.data.map(mapGebr)); saveBackup('gebruikers',K_GEBRUIKERS_BACKUP);}}
     else if(t==='activiteit'&&activiteitOK){const r=await sb.from('activiteit').select('*').order('ts',{ascending:false}).limit(500); if(r.data){cache.activiteit=r.data.map(mapAct); saveBackup('activiteit',K_ACTIVITEIT_BACKUP);}}
     else if(t==='projecten'&&projectenOK){const r=await sb.from('projecten').select('*'); if(r.data){cache.projecten=r.data.map(mapProject); saveBackup('projecten',K_PROJECTEN_BACKUP);}}
     else if(t==='projecttaken'&&projecttakenOK){const r=await sb.from('projecttaken').select('*'); if(r.data){cache.projecttaken=r.data.map(mapTaak); saveBackup('projecttaken',K_PROJTAKEN_BACKUP);}}
@@ -1113,7 +1183,9 @@
   }
   function updateGebruiker(id,patch){
     const r=cache.gebruikers.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveGebrBackup();
-    if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(r)); else persistCache();
+    // De foto enkel meesturen als ze het onderwerp van de wijziging is (zie toRowKaal).
+    const rij=(patch&&('foto' in patch)) ? gebrToRow(r) : gebrToRowKaal(r);
+    if(gebruikersOK) dbUpsert('gebruikers',rij); else persistCache();
     let wat='aangepast';
     if(patch&&('rol' in patch)){
       const t=rolTags({rol:patch.rol});
@@ -1223,7 +1295,7 @@
   function queue(id){ dirty.add(id); persistCache(true); clearTimeout(flushT); flushT=setTimeout(flush,500); }
   function flush(){
     const ids=[...dirty]; dirty.clear(); if(!ids.length) return;
-    const rows=cache.prijzen.filter(p=>ids.indexOf(p.id)>=0).map(toRow);
+    const rows=cache.prijzen.filter(p=>ids.indexOf(p.id)>=0).map(toRowKaal);
     if(rows.length) dbUpsert('prijzen',rows);
   }
   function setStock(id,v){ const p=cache.prijzen.find(x=>x.id===id); if(p){const old=p.stock||0; p.stock=Math.round(v||0); if(p.stock<=0)p.inGebruik=false; else if(old<=0)p.inGebruik=true;} queue(id); }
@@ -1236,7 +1308,7 @@
     if(!fixed.length) return 0;
     fixed.forEach(p=>{ p.inGebruik=false; });
     persistCache();
-    dbUpsert('prijzen',fixed.map(toRow));
+    dbUpsert('prijzen',fixed.map(toRowKaal));
     return fixed.length;
   }
   function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); logAct('Boekjesvoorraad ingesteld op '+cache.boekjes.stock); }
@@ -1257,7 +1329,7 @@
     cache.boekjes.stock=(cache.boekjes.stock||0)-used;
     const rec={id:uid(),ts:Date.now(),namen:f.namen||'',kleine,groot,boekjes:{gereserveerd:+b.gereserveerd||0,extra:+b.extra||0,gratis:+b.gratis||0},finale:f.finale||'',opmerking:f.opmerking||''};
     cache.formulieren.push(rec);
-    const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRow);
+    const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRowKaal);
     if(rows.length) dbUpsert('prijzen',rows);
     dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
     dbInsert('formulieren',{id:rec.id,ts:rec.ts,namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,finale:rec.finale,opmerking:rec.opmerking});
@@ -1279,7 +1351,7 @@
     credit(rec.kleine); credit(rec.groot);
     const b=rec.boekjes||{}; const used=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
     cache.boekjes.stock=(cache.boekjes.stock||0)+used;
-    const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRow);
+    const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRowKaal);
     if(rows.length) dbUpsert('prijzen',rows);
     dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
     dbDelete('formulieren','id',rec.id);

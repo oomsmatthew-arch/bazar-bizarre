@@ -178,23 +178,37 @@ uitloggen omdat hij niet in de lijst staat, gebeurt pas nadat de verse lijst bin
 
 ## Hoe snel de app opstart
 
-Er zaten vier onnodige wachttijden in het opstarten. Wat er nu gebeurt:
+Wat er nu gebeurt:
 
-1. **Meteen tonen wat we al weten.** De laatst bewaarde stand komt eerst op het scherm —
-   inclusief de namenlijst met rollen. De database ververst het daarna.
-2. **Alle tabellen tegelijk ophalen.** Vroeger wachtte elk van de vijftien verzoeken op het
+1. **De namen eerst.** De namenlijst staat apart en piepklein in de snelle opslag en wordt
+   synchroon ingelezen, nog vóór de volledige offline kopie uit IndexedDB. Het inlogscherm
+   moet dus niet wachten op prijzen, bestellingen, projecten en 500 activiteitsregels.
+2. **Meteen tonen wat we al weten.** Daarna komt de rest van de laatst bewaarde stand op het
+   scherm. De database ververst het achteraf.
+3. **Alle tabellen tegelijk ophalen.** Vroeger wachtte elk van de vijftien verzoeken op het
    vorige: vijftien keer heen en weer naar de server, achter elkaar. Nu vertrekken ze samen.
-3. **Foto's houden het scherm niet op.** Die kunnen megabytes zijn; ze worden nu op de
-   achtergrond bijgeladen. Hetzelfde geldt voor de vraag om blijvende opslag.
-4. **Niet vijftien keer wegschrijven.** Tijdens het laden wordt de offline kopie één keer
+4. **Foto's komen niet mee uit de database.** Dit was veruit de grootste: een foto van
+   1000 px staat als tekst in de tabel (± 150 kB per stuk) en de inventaris telt 180 rijen.
+   Die haalden we bij élke start op, en opnieuw bij elke wijziging van een collega. Nu
+   vragen we bij het opstarten alle kolommen behálve de foto, en halen we achteraf — met de
+   app al bruikbaar — enkel de foto's op die dit toestel nog niet in IndexedDB heeft. Op een
+   toestel dat al gesynchroniseerd is, is dat nul.
+5. **Foto's gaan ook niet mee omhoog.** Een voorraadtik of een pincode-wijziging stuurt de
+   rij zonder foto terug. Dat scheelt niet enkel tijd: omdat de foto's pas achteraf laden,
+   zou de app anders een lege foto over de echte heen schrijven.
+6. **Niet vijftien keer wegschrijven.** Tijdens het laden wordt de offline kopie één keer
    op het einde bewaard in plaats van na elke tabel.
 
 Daarbovenop: de service worker serveert `js`, afbeeldingen en het manifest nu meteen uit de
 bewaarde kopie en ververst op de achtergrond (`supabase.min.js` alleen al is ruim 200 kB en
 verandert bijna nooit). **Pagina's** blijven netwerk-eerst, zodat je nooit met oude code
-werkt — maar met een limiet van 2,5 seconden: daarna verschijnt de bewaarde versie en haalt
+werkt — maar met een limiet van 1,5 seconden: daarna verschijnt de bewaarde versie en haalt
 de app zichzelf even later stil bij. Vroeger keek je op een trage wifi naar een leeg scherm
 tot het verzoek klaar was.
+
+> Meer in de database steken maakt het dus **niet** sneller — de database zit aan de andere
+> kant van de wifi en dát is het trage stuk. Sneller worden we door minder op te halen en
+> meer op het toestel te houden.
 
 De pagina's zetten ook alvast de verbinding met de database op (`preconnect`), zodat de
 eerste zoekopdracht niet meer op de DNS- en beveiligingshanddruk hoeft te wachten.
