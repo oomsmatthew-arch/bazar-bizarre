@@ -107,6 +107,9 @@
   .rij.klik{cursor:pointer;border-radius:10px;padding-left:6px;padding-right:6px;}
   .rij.klik:hover{background:var(--panel2);}
   .tik{font-size:11px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px;}
+  .sortbtn{border:1px solid var(--line);background:var(--panel);color:var(--forest);font-weight:700;font-size:11px;
+    padding:3px 10px;border-radius:999px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:6px;}
+  .sortbtn:active{transform:translateY(1px);}
   /* overzichten: links maand+taal, rechts activiteit — in nette panelen */
   .overzichten2{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
   @media(max-width:760px){ .overzichten2{grid-template-columns:1fr;} }
@@ -151,7 +154,7 @@
     <div class="card">
       <div class="overzichten2">
         <div class="ov-col">
-          <div class="ov"><h3>Per maand <span class="tik">tik om te filteren</span></h3><div id="perMaand"></div></div>
+          <div class="ov"><h3>Per maand <span class="tik">tik om te filteren</span> <button class="sortbtn" id="maandSort" type="button">nieuwste eerst ⇅</button></h3><div id="perMaand"></div></div>
           <div class="ov"><h3>Per taal</h3><div id="perTaal"></div></div>
         </div>
         <div class="ov-col">

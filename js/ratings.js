@@ -304,6 +304,13 @@ function zetFilter(patch,scroll){
 }
 function resetFilter(){ zetFilter({zoek:'',datum:'',act:'',maand:'',score:''},false); }
 
+let _perMaand=[]; let _maandSort='nieuw'; // 'nieuw' = recentste maand bovenaan
+function renderPerMaand(){
+  const arr=_perMaand.slice().sort((a,b)=>a.key.localeCompare(b.key)); // oud → nieuw
+  if(_maandSort==='nieuw') arr.reverse();
+  vulRijen('perMaand', arr.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
+  const b=$('maandSort'); if(b) b.textContent=(_maandSort==='nieuw'?'nieuwste eerst':'oudste eerst')+' ⇅';
+}
 function render(data){
   const reviews=data.reviews; _reviews=reviews;
   $('leeg').style.display='none';
@@ -328,7 +335,7 @@ function render(data){
   if(bestA) grid+=tile(bestA.gem,'beste activiteit'+(mlab?' · '+mlab:''),kl(bestA.gem),bestA.key);
   if(slechtA && actPool.length>1) grid+=tile(slechtA.gem,'laagste activiteit'+(mlab?' · '+mlab:''),kl(slechtA.gem),slechtA.key);
   $('sumTiles').innerHTML=hero+'<div class="sum-grid">'+grid+'</div>';
-  vulRijen('perMaand', perMaand.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
+  _perMaand=perMaand; renderPerMaand();
   _perAct=perAct; renderActCats(); renderPerAct();
   const perTaal=groepeer(reviews,taalVan).sort((a,b)=>b.n-a.n);
   vulRijen('perTaal', perTaal.map(t=>kaartRij(t.key,t.gem,t.n,null)));
@@ -474,6 +481,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderReviews();
   }; });
   const fr=$('fReset'); if(fr) fr.onclick=resetFilter;
+  const ms=$('maandSort'); if(ms) ms.onclick=()=>{ _maandSort=(_maandSort==='nieuw')?'oud':'nieuw'; renderPerMaand(); };
   window.addEventListener('resize',syncActHoogte);
   laadBewaard();
 });
