@@ -1352,7 +1352,7 @@
 <script src="js/inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v3.5';
+const APP_VERSION='v3.6';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1534,8 +1534,8 @@ function show(view){
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
-  // Instellingen-knop verbergen waar beheer apart geregeld is (inventaris, bestellingen, manuals, contacten)
-  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten'||view==='checklisten'||view==='gebruikers'||view==='activiteit'||view==='systeem') ? 'none' : '';
+  // Instellingen-knop verbergen op de instellingen-pagina zelf en waar beheer apart geregeld is
+  document.getElementById('gearBtn').style.display = (view==='instellingen'||view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten'||view==='checklisten'||view==='gebruikers'||view==='activiteit'||view==='systeem') ? 'none' : '';
   if(typeof sysAutoVerversen==='function') sysAutoVerversen(view==='systeem'); // Systeem enkel bijwerken zolang het openstaat
   window.scrollTo(0,0);
 }
