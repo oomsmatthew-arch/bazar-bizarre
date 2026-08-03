@@ -182,7 +182,14 @@
   .hint{font-size:13px;color:var(--muted);margin:0 2px 16px;line-height:1.45;}
 
   /* ---- instellingen ---- */
-  .settings{display:grid;gap:18px;max-width:640px;}
+  /* Op een breed scherm komen de kaartjes naast elkaar in plaats van in één lange kolom.
+     'auto-fit' regelt dat zelf: past er nog een kolom van 300px bij, dan komt ze erbij,
+     anders schuift alles netjes onder elkaar (gsm = één kolom). 'align-items:start' zorgt
+     dat een kort kaartje niet uitrekt tot de hoogte van zijn buur. */
+  .settings{display:grid;gap:18px;max-width:1080px;align-items:start;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
+  /* De mededeling heeft een tekstvak: die krijgt de volle breedte bovenaan. */
+  .settings .breed{grid-column:1/-1;}
   .field{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);}
   .field .h{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);
     font-weight:800;margin-bottom:8px;}
@@ -876,7 +883,7 @@
   <div class="view" id="instellingen">
     <p class="hint">Wijzig hier de mededeling op de homepagina. Alles wordt automatisch op dit toestel bewaard.</p>
     <div class="settings">
-      <div class="field">
+      <div class="field breed">
         <div class="h">Mededeling op de homepagina</div>
         <label for="setMededeling">Eén mededeling per regel. Staan er meerdere, dan wisselen ze op de homepagina elke 4 seconden af.</label>
         <textarea id="setMededeling" placeholder="Typ hier een mededeling&#10;Elke nieuwe regel is een aparte mededeling"></textarea>
@@ -1338,7 +1345,7 @@
 <script src="js/inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v3.2';
+const APP_VERSION='v3.3';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';

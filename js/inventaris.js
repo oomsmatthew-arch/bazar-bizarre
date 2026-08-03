@@ -29,6 +29,7 @@
   const K_CHECKLISTEN_BACKUP='bb_checklisten';
   const K_LOGBOEK_BACKUP='bb_logboek';
   const K_GEBRUIKERS_BACKUP='bb_gebruikers';
+  const K_NAMEN_SNEL='bb_namen_snel';   // enkel de namenlijst — zie bewaarNamenSnel()
   const K_ACTIVITEIT_BACKUP='bb_activiteit';
   const K_PROJECTEN_BACKUP='bb_projecten';
   const K_PROJTAKEN_BACKUP='bb_projecttaken';
@@ -157,6 +158,7 @@
     // niets wegschrijven: de cache is dan nog leeg en zou de offline kopie wissen.
     if(!snapshotGeladen) return;
     snapshot=bouwSlim();
+    bewaarNamenSnel();   // ook tijdens het bulk-laden: de namen zijn maar een paar regels
     // Bij het laden komen vijftien tabellen tegelijk binnen; zonder dit zou elke tabel een
     // volledige herschrijving van de offline kopie uitlokken.
     if(bulkLaden) return;
@@ -211,6 +213,29 @@
     const vrij=opruimen();
     if(vrij>1024) console.log('Opslag opgeruimd: '+Math.round(vrij/1024)+' kB vrijgemaakt.');
   }
+  // ---- De namenlijst apart en piepklein bewaren (voor een snel inlogscherm) ----
+  // De volledige momentopname staat in IndexedDB en die inlezen duurt op een gsm al gauw
+  // een halve seconde of meer (prijzen, bestellingen, projecten, 500 activiteitsregels…).
+  // Het inlogscherm heeft daar niets aan: het wil enkel de namen. Die zetten we daarom ook
+  // in localStorage — dat leest synchroon, dus de tegels staan er meteen, nog vóór er iets
+  // uit IndexedDB of van de database komt. Zonder foto's (die zijn te groot en komen
+  // vanzelf uit IndexedDB achterna; tot dan tonen we de initialen).
+  let _namenSig='';
+  function bewaarNamenSnel(){
+    try{
+      const tekst=JSON.stringify((cache.gebruikers||[]).map(u=>({id:u.id,naam:u.naam||'',pin:u.pin||'',rol:u.rol||'',foto:'',ts:u.ts||0})));
+      if(tekst===_namenSig) return;      // niets veranderd → niet herschrijven
+      _namenSig=tekst;
+      localStorage.setItem(K_NAMEN_SNEL,tekst);
+    }catch(e){}
+  }
+  function laadNamenSnel(){
+    try{
+      const r=localStorage.getItem(K_NAMEN_SNEL); const a=r?JSON.parse(r):null;
+      if(Array.isArray(a)&&a.length){ cache.gebruikers=a.map(mapGebr); _namenSig=r; return true; }
+    }catch(e){}
+    return false;
+  }
   function loadCacheFallback(){
     try{ cache.sessies=JSON.parse(localStorage.getItem('bb_sessies')||'[]')||[]; }catch(e){ cache.sessies=[]; }
     try{ const c=snapshot; if(!c) { overlayOudeKopieen(); return false; }
@@ -232,6 +257,8 @@
       try{ const r=localStorage.getItem(p[1]); if(r==null) return;
         const a=JSON.parse(r); if(Array.isArray(a)) cache[p[0]]=a; }catch(e){}
     });
+    // Laatste terugval voor de namen: zonder namenlijst kan niemand inloggen.
+    if(!cache.gebruikers.length) laadNamenSnel();
   }
 
   // ---- Foto's offline bewaren in IndexedDB (veel ruimer dan localStorage) ----
@@ -497,6 +524,10 @@
   }
 
   async function init(){
+    // ALLEREERST de namen (synchroon uit localStorage, een paar honderd bytes). Zo staat
+    // het inlogscherm er meteen; vroeger wachtte het op de volledige offline kopie uit
+    // IndexedDB hieronder, en dat is op een gsm het verschil tussen meteen en enkele seconden.
+    if(laadNamenSnel()) fire();
     await laadSnapshot();       // de offline kopie inlezen (IndexedDB) vóór er iets uit gelezen wordt
     bewaarLokaleProjectstand(); // eerst vastleggen wat er lokaal staat, vóór het synchroniseren
     eenmaligWachtVullen();      // bestaande projecten van vóór deze versie alsnog laten vertrekken

@@ -30,13 +30,14 @@ self.addEventListener('activate', e=>{
 // Twee snelheden, want niet alles is even gevoelig voor "oud":
 //
 //  • PAGINA'S (html) — netwerk eerst, zodat je nooit met verouderde code werkt. Maar mét
-//    een tijdslimiet van 2,5 s: op een trage wifi kreeg je vroeger een wit scherm tot het
+//    een tijdslimiet van 1,5 s: op een trage wifi kreeg je vroeger een wit scherm tot het
 //    verzoek klaar was. Nu tonen we na die limiet de bewaarde versie, en de app haalt
 //    zichzelf even later stil bij (zie checkForUpdate in entertainment.html).
+//    (Stond op 2,5 s — dat was net die paar tellen wachten die je op de wifi ter plaatse voelde.)
 //  • DE REST (js, afbeeldingen, manifest) — bewaarde versie eerst, dus meteen op het
 //    scherm, en ondertussen op de achtergrond verversen. Dit scheelt het meest:
 //    supabase.min.js alleen al is ruim 200 kB, en die verandert bijna nooit.
-const PAGINA_LIMIET = 2500;
+const PAGINA_LIMIET = 1500;
 
 function isPagina(req){
   if(req.mode==='navigate') return true;
