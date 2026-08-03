@@ -608,8 +608,12 @@
   [data-theme="dark"] .card[data-key="systeem"]{background:linear-gradient(150deg,#152a2e,#18271f);}
   .sysbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
   .sysupd{font-size:12px;color:var(--muted);font-weight:600;}
-  .sysgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
-  .syscard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);}
+  /* masonry: kaarten passen op hoogte in elkaar (geen lege gaten bij verschillende hoogtes) */
+  .sysgrid{column-count:3;column-gap:14px;}
+  @media(max-width:980px){ .sysgrid{column-count:2;} }
+  @media(max-width:560px){ .sysgrid{column-count:1;} }
+  .syscard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);
+    break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 14px;}
   .syscard h3{margin:0 0 2px;font-size:15px;color:var(--forest);}
   .syscard .sub{font-size:12px;color:var(--muted);margin-bottom:10px;}
   .sysrow{display:flex;align-items:flex-start;gap:9px;padding:7px 0;font-size:14px;}
@@ -1352,7 +1356,7 @@
 <script src="js/inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v3.6';
+const APP_VERSION='v3.7';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
