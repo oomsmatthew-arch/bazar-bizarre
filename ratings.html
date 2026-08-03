@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ratings</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://translate.googleapis.com" crossorigin>
+<meta name="theme-color" content="#2f6450">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<style>
+  :root{
+    --bg:#eef4ea; --panel:#ffffff; --panel2:#f3f8f0; --line:#cfe0c8;
+    --forest:#2f6450; --forest2:#3a7a62; --leaf:#4a9b5e;
+    --text:#1d2e22; --muted:#5e7363;
+    --goed:#2f9e57; --let:#e08a1e; --slecht:#c0392b; --ring:#e6ece2;
+    --serif:"Georgia","Iowan Old Style","Times New Roman",serif;
+    --shadow:0 8px 24px rgba(31,81,53,.12);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1a14; --panel:#18271f; --panel2:#1f3328; --line:#2c4536;
+    --forest:#7fd6a3; --forest2:#5cbf86; --leaf:#5cc878;
+    --text:#e8f1ea; --muted:#9bb3a3;
+    --goed:#4fc07a; --let:#e0a24a; --slecht:#e0685c; --ring:#26362c;
+    --shadow:0 10px 28px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;color:var(--text);background:var(--bg);
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overscroll-behavior:none;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 70px;}
+  .topbar{position:relative;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:20px;
+    background:linear-gradient(120deg,var(--forest),var(--forest2));box-shadow:var(--shadow);}
+  .topbar h1{margin:0;font-family:var(--serif);font-size:clamp(19px,3.4vw,26px);font-weight:700;color:#fff;flex:1;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .navbtn{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:14px;
+    padding:10px 14px;border-radius:12px;cursor:pointer;flex:0 0 auto;text-decoration:none;}
+  .navbtn:active{transform:translateY(1px);}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+    padding:18px;margin-top:16px;}
+  .hint{color:var(--muted);font-size:14px;line-height:1.5;}
+  /* upload */
+  .drop{border:2px dashed var(--line);border-radius:16px;padding:26px 18px;text-align:center;cursor:pointer;
+    background:var(--panel2);transition:border-color .15s,background .15s;}
+  .drop:hover,.drop.over{border-color:var(--leaf);background:var(--panel);}
+  .drop .big{font-size:17px;font-weight:800;color:var(--forest);}
+  .drop .sm{font-size:13px;color:var(--muted);margin-top:6px;}
+  .status{margin-top:12px;font-size:14px;font-weight:700;border-radius:12px;padding:10px 14px;display:none;}
+  .status.bezig,.status.klaar,.status.fout{display:block;}
+  .status.bezig{background:rgba(224,138,30,.14);color:var(--let);border:1px solid var(--let);}
+  .status.klaar{background:rgba(47,158,87,.13);color:var(--goed);border:1px solid var(--goed);}
+  .status.fout{background:rgba(192,57,43,.12);color:var(--slecht);border:1px solid var(--slecht);}
+  /* donut */
+  .donut{width:54px;height:54px;border-radius:50%;display:inline-grid;place-items:center;flex:0 0 auto;}
+  .donut-in{width:40px;height:40px;border-radius:50%;background:var(--panel);display:grid;place-items:center;
+    font-weight:800;font-size:14px;color:var(--text);}
+  /* samenvatting-tegels */
+  .tiles{display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+  .tile{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:14px;padding:12px 16px;}
+  .tile.big .donut{width:66px;height:66px;} .tile.big .donut-in{width:50px;height:50px;font-size:16px;}
+  .tile .v{font-size:26px;font-weight:800;font-family:var(--serif);}
+  .tile .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .v.goed{color:var(--goed);} .v.let{color:var(--let);} .v.slecht{color:var(--slecht);}
+  /* overzicht-rijen */
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);margin:0 0 10px;}
+  .rij{display:flex;align-items:center;gap:12px;padding:8px 4px;border-top:1px solid var(--line);}
+  .rij:first-child{border-top:none;}
+  .rij-nm{flex:1;min-width:0;} .rij-nm .t{font-weight:700;} .rij-nm .s{font-size:12px;color:var(--muted);}
+  .rij-n{text-align:right;flex:0 0 auto;} .rij-n b{display:block;font-size:16px;color:var(--forest);} .rij-n span{font-size:11px;color:var(--muted);}
+  /* review-lijst */
+  .rv{display:flex;gap:12px;padding:12px 4px;border-top:1px solid var(--line);}
+  .rv-score{flex:0 0 44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:800;color:#fff;}
+  .rv-score.goed{background:var(--goed);} .rv-score.let{background:var(--let);} .rv-score.slecht{background:var(--slecht);}
+  .rv-body{flex:1;min-width:0;}
+  .rv-top{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;}
+  .rv-datum{font-size:12px;color:var(--muted);} .rv-taal{font-size:11px;font-weight:700;color:var(--forest);
+    background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;}
+  .rv-tekst{margin-top:3px;line-height:1.45;} .rv-orig{margin-top:3px;font-size:12px;color:var(--muted);font-style:italic;}
+  .muted{color:var(--muted);}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+  .toolbar .telling{margin-left:auto;color:var(--muted);font-size:13px;}
+  .btn{border:1px solid var(--line);background:var(--panel2);color:var(--forest);font-weight:700;font-size:13px;
+    padding:9px 14px;border-radius:12px;cursor:pointer;}
+  .btn.primary{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  footer{margin-top:26px;text-align:center;color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Ratings</h1>
+    <button class="navbtn" id="themeBtn" title="Donker/licht">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="card">
+    <div class="drop" id="dropZone">
+      <div class="big">📄 Sleep hier je export, of tik om te kiezen</div>
+      <div class="sm">Excel (.xlsx) of CSV — de reviews worden automatisch naar het Nederlands vertaald.</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.csv,.txt" style="display:none">
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card" id="leeg">
+    <p class="hint"><b>Zo werkt het:</b> download je ratings als <b>Excel (.xlsx)</b> of <b>CSV</b> en sleep het bestand hierboven.
+    De app leest de scores, activiteiten en reviews in, <b>vertaalt</b> de reacties naar het Nederlands en toont een
+    lijst plus overzichten <b>per maand, activiteit en taal</b>. De ingelezen gegevens blijven op dit toestel bewaard;
+    met <b>Afdrukken</b> kan je er een blad van maken.</p>
+    <p class="hint" style="margin-bottom:0;">Lukt een Excel niet op je toestel? Open 'm in Excel en kies <b>Opslaan als → CSV</b>.</p>
+  </div>
+
+  <div id="resultaat" style="display:none;">
+    <div class="card">
+      <div class="toolbar">
+        <button class="btn primary" id="printBtn">🖨 Afdrukken</button>
+        <button class="btn" id="wisBtn">Wissen</button>
+        <span class="telling" id="telling"></span>
+      </div>
+      <div class="tiles" id="sumTiles"></div>
+    </div>
+    <div class="card"><h2>Per maand</h2><div id="perMaand"></div></div>
+    <div class="card"><h2>Per activiteit</h2><div id="perActiviteit"></div></div>
+    <div class="card"><h2>Per taal</h2><div id="perTaal"></div></div>
+    <div class="card"><h2>Alle reacties</h2><div id="reviewList"></div></div>
+  </div>
+
+  <footer>Entertainment · De Vossemeren</footer>
+</div>
+<script src="js/ratings.js"></script>
+</body>
+</html>

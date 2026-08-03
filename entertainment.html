@@ -92,6 +92,7 @@
   .card[data-key="logboek"]{--accent:#d98a2b;background:linear-gradient(150deg,#fdf3e3,#fff);}
   .card[data-key="manuals"]{--accent:var(--water);background:linear-gradient(150deg,#edf6fb,#fff);}
   .card[data-key="projecten"]{--accent:#4a63c0;background:linear-gradient(150deg,#eef1fc,#fff);}
+  .card[data-key="ratings"]{--accent:#e0a24a;background:linear-gradient(150deg,#fdf6ea,#fff);}
   /* Contacten */
   .contlist{display:flex;flex-direction:column;gap:10px;margin:4px 0 18px;}
   .contcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid #8a5cc7;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);}
@@ -514,6 +515,7 @@
   [data-theme="dark"] .card[data-key="logboek"]{background:linear-gradient(150deg,#2e2517,#18271f);}
   [data-theme="dark"] .card[data-key="manuals"]{background:linear-gradient(150deg,#1b2b30,#18271f);}
   [data-theme="dark"] .card[data-key="projecten"]{background:linear-gradient(150deg,#1d2440,#18271f);}
+  [data-theme="dark"] .card[data-key="ratings"]{background:linear-gradient(150deg,#2e2a1c,#18271f);}
   [data-theme="dark"] .card[data-key="instellingen"]{background:linear-gradient(150deg,#2a241c,#18271f);}
   [data-theme="dark"] .lowstock{background:linear-gradient(120deg,#2a201e,#18271f);border-color:#5a3530;}
   [data-theme="dark"] .lowstock .ls-pill{border-color:#5a3530;}
@@ -807,6 +809,11 @@
         <div class="rnd">Team</div>
         <h2>Projecten</h2>
         <p>Borden met taken, deadlines en bespreking — voor evenementen, opbouw en alles wat loopt.</p>
+      </a>
+      <a class="card" data-key="ratings" href="ratings.html">
+        <div class="rnd">Naslag</div>
+        <h2>Ratings</h2>
+        <p>Gastbeoordelingen inlezen, automatisch vertalen en tonen als lijst + overzicht per maand, activiteit en taal.</p>
       </a>
       <div class="card" data-key="checklisten" id="openChecklisten">
         <div class="rnd">Handig</div>
@@ -1345,7 +1352,7 @@
 <script src="js/inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v3.4';
+const APP_VERSION='v3.5';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';

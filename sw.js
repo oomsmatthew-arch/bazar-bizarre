@@ -1,10 +1,10 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v3.5';
+const CACHE = 'bazar-bizarre-v3.6';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
-const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./projecten.html','./manifest.json',
-  './js/inventaris-data.js','./js/inventaris.js','./js/projecten.js','./js/supabase.min.js',
+const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./projecten.html','./ratings.html','./manifest.json',
+  './js/inventaris-data.js','./js/inventaris.js','./js/projecten.js','./js/ratings.js','./js/supabase.min.js',
   './assets/icon-192.png','./assets/icon-512.png','./assets/Logo_kleine_tekst.png']
   .concat(DEALS);
 
