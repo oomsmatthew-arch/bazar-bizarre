@@ -22,6 +22,7 @@ begin
   foreach t in array tabellen loop
     if to_regclass('public.' || t) is null then continue; end if;
 
+    execute format('drop policy if exists "enkel dit team" on public.%I', t);
     execute format('drop policy if exists "enkel aangemeld" on public.%I', t);
     execute format('drop policy if exists "app volledige toegang" on public.%I', t);
     execute format(
@@ -32,3 +33,4 @@ begin
 end $$;
 
 drop policy if exists "manuals enkel aangemeld" on storage.objects;
+drop policy if exists "manuals enkel dit team" on storage.objects;

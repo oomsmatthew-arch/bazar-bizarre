@@ -18,6 +18,8 @@
 do $$
 declare
   t text;
+  n text;
+  namen text[];
   tabellen text[] := array[
     'activiteit','appconfig','bestellingen','boekjes','checklisten','contacten',
     'formulieren','gebruikers','leveringen','logboek','manuals','manualsdoc',
@@ -34,14 +36,32 @@ begin
 
     execute format('alter table public.%I enable row level security', t);
 
-    -- De oude, open regel weghalen — dit is de regel die alles vrijgaf.
-    execute format('drop policy if exists "app volledige toegang" on public.%I', t);
-    execute format('drop policy if exists "enkel aangemeld" on public.%I', t);
+    -- ALLE bestaande regels weghalen, welke naam ze ook hebben.
+    -- Dit is de kern van de zaak: de oudste tabellen (prijzen, gebruikers, formulieren…)
+    -- zijn via de Supabase-knoppen aangemaakt en kregen namen als
+    -- "Enable read access for all users". Regels worden met OF gecombineerd — één open
+    -- regel die blijft staan, geeft alles vrij, hoe streng de nieuwe regel er ook naast staat.
+    -- Daarom niet op naam wissen, maar alles wat er staat.
+    -- Eerst de namen verzamelen, dan pas wissen — niet wissen terwijl je de lijst doorloopt.
+    select coalesce(array_agg(policyname), '{}')
+      into namen
+      from pg_policies where schemaname = 'public' and tablename = t;
 
-    -- Nieuwe regel: enkel aangemelde toestellen. "to authenticated" is de kern —
-    -- de rol 'anon' heeft daarna geen enkele regel meer en krijgt dus niets.
+    foreach n in array namen loop
+      execute format('drop policy %I on public.%I', n, t);
+    end loop;
+    raise notice '  % oude regel(s) verwijderd van %', array_length(namen, 1), t;
+
+    -- Nieuwe regel: enkel het gedeelde teamaccount. Twee grendels op elkaar:
+    --   "to authenticated"  → de rol 'anon' (enkel de sleutel uit de broncode) krijgt niets;
+    --   de e-mailtest       → ook wie zichzelf een account zou aanmaken, krijgt niets.
+    -- Dankzij die tweede test hangt de beveiliging niet af van een schakelaar in het
+    -- Supabase-dashboard. Extra account nodig? Zet het adres erbij in de lijst hieronder
+    -- (in beide regels) en draai dit script opnieuw.
     execute format(
-      'create policy "enkel aangemeld" on public.%I for all to authenticated using (true) with check (true)', t);
+      'create policy "enkel dit team" on public.%I for all to authenticated '||
+      'using (auth.jwt()->>''email'' in (''team@entertainment.app'')) '||
+      'with check (auth.jwt()->>''email'' in (''team@entertainment.app''))', t);
 
     raise notice 'Op slot: %', t;
   end loop;
@@ -54,20 +74,42 @@ end $$;
 -- Let op: de app deelt manuals via een publieke link (getPublicUrl). Wie zo'n
 -- link heeft, kan dat bestand blijven openen zonder code — dat is inherent aan
 -- een publieke bucket. Wil je dat ook dichtzetten, zie docs/BEVEILIGING.md.
-drop policy if exists "manuals enkel aangemeld" on storage.objects;
-create policy "manuals enkel aangemeld" on storage.objects
+-- Ook hier eerst alle oude regels weg die over de manuals-bucket gaan, ongeacht hun naam.
+-- Regels van andere buckets blijven staan.
+do $$
+declare
+  n text;
+  namen text[];
+begin
+  select coalesce(array_agg(policyname), '{}')
+    into namen
+    from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+      and (policyname ilike '%manual%'
+           or coalesce(qual, '') like '%manuals%'
+           or coalesce(with_check, '') like '%manuals%');
+
+  foreach n in array namen loop
+    execute format('drop policy %I on storage.objects', n);
+    raise notice '  oude bucket-regel verwijderd: %', n;
+  end loop;
+end $$;
+
+create policy "manuals enkel dit team" on storage.objects
   for all to authenticated
-  using (bucket_id = 'manuals')
-  with check (bucket_id = 'manuals');
+  using (bucket_id = 'manuals' and auth.jwt()->>'email' in ('team@entertainment.app'))
+  with check (bucket_id = 'manuals' and auth.jwt()->>'email' in ('team@entertainment.app'));
 
 
 -- ----------------------------------------------------------------------------
 -- Controle: draai dit apart om te zien of alles klopt.
 -- ----------------------------------------------------------------------------
--- Elke rij hoort roles = {authenticated} te tonen. Staat er ergens {public},
--- dan is die tabel nog open.
+-- Elke tabel hoort PRECIES ÉÉN regel te hebben, met de naam "enkel dit team" en
+-- roles = {authenticated}. Zie je er twee op dezelfde tabel, of staat er ergens
+-- {public}, dan is die tabel nog open — regels worden met OF gecombineerd, dus
+-- één open regel volstaat om alles vrij te geven.
 --
 --   select tablename, policyname, roles
 --   from pg_policies
 --   where schemaname = 'public'
---   order by tablename;
+--   order by tablename, policyname;

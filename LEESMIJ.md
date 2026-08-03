@@ -98,6 +98,37 @@ ziet of de nieuwste versie geladen is.
 (SQL Editor → New query → plakken → Run). Doe je dat niet, dan werkt Projecten gewoon, maar
 staat alles enkel op dát toestel. Onderaan de pagina zie je welke van de twee het is.
 
+## Rollen: Vaste mdw en Admin
+
+Bij elke naam (⚙ Instellingen → *Namenlijst beheren*) staan twee knopjes. Iemand kan beide
+tegelijk hebben, of geen van beide.
+
+- **Vaste mdw** — komt zonder wachtwoord in alle beheerschermen (inventaris, bestellingen,
+  het financieel overzicht, projecten aanmaken…).
+- **Admin** — ziet op de homepagina de kaarten **Systeem** en **Activiteit**.
+
+## Systeem (diagnose)
+
+De kaart **Systeem** op de homepagina (zichtbaar voor admins; anders via ⚙ Instellingen →
+*Systeem bekijken* met het beheer-wachtwoord) toont in één oogopslag of alles werkt. Dat is
+nodig omdat de app bij een storing gewoon blijft draaien — je merkt het anders pas als er
+gegevens ontbreken. Je ziet er:
+
+- **Verbinding** — internet, is dit toestel aangemeld bij de database, zijn de gegevens
+  opgehaald, luistert het live mee. Met **🔌 Verbinding testen** doe je de proef op de som
+  (handig op een wifi die wél verbindt maar geen internet heeft).
+- **Synchronisatie** — hoeveel wijzigingen nog op internet wachten, wanneer er voor het
+  laatst iets is uitgewisseld, en welke wijziging eventueel vastloopt. **📤 Nu versturen**
+  duwt de wachtrij door; blijft er één hangen, dan kan je de wachtrij wissen (met het
+  beheer-wachtwoord — die wijzigingen zijn dan definitief weg).
+- **Gedeelde gegevens** — per onderdeel of het in de database staat (✓ gedeeld) of enkel op
+  dit toestel (✗ enkel hier), met het aantal rijen. Staat er ✗, dan ontbreekt die tabel in
+  Supabase: voer `docs/projecten-supabase.sql` (opnieuw) uit.
+- **Opslag op dit toestel** — hoeveel plaats de app inneemt. De snelle opslag stopt rond
+  ± 5 MB; zit ze vol, dan mislukken nieuwe wijzigingen stil. Vooral prijsfoto's wegen zwaar.
+- **Versie & offline** — welke versie er draait en of de app offline klaarstaat. Met
+  **🔄 Vernieuwen forceren** haal je de app opnieuw op (je gegevens blijven staan).
+
 ## Mappenstructuur
 
 **Pagina's (hoofdmap — deze moeten hier blijven staan):**

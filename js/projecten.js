@@ -9,7 +9,7 @@
 // ---------------- BASIS ----------------
 // Versie van de Projecten-module. Verhoog dit bij elke aanpassing die je uitrolt,
 // zodat je op de tablet meteen ziet of de nieuwste versie geladen is.
-const APP_VERSION='v1.0';
+const APP_VERSION='v1.1';
 const K_THEME='bb_home_theme';
 const K_PIN='bb_home_pin';
 const DEFAULT_PIN='3920';
@@ -143,7 +143,9 @@ function fullCurrentUser(){
 }
 function avatarInner(u){ return (u&&u.foto)?('<img src="'+esc(u.foto)+'" alt="">'):esc(initialen(u?u.naam:'')); }
 function avatarVoorNaam(naam){ const u=gebruikers().find(x=>x.naam===naam); return u?avatarInner(u):esc(initialen(naam)); }
-function isVasteMdw(){ const u=fullCurrentUser(); return !!(u&&u.rol==='vast'); }
+// 'rol' kan meerdere etiketten bevatten ('vast', 'admin', of beide) — zie BBInv.heeftRol.
+function heeftRol(tag){ const u=fullCurrentUser(); return !!(window.BBInv&&BBInv.heeftRol&&BBInv.heeftRol(u,tag)); }
+function isVasteMdw(){ return heeftRol('vast'); }
 function magBeheren(actie){
   if(isVasteMdw()) return true;
   const p=prompt('Wachtwoord'+(actie?' '+actie:'')+':'); if(p===null) return false;
@@ -178,7 +180,9 @@ function wieBenIk(){
   const lijst=gebruikers();
   if(!lijst.length) return 'De namenlijst is nog niet geladen; probeer de pagina te verversen.';
   const gevonden=lijst.some(x=>x.id===u.id);
-  const rol=u.rol==='vast'?'vaste medewerker':(u.rol?u.rol:'geen rol ingesteld');
+  const namen={vast:'vaste medewerker',admin:'admin',algemeen:'gedeeld account'};
+  const tags=(window.BBInv&&BBInv.rolTags)?BBInv.rolTags(u):[];
+  const rol=tags.length?tags.map(t=>namen[t]||t).join(' + '):'geen rol ingesteld';
   return 'De app ziet je als "'+(u.naam||'onbekend')+'" ('+rol+')'+
     (gevonden?'':' — dit account staat niet meer in de gedeelde namenlijst')+'.';
 }

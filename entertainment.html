@@ -578,6 +578,8 @@
   .gebr-row .del{background:#fdecec;color:#b23b3b;}
   .gebr-row .vast{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
   .gebr-row .vast.on{background:var(--forest);color:#fff;border-color:var(--forest);}
+  .gebr-row .admin{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  .gebr-row .admin.on{background:#5b7fb0;color:#fff;border-color:#5b7fb0;}
   [data-theme="dark"] .gebr-row .del{background:#3a2020;color:#f0a0a0;}
   .gebradd{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:16px;}
   .gebradd .h{font-weight:800;margin-bottom:10px;color:var(--forest);}
@@ -587,6 +589,39 @@
   /* Activiteit (wie paste wat aan) */
   .card[data-key="activiteit"]{--accent:#5b7fb0;background:linear-gradient(150deg,#eef2f9,#fff);}
   [data-theme="dark"] .card[data-key="activiteit"]{background:linear-gradient(150deg,#1c2531,#18271f);}
+
+  /* Systeem (diagnose voor admins) */
+  .card[data-key="systeem"]{--accent:#39808f;background:linear-gradient(150deg,#eaf5f7,#fff);}
+  [data-theme="dark"] .card[data-key="systeem"]{background:linear-gradient(150deg,#152a2e,#18271f);}
+  .sysbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .sysupd{font-size:12px;color:var(--muted);font-weight:600;}
+  .sysgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+  .syscard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);}
+  .syscard h3{margin:0 0 2px;font-size:15px;color:var(--forest);}
+  .syscard .sub{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .sysrow{display:flex;align-items:flex-start;gap:9px;padding:7px 0;font-size:14px;}
+  .sysrow + .sysrow{border-top:1px solid var(--line);}
+  .sysrow .k{flex:1 1 auto;color:var(--muted);font-weight:600;}
+  .sysrow .v{flex:0 0 auto;font-weight:700;text-align:right;color:var(--text);max-width:60%;word-break:break-word;}
+  .sysdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;margin-top:5px;background:#bbb;}
+  .sysdot.ok{background:var(--leaf);} .sysdot.warn{background:var(--sun);} .sysdot.bad{background:#c0392b;}
+  .sysnote{margin-top:10px;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5;}
+  .sysnote.warn{background:#fff6e2;color:#8a5a12;border:1px solid #f0d69a;}
+  .sysnote.bad{background:#fdecec;color:#96322d;border:1px solid #f0bdbd;}
+  .sysnote.ok{background:#eaf7ee;color:#2b6b45;border:1px solid #bfe4cc;}
+  [data-theme="dark"] .sysnote.warn{background:#33280f;color:#f0cd8a;border-color:#5c4820;}
+  [data-theme="dark"] .sysnote.bad{background:#3a2020;color:#f0a0a0;border-color:#5c2c2c;}
+  [data-theme="dark"] .sysnote.ok{background:#16301f;color:#9fdcb5;border-color:#2c5c3c;}
+  .systab{width:100%;border-collapse:collapse;font-size:13px;}
+  .systab th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);
+    padding:0 0 6px;font-weight:800;}
+  .systab td{padding:6px 0;border-top:1px solid var(--line);vertical-align:middle;}
+  .systab td.n{text-align:right;color:var(--muted);font-weight:700;width:64px;}
+  .systab td.s{width:150px;text-align:right;font-weight:700;}
+  .systab .ja{color:var(--leaf);} .systab .nee{color:#c0392b;}
+  .sysmeter{height:9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin:8px 0 4px;}
+  .sysmeter i{display:block;height:100%;background:var(--leaf);}
+  .sysmeter i.warn{background:var(--sun);} .sysmeter i.bad{background:#c0392b;}
   .actbar{margin-bottom:12px;}
   .actfilter{display:flex;flex-direction:column;gap:9px;margin-bottom:12px;}
   .actfilrow{display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
@@ -792,12 +827,17 @@
         <h2>Activiteit</h2>
         <p>Wie heeft wat aangepast — overzicht van alle wijzigingen.</p>
       </div>
+      <div class="card" data-key="systeem" id="openSysteem" style="display:none">
+        <div class="rnd">Admin</div>
+        <h2>Systeem</h2>
+        <p>Verbinding, synchronisatie, gedeelde tabellen en opslag — alles in één oogopslag.</p>
+      </div>
     </div>
   </div>
 
   <!-- ACTIVITEIT (wie paste wat aan — enkel voor vaste mdw) -->
   <div class="view" id="activiteit">
-    <p class="hint">Overzicht van alle wijzigingen: wie heeft wat aangepast en wanneer. Enkel zichtbaar voor vaste medewerkers; wissen kan enkel met het beheer-wachtwoord.</p>
+    <p class="hint">Overzicht van alle wijzigingen: wie heeft wat aangepast en wanneer. Enkel zichtbaar voor admins en vaste medewerkers; wissen kan enkel met het beheer-wachtwoord.</p>
     <div class="actfilter">
       <input type="text" id="actZoek" class="finp zoek" placeholder="Zoek in activiteit (naam of actie)…">
       <div class="actfilrow">
@@ -812,6 +852,20 @@
     </div>
     <div class="actbar"><button class="btn clear" id="actWis">🗑 Logboek wissen</button></div>
     <div class="actlist" id="actlist"></div>
+  </div>
+
+  <!-- SYSTEEM (diagnose — enkel voor admins) -->
+  <div class="view" id="systeem">
+    <p class="hint">Hier zie je in één oogopslag of alles goed werkt: de verbinding met de database,
+      wat er nog verstuurd moet worden, welke gegevens gedeeld zijn met de andere toestellen en
+      hoeveel ruimte de app inneemt. Dit scherm verandert niets aan je gegevens.</p>
+    <div class="sysbar">
+      <button class="btn primary" id="sysTest">🔌 Verbinding testen</button>
+      <button class="btn" id="sysFlush">📤 Nu versturen</button>
+      <button class="btn" id="sysHerlaad">🔄 Vernieuwen forceren</button>
+      <span class="sysupd" id="sysUpdated"></span>
+    </div>
+    <div id="sysBody"></div>
   </div>
 
   <!-- INSTELLINGEN -->
@@ -848,9 +902,19 @@
 
       <div class="field">
         <div class="h">Gebruikers (inloggen)</div>
-        <label>Beheer wie kan inloggen: voeg collega's toe, geef ze een pincode of reset een vergeten code.</label>
+        <label>Beheer wie kan inloggen: voeg collega's toe, geef ze een pincode of reset een vergeten code.
+          Met <b>Admin</b> geef je iemand toegang tot Systeem en Activiteit; met <b>Vaste mdw</b> tot alle beheerschermen zonder wachtwoord.</label>
         <div class="row">
           <button class="btn" id="openGebruikers">👤 Namenlijst beheren</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Systeem &amp; diagnose</div>
+        <label>Verbinding, synchronisatie, gedeelde tabellen en opslag. Admins vinden dit ook als kaart op de homepagina;
+          hier kan je er altijd bij met het beheer-wachtwoord.</label>
+        <div class="row">
+          <button class="btn" id="openSysteemBtn">🩺 Systeem bekijken</button>
         </div>
       </div>
 
@@ -1270,7 +1334,7 @@
 <script src="js/inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v2.7';
+const APP_VERSION='v2.8';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1445,14 +1509,15 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 });
 
 // ---------------- NAV ----------------
-const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists',logboek:'Logboek',gebruikers:'Gebruikers',activiteit:'Activiteit'};
+const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists',logboek:'Logboek',gebruikers:'Gebruikers',activiteit:'Activiteit',systeem:'Systeem'};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
   document.getElementById('homeBtn').classList.toggle('show',view!=='home');
   // Instellingen-knop verbergen waar beheer apart geregeld is (inventaris, bestellingen, manuals, contacten)
-  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten'||view==='checklisten'||view==='gebruikers'||view==='activiteit') ? 'none' : '';
+  document.getElementById('gearBtn').style.display = (view==='inventaris'||view==='bestellingen'||view==='manuals'||view==='contacten'||view==='checklisten'||view==='gebruikers'||view==='activiteit'||view==='systeem') ? 'none' : '';
+  if(typeof sysAutoVerversen==='function') sysAutoVerversen(view==='systeem'); // Systeem enkel bijwerken zolang het openstaat
   window.scrollTo(0,0);
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
@@ -3018,11 +3083,24 @@ function setCurrentUser(u,remember){
 }
 function initials(naam){ const p=String(naam||'').trim().split(/\s+/); return (((p[0]||'')[0]||'?')+((p[1]||'')[0]||'')).toUpperCase(); }
 // De volledige gebruiker (incl. foto) uit de gedeelde lijst; localStorage bewaart enkel id+naam.
-function fullCurrentUser(){ const u=currentUser(); if(!u) return null; const list=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[]; return list.find(x=>x.id===u.id)||u; }
+// Eerst op id zoeken; lukt dat niet (bv. omdat het account opnieuw is aangemaakt en een
+// nieuw id kreeg), dan op naam. Zonder die terugval verlies je stilletjes je rol.
+function fullCurrentUser(){
+  const u=currentUser(); if(!u) return null;
+  const list=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
+  const opId=list.find(x=>x.id===u.id);
+  if(opId) return opId;
+  const naam=String(u.naam||'').trim().toLowerCase();
+  return (naam?list.find(x=>String(x.naam||'').trim().toLowerCase()===naam):null)||u;
+}
 // Avatar-inhoud: een foto als die er is, anders de initialen.
 function avatarInner(u){ return (u&&u.foto)?('<img src="'+u.foto+'" alt="">'):esc(initials(u?u.naam:'')); }
+// 'rol' is een lijstje etiketten ('vast', 'admin', of beide) — zie BBInv.heeftRol.
+function heeftRol(tag){ const u=fullCurrentUser(); return !!(window.BBInv&&BBInv.heeftRol&&BBInv.heeftRol(u,tag)); }
 // Vaste medewerker = heeft standaard toegang tot alle beheer (geen wachtwoord nodig).
-function isVasteMdw(){ const u=fullCurrentUser(); return !!(u && u.rol==='vast'); }
+function isVasteMdw(){ return heeftRol('vast'); }
+// Admin = mag het Systeem-scherm en de Activiteit bekijken.
+function isAdmin(){ return heeftRol('admin'); }
 // Toegang tot een beheerdeel: waar voor een vaste mdw, anders het wachtwoord vragen.
 function magBeheren(actie){
   if(isVasteMdw()) return true;
@@ -3092,7 +3170,12 @@ function renderLoginNames(){
     const b=document.createElement('button'); b.className='name-tile';
     let sub='';
     if(!u.pin) sub='<span class="nopin">geen code</span>';
-    else if(u.rol==='vast') sub='<span class="nopin vast">Vaste mdw</span>';
+    else {
+      const r=[];
+      if(BBInv.heeftRol(u,'admin')) r.push('Admin');
+      if(BBInv.heeftRol(u,'vast')) r.push('Vaste mdw');
+      if(r.length) sub='<span class="nopin vast">'+r.join(' · ')+'</span>';
+    }
     b.innerHTML='<span class="av">'+avatarInner(u)+'</span><span>'+esc(u.naam)+sub+'</span>';
     b.onclick=()=> u.pin ? toPin(u) : loginDirect(u);   // pinloos account = meteen binnen
     return b;
@@ -3163,14 +3246,18 @@ function renderGebrList(){
   users.forEach(u=>{
     const row=document.createElement('div'); row.className='gebr-row';
     const locked = u.id==='entalg';   // vast gedeeld account: niet verwijderen/wijzigen
-    const vast = u.rol==='vast';
+    const vast = BBInv.heeftRol(u,'vast');
+    const admin = BBInv.heeftRol(u,'admin');
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
       (locked
         ? '<span class="rol">🔒 vast account · geen code</span>'
-        : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'✓ Vaste mdw':'Vaste mdw')+'</button><button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
+        : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'✓ Vaste mdw':'Vaste mdw')+'</button>'+
+          '<button class="admin'+(admin?' on':'')+'" title="Mag het Systeem-scherm en de Activiteit bekijken">'+(admin?'✓ Admin':'Admin')+'</button>'+
+          '<button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
     if(!locked){
-      row.querySelector('.vast').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: vast?'':'vast'}); renderGebrList(); };
+      row.querySelector('.vast').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'vast',!vast)}); renderGebrList(); refreshAuth(); };
+      row.querySelector('.admin').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'admin',!admin)}); renderGebrList(); refreshAuth(); };
       row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
       row.querySelector('.rst').onclick=async()=>{
         const np=prompt('Nieuwe pincode voor '+u.naam+' (4 cijfers):'); if(np===null) return;
@@ -3203,7 +3290,9 @@ document.getElementById('gebrAdd').onclick=async()=>{
 // ---- Activiteit: wie paste wat aan (enkel voor vaste mdw; wissen enkel met wachtwoord) ----
 function updateActiviteitCard(){
   const card=document.getElementById('openActiviteit');
-  if(card) card.style.display = isVasteMdw() ? '' : 'none';
+  if(card) card.style.display = (isVasteMdw()||isAdmin()) ? '' : 'none';
+  const sys=document.getElementById('openSysteem');
+  if(sys) sys.style.display = isAdmin() ? '' : 'none';
 }
 function fmtActDay(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
 function fmtActTime(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes()); }
@@ -3273,7 +3362,7 @@ function renderActiviteit(){
   });
   box.innerHTML=html;
 }
-document.getElementById('openActiviteit').onclick=()=>{ if(!isVasteMdw()) return; renderActiviteit(); show('activiteit'); };
+document.getElementById('openActiviteit').onclick=()=>{ if(!isVasteMdw()&&!isAdmin()) return; renderActiviteit(); show('activiteit'); };
 document.getElementById('actWis').onclick=()=>{
   // Wissen enkel met het beheer-wachtwoord (dus niet via de Vaste-mdw-bypass): enkel Matthew.
   const p=prompt('Beheer-wachtwoord om het activiteitenlogboek te wissen:'); if(p===null) return;
@@ -3289,6 +3378,157 @@ document.getElementById('actKinds').addEventListener('click',e=>{
   document.querySelectorAll('#actKinds .akind').forEach(x=>x.classList.toggle('on', x===b));
   renderActiviteit();
 });
+
+// ---------------- SYSTEEM (diagnose — enkel voor admins) ----------------
+// Alles wat stil kan mislopen op één scherm: verbinding, wachtrij, welke gegevens
+// gedeeld zijn en hoeveel ruimte de app inneemt. Dit scherm wijzigt zelf geen gegevens.
+let sysTimer=null, sysPingRes=null, sysCaches=[];
+
+function sysTijd(ts){
+  if(!ts) return 'nog nooit';
+  const sec=Math.round((Date.now()-ts)/1000);
+  const p=n=>String(n).padStart(2,'0');
+  const d=new Date(ts), klok=p(d.getHours())+':'+p(d.getMinutes());
+  if(sec<10) return 'net nu';
+  if(sec<60) return sec+' sec geleden';
+  if(sec<3600) return Math.round(sec/60)+' min geleden ('+klok+')';
+  if(sec<86400) return Math.round(sec/3600)+' u geleden ('+klok+')';
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+' om '+klok;
+}
+function sysBytes(n){
+  if(!n) return '0 B';
+  if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(0)+' kB';
+  return (n/1024/1024).toFixed(1)+' MB';
+}
+function sysRij(kleur,k,v){
+  return '<div class="sysrow"><span class="sysdot '+kleur+'"></span><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';
+}
+function sysNote(kleur,tekst){ return '<div class="sysnote '+kleur+'">'+tekst+'</div>'; }
+
+function renderSysteem(){
+  const box=document.getElementById('sysBody'); if(!box) return;
+  const s=(window.BBInv&&BBInv.getSysteem)?BBInv.getSysteem():null;
+  if(!s){ box.innerHTML=sysNote('bad','De gedeelde motor (inventaris.js) is niet geladen. Herlaad de pagina.'); return; }
+  const upd=document.getElementById('sysUpdated');
+  if(upd){ const d=new Date(), p=n=>String(n).padStart(2,'0'); upd.textContent='bijgewerkt om '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
+
+  // 1 — Verbinding
+  let vb='<div class="syscard"><h3>Verbinding</h3><div class="sub">Kan dit toestel bij de gedeelde database?</div>';
+  vb+=sysRij(s.online?'ok':'bad','Internet', s.online?'verbonden':'geen internet');
+  vb+=sysRij(s.lib?'ok':'bad','Databasebibliotheek', s.lib?'geladen':'niet geladen');
+  vb+=sysRij(s.aangemeld?'ok':'bad','Aangemeld bij database', s.aangemeld?'ja':'nee — enkel dit toestel');
+  vb+=sysRij(s.kern?'ok':(s.online?'bad':'warn'),'Gegevens opgehaald', s.kern?'gelukt':'niet gelukt (lokale kopie in gebruik)');
+  vb+=sysRij(s.realtime==='live'?'ok':(s.realtime==='mislukt'?'warn':''),'Live meekijken', esc(s.realtime));
+  if(sysPingRes) vb+=sysRij(sysPingRes.ok?'ok':'bad','Laatste verbindingstest', sysPingRes.ok?('antwoord in '+sysPingRes.ms+' ms'):esc(sysPingRes.fout||'mislukt'));
+  if(!s.aangemeld) vb+=sysNote('bad','Dit toestel is <b>niet aangemeld</b>. Je ziet wel de laatst bewaarde gegevens, maar wijzigingen komen niet bij de collega\'s terecht. Herlaad de pagina en vul de toegangscode in.');
+  else if(!s.kern&&s.online) vb+=sysNote('warn','Verbonden met internet, maar de database antwoordde niet. Vaak is dat een wifi zonder echte internetverbinding. Test de verbinding hierboven.');
+  vb+='</div>';
+
+  // 2 — Synchronisatie
+  const wachtKleur = s.wachtrij===0?'ok':(s.wachtrijEerste&&s.wachtrijEerste.pogingen>=2?'bad':'warn');
+  let sy='<div class="syscard"><h3>Synchronisatie</h3><div class="sub">Wat er nog naar de database moet</div>';
+  sy+=sysRij(wachtKleur,'Wachtrij', s.wachtrij===0?'leeg':(s.wachtrij+' wijziging'+(s.wachtrij===1?'':'en')));
+  sy+=sysRij(s.nogTeBewaren?'warn':'ok','Nog te bewaren', s.nogTeBewaren?(s.nogTeBewaren+' prijs/prijzen'):'niets');
+  sy+=sysRij(s.laatsteSync?'ok':'warn','Laatste geslaagde uitwisseling', esc(sysTijd(s.laatsteSync)));
+  if(s.wachtrijEerste) sy+=sysRij(s.wachtrijEerste.pogingen>=2?'bad':'warn','Wacht op', esc(s.wachtrijEerste.actie+' → '+s.wachtrijEerste.tabel)+(s.wachtrijEerste.pogingen?(' ('+s.wachtrijEerste.pogingen+' pogingen)'):''));
+  if(s.laatsteFout) sy+=sysRij('warn','Laatste foutmelding', esc(s.laatsteFout)+'<br><span style="font-weight:600;color:var(--muted)">'+esc(sysTijd(s.laatsteFoutTs))+'</span>');
+  if(s.wachtrijEerste&&s.wachtrijEerste.pogingen>=2){
+    sy+=sysNote('bad','Deze wijziging blijft mislukken en blokkeert de rest van de wachtrij. Test eerst de verbinding. Blijft het hangen, dan kan je de wachtrij wissen — die wijzigingen zijn dan definitief weg.'+
+      '<div style="margin-top:9px"><button class="btn clear" id="sysWisWachtrij">🗑 Wachtrij wissen</button></div>');
+  } else if(s.wachtrij>0){
+    sy+=sysNote('warn','Er wachten wijzigingen op internet. Ze vertrekken vanzelf zodra er verbinding is — je hoeft niets te doen.');
+  } else {
+    sy+=sysNote('ok','Alles is verstuurd. Dit toestel loopt gelijk met de database.');
+  }
+  sy+='</div>';
+
+  // 3 — Gedeelde gegevens
+  const ontbreekt=s.tabellen.filter(t=>!t.gedeeld);
+  let gd='<div class="syscard"><h3>Gedeelde gegevens</h3><div class="sub">Staat het in de database, of enkel op dit toestel?</div>'+
+    '<table class="systab"><tr><th>Onderdeel</th><th style="text-align:right">Aantal</th><th style="text-align:right">Status</th></tr>';
+  s.tabellen.forEach(t=>{
+    gd+='<tr><td>'+esc(t.label)+'</td><td class="n">'+t.aantal+'</td>'+
+      '<td class="s '+(t.gedeeld?'ja':'nee')+'">'+(t.gedeeld?'✓ gedeeld':'✗ enkel hier')+'</td></tr>';
+  });
+  gd+='</table>';
+  if(!s.kern) gd+=sysNote('warn','Zonder verbinding kunnen we niet nagaan wat gedeeld is — hierboven staat de laatst bekende stand.');
+  else if(ontbreekt.length) gd+=sysNote('warn','<b>'+ontbreekt.length+' onderde'+(ontbreekt.length===1?'el staat':'len staan')+' enkel op dit toestel:</b> '+
+    ontbreekt.map(t=>esc(t.label)).join(', ')+'.<br>De bijbehorende tabel'+(ontbreekt.length===1?'':'len')+' ontbreek'+(ontbreekt.length===1?'t':'en')+' in Supabase. '+
+    'Alles blijft werken, maar collega\'s zien deze gegevens niet. Voer <b>docs/projecten-supabase.sql</b> uit in Supabase (SQL Editor → New query → plakken → Run).');
+  else gd+=sysNote('ok','Alle onderdelen zijn gedeeld met de andere toestellen.');
+  gd+='</div>';
+
+  // 4 — Opslag (vult zich aan zodra de meting binnen is)
+  let op='<div class="syscard" id="sysOpslag"><h3>Opslag op dit toestel</h3><div class="sub">Meten…</div></div>';
+
+  // 5 — Versie
+  const swCtrl='serviceWorker' in navigator && navigator.serviceWorker.controller;
+  let vs='<div class="syscard"><h3>Versie &amp; offline</h3><div class="sub">Draait dit toestel de nieuwste code?</div>';
+  vs+=sysRij('ok','App-versie', esc(APP_VERSION));
+  vs+=sysRij(swCtrl?'ok':'warn','Offline klaargezet', swCtrl?'ja':'nog niet (of geen service worker)');
+  vs+=sysRij(sysCaches.length?'ok':'warn','Offline-cache', sysCaches.length?esc(sysCaches.join(', ')):'nog geen');
+  vs+=sysRij('','Database', esc(s.url.replace('https://','')));
+  vs+=sysNote('ok','Werkt iets niet zoals verwacht na een update? Gebruik <b>Vernieuwen forceren</b> bovenaan — dat haalt de app opnieuw op. Je gegevens blijven staan.');
+  vs+='</div>';
+
+  box.innerHTML='<div class="sysgrid">'+vb+sy+gd+op+vs+'</div>';
+
+  const wis=document.getElementById('sysWisWachtrij');
+  if(wis) wis.onclick=()=>{
+    const p=prompt('Beheer-wachtwoord om de wachtrij te wissen:'); if(p===null) return;
+    if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+    if(!confirm('De wachtende wijzigingen definitief weggooien? Ze bereiken de database dan nooit.')) return;
+    const n=BBInv.wisWachtrij();
+    alert(n+' wijziging(en) gewist.');
+    renderSysteem();
+  };
+
+  if(BBInv.getOpslag) BBInv.getOpslag().then(renderSysOpslag).catch(()=>{});
+  if(window.caches&&!sysCaches.length){
+    caches.keys().then(k=>{ sysCaches=k||[]; }).catch(()=>{});
+  }
+}
+function renderSysOpslag(o){
+  const el=document.getElementById('sysOpslag'); if(!el||!o) return;
+  const lsPct=Math.min(100,Math.round(o.lsBytes/o.lsLimiet*100));
+  const lsKleur=lsPct>=90?'bad':(lsPct>=70?'warn':'');
+  let h='<h3>Opslag op dit toestel</h3><div class="sub">De app bewaart alles lokaal zodat ze offline werkt</div>';
+  h+=sysRij(lsPct>=90?'bad':(lsPct>=70?'warn':'ok'),'Snelle opslag (localStorage)', sysBytes(o.lsBytes)+' van ± '+sysBytes(o.lsLimiet)+' ('+lsPct+'%)');
+  h+='<div class="sysmeter"><i class="'+lsKleur+'" style="width:'+lsPct+'%"></i></div>';
+  h+=sysRij('','Aantal bewaarde sleutels', o.lsAantal);
+  if(o.quota){
+    const pct=Math.min(100,Math.round(o.usage/o.quota*100));
+    h+=sysRij(pct>=90?'warn':'ok','Totale ruimte (incl. foto\'s)', sysBytes(o.usage)+' van '+sysBytes(o.quota)+' ('+pct+'%)');
+    h+='<div class="sysmeter"><i class="'+(pct>=90?'bad':(pct>=70?'warn':''))+'" style="width:'+pct+'%"></i></div>';
+  }
+  if(lsPct>=90) h+=sysNote('bad','De snelle opslag zit bijna vol. Nieuwe wijzigingen kunnen stil mislukken. Verwijder oude prijsfoto\'s of wis het activiteitenlogboek.');
+  else if(lsPct>=70) h+=sysNote('warn','De snelle opslag loopt vol. Hou dit in de gaten — vooral prijsfoto\'s nemen veel plaats in.');
+  else h+=sysNote('ok','Ruim voldoende plaats.');
+  el.innerHTML=h;
+}
+// Zolang het scherm openstaat elke 5 seconden verversen, zodat je live ziet wat er gebeurt.
+function sysAutoVerversen(aan){
+  clearInterval(sysTimer); sysTimer=null;
+  if(aan) sysTimer=setInterval(()=>{ if(document.getElementById('systeem').classList.contains('active')) renderSysteem(); }, 5000);
+}
+document.getElementById('openSysteem').onclick=()=>{ if(!isAdmin()) return; openSysteem(); };
+// Achterdeur via Instellingen: ook bruikbaar als er (nog) niemand admin is.
+document.getElementById('openSysteemBtn').onclick=()=>{ if(!isAdmin() && !magBeheren('om het systeem te bekijken')) return; openSysteem(); };
+function openSysteem(){ sysPingRes=null; renderSysteem(); show('systeem'); }
+document.getElementById('sysTest').onclick=async()=>{
+  const b=document.getElementById('sysTest'); b.disabled=true; b.textContent='Testen…';
+  sysPingRes=await BBInv.pingDB();
+  b.disabled=false; b.textContent='🔌 Verbinding testen';
+  renderSysteem();
+};
+document.getElementById('sysFlush').onclick=()=>{ BBInv.flushOutbox(); setTimeout(renderSysteem,400); };
+document.getElementById('sysHerlaad').onclick=async()=>{
+  if(!navigator.onLine){ alert('Daar is internet voor nodig — anders blijft de app zonder opgeslagen kopie achter.'); return; }
+  if(!confirm('De app opnieuw ophalen van het internet?\n\nJe gegevens blijven staan; enkel de opgeslagen kopie van de pagina wordt vernieuwd.')) return;
+  try{ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){}
+  location.reload();
+};
 
 // ---- Profielfoto: verklein tot een klein vierkant (gecentreerd bijgesneden) ----
 function fileToSquare(file,cb){
@@ -3432,6 +3672,7 @@ BBInv.setOnChange(()=>{
     const tr=(window.BBInv&&BBInv.getManualsTree)?BBInv.getManualsTree():null;
     if(tr&&typeof tr==='object'){ MANUALS=tr; renderManuals(); }
   }
+  if(document.getElementById('systeem').classList.contains('active')) renderSysteem();
   updateSyncBadge();
 });
 renderHome();
