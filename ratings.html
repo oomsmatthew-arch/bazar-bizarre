@@ -60,6 +60,7 @@
   .tile.big .donut{width:66px;height:66px;} .tile.big .donut-in{width:50px;height:50px;font-size:16px;}
   .tile .v{font-size:26px;font-weight:800;font-family:var(--serif);}
   .tile .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .tile .l .nm{display:block;margin-top:2px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:700;font-size:13px;max-width:190px;line-height:1.2;}
   .v.goed{color:var(--goed);} .v.let{color:var(--let);} .v.slecht{color:var(--slecht);}
   /* overzicht-rijen */
   h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);margin:0 0 10px;}
@@ -98,6 +99,12 @@
   .rij.klik{cursor:pointer;border-radius:10px;padding-left:6px;padding-right:6px;}
   .rij.klik:hover{background:var(--panel2);}
   .tik{font-size:11px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px;}
+  /* overzichten naast elkaar (compacter, minder onder elkaar) */
+  .overzichten{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px;}
+  .ov h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--forest);margin:0 0 4px;font-weight:800;}
+  .ov .rij{gap:9px;padding:4px 6px;}
+  .ov .donut{width:36px;height:36px;} .ov .donut .donut-in{width:27px;height:27px;font-size:11px;}
+  .ov .rij-nm .t{font-size:14px;line-height:1.15;} .ov .rij-n b{font-size:14px;} .ov .rij-n span{font-size:10px;}
   footer{margin-top:26px;text-align:center;color:var(--muted);font-size:12px;}
 </style>
 </head>
@@ -109,38 +116,31 @@
     <a class="navbtn" href="entertainment.html">Home</a>
   </div>
 
-  <div class="card">
-    <div class="drop" id="dropZone">
-      <div class="big">📄 Sleep hier je export, of tik om te kiezen</div>
-      <div class="sm">Excel (.xlsx) of CSV — de reviews worden automatisch naar het Nederlands vertaald.</div>
-    </div>
-    <input type="file" id="fileInput" accept=".xlsx,.csv,.txt" style="display:none">
-    <div class="status" id="status"></div>
-  </div>
+  <div class="status" id="status"></div>
 
   <div class="card" id="leeg">
-    <p class="hint"><b>Zo werkt het:</b> download je ratings als <b>Excel (.xlsx)</b> of <b>CSV</b> en sleep het bestand hierboven.
-    De app leest de scores, activiteiten en reviews in, <b>vertaalt</b> de reacties naar het Nederlands en toont een
-    lijst plus overzichten <b>per maand, activiteit en taal</b>. De ingelezen gegevens blijven op dit toestel bewaard;
-    met <b>Afdrukken</b> kan je er een blad van maken.</p>
-    <p class="hint" style="margin-bottom:0;"><b>Blijven toevoegen:</b> je mag gerust meerdere exports na elkaar uploaden — ze <b>tellen samen op</b>.
-    Reacties die er al in staan (dubbels of overlappende periodes) worden automatisch <b>overgeslagen</b>, dus niets telt dubbel.
-    Wil je opnieuw beginnen? Gebruik <b>Wissen</b>.</p>
-    <p class="hint" style="margin-bottom:0;">Lukt een Excel niet op je toestel? Open 'm in Excel en kies <b>Opslaan als → CSV</b>.</p>
+    <p class="hint"><b>Gastbeoordelingen.</b> Importeer je export (<b>Excel</b> of <b>CSV</b>) → de reviews worden naar het Nederlands
+    vertaald en getoond als samenvatting + zoekbare lijst. Meerdere exports <b>tellen samen op</b> (dubbels worden overgeslagen).</p>
+    <div id="leegImport"></div>
   </div>
 
   <div id="resultaat" style="display:none;">
     <div class="card">
       <div class="toolbar">
+        <button class="btn" id="importBtn" style="display:none;">📄 Importeren</button>
         <button class="btn primary" id="printBtn">🖨 Afdrukken</button>
-        <button class="btn" id="wisBtn">Wissen</button>
+        <button class="btn" id="wisBtn" style="display:none;">Wissen</button>
         <span class="telling" id="telling"></span>
       </div>
       <div class="tiles" id="sumTiles"></div>
     </div>
-    <div class="card"><h2>Per maand <span class="tik">tik om te filteren</span></h2><div id="perMaand"></div></div>
-    <div class="card"><h2>Per activiteit <span class="tik">tik om te filteren</span></h2><div id="perActiviteit"></div></div>
-    <div class="card"><h2>Per taal</h2><div id="perTaal"></div></div>
+    <div class="card">
+      <div class="overzichten">
+        <div class="ov"><h3>Per maand <span class="tik">tik om te filteren</span></h3><div id="perMaand"></div></div>
+        <div class="ov"><h3>Per activiteit <span class="tik">tik om te filteren</span></h3><div id="perActiviteit"></div></div>
+        <div class="ov"><h3>Per taal</h3><div id="perTaal"></div></div>
+      </div>
+    </div>
     <div class="card"><h2>Reacties zoeken</h2>
       <div class="filterbar">
         <input type="search" id="fZoek" class="finp" placeholder="Zoek activiteit of woord…">
@@ -159,6 +159,7 @@
     </div>
   </div>
 
+  <input type="file" id="fileInput" accept=".xlsx,.csv,.txt" style="display:none">
   <footer>Entertainment · De Vossemeren</footer>
 </div>
 <script src="js/ratings.js"></script>

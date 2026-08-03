@@ -248,14 +248,19 @@ function render(data){
   $('resultaat').style.display='block';
   const alle=reviews.map(r=>r.score);
   const perMaand=groepeer(reviews,r=>maandKey(r.datum)).sort((a,b)=>a.key.localeCompare(b.key));
-  let best=null,slecht=null;
-  perMaand.forEach(m=>{ if(!best||m.gem>best.gem)best=m; if(!slecht||m.gem<slecht.gem)slecht=m; });
-  $('sumTiles').innerHTML=
-    '<div class="tile big">'+donut(avg(alle))+'<div class="l">gemiddelde · '+reviews.length+' reacties</div></div>'+
-    (best?'<div class="tile"><div class="v goed">'+fmtScore(best.gem)+'</div><div class="l">beste: '+maandLabel(best.key)+'</div></div>':'')+
-    (slecht?'<div class="tile"><div class="v '+kl(slecht.gem)+'">'+fmtScore(slecht.gem)+'</div><div class="l">laagste: '+maandLabel(slecht.key)+'</div></div>':'');
-  vulRijen('perMaand', perMaand.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
+  const bestM=perMaand.reduce((m,x)=>(!m||x.gem>m.gem)?x:m,null);
+  const slechtM=perMaand.reduce((m,x)=>(!m||x.gem<m.gem)?x:m,null);
   const perAct=groepeer(reviews,r=>r.activiteit).sort((a,b)=>b.gem-a.gem);
+  const pool=perAct.filter(a=>a.n>=3); const actPool=pool.length?pool:perAct;   // min. 3 reacties, anders vertekent n=1 het beeld
+  const bestA=actPool[0]||null, slechtA=actPool.length?actPool[actPool.length-1]:null;
+  const tile=(v,label,cls,naam)=>'<div class="tile"><div class="v '+(cls||'')+'">'+fmtScore(v)+'</div><div class="l">'+label+(naam?'<div class="nm">'+esc(naam)+'</div>':'')+'</div></div>';
+  let tiles='<div class="tile big">'+donut(avg(alle))+'<div class="l">gemiddelde · '+reviews.length+' reacties</div></div>';
+  if(bestM) tiles+=tile(bestM.gem,'beste maand: '+maandLabel(bestM.key),kl(bestM.gem));
+  if(slechtM && perMaand.length>1) tiles+=tile(slechtM.gem,'laagste maand: '+maandLabel(slechtM.key),kl(slechtM.gem));
+  if(bestA) tiles+=tile(bestA.gem,'beste activiteit',kl(bestA.gem),bestA.key);
+  if(slechtA && actPool.length>1) tiles+=tile(slechtA.gem,'laagste activiteit',kl(slechtA.gem),slechtA.key);
+  $('sumTiles').innerHTML=tiles;
+  vulRijen('perMaand', perMaand.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
   vulRijen('perActiviteit', perAct.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:''},true))));
   const perTaal=groepeer(reviews,taalVan).sort((a,b)=>b.n-a.n);
   vulRijen('perTaal', perTaal.map(t=>kaartRij(t.key,t.gem,t.n,null)));
@@ -347,19 +352,34 @@ function initThema(){
   b.onclick=()=>toe(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
 }
 
+// Is de op dit toestel ingelogde persoon een vaste medewerker? (rol staat in de gedeelde
+// gebruikerslijst die entertainment.html lokaal bewaart — geen extra verbinding nodig.)
+function isVaste(){
+  try{
+    const cu=JSON.parse(localStorage.getItem('bb_current_user')||'null');
+    if(!cu||!cu.id) return false;
+    let lijst=[]; try{ lijst=JSON.parse(localStorage.getItem('bb_gebruikers')||'[]')||[]; }catch(e){}
+    if(!lijst.length){ try{ const c=JSON.parse(localStorage.getItem('bb_cache_v1')||'null'); if(c&&Array.isArray(c.gebruikers)) lijst=c.gebruikers; }catch(e){} }
+    const u=lijst.find(x=>x&&x.id===cu.id);
+    return !!(u && u.rol==='vast');
+  }catch(e){ return false; }
+}
+
 // ---------------------------------------------------------------- wiring
 document.addEventListener('DOMContentLoaded',()=>{
   initThema();
-  const inp=$('fileInput'), dz=$('dropZone');
+  const inp=$('fileInput');
   if(inp) inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) importFile(f); inp.value=''; };
-  if(dz){
-    dz.onclick=()=>inp&&inp.click();
-    dz.ondragover=e=>{ e.preventDefault(); dz.classList.add('over'); };
-    dz.ondragleave=()=>dz.classList.remove('over');
-    dz.ondrop=e=>{ e.preventDefault(); dz.classList.remove('over'); const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) importFile(f); };
+  // Importeren en wissen zijn enkel voor vaste medewerkers; anderen kunnen wel bekijken.
+  const vaste=isVaste();
+  const importBtn=$('importBtn'), wisBtn=$('wisBtn'), leegImport=$('leegImport');
+  if(importBtn){ importBtn.style.display=vaste?'':'none'; importBtn.onclick=()=>inp&&inp.click(); }
+  if(wisBtn){ wisBtn.style.display=vaste?'':'none'; wisBtn.onclick=()=>{ if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
+  if(leegImport){
+    if(vaste){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings importeren</button>'; const b=$('leegImportBtn'); if(b) b.onclick=()=>inp&&inp.click(); }
+    else leegImport.innerHTML='<p class="hint" style="margin:0;color:var(--muted);">Enkel een <b>vaste medewerker</b> kan ratings inlezen. Vraag hen om de export te importeren.</p>';
   }
   const pb=$('printBtn'); if(pb) pb.onclick=printOverzicht;
-  const wb=$('wisBtn'); if(wb) wb.onclick=()=>{ if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } };
   // filter/zoek
   const fz=$('fZoek'); if(fz) fz.oninput=()=>{ _filter.zoek=fz.value.trim().toLowerCase(); renderReviews(); };
   const fd=$('fDatum'); if(fd) fd.onchange=()=>{ _filter.datum=fd.value; renderReviews(); };
