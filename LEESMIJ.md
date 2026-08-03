@@ -124,10 +124,47 @@ gegevens ontbreken. Je ziet er:
 - **Gedeelde gegevens** — per onderdeel of het in de database staat (✓ gedeeld) of enkel op
   dit toestel (✗ enkel hier), met het aantal rijen. Staat er ✗, dan ontbreekt die tabel in
   Supabase: voer `docs/projecten-supabase.sql` (opnieuw) uit.
-- **Opslag op dit toestel** — hoeveel plaats de app inneemt. De snelle opslag stopt rond
-  ± 5 MB; zit ze vol, dan mislukken nieuwe wijzigingen stil. Vooral prijsfoto's wegen zwaar.
+- **Opslag op dit toestel** — hoeveel plaats de app inneemt, met een lijst van de grootste
+  onderdelen. *Offline kopie staat in* hoort **IndexedDB** te zeggen (de ruime opslag);
+  *Beschermd tegen opruimen* zegt of de browser de gegevens mag wissen bij plaatsgebrek.
+  Staan er nog oude kopieën in de snelle opslag, dan verschijnt hier **🧹 Nu opruimen**.
 - **Versie & offline** — welke versie er draait en of de app offline klaarstaat. Met
   **🔄 Vernieuwen forceren** haal je de app opnieuw op (je gegevens blijven staan).
+
+## Hoe de app opslaat (en waarom de opslag vol liep)
+
+Elk toestel houdt een volledige kopie bij, zodat alles offline werkt. Sinds **v3.0** staat
+die kopie in **IndexedDB**: de ruime opslag van de browser (op de tablet honderden MB's tot
+enkele GB's). Daar geldt de krappe grens van localStorage niet.
+
+Wat waar staat:
+
+| Plek | Grens | Wat er in zit |
+|---|---|---|
+| **IndexedDB** | quota van het toestel (GB's) | de volledige offline kopie, alle foto's (prijzen, leveringen, profielfoto's) en de checklist-media |
+| **localStorage** | ± 5 MB, **niet te verhogen** | alleen nog kleine dingen: de wachtrij (`bb_outbox`), instellingen, thema en vlaggetjes |
+
+Waarom het misliep vóór v3.0:
+
+1. **Alles stond er dubbel in.** Elke tabel werd bewaard als losse sleutel (`bb_projecten`,
+   `bb_contacten`, …) én nog eens in de gezamenlijke momentopname.
+2. **Foto's zaten in localStorage.** Prijsfoto's stonden al apart, maar de foto's bij
+   leveringen en de profielfoto's niet — data-URL's van tientallen kB per stuk.
+3. **Mislukt bewaren verdween geruisloos** in een lege `catch`.
+
+De limiet van localStorage is door de browser vastgezet; die kan je niet verhogen. De
+oplossing is dus verhuizen, niet vergroten.
+
+**De verhuizing gebeurt vanzelf.** Bij het opstarten leest de app eerst de oude plek uit,
+schrijft alles naar IndexedDB, en wist pas daarna de oude kopieën. Zat de opslag al vol,
+dan wist ze eerst en schrijft ze daarna opnieuw — anders zou zo'n toestel voorgoed
+vastzitten. De app vraagt ook `navigator.storage.persist()` aan, zodat de browser deze
+gegevens niet weggooit als het toestel plaats tekortkomt. In het Systeem-scherm zie je bij
+*Offline kopie staat in* of de verhuizing gelukt is. `tests/test-opslag.js` bewaakt al deze
+gevallen.
+
+De wachtrij blijft bewust in localStorage: die wordt synchroon weggeschreven, zodat een
+offline gemaakte wijziging ook overleeft als de tablet meteen daarna dichtgaat.
 
 ## Mappenstructuur
 

@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Entertainment</title>
+<title>EntertainmentVM</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2f6450">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Entertainment">
+<meta name="apple-mobile-web-app-title" content="EntVM">
 <link rel="icon" href="assets/logo-cp.png">
 <link rel="apple-touch-icon" href="assets/logo-cp.png">
 <style>
@@ -736,7 +736,7 @@
 <div class="wrap">
   <div class="topbar">
     <img class="logo" id="homeLogo" src="assets/logo-cp.png" alt="Center Parcs" title="Naar de startpagina" style="cursor:pointer">
-    <h1 id="title">Entertainment</h1>
+    <h1 id="title">EntertainmentVM</h1>
     <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
     <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
     <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
@@ -1334,7 +1334,7 @@
 <script src="js/inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v2.8';
+const APP_VERSION='v3.0';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -3492,20 +3492,46 @@ function renderSysteem(){
 function renderSysOpslag(o){
   const el=document.getElementById('sysOpslag'); if(!el||!o) return;
   const lsPct=Math.min(100,Math.round(o.lsBytes/o.lsLimiet*100));
-  const lsKleur=lsPct>=90?'bad':(lsPct>=70?'warn':'');
+  const kleur=o.snapshotOK===false?'bad':(lsPct>=90?'bad':(lsPct>=70?'warn':'ok'));
   let h='<h3>Opslag op dit toestel</h3><div class="sub">De app bewaart alles lokaal zodat ze offline werkt</div>';
-  h+=sysRij(lsPct>=90?'bad':(lsPct>=70?'warn':'ok'),'Snelle opslag (localStorage)', sysBytes(o.lsBytes)+' van ± '+sysBytes(o.lsLimiet)+' ('+lsPct+'%)');
-  h+='<div class="sysmeter"><i class="'+lsKleur+'" style="width:'+lsPct+'%"></i></div>';
-  h+=sysRij('','Aantal bewaarde sleutels', o.lsAantal);
-  if(o.quota){
-    const pct=Math.min(100,Math.round(o.usage/o.quota*100));
-    h+=sysRij(pct>=90?'warn':'ok','Totale ruimte (incl. foto\'s)', sysBytes(o.usage)+' van '+sysBytes(o.quota)+' ('+pct+'%)');
-    h+='<div class="sysmeter"><i class="'+(pct>=90?'bad':(pct>=70?'warn':''))+'" style="width:'+pct+'%"></i></div>';
+  h+=sysRij(kleur,'Snelle opslag (localStorage)', sysBytes(o.lsBytes)+' — richtlijn ± '+sysBytes(o.lsLimiet));
+  h+='<div class="sysmeter"><i class="'+(kleur==='ok'?'':kleur)+'" style="width:'+lsPct+'%"></i></div>';
+  h+=sysRij(o.snapshotOK===false?'bad':'ok','Bewaren lukt', o.snapshotOK===false?'nee — opslag zit vol':'ja');
+  h+=sysRij(o.plek==='IndexedDB'?'ok':'warn','Offline kopie staat in', esc(o.plek||'onbekend'));
+  if(o.quota) h+=sysRij('ok','Totale ruimte (incl. foto\'s)', sysBytes(o.usage)+' van '+sysBytes(o.quota));
+  if(o.blijvend!==null&&o.blijvend!==undefined)
+    h+=sysRij(o.blijvend?'ok':'warn','Beschermd tegen opruimen', o.blijvend?'ja':'nee — de browser mag dit wissen als het toestel vol raakt');
+  // Wat neemt de plaats in? Zonder deze lijst blijft het gissen.
+  if(o.sleutels&&o.sleutels.length){
+    h+='<table class="systab" style="margin-top:10px"><tr><th>Grootste onderdelen</th><th style="text-align:right">Grootte</th></tr>';
+    o.sleutels.forEach(s=>{
+      h+='<tr><td'+(s.oud?' style="color:#c0392b"':'')+'>'+esc(s.naam)+'</td><td class="n">'+sysBytes(s.bytes)+'</td></tr>';
+    });
+    h+='</table>';
   }
-  if(lsPct>=90) h+=sysNote('bad','De snelle opslag zit bijna vol. Nieuwe wijzigingen kunnen stil mislukken. Verwijder oude prijsfoto\'s of wis het activiteitenlogboek.');
-  else if(lsPct>=70) h+=sysNote('warn','De snelle opslag loopt vol. Hou dit in de gaten — vooral prijsfoto\'s nemen veel plaats in.');
-  else h+=sysNote('ok','Ruim voldoende plaats.');
+  if(o.snapshotOK===false){
+    h+=sysNote('bad','<b>De snelle opslag zit vol — wijzigingen worden niet meer lokaal bewaard.</b> '+
+      'Wat je nu aanpast gaat wél naar de database, maar is weg als je de pagina sluit zonder internet. Ruim hieronder op.');
+  }
+  if(o.teHalen>0){
+    h+=sysNote('warn','Er staat nog <b>'+sysBytes(o.teHalen)+'</b> aan oude kopieën in de snelle opslag. '+
+      'De app bewaart alles nu één keer, in de ruime opslag. Het opruimen gebeurt vanzelf bij het opstarten, of nu meteen:'+
+      '<div style="margin-top:9px"><button class="btn" id="sysOpruimen">🧹 Nu opruimen</button></div>');
+  } else if(o.plek==='IndexedDB'){
+    h+=sysNote('ok','De offline kopie staat in de ruime opslag — hier is de krappe 5 MB-grens niet meer van toepassing.');
+  } else if(lsPct>=70){
+    h+=sysNote('warn','De snelle opslag loopt vol en dit toestel kan de ruime opslag niet gebruiken (privémodus of een oude browser).');
+  } else {
+    h+=sysNote('ok','Ruim voldoende plaats.');
+  }
   el.innerHTML=h;
+  const op=document.getElementById('sysOpruimen');
+  if(op) op.onclick=()=>{
+    const vrij=BBInv.opruimen();
+    if(!vrij){ alert('Er kon niets opgeruimd worden. Zit de opslag vol, dan lukt het pas weer met internet (de gegevens moeten eerst veilig in de database staan).'); }
+    else alert(sysBytes(vrij)+' vrijgemaakt.');
+    renderSysteem();
+  };
 }
 // Zolang het scherm openstaat elke 5 seconden verversen, zodat je live ziet wat er gebeurt.
 function sysAutoVerversen(aan){

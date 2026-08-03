@@ -76,7 +76,9 @@ async function sessie(db,ontbrekend){
   BBInv.addBericht({projectId:p.id,auteur:'Matthew',tekst:'Eerste idee'});
   ok(BBInv.getProjecten().length===1,'project staat lokaal in de app');
   ok(!db1.projecten,'er ging niets naar de database (de tabel bestond niet)');
-  ok(!!store['bb_projecten'],'het project zit in de lokale reservekopie');
+  // Sinds v2.9 staat alles in één momentopname (bb_cache_v1) i.p.v. een kopie per tabel.
+  var snap0={}; try{ snap0=JSON.parse(store['bb_cache_v1']||'{}')||{}; }catch(e){}
+  ok((snap0.projecten||[]).length===1,'het project zit in de lokale reservekopie');
   ok(BBInv.isProjectenGedeeld()===false,'de app weet dat het nog niet gedeeld is');
 
   print('\n— Ronde 2: SQL uitgevoerd, tabellen bestaan, app opnieuw geopend —');

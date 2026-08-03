@@ -69,6 +69,10 @@ ok(BBInv.getBerichten(p.id).length===0,'verslagen en berichten weg');
 ok(BBInv.getTaken(p.id).length===0,'taken weg');
 
 print('\n— Offline reservekopie —');
-ok(!!store['bb_projectagenda']&&!!store['bb_projectdocs'],'agenda en documenten staan in de lokale reservekopie');
+// Sinds v2.9 staat alles in één momentopname (bb_cache_v1) i.p.v. een kopie per tabel.
+var snap={}; try{ snap=JSON.parse(store['bb_cache_v1']||'{}')||{}; }catch(e){}
+ok(!!store['bb_cache_v1'],'er is een lokale reservekopie');
+ok(Array.isArray(snap.projectagenda)&&Array.isArray(snap.projectdocs),'agenda en documenten staan in de lokale reservekopie');
+ok(!store['bb_projectagenda']&&!store['bb_projectdocs'],'geen dubbele kopie per tabel meer');
 
 print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');

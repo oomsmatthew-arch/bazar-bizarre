@@ -60,10 +60,7 @@
     ['projectberichten',K_PROJBERICHTEN_BACKUP],['projectagenda',K_PROJAGENDA_BACKUP],
     ['projectdocs',K_PROJDOCS_BACKUP]];
   function bewaarLokaleProjectstand(){
-    PROJ_TABELLEN.forEach(paar=>{
-      try{ const r=localStorage.getItem(paar[1]); lokaalVoorSync[paar[0]]=r?(JSON.parse(r)||[]):[]; }
-      catch(e){ lokaalVoorSync[paar[0]]=[]; }
-    });
+    PROJ_TABELLEN.forEach(paar=>{ lokaalVoorSync[paar[0]]=lokaleKopie(paar[0],paar[1]); });
   }
   // Eenmalig bij de overstap naar deze versie: alles wat al op dit toestel staat markeren
   // als "moet nog vertrekken". Projecten die gemaakt zijn vóór deze boekhouding bestond,
@@ -83,44 +80,161 @@
   function fire(){ if(onChange) try{onChange();}catch(e){console.error(e);} }
   function err(r){ if(r&&r.error) console.error('Supabase:', r.error.message||r.error); }
 
-  // ---- Algemene back-up per tabel (lokaal, zodat een ontbrekende tabel toch werkt) ----
-  function saveBackup(cacheKey,backupKey){ try{localStorage.setItem(backupKey,JSON.stringify(cache[cacheKey]));}catch(e){} }
-  function loadBackup(cacheKey,backupKey){ try{const r=localStorage.getItem(backupKey); cache[cacheKey]=r?(JSON.parse(r)||[]):[];}catch(e){cache[cacheKey]=[];} }
+  // ---- Eén lokale momentopname i.p.v. een kopie per tabel ----
+  // Vroeger stond élke tabel twee keer in de snelle opslag: los (bb_projecten, bb_contacten…)
+  // én samen in bb_cache_v1. Dat vulde de beperkte localStorage-ruimte dubbel zo snel, en
+  // een volle opslag betekent dat wijzigingen stil niet meer bewaard worden. Nu is
+  // bb_cache_v1 de enige plek. De oude losse sleutels worden nog gelezen zolang ze bestaan
+  // (zodat er niets verloren gaat) en pas opgeruimd als de momentopname veilig geschreven is.
+  const BACKUP_PAREN=[['bestellingen',K_BESTEL_BACKUP],['contacten',K_CONTACTEN_BACKUP],
+    ['checklisten',K_CHECKLISTEN_BACKUP],['logboek',K_LOGBOEK_BACKUP],['gebruikers',K_GEBRUIKERS_BACKUP],
+    ['activiteit',K_ACTIVITEIT_BACKUP],['projecten',K_PROJECTEN_BACKUP],['projecttaken',K_PROJTAKEN_BACKUP],
+    ['projectberichten',K_PROJBERICHTEN_BACKUP],['projectagenda',K_PROJAGENDA_BACKUP],['projectdocs',K_PROJDOCS_BACKUP]];
+  const OUDE_BACKUPS=BACKUP_PAREN.map(p=>p[1]);
+  // De momentopname zelf woont in IndexedDB (honderden MB's) i.p.v. in localStorage
+  // (± 5 MB, niet te verhogen). We lezen ze bij het opstarten één keer in en houden ze
+  // daarna in het geheugen bij, zodat de rest van de code gewoon synchroon kan blijven.
+  let snapshot=null, snapshotGeladen=false;
+  function snapshotLezen(){ return snapshot; }
+  // De laatst bekende stand van één tabel: eerst de oude losse sleutel (die is nooit
+  // opgeruimd zolang ze bestaat), anders de gedeelde momentopname.
+  function lokaleKopie(cacheKey,backupKey){
+    if(backupKey){
+      try{ const r=localStorage.getItem(backupKey); if(r!=null){ const a=JSON.parse(r); if(Array.isArray(a)) return a; } }catch(e){}
+    }
+    const snap=snapshotLezen();
+    return (snap && Array.isArray(snap[cacheKey])) ? snap[cacheKey] : [];
+  }
+  function saveBackup(cacheKey,backupKey){ persistCache(); }
+  function loadBackup(cacheKey,backupKey){ cache[cacheKey]=lokaleKopie(cacheKey,backupKey); }
   function loadBestelBackup(){ loadBackup('bestellingen',K_BESTEL_BACKUP); }
   function saveBestelBackup(){ saveBackup('bestellingen',K_BESTEL_BACKUP); }
 
   // ---- Volledige offline-fallback: laatst bekende gegevens ----
-  // De tekstgegevens gaan naar localStorage (klein en snel). De prijs-foto's zijn te groot
-  // voor localStorage (limiet ~5 MB), dus die bewaren we apart in IndexedDB (zie hieronder),
-  // zodat ze óók offline zichtbaar blijven zonder de slanke fallback te overladen.
+  // Foto's staan apart (zie hieronder), zodat de momentopname enkel tekst bevat.
+  const zonderFoto=list=>(list||[]).map(x=>Object.assign({},x,{foto:''}));
+  let snapshotOK=true;      // is de laatste schrijfpoging gelukt? (false = opslag vol)
+  let snapshotIDB=false;    // staat de momentopname al in IndexedDB?
+  let snapT=null;
+  function bouwSlim(){
+    return {
+      prijzen: cache.prijzen.map(p=>({id:p.id,cat:p.cat,naam:p.naam,stock:p.stock,inGebruik:p.inGebruik,foto:''})),
+      boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: zonderFoto(cache.leveringen),
+      bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: zonderFoto(cache.gebruikers), activiteit: cache.activiteit,
+      projecten: cache.projecten, projecttaken: cache.projecttaken, projectberichten: cache.projectberichten,
+      projectagenda: cache.projectagenda, projectdocs: cache.projectdocs,
+      manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
+    };
+  }
+  const idbKan=()=>typeof indexedDB!=='undefined';
+  // Terugval voor browsers zonder IndexedDB (privémodus, oude toestellen): dan toch maar
+  // localStorage, met dezelfde beperking als vroeger.
+  function schrijfNaarLocalStorage(){
+    try{ localStorage.setItem(K_CACHE,JSON.stringify(snapshot)); snapshotOK=true; }
+    catch(e){
+      // Bijna altijd: de snelle opslag zit vol. Vroeger verdween dat geruisloos; nu komt
+      // het in het Systeem-scherm te staan, zodat je weet dat er niets meer bewaard wordt.
+      snapshotOK=false; noteFout('Lokale opslag',e);
+    }
+  }
+  function schrijfSnapshot(){
+    if(!snapshot) return;
+    if(!idbKan()){ schrijfNaarLocalStorage(); return; }
+    idbSet(IDB_SNAPSHOT,snapshot).then(()=>{
+      snapshotOK=true;
+      // Gelukt → de oude kopie in localStorage mag weg; die ruimte hebben we niet meer nodig.
+      if(!snapshotIDB){ snapshotIDB=true; try{localStorage.removeItem(K_CACHE);}catch(e){} }
+    }).catch(e=>{ noteFout('Lokale opslag (IndexedDB)',e); schrijfNaarLocalStorage(); });
+  }
   function persistCache(){
-    try{
-      const slim={
-        prijzen: cache.prijzen.map(p=>({id:p.id,cat:p.cat,naam:p.naam,stock:p.stock,inGebruik:p.inGebruik,foto:''})),
-        boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: cache.leveringen,
-        bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: cache.gebruikers, activiteit: cache.activiteit,
-        projecten: cache.projecten, projecttaken: cache.projecttaken, projectberichten: cache.projectberichten,
-        projectagenda: cache.projectagenda, projectdocs: cache.projectdocs,
-        manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
-      };
-      localStorage.setItem(K_CACHE,JSON.stringify(slim));
-    }catch(e){}
+    // Zolang de bewaarde stand nog niet ingelezen is (IndexedDB leest asynchroon), mogen we
+    // niets wegschrijven: de cache is dan nog leeg en zou de offline kopie wissen.
+    if(!snapshotGeladen) return;
+    snapshot=bouwSlim();
+    // IndexedDB schrijft asynchroon en per transactie; persistCache wordt bij elke stock-tik
+    // aangeroepen, dus bundelen we de schrijfacties. Wat er tussenuit valt is geen verlies:
+    // offline gemaakte wijzigingen staan in de outbox (localStorage, meteen weggeschreven),
+    // en met internet komt alles sowieso weer uit de database.
+    if(idbKan()){ clearTimeout(snapT); snapT=setTimeout(()=>{ snapT=null; schrijfSnapshot(); },400); }
+    else schrijfNaarLocalStorage();
     savePhotosToIDB();
+  }
+  // Bij het sluiten van de pagina niet wachten op de timer.
+  function snapshotNu(){ if(snapT){ clearTimeout(snapT); snapT=null; schrijfSnapshot(); } }
+  if(typeof window!=='undefined' && window.addEventListener){
+    window.addEventListener('pagehide',snapshotNu);
+    if(typeof document!=='undefined' && document.addEventListener)
+      document.addEventListener('visibilitychange',()=>{ if(document.hidden) snapshotNu(); });
+  }
+  // Eén keer bij het opstarten: de laatst bewaarde stand ophalen. Eerst uit IndexedDB;
+  // staat ze daar nog niet, dan uit de oude plek in localStorage (en daarna verhuist ze).
+  async function laadSnapshot(){
+    try{
+      if(idbKan()){
+        try{ const s=await idbGet(IDB_SNAPSHOT); if(s&&typeof s==='object'){ snapshot=s; snapshotIDB=true; return; } }catch(e){}
+      }
+      try{ const r=localStorage.getItem(K_CACHE); snapshot=r?(JSON.parse(r)||null):null; }catch(e){ snapshot=null; }
+    } finally { snapshotGeladen=true; }
+  }
+  // Ruimt de oude dubbele kopieën op. Dat mag altijd: bij het opstarten zijn ze al in de
+  // cache ingelezen (zie overlayOudeKopieen), dus ze bevatten niets wat de momentopname niet
+  // heeft. Zit de opslag al vol, dan lukt het schrijven pas ná het wissen — vandaar de
+  // tweede poging. Zonder die volgorde blijft een volgelopen toestel voor altijd vastzitten.
+  function wisOudeKopieen(){
+    let vrij=0;
+    // De momentopname in localStorage mag pas weg als ze veilig in IndexedDB staat.
+    const wis=OUDE_BACKUPS.concat(snapshotIDB?[K_CACHE]:[]);
+    wis.forEach(k=>{
+      try{ const v=localStorage.getItem(k); if(v!=null){ vrij+=(k.length+v.length)*2; localStorage.removeItem(k); } }catch(e){}
+    });
+    return vrij;
+  }
+  function opruimen(){
+    persistCache();
+    clearTimeout(snapT); snapT=null;
+    schrijfSnapshot();             // meteen wegschrijven, niet wachten op de timer
+    if(snapshotOK) return wisOudeKopieen();
+    // Geen IndexedDB én de snelle opslag zit vol: eerst plaats maken, dan opnieuw proberen.
+    const vrij=wisOudeKopieen();
+    schrijfNaarLocalStorage();
+    return vrij;
+  }
+  // Bij elke start één keer opruimen. Een toestel met een volgelopen opslag lost zichzelf
+  // zo op, zonder dat iemand iets moet aanklikken.
+  function autoOpruimen(){
+    const vrij=opruimen();
+    if(vrij>1024) console.log('Opslag opgeruimd: '+Math.round(vrij/1024)+' kB vrijgemaakt.');
   }
   function loadCacheFallback(){
     try{ cache.sessies=JSON.parse(localStorage.getItem('bb_sessies')||'[]')||[]; }catch(e){ cache.sessies=[]; }
-    try{ const r=localStorage.getItem(K_CACHE); if(!r) return false; const c=JSON.parse(r); if(!c) return false;
+    try{ const c=snapshot; if(!c) { overlayOudeKopieen(); return false; }
       cache.prijzen=c.prijzen||[]; cache.boekjes=c.boekjes||{stock:0}; cache.formulieren=c.formulieren||[];
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
       cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.gebruikers=c.gebruikers||[]; cache.activiteit=c.activiteit||[];
       cache.projecten=c.projecten||[]; cache.projecttaken=c.projecttaken||[]; cache.projectberichten=c.projectberichten||[];
       cache.projectagenda=c.projectagenda||[]; cache.projectdocs=c.projectdocs||[];
-      cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null; return true;
-    }catch(e){ return false; }
+      cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null;
+      overlayOudeKopieen();
+      return true;
+    }catch(e){ overlayOudeKopieen(); return false; }
+  }
+  // Op een toestel waar de opslag al vol zat, kon de (grote) momentopname niet meer
+  // geschreven worden terwijl de kleine losse kopieën dat nog wel lukten. Die zijn dan
+  // nieuwer en krijgen voorrang. Pas daarna mogen ze opgeruimd worden.
+  function overlayOudeKopieen(){
+    BACKUP_PAREN.forEach(p=>{
+      try{ const r=localStorage.getItem(p[1]); if(r==null) return;
+        const a=JSON.parse(r); if(Array.isArray(a)) cache[p[0]]=a; }catch(e){}
+    });
   }
 
-  // ---- Prijs-foto's offline bewaren in IndexedDB (veel ruimer dan localStorage) ----
+  // ---- Foto's offline bewaren in IndexedDB (veel ruimer dan localStorage) ----
+  // Elke foto is een data-URL van tientallen kB. Drie lijsten dragen er een: prijzen,
+  // leveringen en gebruikers (profielfoto). In localStorage lopen die de opslag in geen
+  // tijd vol; IndexedDB heeft honderden MB's. In de momentopname staat daarom foto:''.
   const IDB_NAME='bb_offline', IDB_STORE='kv', IDB_PHOTOKEY='prijzenfoto';
+  const IDB_LEVFOTO='leveringfoto', IDB_GEBRFOTO='gebruikerfoto';
+  const IDB_SNAPSHOT='momentopname';   // de volledige offline kopie (zie hierboven)
   function idbOpen(){
     return new Promise((res,rej)=>{
       try{
@@ -145,27 +259,39 @@
   }
   // Alleen wegschrijven wanneer de foto-verzameling echt veranderde (persistCache wordt
   // bij elke stock-tik aangeroepen; zonder deze check zouden we telkens alle beelden herschrijven).
-  let _lastPhotoSig='';
-  function savePhotosToIDB(){
+  const _fotoSig={};
+  function bewaarFotos(sleutel,lijst){
     try{
       if(typeof indexedDB==='undefined') return;
-      const withFoto=cache.prijzen.filter(p=>p.foto);
-      const sig=withFoto.map(p=>p.id+':'+p.foto.length).join('|');
-      if(sig===_lastPhotoSig) return;      // niets veranderd → niets doen
-      if(!withFoto.length && !_lastPhotoSig) return; // nog nooit foto's → geen lege schrijf
-      _lastPhotoSig=sig;
-      idbSet(IDB_PHOTOKEY,withFoto.map(p=>({id:p.id,foto:p.foto}))).catch(()=>{});
+      const met=(lijst||[]).filter(x=>x&&x.foto);
+      const sig=met.map(x=>x.id+':'+x.foto.length).join('|');
+      if(sig===_fotoSig[sleutel]) return;                    // niets veranderd → niets doen
+      if(!met.length && !_fotoSig[sleutel]) return;          // nog nooit foto's → geen lege schrijf
+      _fotoSig[sleutel]=sig;
+      idbSet(sleutel,met.map(x=>({id:x.id,foto:x.foto}))).catch(()=>{});
     }catch(e){}
+  }
+  function herstelFotos(sleutel,lijst){
+    if(typeof indexedDB==='undefined') return Promise.resolve();
+    return idbGet(sleutel).then(list=>{
+      if(!Array.isArray(list)||!list.length) return;
+      const by={}; list.forEach(x=>{ if(x&&x.id) by[x.id]=x.foto||''; });
+      (lijst||[]).forEach(x=>{ if(x && !x.foto && by[x.id]) x.foto=by[x.id]; });
+      _fotoSig[sleutel]=(lijst||[]).filter(x=>x&&x.foto).map(x=>x.id+':'+x.foto.length).join('|');
+    }).catch(()=>{});
+  }
+  function savePhotosToIDB(){
+    bewaarFotos(IDB_PHOTOKEY,cache.prijzen);
+    bewaarFotos(IDB_LEVFOTO,cache.leveringen);
+    bewaarFotos(IDB_GEBRFOTO,cache.gebruikers);
   }
   // Bij offline laden: de foto's terug in de cache zetten (localStorage bevat ze niet).
   function restorePhotosFromIDB(){
-    if(typeof indexedDB==='undefined') return Promise.resolve();
-    return idbGet(IDB_PHOTOKEY).then(list=>{
-      if(!Array.isArray(list)||!list.length) return;
-      const by={}; list.forEach(x=>{ if(x&&x.id) by[x.id]=x.foto||''; });
-      cache.prijzen.forEach(p=>{ if(!p.foto && by[p.id]) p.foto=by[p.id]; });
-      _lastPhotoSig=cache.prijzen.filter(p=>p.foto).map(p=>p.id+':'+p.foto.length).join('|');
-    }).catch(()=>{});
+    return Promise.all([
+      herstelFotos(IDB_PHOTOKEY,cache.prijzen),
+      herstelFotos(IDB_LEVFOTO,cache.leveringen),
+      herstelFotos(IDB_GEBRFOTO,cache.gebruikers)
+    ]).then(()=>{});
   }
 
   // ---- Checklist-media (foto/video) offline bewaren in IndexedDB, per id ----
@@ -347,7 +473,22 @@
   }
 
   // ---------------- INIT ----------------
+  // Vraag de browser om onze offline gegevens te bewaren. Zonder dit mag ze IndexedDB
+  // opruimen wanneer het toestel plaats tekortkomt — precies op het moment dat je zonder
+  // internet in een zaal staat. De vraag wordt maar één keer per toestel gesteld en levert
+  // op de meeste tablets stilzwijgend "ja" op (een geïnstalleerde app krijgt het vanzelf).
+  let blijvend=null;
+  async function vraagBlijvendeOpslag(){
+    try{
+      if(!navigator.storage || !navigator.storage.persist) return;
+      blijvend=await navigator.storage.persisted();
+      if(!blijvend) blijvend=await navigator.storage.persist();
+    }catch(e){ blijvend=null; }
+  }
+
   async function init(){
+    await laadSnapshot();       // de offline kopie inlezen (IndexedDB) vóór er iets uit gelezen wordt
+    await vraagBlijvendeOpslag();
     bewaarLokaleProjectstand(); // eerst vastleggen wat er lokaal staat, vóór het synchroniseren
     eenmaligWachtVullen();      // bestaande projecten van vóór deze versie alsnog laten vertrekken
     if(!window.supabase){
@@ -359,6 +500,7 @@
       loadCacheFallback();
       await restorePhotosFromIDB();
       ensureEntAlgemeen();
+      autoOpruimen();
       ready=true; fire();
       return;
     }
@@ -373,6 +515,7 @@
       loadCacheFallback();
       await restorePhotosFromIDB();
       ensureEntAlgemeen();
+      autoOpruimen();
       ready=true; fire();
       return;
     }
@@ -385,6 +528,7 @@
     normalizeInGebruik(); // prijzen op 0 die nog "in gebruik" stonden opschonen + syncen
     subscribe();
     flushOutbox(); // eventuele offline gemaakte wijzigingen alsnog doorsturen
+    autoOpruimen();
     ready=true;
     fire();
   }
@@ -393,7 +537,7 @@
     if(!okGetter() || cache[cacheKey].length) return;
     const FLAG='bb_sharedseed_'+table;
     if(localStorage.getItem(FLAG)==='1') return; // dit toestel deelde de lijst al eerder
-    let backup=[]; try{const r=localStorage.getItem(backupKey); backup=r?(JSON.parse(r)||[]):[];}catch(e){}
+    const backup=lokaleKopie(cacheKey,backupKey);
     if(backup.length){
       for(let i=0;i<backup.length;i+=40){ const r=await sb.from(table).insert(backup.slice(i,i+40).map(toRowFn)); err(r); }
       cache[cacheKey]=backup.slice();
@@ -590,7 +734,7 @@
     const SEEDED='bb_bestel_seed_v1'; // standaardlijst maar één keer plaatsen
     if(bestelOK){
       if(!cache.bestellingen.length){
-        let backup=[]; try{const r=localStorage.getItem(K_BESTEL_BACKUP); backup=r?(JSON.parse(r)||[]):[];}catch(e){}
+        const backup=lokaleKopie('bestellingen',K_BESTEL_BACKUP);
         let seed=[];
         if(backup.length) seed=backup;                                 // lokale kopie → gedeeld zetten
         else if(localStorage.getItem(SEEDED)!=='1') seed=bestelSeed();  // allereerste keer: standaardlijst
@@ -1187,14 +1331,29 @@
       return {ok:false,ms:Date.now()-t0,fout:(e&&e.message)||'geen antwoord'};
     }
   }
-  // Hoeveel ruimte de app inneemt op dit toestel (localStorage is hard begrensd op ~5 MB).
+  // Wat de losse sleutels in de snelle opslag betekenen, in mensentaal.
+  const SLEUTELNAMEN={
+    'bb_outbox':'Wachtrij (nog te versturen)',
+    'bb_bestellingen':'Bestellingen (oude kopie)','bb_contacten':'Contacten (oude kopie)',
+    'bb_checklisten':'Checklists (oude kopie)','bb_logboek':'Logboek (oude kopie)',
+    'bb_gebruikers':'Gebruikers (oude kopie)','bb_activiteit':'Activiteit (oude kopie)',
+    'bb_projecten':'Projecten (oude kopie)','bb_projecttaken':'Projecttaken (oude kopie)',
+    'bb_projectberichten':'Projectberichten (oude kopie)','bb_projectagenda':'Projectagenda (oude kopie)',
+    'bb_projectdocs':'Projectdocumenten (oude kopie)','bb_sessies':'Recente spelsessies',
+    'bb_cache_v1':'Offline kopie (verhuist naar IndexedDB)',
+    'bb_proj_wacht':'Projecten die nog moeten vertrekken'
+  };
+  // Hoeveel ruimte de app inneemt op dit toestel (localStorage is hard begrensd, ± 5 MB).
   async function getOpslag(){
-    let lsBytes=0, lsAantal=0;
+    let lsBytes=0, lsAantal=0; const sleutels=[];
     try{
       for(let i=0;i<localStorage.length;i++){
         const k=localStorage.key(i); const v=localStorage.getItem(k)||'';
-        lsBytes+=(k.length+v.length)*2; lsAantal++;
+        const b=(k.length+v.length)*2;
+        lsBytes+=b; lsAantal++;
+        sleutels.push({k,bytes:b,naam:SLEUTELNAMEN[k]||k,oud:OUDE_BACKUPS.indexOf(k)>=0});
       }
+      sleutels.sort((a,b)=>b.bytes-a.bytes);
     }catch(e){}
     let quota=0, usage=0;
     try{
@@ -1203,7 +1362,9 @@
         quota=est.quota||0; usage=est.usage||0;
       }
     }catch(e){}
-    return {lsBytes,lsAantal,lsLimiet:5*1024*1024,quota,usage};
+    const teHalen=sleutels.filter(s=>s.oud||s.k===K_CACHE).reduce((n,s)=>n+s.bytes,0);
+    return {lsBytes,lsAantal,lsLimiet:5*1024*1024,quota,usage,sleutels:sleutels.slice(0,10),
+      teHalen,snapshotOK,plek:snapshotIDB?'IndexedDB':'snelle opslag',blijvend};
   }
   // Laatste redmiddel als een wijziging de wachtrij blijft blokkeren. De app vraagt
   // hier eerst bevestiging voor — wat weg is, is weg.
@@ -1272,7 +1433,7 @@
     getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,
     rolTags,heeftRol,zetRol,
-    getSysteem,pingDB,getOpslag,wisWachtrij,
+    getSysteem,pingDB,getOpslag,wisWachtrij,opruimen,
     submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
 })();

@@ -81,9 +81,11 @@ ok(BBInv.getBerichten(p.id).length===0,'berichten van dat project weg');
 ok(BBInv.getTaken(p2.id).length===1,'het andere project bleef ongemoeid');
 
 print('\n— Offline bewaard op het toestel —');
-ok(!!store['bb_projecten'],'projecten staan in de lokale reservekopie');
-ok(!!store['bb_projecttaken'],'taken staan in de lokale reservekopie');
-var bewaard=JSON.parse(store['bb_projecten']);
+// Sinds v2.9 staat alles in één momentopname (bb_cache_v1) i.p.v. een kopie per tabel.
+var snap={}; try{ snap=JSON.parse(store['bb_cache_v1']||'{}')||{}; }catch(e){}
+ok(Array.isArray(snap.projecten),'projecten staan in de lokale reservekopie');
+ok(Array.isArray(snap.projecttaken),'taken staan in de lokale reservekopie');
+var bewaard=snap.projecten||[];
 ok(bewaard.length===1 && bewaard[0].naam==='Zaal opknappen','reservekopie klopt met de cache');
 
 print('\n— Activiteitenlog —');

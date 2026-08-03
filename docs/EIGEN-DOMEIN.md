@@ -6,7 +6,8 @@ Hosting blijft gratis bij GitHub Pages — je betaalt enkel de domeinnaam, ongev
 per jaar. Er hoeft **niets aan de code te veranderen**: alle verwijzingen in de app zijn
 relatief (`./entertainment.html`, `sw.js`, `js/…`), dus de app werkt op elk adres.
 
-In dit document staat `jouwdomein.be` overal waar jouw eigen naam komt.
+De gekozen naam is **EntertainmentVM**, domein `entertainmentvm.be`. Die staat al in de app
+zelf (titel, `manifest.json`, `index.html`); enkel het domein moet nog geregeld worden.
 
 ---
 
@@ -47,7 +48,7 @@ Een `.be` kan je enkel via een erkende registrar kopen; `.com` of `.app` kan ove
 
 Log in bij je registrar en zoek **DNS** of **DNS-beheer**. Voeg toe:
 
-**Vier A-records** (voor `jouwdomein.be` zelf) — naam leeg laten of `@`:
+**Vier A-records** (voor `entertainmentvm.be` zelf) — naam leeg laten of `@`:
 
 ```
 185.199.108.153
@@ -56,7 +57,7 @@ Log in bij je registrar en zoek **DNS** of **DNS-beheer**. Voeg toe:
 185.199.111.153
 ```
 
-**Eén CNAME-record** (voor `www.jouwdomein.be`):
+**Eén CNAME-record** (voor `www.entertainmentvm.be`):
 
 ```
 Naam:   www
@@ -72,7 +73,7 @@ DNS-wijzigingen zijn doorgaans binnen een half uur actief, soms duurt het tot 24
 
 1. Ga naar https://github.com/oomsmatthew-arch/bazar-bizarre
 2. **Settings** → links **Pages**.
-3. Onder **Custom domain**: vul `jouwdomein.be` in → **Save**.
+3. Onder **Custom domain**: vul `entertainmentvm.be` in → **Save**.
 4. GitHub controleert de DNS. Groen vinkje = in orde. Rood = de DNS is nog niet doorgesijpeld;
    wacht en klik nog eens op Save.
 5. Zodra het vinkje groen is, verschijnt **Enforce HTTPS**. Vink dat aan. Het kan tot een uur
@@ -108,8 +109,8 @@ niet is afgesloten — hoort bij het oude adres. Sluit lopende spellen dus af v�
 
 ## Even nakijken achteraf
 
-- `https://jouwdomein.be` opent de app
-- `https://www.jouwdomein.be` komt op hetzelfde uit
+- `https://entertainmentvm.be` opent de app
+- `https://www.entertainmentvm.be` komt op hetzelfde uit
 - Het slotje staat in de adresbalk (HTTPS werkt)
 - Op de tablet werkt "Zet op beginscherm" en start de app schermvullend
 
