@@ -227,13 +227,19 @@ const ACT_CATS=[
   {key:'avond',label:'Avond',re:/quiz|prize night|crazy game|dr[oô]les?\s*de\s*jeux|live[\s-]*mu|musique live|chill tunes|concert|bingo|pirate|piraat/i},
   {key:'sint',label:'Sint',re:/sint|piet|nikolaus|ruprecht|knecht|pepernot|nicolas|soulier|pierre/i},
   {key:'halloween',label:'Halloween',re:/hallow|griezel|grusel/i},
-  {key:'kerst',label:'Kerst',re:/kerst|christmas|weihnacht|noe?l/i}
+  {key:'kerst',label:'Kerst',re:/kerst|christmas|weihnacht|noe?l|santa|kerstman/i},
+  {key:'nieuwjaar',label:'Nieuwjaar',re:/nieuwjaar|new year|neujahr|nouvel an|silvester|oud.{0,4}nieuw/i},
+  {key:'valentijn',label:'Valentijn',re:/valentij?n|valentine|valentin/i},
+  {key:'carnaval',label:'Carnaval',re:/carnaval|carnival|fasching|karneval/i},
+  {key:'pasen',label:'Pasen',re:/pasen|paas|easter|ostern|p[aâ]ques/i},
+  {key:'zomer',label:'Zomer',re:/zomer|summer|sommer|beach|strand/i}
 ];
 // Taalvarianten van dezelfde activiteit samenvoegen tot één naam (NL/DE/EN/FR).
 // Specifiekste regels eerst; wie nergens matcht, houdt zijn eigen naam.
 const ACT_CANON=[
   {naam:'O&F: Pieten Spelshow', re:/pieten\s*spel-?show|spiel-?show\s*mit\s*ruprecht/i},
   {naam:'O&F: Pieten Disco', re:/pieten\s*disco/i},
+  {naam:'O&F: Carnaval Disco', re:/carnaval\s*disco/i},
   {naam:'Pieten bezoek Cottage', re:/(pieten|ruprecht|knecht)[^,]{0,30}cottage|cottage[^,]{0,30}(ruprecht|knecht)/i},
   {naam:'Meet & Greet Sinterklaas', re:/meet\s*&\s*greet[^,]{0,40}(nikolaus|nicolas|sinterklaas|piet|pierre)|(nikolaus|sinterklaas)[^,]{0,40}meet\s*&\s*greet/i},
   {naam:'Schoen zetten (Sint)', re:/nikolausstiefel|petit\s*soulier|schoen\s*zetten/i},
