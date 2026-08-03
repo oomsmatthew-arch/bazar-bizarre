@@ -117,6 +117,7 @@ function mapTable(aoa){
   let   iAct  =find(i=>H[i].includes('activity')&&H[i].includes('name'));
   if(iAct<0) iAct=find(i=>has(i,'activiteit','activity','activity name'));
   const iHour =find(i=>has(i,'hour','uur','time','tijd'));
+  const iBook =find(i=>has(i,'booking','crs','boeking'));                // boekingscode → helpt dubbels herkennen
   const out=[];
   for(let i=hi+1;i<rows.length;i++){
     const r=rows[i];
@@ -127,7 +128,8 @@ function mapTable(aoa){
       activiteit:iAct>=0?String(r[iAct]||'').trim():'',
       datum:iDate>=0?parseDate(r[iDate]):null,
       uur:iHour>=0?String(r[iHour]||'').trim():'',
-      tekst:iText>=0?String(r[iText]||'').trim():''
+      tekst:iText>=0?String(r[iText]||'').trim():'',
+      code:iBook>=0?String(r[iBook]||'').trim():''
     });
   }
   return {reviews:out, mapping:{score:iScore,text:iText,date:iDate,act:iAct}};
@@ -184,48 +186,84 @@ function donut(v){
   const pct=Math.max(0,Math.min(100,(v/5)*100));
   return '<span class="donut" style="background:conic-gradient('+col+' '+pct+'%, var(--ring) 0)"><span class="donut-in">'+fmtScore(v)+'</span></span>';
 }
-function kaartRij(naam,sub,gem,n){
-  return '<div class="rij"><div class="rij-donut">'+donut(gem)+'</div>'+
-    '<div class="rij-nm"><div class="t">'+esc(naam)+'</div>'+(sub?'<div class="s">'+esc(sub)+'</div>':'')+'</div>'+
-    '<div class="rij-n"><b>'+fmtScore(gem)+'</b><span>'+n+' reacties</span></div></div>';
+function maandKey(d){ return d?(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')):''; }
+function maandLabel(k){ const p=k.split('-'); return MND[+p[1]-1]+' '+p[0]; }
+function fmtISO(d){ if(!(d instanceof Date)||isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+
+// Eén overzicht-rij; met onClick wordt ze klikbaar (filtert de reactielijst).
+function kaartRij(naam,gem,n,onClick){
+  const el=document.createElement('div'); el.className='rij'+(onClick?' klik':'');
+  el.innerHTML='<div class="rij-donut">'+donut(gem)+'</div>'+
+    '<div class="rij-nm"><div class="t">'+esc(naam)+'</div></div>'+
+    '<div class="rij-n"><b>'+fmtScore(gem)+'</b><span>'+n+' reacties</span></div>';
+  if(onClick) el.onclick=onClick;
+  return el;
+}
+function vulRijen(id,els){ const c=$(id); if(!c) return; c.innerHTML=''; if(!els.length){ c.innerHTML='<p class="muted">—</p>'; return; } els.forEach(e=>c.appendChild(e)); }
+
+function reviewKaart(r){
+  const c=kl(r.score);
+  const heeft=r.tekst||r.vertaald;
+  const orig=(r.tekst && r.vertaald && r.tekst!==r.vertaald)?'<div class="rv-orig">origineel: '+esc(r.tekst)+'</div>':'';
+  const tekst=heeft?esc(r.vertaald||r.tekst):'<span class="muted">— geen tekst —</span>';
+  return '<div class="rv"><div class="rv-score '+c+'">'+fmtScore(r.score)+'</div>'+
+    '<div class="rv-body"><div class="rv-top"><b>'+esc(r.activiteit||'—')+'</b>'+
+    (r.datum?'<span class="rv-datum">'+fmtDate(r.datum)+(r.uur?' · '+esc(r.uur):'')+'</span>':'')+
+    (taalVan(r)?'<span class="rv-taal">'+esc(taalVan(r))+'</span>':'')+'</div>'+
+    '<div class="rv-tekst">'+tekst+'</div>'+orig+'</div></div>';
 }
 
+// ---- filter + reactielijst ----
+let _reviews=[];
+let _filter={zoek:'',datum:'',act:'',maand:'',score:''};
+function renderReviews(){
+  const f=_filter;
+  const list=_reviews.filter(r=>{
+    if(f.act && r.activiteit!==f.act) return false;
+    if(f.maand && maandKey(r.datum)!==f.maand) return false;
+    if(f.datum && fmtISO(r.datum)!==f.datum) return false;
+    if(f.score && kl(r.score)!==f.score) return false;
+    if(f.zoek){ const hay=((r.activiteit||'')+' '+(r.tekst||'')+' '+(r.vertaald||'')).toLowerCase(); if(hay.indexOf(f.zoek)<0) return false; }
+    return true;
+  }).sort((a,b)=>((b.datum?b.datum.getTime():0)-(a.datum?a.datum.getTime():0)));
+  const actief=!!(f.act||f.maand||f.datum||f.score||f.zoek);
+  let head=list.length+' van '+_reviews.length+' reacties';
+  if(actief) head+=' · gemiddelde '+(list.length?fmtScore(avg(list.map(r=>r.score))):'–');
+  $('reviewCount').textContent=head;
+  $('reviewList').innerHTML=list.length?list.map(reviewKaart).join(''):'<p class="muted">Geen reacties gevonden voor deze zoekopdracht.</p>';
+}
+function zetFilter(patch,scroll){
+  Object.assign(_filter,patch);
+  const z=$('fZoek'),d=$('fDatum'),a=$('fAct');
+  if(z) z.value=_filter.zoek||''; if(d) d.value=_filter.datum||''; if(a) a.value=_filter.act||'';
+  document.querySelectorAll('#fScore .chip').forEach(x=>x.classList.toggle('active',(x.dataset.score||'')===(_filter.score||'')));
+  renderReviews();
+  if(scroll){ const el=$('reviewCount'); if(el&&el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+function resetFilter(){ zetFilter({zoek:'',datum:'',act:'',maand:'',score:''},false); }
+
 function render(data){
-  const reviews=data.reviews;
+  const reviews=data.reviews; _reviews=reviews;
   $('leeg').style.display='none';
   $('resultaat').style.display='block';
-  // samenvatting
   const alle=reviews.map(r=>r.score);
-  const perMaand=groepeer(reviews,r=>r.datum?(r.datum.getFullYear()+'-'+String(r.datum.getMonth()+1).padStart(2,'0')):null)
-    .sort((a,b)=>a.key.localeCompare(b.key));
+  const perMaand=groepeer(reviews,r=>maandKey(r.datum)).sort((a,b)=>a.key.localeCompare(b.key));
   let best=null,slecht=null;
   perMaand.forEach(m=>{ if(!best||m.gem>best.gem)best=m; if(!slecht||m.gem<slecht.gem)slecht=m; });
-  const mLabel=k=>{ const p=k.split('-'); return MND[+p[1]-1]+' '+p[0]; };
   $('sumTiles').innerHTML=
     '<div class="tile big">'+donut(avg(alle))+'<div class="l">gemiddelde · '+reviews.length+' reacties</div></div>'+
-    (best?'<div class="tile"><div class="v goed">'+fmtScore(best.gem)+'</div><div class="l">beste: '+mLabel(best.key)+'</div></div>':'')+
-    (slecht?'<div class="tile"><div class="v '+kl(slecht.gem)+'">'+fmtScore(slecht.gem)+'</div><div class="l">laagste: '+mLabel(slecht.key)+'</div></div>':'');
-  // per maand
-  $('perMaand').innerHTML=perMaand.map(m=>kaartRij(mLabel(m.key),'',m.gem,m.n)).join('')||'<p class="muted">Geen datums gevonden.</p>';
-  // per activiteit (hoogste eerst)
+    (best?'<div class="tile"><div class="v goed">'+fmtScore(best.gem)+'</div><div class="l">beste: '+maandLabel(best.key)+'</div></div>':'')+
+    (slecht?'<div class="tile"><div class="v '+kl(slecht.gem)+'">'+fmtScore(slecht.gem)+'</div><div class="l">laagste: '+maandLabel(slecht.key)+'</div></div>':'');
+  vulRijen('perMaand', perMaand.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
   const perAct=groepeer(reviews,r=>r.activiteit).sort((a,b)=>b.gem-a.gem);
-  $('perActiviteit').innerHTML=perAct.map(a=>kaartRij(a.key||'(zonder naam)','',a.gem,a.n)).join('')||'<p class="muted">Geen activiteiten gevonden.</p>';
-  // per taal
+  vulRijen('perActiviteit', perAct.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:''},true))));
   const perTaal=groepeer(reviews,taalVan).sort((a,b)=>b.n-a.n);
-  $('perTaal').innerHTML=perTaal.length?perTaal.map(t=>kaartRij(t.key,'',t.gem,t.n)).join(''):'<p class="muted">Nog geen taal bekend (vertaling nodig).</p>';
-  // reviewlijst (nieuwste eerst)
-  const lijst=reviews.slice().sort((a,b)=>((b.datum?b.datum.getTime():0)-(a.datum?a.datum.getTime():0)));
-  $('reviewList').innerHTML=lijst.map(r=>{
-    const c=kl(r.score);
-    const orig=(r.tekst && r.vertaald && r.tekst!==r.vertaald)?'<div class="rv-orig">origineel: '+esc(r.tekst)+'</div>':'';
-    const tekst=r.vertaald||r.tekst||'<span class="muted">— geen tekst —</span>';
-    return '<div class="rv"><div class="rv-score '+c+'">'+fmtScore(r.score)+'</div>'+
-      '<div class="rv-body"><div class="rv-top"><b>'+esc(r.activiteit||'—')+'</b>'+
-      (r.datum?'<span class="rv-datum">'+fmtDate(r.datum)+(r.uur?' · '+esc(r.uur):'')+'</span>':'')+
-      (taalVan(r)?'<span class="rv-taal">'+esc(taalVan(r))+'</span>':'')+'</div>'+
-      '<div class="rv-tekst">'+(r.vertaald?esc(tekst):tekst)+'</div>'+orig+'</div></div>';
-  }).join('');
+  vulRijen('perTaal', perTaal.map(t=>kaartRij(t.key,t.gem,t.n,null)));
+  // activiteiten-keuzelijst vullen
+  const namen=Array.from(new Set(reviews.map(r=>r.activiteit).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+  const fa=$('fAct'); if(fa) fa.innerHTML='<option value="">Alle activiteiten</option>'+namen.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
   $('telling').textContent=reviews.length+' reacties';
+  renderReviews();
 }
 
 // ---------------------------------------------------------------- import-flow
@@ -236,26 +274,47 @@ async function importFile(file){
     const naam=(file.name||'').toLowerCase();
     if(naam.endsWith('.csv')||naam.endsWith('.txt')){ aoa=parseCSV(await file.text()); }
     else { aoa=await parseXLSX(await file.arrayBuffer()); }
-    const {reviews,mapping}=mapTable(aoa);
-    if(!reviews.length){ st.className='status fout'; st.textContent='Geen reviews met een score gevonden. Klopt het bestand? (kolommen score/activiteit/datum/tekst)'; return; }
+    const {reviews:nieuw,mapping}=mapTable(aoa);
+    if(!nieuw.length){ st.className='status fout'; st.textContent='Geen reviews met een score gevonden. Klopt het bestand? (kolommen score/activiteit/datum/tekst)'; return; }
     if(mapping.score<0){ st.className='status fout'; st.textContent='Geen scorekolom gevonden.'; return; }
-    // vertalen
-    const metTekst=reviews.filter(r=>r.tekst).length;
-    st.textContent='Vertalen… (0/'+metTekst+')';
-    await vertaalAlles(reviews,(k,n)=>{ st.textContent='Vertalen… ('+k+'/'+n+')'; });
-    const data={reviews, ts:Date.now(), bestand:file.name||''};
+    // Samenvoegen met wat er al is; identieke reacties overslaan (geen dubbeltelling).
+    const bestaand=laadOpgeslagenReviews();
+    const gezien=new Set(bestaand.map(reviewKey));
+    const toeTeVoegen=nieuw.filter(r=>{ const k=reviewKey(r); if(gezien.has(k)) return false; gezien.add(k); return true; });
+    const dubbel=nieuw.length-toeTeVoegen.length;
+    // Enkel de nieuwe reacties vertalen.
+    const metTekst=toeTeVoegen.filter(r=>r.tekst).length;
+    st.textContent=metTekst?('Vertalen… (0/'+metTekst+')'):'Samenvoegen…';
+    await vertaalAlles(toeTeVoegen,(k,n)=>{ st.textContent='Vertalen… ('+k+'/'+n+')'; });
+    const alles=bestaand.concat(toeTeVoegen);
+    const data={reviews:alles, ts:Date.now(), bestand:file.name||''};
     bewaar(data);
     render(data);
-    const fouten=reviews.filter(r=>r._trFout).length;
-    st.className='status klaar';
-    st.textContent='Klaar — '+reviews.length+' reacties ingelezen'+(fouten?(' ('+fouten+' niet vertaald — probeer later opnieuw)'):'')+'.';
+    const fouten=toeTeVoegen.filter(r=>r._trFout).length;
+    let msg='Klaar — '+toeTeVoegen.length+' nieuwe reacties toegevoegd';
+    if(dubbel>0) msg+=' ('+dubbel+' stonden er al)';
+    msg+=' · totaal '+alles.length+' reacties';
+    if(fouten) msg+=' · '+fouten+' niet vertaald (probeer later opnieuw)';
+    st.className='status klaar'; st.textContent=msg+'.';
   }catch(e){
     st.className='status fout'; st.textContent='Kon het bestand niet inlezen: '+(e&&e.message?e.message:e);
   }
 }
 function bewaar(data){
   try{ localStorage.setItem(K_DATA, JSON.stringify({ts:data.ts,bestand:data.bestand,
-    reviews:data.reviews.map(r=>({score:r.score,activiteit:r.activiteit,datum:r.datum?r.datum.getTime():null,uur:r.uur,tekst:r.tekst,vertaald:r.vertaald,lang:r.lang}))})); }catch(e){}
+    reviews:data.reviews.map(r=>({score:r.score,activiteit:r.activiteit,datum:r.datum?r.datum.getTime():null,uur:r.uur,tekst:r.tekst,vertaald:r.vertaald,lang:r.lang,code:r.code}))})); }catch(e){}
+}
+// De al ingelezen reacties ophalen (datum terug als Date).
+function laadOpgeslagenReviews(){
+  try{ const raw=localStorage.getItem(K_DATA); if(!raw) return []; const o=JSON.parse(raw); if(!o||!Array.isArray(o.reviews)) return [];
+    return o.reviews.map(r=>({score:r.score,activiteit:r.activiteit,datum:r.datum?new Date(r.datum):null,uur:r.uur,tekst:r.tekst,vertaald:r.vertaald,lang:r.lang,code:r.code}));
+  }catch(e){ return []; }
+}
+// Vingerafdruk van één reactie — identieke reacties (zelfde boeking, datum, activiteit,
+// uur, score én tekst) tellen maar één keer, ook bij dubbel uploaden of overlappende exports.
+function reviewKey(r){
+  const d=r.datum instanceof Date?r.datum.getTime():(r.datum||0);
+  return (r.code||'')+'|'+d+'|'+(r.activiteit||'')+'|'+(r.uur||'')+'|'+r.score+'|'+(r.tekst||'');
 }
 function laadBewaard(){
   try{ const raw=localStorage.getItem(K_DATA); if(!raw) return; const o=JSON.parse(raw); if(!o||!Array.isArray(o.reviews)||!o.reviews.length) return;
@@ -271,9 +330,9 @@ function printOverzicht(){
   const w=window.open('','_blank'); if(!w){ alert('Kon het afdrukvenster niet openen (pop-ups toestaan).'); return; }
   const html=$('resultaat').innerHTML;
   const css='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:24px;}'+
-    '.donut,.rij-donut{display:none;}.tile{display:inline-block;margin:0 18px 10px 0;}.tile .v,.tile .l{display:block;}'+
+    '.donut,.rij-donut,.filterbar,.toolbar{display:none!important;}.tile{display:inline-block;margin:0 18px 10px 0;}.tile .v,.tile .l{display:block;}'+
     '.rij{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:6px 0;}'+
-    '.rv{border-bottom:1px solid #eee;padding:8px 0;}.rv-score{font-weight:bold;display:inline-block;width:34px;}'+
+    '.reviewgrid{display:block;}.rv{border-bottom:1px solid #eee;padding:8px 0;}.rv-score{font-weight:bold;display:inline-block;width:34px;}'+
     '.rv-orig{color:#666;font-style:italic;font-size:12px;}.muted{color:#888;}h2{font-size:15px;margin:16px 0 6px;}';
   w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Ratings</title><style>'+css+'</style></head><body><h1>Ratings-overzicht</h1>'+html+'</body></html>');
   w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
@@ -301,6 +360,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const pb=$('printBtn'); if(pb) pb.onclick=printOverzicht;
   const wb=$('wisBtn'); if(wb) wb.onclick=()=>{ if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } };
+  // filter/zoek
+  const fz=$('fZoek'); if(fz) fz.oninput=()=>{ _filter.zoek=fz.value.trim().toLowerCase(); renderReviews(); };
+  const fd=$('fDatum'); if(fd) fd.onchange=()=>{ _filter.datum=fd.value; renderReviews(); };
+  const fa=$('fAct'); if(fa) fa.onchange=()=>{ _filter.act=fa.value; _filter.maand=''; renderReviews(); };
+  document.querySelectorAll('#fScore .chip').forEach(c=>{ c.onclick=()=>{
+    _filter.score=(_filter.score===c.dataset.score)?'':(c.dataset.score||'');
+    document.querySelectorAll('#fScore .chip').forEach(x=>x.classList.toggle('active',(x.dataset.score||'')===_filter.score));
+    renderReviews();
+  }; });
+  const fr=$('fReset'); if(fr) fr.onclick=resetFilter;
   laadBewaard();
 });
 
