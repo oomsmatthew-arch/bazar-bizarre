@@ -240,6 +240,20 @@ function renderActCats(){
   el.innerHTML=html;
   el.querySelectorAll('.chip').forEach(b=>{ b.onclick=()=>{ _actCat=b.dataset.cat||''; renderActCats(); renderPerAct(); }; });
 }
+// De activiteitenlijst even hoog maken als "per maand" + "per taal" samen (links) en dan
+// intern laten scrollen, zodat de pagina niet eindeloos lang wordt. Op smalle schermen niet.
+function syncActHoogte(){
+  const links=document.querySelector('.overzichten2 .ov-col:first-child');
+  const paneel=document.querySelector('.overzichten2 .ov-col:last-child .ov');
+  const lijst=$('perActiviteit');
+  if(!links||!paneel||!lijst) return;
+  if(window.matchMedia && window.matchMedia('(max-width:760px)').matches){ lijst.style.maxHeight=''; lijst.style.overflowY=''; return; }
+  const doel=links.getBoundingClientRect().height;
+  const boven=lijst.getBoundingClientRect().top - paneel.getBoundingClientRect().top; // titel + thema-knopjes + marge
+  const max=Math.max(160, Math.round(doel - boven - 16));
+  lijst.style.maxHeight=max+'px';
+  lijst.style.overflowY='auto';
+}
 function renderReviews(){
   const f=_filter;
   const list=_reviews.filter(r=>{
@@ -294,6 +308,7 @@ function render(data){
   const fa=$('fAct'); if(fa) fa.innerHTML='<option value="">Alle activiteiten</option>'+namen.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
   $('telling').textContent=reviews.length+' reacties';
   renderReviews();
+  if(typeof requestAnimationFrame!=='undefined') requestAnimationFrame(syncActHoogte); else syncActHoogte();
 }
 
 // ---------------------------------------------------------------- import-flow
@@ -430,6 +445,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderReviews();
   }; });
   const fr=$('fReset'); if(fr) fr.onclick=resetFilter;
+  window.addEventListener('resize',syncActHoogte);
   laadBewaard();
 });
 
