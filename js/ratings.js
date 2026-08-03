@@ -220,11 +220,35 @@ let _filter={zoek:'',datum:'',act:'',maand:'',score:''};
 // Een activiteit kan in meerdere thema's vallen (bv. "Orry & Vrienden Pieten Disco" = O&F én Sint).
 const ACT_CATS=[
   {key:'of',label:'O&F',re:/orry|o\s*&\s*f|vrienden|freunde|friends/i},
-  {key:'avond',label:'Avond',re:/quiz|prize night|crazy game|live mu|chill tunes|concert|bingo/i},
+  {key:'avond',label:'Avond',re:/quiz|prize night|crazy game|dr[oô]les?\s*de\s*jeux|live[\s-]*mu|musique live|chill tunes|concert|bingo|pirate|piraat/i},
   {key:'sint',label:'Sint',re:/sint|piet|nikolaus|ruprecht|knecht|pepernot|nicolas|soulier|pierre/i},
-  {key:'halloween',label:'Halloween',re:/hallow|griezel|grusel|piraat|pirate/i},
+  {key:'halloween',label:'Halloween',re:/hallow|griezel|grusel/i},
   {key:'kerst',label:'Kerst',re:/kerst|christmas|weihnacht|noe?l/i}
 ];
+// Taalvarianten van dezelfde activiteit samenvoegen tot één naam (NL/DE/EN/FR).
+// Specifiekste regels eerst; wie nergens matcht, houdt zijn eigen naam.
+const ACT_CANON=[
+  {naam:'Orry: Pieten Spelshow', re:/pieten\s*spel-?show|spiel-?show\s*mit\s*ruprecht/i},
+  {naam:'Orry: Pieten Disco', re:/pieten\s*disco/i},
+  {naam:'Pieten bezoek Cottage', re:/(pieten|ruprecht|knecht)[^,]{0,30}cottage|cottage[^,]{0,30}(ruprecht|knecht)/i},
+  {naam:'Meet & Greet Sinterklaas', re:/meet\s*&\s*greet[^,]{0,40}(nikolaus|nicolas|sinterklaas|piet|pierre)|(nikolaus|sinterklaas)[^,]{0,40}meet\s*&\s*greet/i},
+  {naam:'Schoen zetten (Sint)', re:/nikolausstiefel|petit\s*soulier|schoen\s*zetten/i},
+  {naam:'Wannabe Pepernotenpiet', re:/pepernot/i},
+  {naam:'Orry: Knotsgekke Spelshow', re:/knotsgekke\s*spel-?show|verrückte\s*spiel-?show/i},
+  {naam:'Orry: Kids Disco', re:/kids\s*disco/i},
+  {naam:'Orry: Pool Party', re:/(pool|paul)\s*party/i},
+  {naam:'Orry op taxibezoek', re:/taxi/i},
+  {naam:'Orry bij je cottage', re:/orry[^,]{0,30}(cottage|ferienhaus)/i},
+  {naam:'Orry: Voorleesverhaaltjes', re:/voorlees|bedtime|gute\s*nacht/i},
+  {naam:"Orry's verjaardagsfeest", re:/geburtstag|birthday|verjaardag/i},
+  {naam:'Meet & Greet Orry', re:/orry[^,]{0,25}meet\s*&\s*greet/i},
+  {naam:'Orry: Show', re:/orry[^,]{0,25}:\s*show\s*$/i},
+  {naam:'Family Quiz Night', re:/quiz/i},
+  {naam:'Crazy Game Time', re:/crazy\s*game|dr[oô]les?\s*de\s*jeux/i},
+  {naam:'Live muziek', re:/live[\s-]*mu|musique\s*live/i},
+  {naam:'Halloween griezeltocht', re:/griezeltocht|grusellauf|halloween[^,]{0,30}(griezel|grusel|promenade|magique|zauber)|promenade[^,]{0,30}halloween/i}
+];
+function canonAct(naam){ const n=String(naam||''); for(let i=0;i<ACT_CANON.length;i++){ if(ACT_CANON[i].re.test(n)) return ACT_CANON[i].naam; } return n; }
 let _perAct=[]; let _actCat='';
 function renderPerAct(){
   const cat=ACT_CATS.find(c=>c.key===_actCat);
@@ -257,7 +281,7 @@ function syncActHoogte(){
 function renderReviews(){
   const f=_filter;
   const list=_reviews.filter(r=>{
-    if(f.act && r.activiteit!==f.act) return false;
+    if(f.act && canonAct(r.activiteit)!==f.act) return false;
     if(f.maand && maandKey(r.datum)!==f.maand) return false;
     if(f.datum && fmtISO(r.datum)!==f.datum) return false;
     if(f.score && kl(r.score)!==f.score) return false;
@@ -288,23 +312,28 @@ function render(data){
   const perMaand=groepeer(reviews,r=>maandKey(r.datum)).sort((a,b)=>a.key.localeCompare(b.key));
   const bestM=perMaand.reduce((m,x)=>(!m||x.gem>m.gem)?x:m,null);
   const slechtM=perMaand.reduce((m,x)=>(!m||x.gem<m.gem)?x:m,null);
-  const perAct=groepeer(reviews,r=>r.activiteit).sort((a,b)=>b.gem-a.gem);
-  const pool=perAct.filter(a=>a.n>=3); const actPool=pool.length?pool:perAct;   // min. 3 reacties, anders vertekent n=1 het beeld
+  const perAct=groepeer(reviews,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem);
+  // Beste/laagste ACTIVITEIT van de recentste maand (perMaand is oplopend gesorteerd → laatste = recentste).
+  const laatste=perMaand.length?perMaand[perMaand.length-1].key:'';
+  const maandRev=reviews.filter(r=>maandKey(r.datum)===laatste);
+  const perActM=groepeer(maandRev,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem);
+  const poolM=perActM.filter(a=>a.n>=2); const actPool=poolM.length?poolM:perActM;
   const bestA=actPool[0]||null, slechtA=actPool.length?actPool[actPool.length-1]:null;
   const tile=(v,label,cls,naam)=>'<div class="tile"><div class="v '+(cls||'')+'">'+fmtScore(v)+'</div><div class="l">'+label+(naam?'<div class="nm">'+esc(naam)+'</div>':'')+'</div></div>';
   const hero='<div class="sum-hero">'+donut(avg(alle))+'<div class="l">gemiddelde<br>'+reviews.length+' reacties</div></div>';
   let grid='';
   if(bestM) grid+=tile(bestM.gem,'beste maand',kl(bestM.gem),maandLabel(bestM.key).replace(/^./,c=>c.toUpperCase()));
   if(slechtM && perMaand.length>1) grid+=tile(slechtM.gem,'laagste maand',kl(slechtM.gem),maandLabel(slechtM.key).replace(/^./,c=>c.toUpperCase()));
-  if(bestA) grid+=tile(bestA.gem,'beste activiteit',kl(bestA.gem),bestA.key);
-  if(slechtA && actPool.length>1) grid+=tile(slechtA.gem,'laagste activiteit',kl(slechtA.gem),slechtA.key);
+  const mlab=laatste?maandLabel(laatste):'';
+  if(bestA) grid+=tile(bestA.gem,'beste activiteit'+(mlab?' · '+mlab:''),kl(bestA.gem),bestA.key);
+  if(slechtA && actPool.length>1) grid+=tile(slechtA.gem,'laagste activiteit'+(mlab?' · '+mlab:''),kl(slechtA.gem),slechtA.key);
   $('sumTiles').innerHTML=hero+'<div class="sum-grid">'+grid+'</div>';
   vulRijen('perMaand', perMaand.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
   _perAct=perAct; renderActCats(); renderPerAct();
   const perTaal=groepeer(reviews,taalVan).sort((a,b)=>b.n-a.n);
   vulRijen('perTaal', perTaal.map(t=>kaartRij(t.key,t.gem,t.n,null)));
   // activiteiten-keuzelijst vullen
-  const namen=Array.from(new Set(reviews.map(r=>r.activiteit).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+  const namen=Array.from(new Set(reviews.map(r=>canonAct(r.activiteit)).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
   const fa=$('fAct'); if(fa) fa.innerHTML='<option value="">Alle activiteiten</option>'+namen.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
   $('telling').textContent=reviews.length+' reacties';
   renderReviews();
