@@ -375,15 +375,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   initThema();
   const inp=$('fileInput');
   if(inp) inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) importFile(f); inp.value=''; };
-  // Importeren en wissen zijn enkel voor vaste medewerkers; anderen kunnen wel bekijken.
-  const vaste=isVaste();
+  // De knoppen staan er ALTIJD, maar werken enkel voor vaste medewerkers; anders een melding.
+  function magBewerken(){ if(isVaste()) return true; alert('Enkel vaste medewerkers kunnen de ratings inlezen of wissen.\n\nLog eerst in als vaste medewerker.'); return false; }
   const importBtn=$('importBtn'), wisBtn=$('wisBtn'), leegImport=$('leegImport');
-  if(importBtn){ importBtn.style.display=vaste?'':'none'; importBtn.onclick=()=>inp&&inp.click(); }
-  if(wisBtn){ wisBtn.style.display=vaste?'':'none'; wisBtn.onclick=()=>{ if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
-  if(leegImport){
-    if(vaste){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings importeren</button>'; const b=$('leegImportBtn'); if(b) b.onclick=()=>inp&&inp.click(); }
-    else leegImport.innerHTML='<p class="hint" style="margin:0;color:var(--muted);">Enkel een <b>vaste medewerker</b> kan ratings inlezen. Vraag hen om de export te importeren.</p>';
-  }
+  if(importBtn){ importBtn.style.display=''; importBtn.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
+  if(wisBtn){ wisBtn.style.display=''; wisBtn.onclick=()=>{ if(!magBewerken()) return; if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
+  if(leegImport){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings importeren</button>'; const b=$('leegImportBtn'); if(b) b.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
   const pb=$('printBtn'); if(pb) pb.onclick=printOverzicht;
   // filter/zoek
   const fz=$('fZoek'); if(fz) fz.oninput=()=>{ _filter.zoek=fz.value.trim().toLowerCase(); renderReviews(); };

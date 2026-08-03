@@ -53,11 +53,12 @@
   .donut{width:54px;height:54px;border-radius:50%;display:inline-grid;place-items:center;flex:0 0 auto;}
   .donut-in{width:40px;height:40px;border-radius:50%;background:var(--panel);display:grid;place-items:center;
     font-weight:800;font-size:14px;color:var(--text);}
-  /* samenvatting-tegels */
-  .tiles{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;}
-  .sum-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-    background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:16px 28px;min-width:170px;}
-  .sum-hero .donut{width:86px;height:86px;} .sum-hero .donut .donut-in{width:64px;height:64px;font-size:21px;}
+  /* samenvatting: gemiddelde groot links (over beide rijen), tegels rechts */
+  .tiles{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:16px;align-items:stretch;}
+  @media(max-width:620px){ .tiles{grid-template-columns:1fr;} }
+  .sum-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:18px 24px;}
+  .sum-hero .donut{width:96px;height:96px;} .sum-hero .donut .donut-in{width:72px;height:72px;font-size:24px;}
   .sum-hero .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;text-align:center;line-height:1.35;}
   .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-width:250px;}
   .sum-grid .tile{margin:0;}
@@ -137,9 +138,9 @@
   <div id="resultaat" style="display:none;">
     <div class="card">
       <div class="toolbar">
-        <button class="btn" id="importBtn" style="display:none;">📄 Importeren</button>
+        <button class="btn" id="importBtn">📄 Importeren</button>
         <button class="btn primary" id="printBtn">🖨 Afdrukken</button>
-        <button class="btn" id="wisBtn" style="display:none;">Wissen</button>
+        <button class="btn" id="wisBtn">Wissen</button>
         <span class="telling" id="telling"></span>
       </div>
       <div class="tiles" id="sumTiles"></div>
