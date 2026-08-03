@@ -115,6 +115,8 @@
   @media(max-width:760px){ .overzichten2{grid-template-columns:1fr;} }
   .ov-col{display:flex;flex-direction:column;gap:20px;}
   .ov{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px 16px;}
+  .actTotaal{margin:0 0 10px;padding:2px 10px;border:1px solid var(--leaf);border-radius:12px;background:rgba(74,155,94,.10);}
+  .actTotaal .rij{border-top:none;padding:5px 0;} .actTotaal .rij-nm .t{color:var(--forest);}
   #perActiviteit::-webkit-scrollbar{width:8px;}
   #perActiviteit::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
   #perActiviteit::-webkit-scrollbar-track{background:transparent;}
@@ -146,7 +148,7 @@
       <div class="toolbar">
         <button class="btn" id="importBtn">📄 Uploaden</button>
         <button class="btn primary" id="printBtn">🖨 Afdrukken</button>
-        <button class="btn" id="wisBtn">Wissen</button>
+        <select id="boekjaar" class="finp" style="max-width:210px;" title="Boekjaar (1 okt – 30 sep)"></select>
         <span class="telling" id="telling"></span>
       </div>
       <div class="tiles" id="sumTiles"></div>
@@ -160,6 +162,7 @@
         <div class="ov-col">
           <div class="ov"><h3>Per activiteit <span class="tik">tik op een thema of activiteit</span></h3>
           <div class="chips" id="actCats" style="margin:0 0 10px;"></div>
+          <div class="actTotaal" id="actTotaal" style="display:none;"></div>
           <div id="perActiviteit"></div></div>
         </div>
       </div>

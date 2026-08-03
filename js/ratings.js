@@ -189,6 +189,9 @@ function donut(v){
 function maandKey(d){ return d?(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')):''; }
 function maandLabel(k){ const p=k.split('-'); return MND[+p[1]-1]+' '+p[0]; }
 function fmtISO(d){ if(!(d instanceof Date)||isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+// Boekjaar loopt van 1 oktober t/m 30 september. Sleutel = startjaar (bv. okt 2025–sep 2026 → "2025").
+function boekjaarKey(d){ if(!(d instanceof Date)||isNaN(d)) return ''; const y=d.getFullYear(),m=d.getMonth(); return String(m>=9?y:y-1); }
+function boekjaarLabel(k){ return k+'–'+(+k+1); }
 
 // Eén overzicht-rij; met onClick wordt ze klikbaar (filtert de reactielijst).
 function kaartRij(naam,gem,n,onClick){
@@ -216,6 +219,7 @@ function reviewKaart(r){
 // ---- filter + reactielijst ----
 let _reviews=[];
 let _filter={zoek:'',datum:'',act:'',maand:'',score:''};
+let _data=null; let _boekjaar=''; // gekozen boekjaar ('' = alle)
 // Thema-categorieën voor de activiteiten (afgeleid uit de naam) — voor de filterknopjes.
 // Een activiteit kan in meerdere thema's vallen (bv. "Orry & Vrienden Pieten Disco" = O&F én Sint).
 const ACT_CATS=[
@@ -228,21 +232,22 @@ const ACT_CATS=[
 // Taalvarianten van dezelfde activiteit samenvoegen tot één naam (NL/DE/EN/FR).
 // Specifiekste regels eerst; wie nergens matcht, houdt zijn eigen naam.
 const ACT_CANON=[
-  {naam:'Orry: Pieten Spelshow', re:/pieten\s*spel-?show|spiel-?show\s*mit\s*ruprecht/i},
-  {naam:'Orry: Pieten Disco', re:/pieten\s*disco/i},
+  {naam:'O&F: Pieten Spelshow', re:/pieten\s*spel-?show|spiel-?show\s*mit\s*ruprecht/i},
+  {naam:'O&F: Pieten Disco', re:/pieten\s*disco/i},
   {naam:'Pieten bezoek Cottage', re:/(pieten|ruprecht|knecht)[^,]{0,30}cottage|cottage[^,]{0,30}(ruprecht|knecht)/i},
   {naam:'Meet & Greet Sinterklaas', re:/meet\s*&\s*greet[^,]{0,40}(nikolaus|nicolas|sinterklaas|piet|pierre)|(nikolaus|sinterklaas)[^,]{0,40}meet\s*&\s*greet/i},
   {naam:'Schoen zetten (Sint)', re:/nikolausstiefel|petit\s*soulier|schoen\s*zetten/i},
   {naam:'Wannabe Pepernotenpiet', re:/pepernot/i},
-  {naam:'Orry: Knotsgekke Spelshow', re:/knotsgekke\s*spel-?show|verrückte\s*spiel-?show/i},
-  {naam:'Orry: Kids Disco', re:/kids\s*disco/i},
-  {naam:'Orry: Pool Party', re:/(pool|paul)\s*party/i},
-  {naam:'Orry op taxibezoek', re:/taxi/i},
-  {naam:'Orry bij je cottage', re:/orry[^,]{0,30}(cottage|ferienhaus)/i},
-  {naam:'Orry: Voorleesverhaaltjes', re:/voorlees|bedtime|gute\s*nacht/i},
-  {naam:"Orry's verjaardagsfeest", re:/geburtstag|birthday|verjaardag/i},
-  {naam:'Meet & Greet Orry', re:/orry[^,]{0,25}meet\s*&\s*greet/i},
-  {naam:'Orry: Show', re:/orry[^,]{0,25}:\s*show\s*$/i},
+  {naam:'O&F: Halloween-avontuur', re:/(avontuur|aventure|abenteuer|adventure)[^,]{0,15}halloween|halloween[\s-]{0,3}(avontuur|aventure|abenteuer|adventure)/i},
+  {naam:'O&F: Knotsgekke Spelshow', re:/knotsgekke\s*spel-?show|verrückte\s*spiel-?show/i},
+  {naam:'O&F: Kids Disco', re:/kids\s*disco/i},
+  {naam:'O&F: Pool Party', re:/(pool|paul)\s*party/i},
+  {naam:'O&F: op taxibezoek', re:/taxi/i},
+  {naam:'O&F: bij je cottage', re:/orry[^,]{0,30}(cottage|ferienhaus)/i},
+  {naam:'O&F: Voorleesverhaaltjes', re:/voorlees|bedtime|gute\s*nacht/i},
+  {naam:'O&F: verjaardagsfeest', re:/geburtstag|birthday|verjaardag/i},
+  {naam:'O&F: Meet & Greet', re:/orry[^,]{0,25}meet\s*&\s*greet/i},
+  {naam:'O&F: Show', re:/orry[^,]{0,25}:\s*show\s*$/i},
   {naam:'Family Quiz Night', re:/quiz/i},
   {naam:'Crazy Game Time', re:/crazy\s*game|dr[oô]les?\s*de\s*jeux/i},
   {naam:'Live muziek', re:/live[\s-]*mu|musique\s*live/i},
@@ -253,6 +258,15 @@ let _perAct=[]; let _actCat='';
 function renderPerAct(){
   const cat=ACT_CATS.find(c=>c.key===_actCat);
   const lijst=cat?_perAct.filter(a=>cat.re.test(a.key||'')):_perAct;
+  const tot=$('actTotaal');
+  if(tot){
+    if(cat && lijst.length){
+      let n=0,s=0; lijst.forEach(a=>{ n+=a.n; s+=a.gem*a.n; });
+      const gem=n?s/n:0;
+      tot.innerHTML='<div class="rij"><div class="rij-donut">'+donut(gem)+'</div><div class="rij-nm"><div class="t">'+esc(cat.label)+' — samen</div></div><div class="rij-n"><b>'+fmtScore(gem)+'</b><span>'+n+' reacties</span></div></div>';
+      tot.style.display='';
+    } else { tot.innerHTML=''; tot.style.display='none'; }
+  }
   vulRijen('perActiviteit', lijst.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:''},true))));
   if(!lijst.length) $('perActiviteit').innerHTML='<p class="muted">Geen activiteiten in deze categorie.</p>';
 }
@@ -312,9 +326,15 @@ function renderPerMaand(){
   const b=$('maandSort'); if(b) b.textContent=(_maandSort==='nieuw'?'nieuwste eerst':'oudste eerst')+' ⇅';
 }
 function render(data){
-  const reviews=data.reviews; _reviews=reviews;
+  _data=data;
+  const bron=data.reviews;
+  const bj=Array.from(new Set(bron.map(r=>boekjaarKey(r.datum)).filter(Boolean))).sort().reverse();
+  if(_boekjaar && bj.indexOf(_boekjaar)<0) _boekjaar='';
+  const reviews = _boekjaar ? bron.filter(r=>boekjaarKey(r.datum)===_boekjaar) : bron;
+  _reviews=reviews;
   $('leeg').style.display='none';
   $('resultaat').style.display='block';
+  const bs=$('boekjaar'); if(bs){ bs.innerHTML='<option value="">Alle boekjaren</option>'+bj.map(k=>'<option value="'+k+'">Boekjaar '+boekjaarLabel(k)+'</option>').join(''); bs.value=_boekjaar; }
   const alle=reviews.map(r=>r.score);
   const perMaand=groepeer(reviews,r=>maandKey(r.datum)).sort((a,b)=>a.key.localeCompare(b.key));
   const bestM=perMaand.reduce((m,x)=>(!m||x.gem>m.gem)?x:m,null);
@@ -324,7 +344,7 @@ function render(data){
   const laatste=perMaand.length?perMaand[perMaand.length-1].key:'';
   const maandRev=reviews.filter(r=>maandKey(r.datum)===laatste);
   const perActM=groepeer(maandRev,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem);
-  const poolM=perActM.filter(a=>a.n>=2); const actPool=poolM.length?poolM:perActM;
+  const poolM=perActM.filter(a=>a.n>=2); const actPool=(poolM.length>=2)?poolM:perActM;
   const bestA=actPool[0]||null, slechtA=actPool.length?actPool[actPool.length-1]:null;
   const tile=(v,label,cls,naam)=>'<div class="tile"><div class="v '+(cls||'')+'">'+fmtScore(v)+'</div><div class="l">'+label+(naam?'<div class="nm">'+esc(naam)+'</div>':'')+'</div></div>';
   const hero='<div class="sum-hero">'+donut(avg(alle))+'<div class="l">gemiddelde<br>'+reviews.length+' reacties</div></div>';
@@ -482,6 +502,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }; });
   const fr=$('fReset'); if(fr) fr.onclick=resetFilter;
   const ms=$('maandSort'); if(ms) ms.onclick=()=>{ _maandSort=(_maandSort==='nieuw')?'oud':'nieuw'; renderPerMaand(); };
+  const bjs=$('boekjaar'); if(bjs) bjs.onchange=()=>{ _boekjaar=bjs.value; if(_data) render(_data); };
   window.addEventListener('resize',syncActHoogte);
   laadBewaard();
 });
