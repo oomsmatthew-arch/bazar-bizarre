@@ -366,8 +366,15 @@ function isVaste(){
     if(!u){ const naam=String(cu.naam||'').trim().toLowerCase(); if(naam) u=lijst.find(x=>String((x&&x.naam)||'').trim().toLowerCase()===naam); }
     // 'rol' is een komma-lijst met etiketten (bv. "vast,admin") — zoals BBInv.heeftRol
     const tags=String(((u||cu)&&(u||cu).rol)||'').split(',').map(s=>s.trim()).filter(Boolean);
-    return tags.indexOf('vast')>=0;
+    return tags.indexOf('vast')>=0 || tags.indexOf('admin')>=0;
   }catch(e){ return false; }
+}
+// Beheer-wachtwoord (gedeeld) — zodat je ook zonder als jezelf ingelogd te zijn (bv. op het
+// algemene toestel-account) kan importeren, net zoals elders in de app met beheer.
+function beheerPin(){
+  try{ const c=JSON.parse(localStorage.getItem('bb_appconfig')||'null'); if(c&&c.pin) return String(c.pin); }catch(e){}
+  try{ const c=JSON.parse(localStorage.getItem('bb_cache_v1')||'null'); if(c&&c.appconfig&&c.appconfig.pin) return String(c.appconfig.pin); }catch(e){}
+  const p=localStorage.getItem('bb_home_pin'); return p?String(p):'3920';
 }
 
 // ---------------------------------------------------------------- wiring
@@ -376,11 +383,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   const inp=$('fileInput');
   if(inp) inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) importFile(f); inp.value=''; };
   // De knoppen staan er ALTIJD, maar werken enkel voor vaste medewerkers; anders een melding.
-  function magBewerken(){ if(isVaste()) return true; alert('Enkel vaste medewerkers kunnen de ratings inlezen of wissen.\n\nLog eerst in als vaste medewerker.'); return false; }
+  function magBewerken(){
+    if(isVaste()) return true;
+    const p=prompt('Beheer-wachtwoord om de ratings te uploaden of wissen:');
+    if(p===null) return false;
+    if(p===beheerPin()) return true;
+    alert('Onjuist wachtwoord. Enkel vaste medewerkers — of iemand met het beheer-wachtwoord — kunnen de ratings uploaden of wissen.');
+    return false;
+  }
   const importBtn=$('importBtn'), wisBtn=$('wisBtn'), leegImport=$('leegImport');
   if(importBtn){ importBtn.style.display=''; importBtn.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
   if(wisBtn){ wisBtn.style.display=''; wisBtn.onclick=()=>{ if(!magBewerken()) return; if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
-  if(leegImport){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings importeren</button>'; const b=$('leegImportBtn'); if(b) b.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
+  if(leegImport){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings uploaden</button>'; const b=$('leegImportBtn'); if(b) b.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
   const pb=$('printBtn'); if(pb) pb.onclick=printOverzicht;
   // filter/zoek
   const fz=$('fZoek'); if(fz) fz.oninput=()=>{ _filter.zoek=fz.value.trim().toLowerCase(); renderReviews(); };
