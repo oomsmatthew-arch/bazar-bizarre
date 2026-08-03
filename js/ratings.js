@@ -216,6 +216,30 @@ function reviewKaart(r){
 // ---- filter + reactielijst ----
 let _reviews=[];
 let _filter={zoek:'',datum:'',act:'',maand:'',score:''};
+// Thema-categorieën voor de activiteiten (afgeleid uit de naam) — voor de filterknopjes.
+// Een activiteit kan in meerdere thema's vallen (bv. "Orry & Vrienden Pieten Disco" = O&F én Sint).
+const ACT_CATS=[
+  {key:'of',label:'O&F',re:/orry|o\s*&\s*f|vrienden|freunde|friends/i},
+  {key:'avond',label:'Avond',re:/quiz|prize night|crazy game|live mu|chill tunes|concert|bingo/i},
+  {key:'sint',label:'Sint',re:/sint|piet|nikolaus|ruprecht|knecht|pepernot|nicolas|soulier|pierre/i},
+  {key:'halloween',label:'Halloween',re:/hallow|griezel|grusel|piraat|pirate/i},
+  {key:'kerst',label:'Kerst',re:/kerst|christmas|weihnacht|noe?l/i}
+];
+let _perAct=[]; let _actCat='';
+function renderPerAct(){
+  const cat=ACT_CATS.find(c=>c.key===_actCat);
+  const lijst=cat?_perAct.filter(a=>cat.re.test(a.key||'')):_perAct;
+  vulRijen('perActiviteit', lijst.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:''},true))));
+  if(!lijst.length) $('perActiviteit').innerHTML='<p class="muted">Geen activiteiten in deze categorie.</p>';
+}
+function renderActCats(){
+  const el=$('actCats'); if(!el) return;
+  const cats=ACT_CATS.filter(c=>_perAct.some(a=>c.re.test(a.key||'')));
+  let html='<button class="chip'+(_actCat===''?' active':'')+'" data-cat="">Alle <b>'+_perAct.length+'</b></button>';
+  cats.forEach(c=>{ const n=_perAct.filter(a=>c.re.test(a.key||'')).length; html+='<button class="chip'+(_actCat===c.key?' active':'')+'" data-cat="'+c.key+'">'+c.label+' <b>'+n+'</b></button>'; });
+  el.innerHTML=html;
+  el.querySelectorAll('.chip').forEach(b=>{ b.onclick=()=>{ _actCat=b.dataset.cat||''; renderActCats(); renderPerAct(); }; });
+}
 function renderReviews(){
   const f=_filter;
   const list=_reviews.filter(r=>{
@@ -256,13 +280,13 @@ function render(data){
   const tile=(v,label,cls,naam)=>'<div class="tile"><div class="v '+(cls||'')+'">'+fmtScore(v)+'</div><div class="l">'+label+(naam?'<div class="nm">'+esc(naam)+'</div>':'')+'</div></div>';
   const hero='<div class="sum-hero">'+donut(avg(alle))+'<div class="l">gemiddelde<br>'+reviews.length+' reacties</div></div>';
   let grid='';
-  if(bestM) grid+=tile(bestM.gem,'beste maand: '+maandLabel(bestM.key),kl(bestM.gem));
-  if(slechtM && perMaand.length>1) grid+=tile(slechtM.gem,'laagste maand: '+maandLabel(slechtM.key),kl(slechtM.gem));
+  if(bestM) grid+=tile(bestM.gem,'beste maand',kl(bestM.gem),maandLabel(bestM.key).replace(/^./,c=>c.toUpperCase()));
+  if(slechtM && perMaand.length>1) grid+=tile(slechtM.gem,'laagste maand',kl(slechtM.gem),maandLabel(slechtM.key).replace(/^./,c=>c.toUpperCase()));
   if(bestA) grid+=tile(bestA.gem,'beste activiteit',kl(bestA.gem),bestA.key);
   if(slechtA && actPool.length>1) grid+=tile(slechtA.gem,'laagste activiteit',kl(slechtA.gem),slechtA.key);
   $('sumTiles').innerHTML=hero+'<div class="sum-grid">'+grid+'</div>';
   vulRijen('perMaand', perMaand.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
-  vulRijen('perActiviteit', perAct.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:''},true))));
+  _perAct=perAct; renderActCats(); renderPerAct();
   const perTaal=groepeer(reviews,taalVan).sort((a,b)=>b.n-a.n);
   vulRijen('perTaal', perTaal.map(t=>kaartRij(t.key,t.gem,t.n,null)));
   // activiteiten-keuzelijst vullen
