@@ -254,12 +254,13 @@ function render(data){
   const pool=perAct.filter(a=>a.n>=3); const actPool=pool.length?pool:perAct;   // min. 3 reacties, anders vertekent n=1 het beeld
   const bestA=actPool[0]||null, slechtA=actPool.length?actPool[actPool.length-1]:null;
   const tile=(v,label,cls,naam)=>'<div class="tile"><div class="v '+(cls||'')+'">'+fmtScore(v)+'</div><div class="l">'+label+(naam?'<div class="nm">'+esc(naam)+'</div>':'')+'</div></div>';
-  let tiles='<div class="tile big">'+donut(avg(alle))+'<div class="l">gemiddelde · '+reviews.length+' reacties</div></div>';
-  if(bestM) tiles+=tile(bestM.gem,'beste maand: '+maandLabel(bestM.key),kl(bestM.gem));
-  if(slechtM && perMaand.length>1) tiles+=tile(slechtM.gem,'laagste maand: '+maandLabel(slechtM.key),kl(slechtM.gem));
-  if(bestA) tiles+=tile(bestA.gem,'beste activiteit',kl(bestA.gem),bestA.key);
-  if(slechtA && actPool.length>1) tiles+=tile(slechtA.gem,'laagste activiteit',kl(slechtA.gem),slechtA.key);
-  $('sumTiles').innerHTML=tiles;
+  const hero='<div class="sum-hero">'+donut(avg(alle))+'<div class="l">gemiddelde<br>'+reviews.length+' reacties</div></div>';
+  let grid='';
+  if(bestM) grid+=tile(bestM.gem,'beste maand: '+maandLabel(bestM.key),kl(bestM.gem));
+  if(slechtM && perMaand.length>1) grid+=tile(slechtM.gem,'laagste maand: '+maandLabel(slechtM.key),kl(slechtM.gem));
+  if(bestA) grid+=tile(bestA.gem,'beste activiteit',kl(bestA.gem),bestA.key);
+  if(slechtA && actPool.length>1) grid+=tile(slechtA.gem,'laagste activiteit',kl(slechtA.gem),slechtA.key);
+  $('sumTiles').innerHTML=hero+'<div class="sum-grid">'+grid+'</div>';
   vulRijen('perMaand', perMaand.map(m=>kaartRij(maandLabel(m.key),m.gem,m.n,()=>zetFilter({maand:m.key,act:'',datum:''},true))));
   vulRijen('perActiviteit', perAct.map(a=>kaartRij(a.key||'(zonder naam)',a.gem,a.n,()=>zetFilter({act:a.key,maand:'',datum:''},true))));
   const perTaal=groepeer(reviews,taalVan).sort((a,b)=>b.n-a.n);
@@ -357,11 +358,15 @@ function initThema(){
 function isVaste(){
   try{
     const cu=JSON.parse(localStorage.getItem('bb_current_user')||'null');
-    if(!cu||!cu.id) return false;
+    if(!cu) return false;
     let lijst=[]; try{ lijst=JSON.parse(localStorage.getItem('bb_gebruikers')||'[]')||[]; }catch(e){}
     if(!lijst.length){ try{ const c=JSON.parse(localStorage.getItem('bb_cache_v1')||'null'); if(c&&Array.isArray(c.gebruikers)) lijst=c.gebruikers; }catch(e){} }
-    const u=lijst.find(x=>x&&x.id===cu.id);
-    return !!(u && u.rol==='vast');
+    // eerst op id, anders op naam (account kan ooit opnieuw aangemaakt zijn met een nieuw id)
+    let u=lijst.find(x=>x&&x.id===cu.id);
+    if(!u){ const naam=String(cu.naam||'').trim().toLowerCase(); if(naam) u=lijst.find(x=>String((x&&x.naam)||'').trim().toLowerCase()===naam); }
+    // 'rol' is een komma-lijst met etiketten (bv. "vast,admin") — zoals BBInv.heeftRol
+    const tags=String(((u||cu)&&(u||cu).rol)||'').split(',').map(s=>s.trim()).filter(Boolean);
+    return tags.indexOf('vast')>=0;
   }catch(e){ return false; }
 }
 
