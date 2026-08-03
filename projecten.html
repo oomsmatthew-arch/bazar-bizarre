@@ -155,20 +155,38 @@
     border-radius:999px;padding:2px 8px;}
   .kolomkop .kmenu{border:none;background:transparent;color:var(--muted);font-size:17px;cursor:pointer;padding:2px 4px;line-height:1;}
   .kaarten{display:flex;flex-direction:column;gap:9px;min-height:20px;}
-  .kaart{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 12px;
-    box-shadow:0 2px 6px rgba(35,48,92,.08);cursor:pointer;position:relative;}
-  .kaart:hover{border-color:var(--forest2);}
+  /* Kaart in Trello-stijl: gekleurde labels bovenaan, titel, en daaronder een rij
+     kleine tekens die in één oogopslag tonen wat er allemaal aan de taak hangt. */
+  .kaart{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 12px 9px;
+    box-shadow:0 1px 3px rgba(35,48,92,.13);cursor:pointer;position:relative;}
+  .kaart:hover{border-color:var(--forest2);box-shadow:0 3px 10px rgba(35,48,92,.16);}
   .kaart.dragging{opacity:.95;box-shadow:0 16px 34px rgba(35,48,92,.32);position:relative;z-index:50;}
+  .kaart.klaar{opacity:.72;}
   .kaart.klaar .ktitel{text-decoration:line-through;color:var(--muted);}
-  .kaart .ktitel{font-weight:700;font-size:14.5px;line-height:1.35;word-break:break-word;}
-  .kaart .klabels{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px;}
-  .klabel{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;border-radius:999px;
-    background:var(--panel2);border:1px solid var(--line);color:var(--muted);}
-  .kaart .kvoet{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px;font-size:11.5px;
+  .kaart .ktitel{font-weight:600;font-size:14.5px;line-height:1.35;word-break:break-word;padding-right:26px;}
+  .kaart .klabels{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;padding-right:26px;}
+  .klabel{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+    padding:3px 8px;border-radius:5px;color:#fff;background:var(--muted);line-height:1.3;}
+  .kaart .kvoet{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:9px;font-size:11.5px;
     color:var(--muted);font-weight:700;}
-  .kaart .kgreep{position:absolute;top:0;right:0;width:38px;height:38px;display:flex;align-items:center;justify-content:center;
-    color:var(--muted);font-size:15px;cursor:grab;opacity:.55;}
+  /* de kleine tekens (omschrijving, checklist, bijlagen, reacties) */
+  .kmerk{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+  .kmerk.vol{color:var(--leaf);}
+  .kdatum{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;
+    background:var(--panel2);border:1px solid var(--line);white-space:nowrap;}
+  .kdatum.rood{background:#fdecea;color:#c0392b;border-color:#f0b7b0;}
+  .kdatum.oranje{background:#fdf1e0;color:#96661a;border-color:#f0d5a8;}
+  .kdatum.groen{background:#e1f4f2;color:#17756d;border-color:#b4e4de;}
+  [data-theme="dark"] .kdatum.rood{background:#2a201e;color:#ff9c8f;border-color:#5a3530;}
+  [data-theme="dark"] .kdatum.oranje{background:#2e2517;color:#f0c98a;border-color:#5a4525;}
+  [data-theme="dark"] .kdatum.groen{background:#123330;color:#4fc8bd;border-color:#26404a;}
+  .kaart .avs{margin-left:auto;}
+  .kaart .avs .av{width:24px;height:24px;font-size:9px;}
+  .kaart .kgreep{position:absolute;top:2px;right:2px;width:26px;height:26px;display:flex;align-items:center;
+    justify-content:center;color:var(--muted);font-size:14px;cursor:grab;opacity:.45;border-radius:7px;}
+  .kaart .kgreep:hover{opacity:1;background:var(--panel2);}
   .kaart .kgreep:active{cursor:grabbing;}
+  .kaart .vink{width:21px;height:21px;border-radius:6px;font-size:12px;}
   .kaartadd{margin-top:9px;}
   .kaartadd input{width:100%;padding:9px 11px;border:1px dashed var(--line);border-radius:11px;background:transparent;
     color:var(--text);font-size:13.5px;font-family:inherit;}
@@ -581,6 +599,23 @@
       <div class="rij" style="margin-top:9px">
         <input type="text" id="tmSubNew" class="finp" style="flex:1;min-width:150px" placeholder="Subtaak toevoegen…">
         <button class="btn mini" id="tmSubAdd">Toevoegen</button>
+      </div>
+    </div>
+    <div class="veld" id="tmBijlageVeld">
+      <label>Bijlagen <span style="text-transform:none;letter-spacing:0;font-weight:600">— worden meteen bewaard</span></label>
+      <div id="tmBijlagen"></div>
+      <div class="rij" style="margin-top:9px">
+        <button class="btn mini" id="tmBijlageBestand">📎 Bestand</button>
+        <button class="btn mini" id="tmBijlageLink">🔗 Link</button>
+        <input type="file" id="tmBestand" style="display:none">
+      </div>
+    </div>
+    <div class="veld" id="tmReactieVeld">
+      <label>Reacties</label>
+      <div id="tmReacties"></div>
+      <div class="rij" style="margin-top:9px">
+        <input type="text" id="tmReactieNew" class="finp" style="flex:1;min-width:150px" placeholder="Schrijf een reactie…">
+        <button class="btn mini" id="tmReactieAdd">Plaatsen</button>
       </div>
     </div>
     <div class="meta" id="tmMeta"></div>

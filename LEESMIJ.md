@@ -55,8 +55,13 @@ het spel er één heeft, met dezelfde login en dezelfde gedeelde gegevens.
 - **Overzicht** — voortgang, deadline, jouw taken, wat er deze week vervalt, de laatste
   berichten en het doel van het project.
 - **Bord** — kolommen met kaarten, te verslepen met het handvat ⠿ rechtsboven op een kaart.
-  Een kaart heeft een titel, omschrijving, wie eraan werkt, deadline, labels en subtaken.
-  Kolommen maak, hernoem, verschuif of verwijder je via het knopje ⋯ in de kolomkop.
+  De kolommen vullen de breedte en breken af naar een volgende rij, dus je hoeft nooit
+  zijwaarts te scrollen; op gsm staan ze onder elkaar.
+  Op de kaart zie je in één oogopslag alles wat eraan hangt: gekleurde **labels** bovenaan,
+  en onderaan een rij tekens — 🕐 deadline (kleurt oranje/rood), ≡ er is een omschrijving,
+  ☑ subtaken, 📎 bijlagen, 💬 reacties, en de avatars van wie eraan werkt.
+  Open je een kaart, dan kan je daar ook **bijlagen** (bestand of link) en **reacties**
+  toevoegen. Kolommen maak, hernoem, verschuif of verwijder je via het knopje ⋯ in de kolomkop.
   Sleep je een kaart naar een kolom die "Klaar" heet, dan vinkt ze zichzelf af (en omgekeerd).
 - **Agenda** — maandkalender met afspraken, mijlpalen, leveringen, opbouw en afbraak.
   De deadlines van je taken en de start/deadline van het project verschijnen er automatisch bij.
@@ -114,6 +119,9 @@ staat alles enkel op dát toestel. Onderaan de pagina zie je welke van de twee h
 **`docs/` — naslag voor jou, niet nodig voor de site:**
 - `projecten-supabase.sql` — eenmalig uit te voeren in Supabase
 - `PROJECTEN-PLAN.md` — het plan en de gemaakte keuzes achter Projecten
+- `BEVEILIGING.md` — de database op slot zetten met een gedeelde toegangscode
+- `beveiliging-supabase.sql` — hoort bij bovenstaande; `beveiliging-terugdraaien.sql` is de noodknop
+- `EIGEN-DOMEIN.md` — van het github.io-adres naar een eigen domeinnaam
 
 **`tests/` — controles op de opslag** (zie `tests/LEESMIJ.md`); handig na een wijziging.
 
@@ -136,25 +144,20 @@ meer offline.
 
 ---
 
-## Online zetten via GitHub Pages (gratis)
+## Online (GitHub Pages)
 
-Je hebt al een GitHub-account, dus dit is de makkelijkste route.
+De site staat live op **https://oomsmatthew-arch.github.io/bazar-bizarre/** — die link deel je,
+iedereen kan hem openen op tablet of telefoon.
 
-1. Ga naar https://github.com en klik rechtsboven op **+** → **New repository**.
-2. Geef een naam, bv. `bazar-bizarre`. Zet 'm op **Public**. Klik **Create repository**.
-3. Op de nieuwe repo-pagina: klik **"uploading an existing file"**.
-4. Sleep ALLE bestanden en mappen uit de hoofdmap (o.a. `index.html`, `entertainment.html`,
-   `bazar-bizarre-spel.html`, `projecten.html`, `manifest.json`, `sw.js`, `manuals.json`
-   en de mappen `js/`, `assets/`, `deals/`, `manuals/`) in het uploadvak. Klik
-   onderaan **Commit changes**.
-   Werk je met GitHub Desktop, dan hoeft dit niet: daar commit en push je gewoon rechtstreeks.
-5. Ga naar het tabblad **Settings** → links **Pages**.
-6. Onder "Build and deployment" → Source: **Deploy from a branch**.
-   Branch: **main** (of master), map: **/ (root)**. Klik **Save**.
-7. Wacht ~1 minuut en ververs. Bovenaan verschijnt je link, zoiets als:
-   `https://JOUWNAAM.github.io/bazar-bizarre/`
+Publiceren gebeurt via **GitHub Desktop**: commit je wijzigingen en klik **Push origin**.
+Ongeveer een minuut later staat de nieuwe versie online. Verhoog daarbij ook het versienummer
+in `sw.js`, anders blijven tablets de oude versie tonen.
 
-Die link deel je. Iedereen kan 'm openen op tablet of telefoon.
+Een eigen domeinnaam in plaats van het github.io-adres? Zie `docs/EIGEN-DOMEIN.md`.
+
+> **Let op — de gegevens staan open.** Iedereen die de link heeft, kan momenteel bij de
+> volledige inventaris en alle projecten. De pincodes in de app houden dat niet tegen.
+> `docs/BEVEILIGING.md` legt uit hoe je dat afsluit met één gedeelde toegangscode.
 
 ---
 

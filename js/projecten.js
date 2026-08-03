@@ -204,6 +204,23 @@ function isKlaarKolom(naam){ return /^(klaar|gereed|afgewerkt|done|af)$/i.test(S
 // De tabel 'projectberichten' bevat meer dan chat: ook verslagen, ideeën, materiaal,
 // draaiboekregels en de evaluatie. Enkel dit hoort thuis in de Bespreking.
 function isChat(b){ return !b.soort || b.soort==='bericht'; }
+// Reacties horen bij één kaart op het bord (soort 'taakreactie', met het taak-id erin).
+function taakReacties(taakId){
+  const p=project(); if(!p||!taakId) return [];
+  return BBInv.getBerichten(p.id).filter(b=>b.soort==='taakreactie'&&(b.data||{}).taakId===taakId);
+}
+// Documenten die aan één kaart hangen (het veld taakId bestaat al in de documenttabel).
+function taakBijlagen(taakId){
+  const p=project(); if(!p||!taakId) return [];
+  return BBInv.getDocs(p.id).filter(d=>d.taakId===taakId);
+}
+// "21 aug" — korter dan 21/08/2026, past beter op een kaart.
+function korteDatum(iso){
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return iso;
+  const maand=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][d.getMonth()];
+  return d.getDate()+' '+maand;
+}
 function filterActief(){ return alleenMijn||verbergKlaar||!!bordZoek.trim(); }
 
 // Gelezen-stand van de bespreking (per toestel, niet gedeeld).
@@ -495,25 +512,33 @@ function maakKaart(t){
   el.className='kaart'+(t.klaar?' klaar':'');
   el.dataset.id=t.id;
   const dg=dagenTot(t.deadline);
+  // Deadline als datumvakje, met kleur zodra het dringend of te laat wordt.
   let dl='';
-  if(t.deadline&&!t.klaar){
-    const kl=dg<0?' rood':(dg<=3?' oranje':'');
-    dl='<span class="pill'+kl+'">📅 '+(dg<0?'te laat':(dg===0?'vandaag':(dg===1?'morgen':dmy(t.deadline))))+'</span>';
-  }else if(t.deadline){ dl='<span class="pill">📅 '+dmy(t.deadline)+'</span>'; }
+  if(t.deadline){
+    const kl = t.klaar ? ' groen' : (dg<0?' rood':(dg<=3?' oranje':''));
+    const tekst = t.klaar ? dmy(t.deadline)
+      : (dg<0?'te laat':(dg===0?'vandaag':(dg===1?'morgen':korteDatum(t.deadline))));
+    dl='<span class="kdatum'+kl+'" title="Deadline '+esc(dmy(t.deadline))+'">🕐 '+esc(tekst)+'</span>';
+  }
   const sub=(t.subtaken||[]);
   const subKlaar=sub.filter(s=>s.done).length;
+  const reacties=taakReacties(t.id).length;
+  const bijlagen=taakBijlagen(t.id).length;
   el.innerHTML=
     (t.labels&&t.labels.length?'<div class="klabels">'+t.labels.map(l=>{
       const def=LABELS.find(x=>x.naam===l);
-      const st=def?('background:'+def.kleur+'22;border-color:'+def.kleur+'55;color:'+def.kleur):'';
-      return '<span class="klabel" style="'+st+'">'+esc(l)+'</span>';
+      return '<span class="klabel"'+(def?(' style="background:'+def.kleur+'"'):'')+'>'+esc(l)+'</span>';
     }).join('')+'</div>':'')+
     '<div class="ktitel">'+esc(t.titel||'')+'</div>'+
     '<div class="kvoet">'+
-      '<button class="vink'+(t.klaar?' on':'')+'" title="Afvinken">✓</button>'+
+      '<button class="vink'+(t.klaar?' on':'')+'" title="'+(t.klaar?'Terug openzetten':'Afvinken')+'">✓</button>'+
       dl+
-      (sub.length?'<span class="pill">☑ '+subKlaar+'/'+sub.length+'</span>':'')+
-      ((t.wie&&t.wie.length)?'<span class="avs">'+t.wie.slice(0,3).map(n=>'<span class="av">'+avatarVoorNaam(n)+'</span>').join('')+'</span>':'')+
+      (t.omschrijving?'<span class="kmerk" title="Heeft een omschrijving">≡</span>':'')+
+      (sub.length?'<span class="kmerk'+(subKlaar===sub.length?' vol':'')+'" title="Subtaken">☑ '+subKlaar+'/'+sub.length+'</span>':'')+
+      (bijlagen?'<span class="kmerk" title="Bijlagen">📎 '+bijlagen+'</span>':'')+
+      (reacties?'<span class="kmerk" title="Reacties">💬 '+reacties+'</span>':'')+
+      ((t.wie&&t.wie.length)?'<span class="avs">'+t.wie.slice(0,3).map(n=>'<span class="av" title="'+esc(n)+'">'+avatarVoorNaam(n)+'</span>').join('')+
+        (t.wie.length>3?'<span class="av">+'+(t.wie.length-3)+'</span>':'')+'</span>':'')+
     '</div>'+
     ((magWerken()&&!filterActief())?'<div class="kgreep" title="Sleep om te verplaatsen">⠿</div>':'');
   el.onclick=e=>{ if(e.target.closest('.vink')||e.target.closest('.kgreep')) return; openTaak(t.id); };
@@ -668,6 +693,12 @@ function openTaak(id){
   $('tmMeta').innerHTML = t ? ('Aangemaakt '+tijdKort(t.ts)+(t.door?' door '+esc(t.door):'')+
     (t.klaar&&t.klaarTs?('<br>Afgevinkt '+tijdKort(t.klaarTs)+(t.klaarDoor?' door '+esc(t.klaarDoor):'')):'')) : '';
   renderTmWie(); renderTmLabels(); renderTmSub();
+  // Bijlagen en reacties hangen aan een bestaande taak; bij een nieuwe kaart tonen we ze
+  // pas nadat ze bewaard is (anders is er nog geen kaart om ze aan te hangen).
+  const heeftId=!!taakOpen;
+  $('tmBijlageVeld').style.display=heeftId?'':'none';
+  $('tmReactieVeld').style.display=heeftId?'':'none';
+  if(heeftId){ renderTmBijlagen(); renderTmReacties(); }
   $('taakModal').classList.add('open');
   setTimeout(()=>{ if(!t) $('tmTitel').focus(); },50);
 }
@@ -717,6 +748,84 @@ function renderTmSub(){
     r.querySelector('button').onclick=()=>{ taakConcept.subtaken.splice(i,1); renderTmSub(); };
     box.appendChild(r);
   });
+}
+function renderTmBijlagen(){
+  const box=$('tmBijlagen'); box.innerHTML='';
+  const lijst=taakBijlagen(taakOpen);
+  if(!lijst.length){ box.innerHTML='<div style="color:var(--muted);font-size:13px">Nog geen bijlagen.</div>'; return; }
+  const mij=currentUserName();
+  lijst.forEach(d=>{
+    const r=document.createElement('div'); r.className='subrij';
+    r.innerHTML='<span>'+docIcoon(d)+'</span><div class="tx">'+esc(d.naam||'')+
+      '<div class="sub" style="font-size:12px;color:var(--muted)">'+esc(d.door||'?')+' · '+tijdKort(d.ts)+'</div></div>'+
+      '<button class="btn mini">Openen</button><button class="btn mini clear">✕</button>';
+    const [open,del]=r.querySelectorAll('button');
+    open.onclick=()=>{ if(d.url) window.open(d.url,'_blank','noopener'); };
+    del.onclick=async()=>{
+      if(d.door!==mij && !magBeheren('om een bijlage van iemand anders te verwijderen')) return;
+      const ja=await vraagBevestiging({titel:'Bijlage weghalen?',tekst:d.naam||'',okTekst:'Weghalen',gevaar:true});
+      if(!ja) return;
+      BBInv.removeDoc(d.id); renderTmBijlagen();
+    };
+    box.appendChild(r);
+  });
+}
+function renderTmReacties(){
+  const box=$('tmReacties'); box.innerHTML='';
+  const lijst=taakReacties(taakOpen);
+  if(!lijst.length){ box.innerHTML='<div style="color:var(--muted);font-size:13px">Nog geen reacties.</div>'; return; }
+  const mij=currentUserName();
+  lijst.forEach(b=>{
+    const r=document.createElement('div'); r.className='subrij';
+    r.innerHTML='<span class="av" style="width:24px;height:24px;border-radius:50%;background:var(--forest);color:#fff;'+
+      'font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto">'+
+      avatarVoorNaam(b.auteur)+'</span>'+
+      '<div class="tx">'+esc(b.tekst||'')+
+      '<div class="sub" style="font-size:12px;color:var(--muted)">'+esc(b.auteur||'?')+' · '+tijdKort(b.ts)+'</div></div>'+
+      '<button class="btn mini clear">✕</button>';
+    r.querySelector('button').onclick=async()=>{
+      if(b.auteur!==mij && !magBeheren('om een reactie van iemand anders te verwijderen')) return;
+      const ja=await vraagBevestiging({titel:'Reactie verwijderen?',tekst:b.tekst||'',okTekst:'Verwijderen',gevaar:true});
+      if(!ja) return;
+      BBInv.removeBericht(b.id); renderTmReacties();
+    };
+    box.appendChild(r);
+  });
+}
+function plaatsReactie(){
+  if(!taakOpen||!eisWerken()) return;
+  const p=project(); if(!p) return;
+  const t=$('tmReactieNew').value.trim(); if(!t) return;
+  const mij=currentUserName();
+  if(!mij){ meld('Niet ingelogd','Log eerst in via de startpagina.'); return; }
+  BBInv.addBericht({projectId:p.id,soort:'taakreactie',auteur:mij,tekst:t,data:{taakId:taakOpen}});
+  $('tmReactieNew').value=''; renderTmReacties();
+}
+async function taakBijlageBestand(e){
+  const p=project(); if(!p||!taakOpen) return;
+  const file=e.target.files&&e.target.files[0];
+  e.target.value='';
+  if(!file||!eisWerken()) return;
+  try{
+    const url=await BBInv.uploadFile(file,'projecten/'+p.id+'/taken');
+    BBInv.addDoc({projectId:p.id,naam:file.name,url:url,soort:'Overig',bron:'bestand',
+      mime:file.type||'',grootte:file.size||0,taakId:taakOpen,door:currentUserName()});
+    renderTmBijlagen();
+  }catch(err){
+    await meld('Uploaden mislukt',(err&&err.message?err.message:String(err))+' — uploaden lukt enkel met internet.');
+  }
+}
+async function taakBijlageLink(){
+  const p=project(); if(!p||!taakOpen||!eisWerken()) return;
+  const url=await vraagTekst({titel:'Link aan deze taak hangen',label:'Adres (URL)',placeholder:'https://…',okTekst:'Volgende'});
+  if(url===null) return;
+  const adres=url.trim(); if(!adres) return;
+  if(!/^https?:\/\//i.test(adres)){ await meld('Geen geldig adres','Een link begint met http:// of https://'); return; }
+  const naam=await vraagTekst({titel:'Link aan deze taak hangen',label:'Naam',placeholder:'bv. Offerte',okTekst:'Toevoegen'});
+  if(naam===null) return;
+  BBInv.addDoc({projectId:p.id,naam:(naam.trim()||adres),url:adres,soort:'Overig',bron:'link',
+    taakId:taakOpen,door:currentUserName()});
+  renderTmBijlagen();
 }
 async function bewaarTaak(){
   if(!eisWerken()) return;
@@ -1659,6 +1768,11 @@ $('tmSubAdd').onclick=()=>{
   taakConcept.subtaken.push({text:v,done:false}); $('tmSubNew').value=''; renderTmSub(); $('tmSubNew').focus();
 };
 $('tmSubNew').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); $('tmSubAdd').click(); } };
+$('tmBijlageBestand').onclick=()=>{ if(eisWerken()) $('tmBestand').click(); };
+$('tmBestand').onchange=taakBijlageBestand;
+$('tmBijlageLink').onclick=taakBijlageLink;
+$('tmReactieAdd').onclick=plaatsReactie;
+$('tmReactieNew').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); plaatsReactie(); } };
 $('pmAnnuleer').onclick=sluitProjectVenster;
 $('pmBewaar').onclick=bewaarProject;
 $('chatPlaats').onclick=plaatsBericht;
@@ -1725,6 +1839,10 @@ $('vsAnnuleer').onclick=sluitVerslagVenster;
 $('vsBewaar').onclick=bewaarVerslag;
 $('vsDel').onclick=async()=>{
   if(!vsOpen||!eisWerken()) return;
+  // Zelfde regel als in de lijst: je eigen verslag mag je zelf wissen, dat van een
+  // ander enkel met het beheer-wachtwoord.
+  const v=verslagen().find(x=>x.id===vsOpen);
+  if(v && v.auteur!==currentUserName() && !magBeheren('om een verslag van iemand anders te verwijderen')) return;
   const ja=await vraagBevestiging({titel:'Verslag verwijderen?',tekst:$('vsTitel').value,okTekst:'Verwijderen',gevaar:true});
   if(!ja) return;
   BBInv.removeBericht(vsOpen); sluitVerslagVenster(); renderVerslagen();
