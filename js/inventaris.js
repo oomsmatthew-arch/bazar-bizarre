@@ -13,6 +13,17 @@
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
   let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
   let projectenOK=false, projecttakenOK=false, projectberichtenOK=false, projectagendaOK=false, projectdocsOK=false;
+  // Diagnose: wat het Systeem-scherm toont. Zonder dit merk je pas veel later dat er iets
+  // stilletjes misliep (tabel ontbreekt, wachtrij vast, nooit aangemeld…).
+  const K_LAST_SYNC='bb_last_sync';
+  let libOK=false, aangemeld=false, kernOK=false, realtime='uit';
+  let laatsteSync=0; try{laatsteSync=+(localStorage.getItem(K_LAST_SYNC)||0)||0;}catch(e){}
+  let laatsteFout='', laatsteFoutTs=0;
+  function noteSync(){ laatsteSync=Date.now(); try{localStorage.setItem(K_LAST_SYNC,String(laatsteSync));}catch(e){} }
+  function noteFout(waar,e){
+    const m=(e&&(e.message||(e.error&&e.error.message)))||String(e||'onbekende fout');
+    laatsteFout=waar+': '+m; laatsteFoutTs=Date.now();
+  }
   const K_BESTEL_BACKUP='bb_bestellingen';
   const K_CONTACTEN_BACKUP='bb_contacten';
   const K_CHECKLISTEN_BACKUP='bb_checklisten';
@@ -201,9 +212,10 @@
           else if(op.op==='delete') call=q.delete().eq(op.col,op.val);
           else { outbox.shift(); saveOutbox(); continue; }
           res=await withTimeout(call,12000);
-        }catch(e){ netErr=true; } // netwerk weg of time-out → wachtrij behouden, later opnieuw proberen
+        }catch(e){ netErr=true; noteFout('Versturen naar '+op.table,e); } // netwerk weg of time-out → wachtrij behouden, later opnieuw proberen
         if(netErr) break;
         if(res && res.error){
+          noteFout('Versturen naar '+op.table,res.error);
           // Serverfout (bv. tijdelijke time-out of een grote foto): enkele keren opnieuw
           // proberen i.p.v. de wijziging meteen weg te gooien. Zo komt een foto die de
           // eerste keer faalt alsnog in de database en dus op de andere toestellen.
@@ -213,7 +225,7 @@
           outbox.shift(); saveOutbox(); continue;
         }
         if(op._tries) delete op._tries;
-        outbox.shift(); saveOutbox();
+        outbox.shift(); saveOutbox(); noteSync();
       }
     } finally {
       flushing=false;
@@ -343,15 +355,19 @@
       // toch de laatst bewaarde gegevens tonen zodat lezen én inloggen offline werken.
       // Schrijfacties wachten in de outbox tot er weer verbinding is.
       console.warn('Supabase-bibliotheek niet geladen — lokale (offline) modus.');
+      noteFout('Opstarten','de Supabase-bibliotheek is niet geladen');
       loadCacheFallback();
       await restorePhotosFromIDB();
       ensureEntAlgemeen();
       ready=true; fire();
       return;
     }
+    libOK=true;
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     const toegang=await zorgVoorToegang();
+    aangemeld=!!toegang;
     if(!toegang){
+      noteFout('Aanmelden','dit toestel is niet aangemeld bij de database (toegangscode overgeslagen of geen internet)');
       // Niet aangemeld (offline, of code overgeslagen): toon wat er lokaal bewaard staat.
       // Schrijfacties wachten in de outbox tot dit toestel weer aangemeld en online is.
       loadCacheFallback();
@@ -458,7 +474,8 @@
       cache.boekjes={stock: b&&b.data? (b.data.stock||0) : 0};
       if(f.data) cache.formulieren=f.data.map(mapForm);
       if(l.data) cache.leveringen=l.data.slice();
-    }catch(e){ online=false; console.error('Laden mislukt (offline?):',e); }
+      kernOK=true; noteSync();
+    }catch(e){ online=false; kernOK=false; noteFout('Kerngegevens laden',e); console.error('Laden mislukt (offline?):',e); }
     if(!online){ loadCacheFallback(); await restorePhotosFromIDB(); return; } // geen internet → laatst bewaarde gegevens + foto's tonen
     // Gedeelde extra tabellen (vallen lokaal terug als ze nog niet bestaan).
     await loadShared('bestellingen','bestellingen',mapBestel,K_BESTEL_BACKUP,v=>bestelOK=v);
@@ -516,10 +533,15 @@
   }
   function subscribe(){
     try{
+      realtime='verbinden…';
       sb.channel('bb-all').on('postgres_changes',{event:'*',schema:'public'},payload=>{
-        reloadTable(payload.table).then(fire);
-      }).subscribe();
-    }catch(e){console.error('Realtime mislukt:',e);}
+        reloadTable(payload.table).then(()=>{ noteSync(); fire(); });
+      }).subscribe(st=>{
+        realtime = st==='SUBSCRIBED' ? 'live'
+                 : (st==='CHANNEL_ERROR'||st==='TIMED_OUT') ? 'mislukt' : String(st||'onbekend').toLowerCase();
+        if(realtime==='mislukt') noteFout('Realtime','kon niet luisteren naar wijzigingen van andere toestellen');
+      });
+    }catch(e){ realtime='mislukt'; noteFout('Realtime',e); console.error('Realtime mislukt:',e); }
   }
 
   // Eenmalige migratie: als de database nog leeg is, upload de lokale gegevens
@@ -886,7 +908,11 @@
     const r=cache.gebruikers.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveGebrBackup();
     if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(r)); else persistCache();
     let wat='aangepast';
-    if(patch&&('rol' in patch)) wat=(patch.rol==='vast'?'ingesteld als Vaste mdw':'Vaste mdw verwijderd');
+    if(patch&&('rol' in patch)){
+      const t=rolTags({rol:patch.rol});
+      const namen={vast:'Vaste mdw',admin:'Admin',algemeen:'Gedeeld account'};
+      wat = t.length ? ('rol: '+t.map(x=>namen[x]||x).join(' + ')) : 'rol verwijderd (gewone medewerker)';
+    }
     else if(patch&&('pin' in patch)) wat='pincode gereset';
     else if(patch&&('foto' in patch)) wat='profielfoto gewijzigd';
     logAct('Gebruiker '+(r.naam||'')+' — '+wat); return r;
@@ -1098,6 +1124,96 @@
 
   function seedIfEmpty(){} // niet meer nodig (migratie regelt dit)
 
+  // ---------------- ROLLEN ----------------
+  // 'rol' is een lijstje etiketten, gescheiden door komma's: '', 'vast', 'admin',
+  // 'vast,admin' of 'algemeen' (het gedeelde ENT-account). Zo kan iemand tegelijk
+  // vaste medewerker én admin zijn zonder een extra kolom in de database.
+  function rolTags(u){ return String((u&&u.rol)||'').split(',').map(s=>s.trim()).filter(Boolean); }
+  function heeftRol(u,tag){ return rolTags(u).indexOf(tag)>=0; }
+  // Geeft de nieuwe rol-tekst terug met dit etiket aan- of uitgezet (schrijft zelf niets weg).
+  function zetRol(u,tag,aan){
+    const t=rolTags(u).filter(x=>x!==tag);
+    if(aan) t.push(tag);
+    return t.join(',');
+  }
+
+  // ---------------- SYSTEEM / DIAGNOSE ----------------
+  // Eén overzicht van alles wat stil kan mislopen. Elke tabel: is ze gedeeld via de
+  // database, of leeft ze enkel op dit toestel?
+  const TABELLEN=[
+    {tabel:'prijzen',        label:'Prijzen (voorraad)',   ok:()=>kernOK,           tel:()=>cache.prijzen.length,        kern:true},
+    {tabel:'boekjes',        label:'Boekjes',              ok:()=>kernOK,           tel:()=>1,                           kern:true},
+    {tabel:'formulieren',    label:'Formulieren',          ok:()=>kernOK,           tel:()=>cache.formulieren.length,    kern:true},
+    {tabel:'leveringen',     label:'Leveringen',           ok:()=>kernOK,           tel:()=>cache.leveringen.length,     kern:true},
+    {tabel:'bestellingen',   label:'Bestellingen',         ok:()=>bestelOK,         tel:()=>cache.bestellingen.length},
+    {tabel:'contacten',      label:'Contacten',            ok:()=>contactenOK,      tel:()=>cache.contacten.length},
+    {tabel:'checklisten',    label:'Checklists',           ok:()=>checklistenOK,    tel:()=>cache.checklisten.length},
+    {tabel:'logboek',        label:'Logboek',              ok:()=>logboekOK,        tel:()=>cache.logboek.length},
+    {tabel:'gebruikers',     label:'Gebruikers (namen)',   ok:()=>gebruikersOK,     tel:()=>cache.gebruikers.length},
+    {tabel:'activiteit',     label:'Activiteit',           ok:()=>activiteitOK,     tel:()=>cache.activiteit.length},
+    {tabel:'projecten',      label:'Projecten',            ok:()=>projectenOK,      tel:()=>cache.projecten.length},
+    {tabel:'projecttaken',   label:'Projecttaken',         ok:()=>projecttakenOK,   tel:()=>cache.projecttaken.length},
+    {tabel:'projectberichten',label:'Projectberichten',    ok:()=>projectberichtenOK,tel:()=>cache.projectberichten.length},
+    {tabel:'projectagenda',  label:'Projectagenda',        ok:()=>projectagendaOK,  tel:()=>cache.projectagenda.length},
+    {tabel:'projectdocs',    label:'Projectdocumenten',    ok:()=>projectdocsOK,    tel:()=>cache.projectdocs.length},
+    {tabel:'manualsdoc',     label:'Online manuals',       ok:()=>manualsdocOK,     tel:()=>cache.manualsdoc?1:0},
+    {tabel:'appconfig',      label:'Instellingen (gedeeld)',ok:()=>appconfigOK,     tel:()=>cache.appconfig?1:0},
+    {tabel:'spelarchief',    label:'Spelarchief',          ok:()=>spelarchiefOK,    tel:()=>cache.spelarchief?1:0}
+  ];
+  function getSysteem(){
+    const eerste=outbox[0];
+    return {
+      online: typeof navigator==='undefined' || navigator.onLine!==false,
+      lib: libOK, aangemeld, kern: kernOK, klaar: ready, realtime,
+      url: SUPABASE_URL,
+      laatsteSync, laatsteFout, laatsteFoutTs,
+      wachtrij: outbox.length,
+      wachtrijEerste: eerste?{tabel:eerste.table,actie:eerste.op,pogingen:eerste._tries||0}:null,
+      nogTeBewaren: dirty.size,
+      tabellen: TABELLEN.map(t=>({tabel:t.tabel,label:t.label,gedeeld:!!t.ok(),aantal:t.tel(),kern:!!t.kern}))
+    };
+  }
+  // Echte proef op de som: haalt één rijtje op en meet hoe lang dat duurt.
+  async function pingDB(){
+    if(!sb) return {ok:false,ms:0,fout:'Supabase-bibliotheek niet geladen'};
+    const t0=Date.now();
+    try{
+      const r=await withTimeout(sb.from('boekjes').select('id').limit(1),8000);
+      if(r&&r.error){ noteFout('Verbindingstest',r.error); return {ok:false,ms:Date.now()-t0,fout:r.error.message||String(r.error)}; }
+      noteSync();
+      return {ok:true,ms:Date.now()-t0};
+    }catch(e){
+      noteFout('Verbindingstest',e);
+      return {ok:false,ms:Date.now()-t0,fout:(e&&e.message)||'geen antwoord'};
+    }
+  }
+  // Hoeveel ruimte de app inneemt op dit toestel (localStorage is hard begrensd op ~5 MB).
+  async function getOpslag(){
+    let lsBytes=0, lsAantal=0;
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i); const v=localStorage.getItem(k)||'';
+        lsBytes+=(k.length+v.length)*2; lsAantal++;
+      }
+    }catch(e){}
+    let quota=0, usage=0;
+    try{
+      if(navigator.storage&&navigator.storage.estimate){
+        const est=await navigator.storage.estimate();
+        quota=est.quota||0; usage=est.usage||0;
+      }
+    }catch(e){}
+    return {lsBytes,lsAantal,lsLimiet:5*1024*1024,quota,usage};
+  }
+  // Laatste redmiddel als een wijziging de wachtrij blijft blokkeren. De app vraagt
+  // hier eerst bevestiging voor — wat weg is, is weg.
+  function wisWachtrij(){
+    const n=outbox.length;
+    outbox.length=0; saveOutbox(); fire();
+    logAct('Systeem: wachtrij gewist ('+n+' wijziging'+(n===1?'':'en')+')');
+    return n;
+  }
+
   // ---------------- AFDRUKKEN ----------------
   function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function fmtNowNL(){const d=new Date();const p=n=>String(n).padStart(2,'0');return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();}
@@ -1155,6 +1271,8 @@
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,
+    rolTags,heeftRol,zetRol,
+    getSysteem,pingDB,getOpslag,wisWachtrij,
     submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
 })();

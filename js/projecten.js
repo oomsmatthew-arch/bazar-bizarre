@@ -129,7 +129,18 @@ function meld(titel,tekst){ return dlgOpen({titel:titel,tekst:tekst,okTekst:'Ok�
 function currentUser(){ try{return JSON.parse(localStorage.getItem(K_USER)||'null');}catch(e){return null;} }
 function currentUserName(){ const u=currentUser(); return u&&u.naam?u.naam:''; }
 function gebruikers(){ return (window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[]; }
-function fullCurrentUser(){ const u=currentUser(); if(!u) return null; return gebruikers().find(x=>x.id===u.id)||u; }
+// Wie ben ik in de gedeelde namenlijst? Eerst op id zoeken. Vindt hij niets — bijvoorbeeld
+// omdat je account ooit opnieuw is aangemaakt en dus een nieuw id kreeg — dan proberen we
+// het op naam. Zonder die terugval zou je je rol (en dus je rechten) kwijt zijn.
+function fullCurrentUser(){
+  const u=currentUser(); if(!u) return null;
+  const lijst=gebruikers();
+  const opId=lijst.find(x=>x.id===u.id);
+  if(opId) return opId;
+  const naam=String(u.naam||'').trim().toLowerCase();
+  const opNaam=naam?lijst.find(x=>String(x.naam||'').trim().toLowerCase()===naam):null;
+  return opNaam||u;
+}
 function avatarInner(u){ return (u&&u.foto)?('<img src="'+esc(u.foto)+'" alt="">'):esc(initialen(u?u.naam:'')); }
 function avatarVoorNaam(naam){ const u=gebruikers().find(x=>x.naam===naam); return u?avatarInner(u):esc(initialen(naam)); }
 function isVasteMdw(){ const u=fullCurrentUser(); return !!(u&&u.rol==='vast'); }
@@ -152,8 +163,24 @@ function magProjectMaken(vraag){
   if(r==='iedereen') return true;
   if(r==='beheer') return vraag?magBeheren('voor projectbeheer'):isVasteMdw();
   if(isVasteMdw()) return true;
-  if(vraag) meld('Enkel vaste medewerkers','Projecten aanmaken of aanpassen kan enkel door een vaste medewerker. Je kan wel volop meewerken: taken toevoegen, verslepen, afvinken en meepraten in de bespreking. (Deze regel staat bij Instellingen op de startpagina.)');
+  if(vraag) meld('Enkel vaste medewerkers',
+    'Projecten aanmaken of aanpassen kan enkel door een vaste medewerker. '+wieBenIk()+
+    ' Klopt dat niet? Tik dan rechtsboven op je naam om te wisselen, of laat je rol goedzetten '+
+    'via Instellingen → Namenlijst beheren. Meewerken kan sowieso: taken toevoegen, verslepen, '+
+    'afvinken en meepraten.');
   return false;
+}
+// Korte uitleg van wat de app op dit moment over jou weet — anders sta je voor een
+// dichte deur zonder te zien waarom.
+function wieBenIk(){
+  const u=fullCurrentUser();
+  if(!u) return 'De app ziet momenteel niemand als ingelogd.';
+  const lijst=gebruikers();
+  if(!lijst.length) return 'De namenlijst is nog niet geladen; probeer de pagina te verversen.';
+  const gevonden=lijst.some(x=>x.id===u.id);
+  const rol=u.rol==='vast'?'vaste medewerker':(u.rol?u.rol:'geen rol ingesteld');
+  return 'De app ziet je als "'+(u.naam||'onbekend')+'" ('+rol+')'+
+    (gevonden?'':' — dit account staat niet meer in de gedeelde namenlijst')+'.';
 }
 // Mag ik in een project werken (taken maken, verplaatsen, afvinken)? (standaard: iedereen)
 function magWerken(){
