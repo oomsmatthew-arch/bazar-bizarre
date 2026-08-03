@@ -427,16 +427,69 @@ function laadBewaard(){
 }
 
 // ---------------------------------------------------------------- printen
-function printOverzicht(){
-  const w=window.open('','_blank'); if(!w){ alert('Kon het afdrukvenster niet openen (pop-ups toestaan).'); return; }
-  const html=$('resultaat').innerHTML;
-  const css='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:24px;}'+
-    '.donut,.rij-donut,.filterbar,.toolbar{display:none!important;}.tile{display:inline-block;margin:0 18px 10px 0;}.tile .v,.tile .l{display:block;}'+
-    '.rij{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:6px 0;}'+
-    '.reviewgrid{display:block;}.rv{border-bottom:1px solid #eee;padding:8px 0;}.rv-score{font-weight:bold;display:inline-block;width:34px;}'+
-    '.rv-orig{color:#666;font-style:italic;font-size:12px;}.muted{color:#888;}h2{font-size:15px;margin:16px 0 6px;}';
-  w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Ratings</title><style>'+css+'</style></head><body><h1>Ratings-overzicht</h1>'+html+'</body></html>');
-  w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
+function fmtNu(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
+// Keuzemenu: boekjaar, maand, categorie + welke onderdelen.
+function vulPrintOpties(){
+  const bron=(_data&&_data.reviews)||[];
+  const bj=Array.from(new Set(bron.map(r=>boekjaarKey(r.datum)).filter(Boolean))).sort().reverse();
+  const mnd=Array.from(new Set(bron.map(r=>maandKey(r.datum)).filter(Boolean))).sort().reverse();
+  const pb=$('pBoekjaar'); if(pb){ pb.innerHTML='<option value="">Alle boekjaren</option>'+bj.map(k=>'<option value="'+k+'">Boekjaar '+boekjaarLabel(k)+'</option>').join(''); pb.value=_boekjaar||''; }
+  const pm=$('pMaand'); if(pm) pm.innerHTML='<option value="">Alle maanden</option>'+mnd.map(k=>'<option value="'+k+'">'+maandLabel(k)+'</option>').join('');
+  const pc=$('pCat'); if(pc) pc.innerHTML='<option value="">Alle categorieën</option>'+ACT_CATS.map(c=>'<option value="'+c.key+'">'+c.label+'</option>').join('');
+}
+function openPrintDialog(){ if(!_data){ alert('Nog geen gegevens om af te drukken.'); return; } vulPrintOpties(); $('printModal').classList.add('open'); }
+function sluitPrint(){ const m=$('printModal'); if(m) m.classList.remove('open'); }
+function doePrint(){
+  const o={ boekjaar:$('pBoekjaar').value, maand:$('pMaand').value, categorie:$('pCat').value,
+    samenv:$('pSamenv').checked, mnd:$('pMnd').checked, act:$('pAct').checked, taal:$('pTaal').checked, reacties:$('pReacties').checked };
+  sluitPrint();
+  const w=window.open('','_blank'); if(!w){ alert('Kon het afdrukvenster niet openen (sta pop-ups toe voor deze site).'); return; }
+  const css='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:26px;}'+
+    'h1{font-size:21px;margin:0 0 2px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}'+
+    'h2{font-size:15px;margin:18px 0 6px;color:#2f6450;border-bottom:2px solid #cfe0c8;padding-bottom:3px;}'+
+    'table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:6px;}'+
+    'th,td{border:1px solid #d5ddd0;padding:5px 9px;text-align:left;}th{background:#f0f5ec;}'+
+    'td.n,th.n{text-align:right;white-space:nowrap;width:92px;}'+
+    '.kv{display:flex;gap:24px;flex-wrap:wrap;margin:6px 0 4px;}.kv div{font-size:12px;color:#666;}.kv b{display:block;font-size:20px;color:#2f6450;}'+
+    '.rev{border-bottom:1px solid #eee;padding:6px 0;font-size:12px;}.rev .s{font-weight:bold;display:inline-block;width:34px;}.rev .o{color:#777;font-style:italic;}'+
+    '.g{color:#2f9e57;}.a{color:#e08a1e;}.r{color:#c0392b;}';
+  w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Ratings-overzicht</title><style>'+css+'</style></head><body>'+bouwPrintHtml(o)+'</body></html>');
+  w.document.close(); w.focus(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 400);
+}
+function bouwPrintHtml(o){
+  let rev=((_data&&_data.reviews)||[]).slice();
+  if(o.boekjaar) rev=rev.filter(r=>boekjaarKey(r.datum)===o.boekjaar);
+  if(o.maand) rev=rev.filter(r=>maandKey(r.datum)===o.maand);
+  const cat=ACT_CATS.find(c=>c.key===o.categorie);
+  if(cat) rev=rev.filter(r=>cat.re.test(canonAct(r.activiteit)||''));
+  const f=[]; if(o.boekjaar)f.push('Boekjaar '+boekjaarLabel(o.boekjaar)); if(o.maand)f.push(maandLabel(o.maand)); if(cat)f.push('Categorie '+cat.label);
+  const kl3=v=>v>=4?'g':(v>=3?'a':'r');
+  let h='<h1>Ratings-overzicht</h1><div class="sub">'+(f.length?esc(f.join(' · ')):'Alle gegevens')+' — '+rev.length+' reacties · afgedrukt op '+fmtNu()+'</div>';
+  if(!rev.length) return h+'<p>Geen reacties voor deze selectie.</p>';
+  if(o.samenv){
+    const gem=avg(rev.map(r=>r.score));
+    const pm=groepeer(rev,r=>maandKey(r.datum)).sort((a,b)=>a.key.localeCompare(b.key));
+    const bM=pm.reduce((m,x)=>(!m||x.gem>m.gem)?x:m,null), sM=pm.reduce((m,x)=>(!m||x.gem<m.gem)?x:m,null);
+    const pa=groepeer(rev,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem);
+    h+='<div class="kv"><div>Gemiddelde<b class="'+kl3(gem)+'">'+fmtScore(gem)+'</b>'+rev.length+' reacties</div>'+
+      (bM?'<div>Beste maand<b>'+fmtScore(bM.gem)+'</b>'+esc(maandLabel(bM.key))+'</div>':'')+
+      (sM&&pm.length>1?'<div>Laagste maand<b>'+fmtScore(sM.gem)+'</b>'+esc(maandLabel(sM.key))+'</div>':'')+
+      (pa[0]?'<div>Beste activiteit<b>'+fmtScore(pa[0].gem)+'</b>'+esc(pa[0].key)+'</div>':'')+
+      (pa.length>1?'<div>Laagste activiteit<b>'+fmtScore(pa[pa.length-1].gem)+'</b>'+esc(pa[pa.length-1].key)+'</div>':'')+'</div>';
+  }
+  const tabel=(titel,rows)=> rows.length?('<h2>'+esc(titel)+'</h2><table><tr><th>Naam</th><th class="n">Gemiddelde</th><th class="n">Reacties</th></tr>'+rows.map(r=>'<tr><td>'+esc(r.naam)+'</td><td class="n">'+fmtScore(r.gem)+'</td><td class="n">'+r.n+'</td></tr>').join('')+'</table>'):'';
+  if(o.mnd) h+=tabel('Per maand',groepeer(rev,r=>maandKey(r.datum)).sort((a,b)=>b.key.localeCompare(a.key)).map(m=>({naam:maandLabel(m.key),gem:m.gem,n:m.n})));
+  if(o.act) h+=tabel('Per activiteit'+(cat?' — '+cat.label:''),groepeer(rev,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem).map(a=>({naam:a.key,gem:a.gem,n:a.n})));
+  if(o.taal) h+=tabel('Per taal',groepeer(rev,taalVan).sort((a,b)=>b.n-a.n).map(t=>({naam:t.key,gem:t.gem,n:t.n})));
+  if(o.reacties){
+    const lijst=rev.slice().sort((a,b)=>((b.datum?b.datum.getTime():0)-(a.datum?a.datum.getTime():0)));
+    h+='<h2>Alle reacties ('+lijst.length+')</h2>'+lijst.map(r=>{
+      const t=r.vertaald||r.tekst||'—';
+      const orig=(r.tekst&&r.vertaald&&r.tekst!==r.vertaald)?'<div class="o">origineel: '+esc(r.tekst)+'</div>':'';
+      return '<div class="rev"><span class="s '+kl3(r.score)+'">'+fmtScore(r.score)+'</span> <b>'+esc(canonAct(r.activiteit)||'—')+'</b> '+(r.datum?'· '+fmtDate(r.datum):'')+(taalVan(r)?' · '+esc(taalVan(r)):'')+'<div>'+esc(t)+'</div>'+orig+'</div>';
+    }).join('');
+  }
+  return h;
 }
 
 // ---------------------------------------------------------------- thema
@@ -490,7 +543,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(importBtn){ importBtn.style.display=''; importBtn.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
   if(wisBtn){ wisBtn.style.display=''; wisBtn.onclick=()=>{ if(!magBewerken()) return; if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
   if(leegImport){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings uploaden</button>'; const b=$('leegImportBtn'); if(b) b.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
-  const pb=$('printBtn'); if(pb) pb.onclick=printOverzicht;
+  const pb=$('printBtn'); if(pb) pb.onclick=openPrintDialog;
+  const pa=$('pAfdruk'); if(pa) pa.onclick=doePrint;
+  const pan=$('pAnnuleer'); if(pan) pan.onclick=sluitPrint;
+  const pmod=$('printModal'); if(pmod) pmod.onclick=e=>{ if(e.target===pmod) sluitPrint(); };
   // filter/zoek
   const fz=$('fZoek'); if(fz) fz.oninput=()=>{ _filter.zoek=fz.value.trim().toLowerCase(); renderReviews(); };
   const fd=$('fDatum'); if(fd) fd.onchange=()=>{ _filter.datum=fd.value; renderReviews(); };

@@ -124,6 +124,17 @@
   .ov .rij{gap:12px;padding:8px 6px;}
   .ov .donut{width:46px;height:46px;} .ov .donut .donut-in{width:34px;height:34px;font-size:13px;}
   .ov .rij-nm .t{font-size:17.5px;line-height:1.2;} .ov .rij-n b{font-size:18px;} .ov .rij-n span{font-size:13px;}
+  /* afdruk-keuzemenu */
+  .modal{position:fixed;inset:0;background:rgba(15,30,20,.6);display:none;z-index:200;align-items:flex-start;justify-content:center;padding:18px;overflow:auto;}
+  .modal.open{display:flex;}
+  .modalbox{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px 22px;max-width:440px;width:100%;margin-top:30px;}
+  .modalbox h3{margin:0 0 8px;color:var(--forest);font-family:var(--serif);font-size:19px;}
+  .modalbox > label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+  .modalbox .finp{width:100%;max-width:100%;}
+  .psecties{display:flex;flex-direction:column;gap:2px;}
+  .psecties label{display:flex;align-items:center;gap:9px;margin:5px 0;font-size:15px;color:var(--text);font-weight:600;}
+  .psecties label input{width:18px;height:18px;flex:0 0 auto;}
+  .modalbar{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
   footer{margin-top:26px;text-align:center;color:var(--muted);font-size:12px;}
 </style>
 </head>
@@ -186,6 +197,32 @@
   </div>
 
   <input type="file" id="fileInput" accept=".xlsx,.csv,.txt" style="display:none">
+
+  <!-- Afdruk-keuzemenu -->
+  <div class="modal" id="printModal">
+    <div class="modalbox">
+      <h3>🖨 Afdrukken — wat wil je printen?</h3>
+      <label>Boekjaar</label>
+      <select id="pBoekjaar" class="finp"></select>
+      <label>Maand</label>
+      <select id="pMaand" class="finp"></select>
+      <label>Categorie (activiteiten)</label>
+      <select id="pCat" class="finp"></select>
+      <label>Onderdelen</label>
+      <div class="psecties">
+        <label><input type="checkbox" id="pSamenv" checked> Samenvatting</label>
+        <label><input type="checkbox" id="pMnd" checked> Per maand</label>
+        <label><input type="checkbox" id="pAct" checked> Per activiteit</label>
+        <label><input type="checkbox" id="pTaal" checked> Per taal</label>
+        <label><input type="checkbox" id="pReacties"> Alle reacties (lange lijst)</label>
+      </div>
+      <div class="modalbar">
+        <button class="btn" id="pAnnuleer">Annuleren</button>
+        <button class="btn primary" id="pAfdruk">🖨 Afdrukken</button>
+      </div>
+    </div>
+  </div>
+
   <footer>Entertainment · De Vossemeren</footer>
 </div>
 <script src="js/ratings.js"></script>
