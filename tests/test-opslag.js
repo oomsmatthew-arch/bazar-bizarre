@@ -33,10 +33,15 @@ function ok(v,wat){ if(!v){ fouten++; print('  ✗ '+wat); } else print('  ✓ '
 // De callbacks worden pas in een volgende microtaak opgeroepen, net als in een browser:
 // de echte code zet .onsuccess/.oncomplete pas ná de aanroep.
 function nepIndexedDB(){
-  var data={}, stores={};
+  var data={}, stores={}, puts={};
   function later(fn){ Promise.resolve().then(fn); }
+  // Een echte IndexedDB maakt bij put() een kópie (structured clone). Zonder dat na te doen
+  // zou de test een verwijzing naar de levende cache bewaren en dus altijd slagen, ook als
+  // er in werkelijkheid niets weggeschreven werd.
+  function kopie(v){ try{ return JSON.parse(JSON.stringify(v)); }catch(e){ return v; } }
   return {
     data:data,
+    puts:puts,          // hoe vaak er per sleutel geschreven is
     open:function(){
       var req={onupgradeneeded:null,onsuccess:null,onerror:null,result:null};
       req.result={
@@ -45,7 +50,7 @@ function nepIndexedDB(){
         transaction:function(){
           var tx={oncomplete:null,onerror:null,objectStore:function(){
             return {
-              put:function(v,k){ data[k]=v; later(function(){ if(tx.oncomplete) tx.oncomplete(); }); },
+              put:function(v,k){ data[k]=kopie(v); puts[k]=(puts[k]||0)+1; later(function(){ if(tx.oncomplete) tx.oncomplete(); }); },
               get:function(k){ var rq={onsuccess:null,onerror:null,result:undefined};
                 later(function(){ rq.result=data[k]; if(rq.onsuccess) rq.onsuccess(); }); return rq; },
               'delete':function(k){ delete data[k]; later(function(){ if(tx.oncomplete) tx.oncomplete(); }); }
@@ -149,6 +154,80 @@ function project(id,naam,ts){
   var namen2=BBInv.getProjecten().map(function(p){return p.naam;}).sort();
   ok(namen2.length===2,'beide projecten kwamen terug uit de ruime opslag ('+namen2.join(', ')+')');
   ok(!store['bb_cache_v1'],'de snelle opslag blijft leeg');
+  globalThis.indexedDB=undefined;
+
+  print('\n— Invullen en meteen naar een andere pagina —');
+  // Het scenario van elke dag: iets invullen en direct wegklikken. De timers draaien hier
+  // BEWUST niet (draaiTimers wordt niet aangeroepen) — dat bootst na dat de pagina weg is
+  // vóór een uitgestelde schrijfactie zou afgaan. Alles moet er dus al staan.
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var idb2=nepIndexedDB();
+  globalThis.indexedDB=idb2;
+  await sessie(basisDB());
+  await rust();
+  BBInv.addContact({naam:'Nieuwe leverancier',rol:'decor',tel:'0470',mail:''});
+  BBInv.addProject({naam:'Snel weggeklikt'});
+  await rust();                                  // geen timers, enkel de IndexedDB-ketting
+  var bewaard2=idb2.data['momentopname']||{};
+  ok((bewaard2.contacten||[]).length===1,'het contact staat meteen in de offline kopie');
+  ok((bewaard2.projecten||[]).length===1,'het project ook — zonder op een timer te wachten');
+  // En het komt ook echt terug na een herstart.
+  await sessie(basisDB());
+  await rust();
+  ok(BBInv.getContacten().length===1 && BBInv.getProjecten().length===1,
+     'na opnieuw opstarten staat alles er nog');
+  globalThis.indexedDB=undefined;
+
+  print('\n— Wie je bent is meteen bekend, vóór de database antwoordt —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  globalThis.indexedDB=undefined;   // via de snelle opslag, zodat de stand er zeker staat
+  store['bb_cache_v1']=JSON.stringify({projecten:[],contacten:[],checklisten:[],logboek:[],
+    gebruikers:[{id:'u9',naam:'Matthew',pin:'h:x',rol:'vast,admin',foto:'',ts:1}],
+    activiteit:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],
+    bestellingen:[],prijzen:[],formulieren:[],leveringen:[],boekjes:{stock:0}});
+  var nep=maakNepSupabase(basisDB(),ONTBREEKT);
+  globalThis.supabase={createClient:function(){ return nep.client; }};
+  delete globalThis.BBInv;
+  load(PAD);
+  var vroegAantal=null, vroegRol=null, vroegKlaar=null;
+  BBInv.setOnChange(function(){
+    if(vroegAantal!==null) return;                 // enkel de allereerste verversing
+    var lijst=BBInv.getGebruikers();
+    vroegAantal=lijst.length;
+    vroegRol=BBInv.heeftRol(lijst[0],'admin');
+    vroegKlaar=BBInv.isReady();
+  });
+  await BBInv.init();
+  ok(vroegAantal===1,'de namenlijst was al gevuld bij de eerste verversing');
+  ok(vroegRol===true,'en de rol Admin was toen al bekend');
+  ok(vroegKlaar===false,'dat gebeurde nog vóór het laden klaar was');
+
+  print('\n— Opstarten herschrijft de offline kopie niet per tabel —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var idb3=nepIndexedDB();
+  globalThis.indexedDB=idb3;
+  // Elke gedeelde tabel moet gevuld zijn, anders valt er per tabel niets weg te schrijven
+  // en zou de test ook slagen zonder het bundelen.
+  var volleDB=basisDB();
+  volleDB.bestellingen=[{id:'b1',ts:1,info:'Knuffels',status:'Besteld'}];
+  volleDB.contacten=[{id:'c1',naam:'Jan',rol:'techniek',tel:'',mail:'',ts:1}];
+  volleDB.checklisten=[{id:'k1',naam:'Pre-spel',items:[],pos:0,ts:1}];
+  volleDB.logboek=[{id:'l1',ts:1,datum:'',auteur:'Jan',tekst:'Micro stuk',klaar:false}];
+  volleDB.activiteit=[{id:'a1',ts:1,wie:'Jan',actie:'Prijs toegevoegd'}];
+  volleDB.projecten=[{id:'pr1',naam:'Halloween',kolommen:['Te doen'],pos:1,ts:1}];
+  volleDB.projecttaken=[{id:'t1',project_id:'pr1',kolom:'Te doen',titel:'Decor',pos:1,ts:1}];
+  volleDB.projectberichten=[{id:'m1',project_id:'pr1',soort:'bericht',ts:1,auteur:'Jan',tekst:'hoi'}];
+  volleDB.projectagenda=[{id:'g1',project_id:'pr1',datum:'2026-10-01',titel:'Overleg',soort:'afspraak',ts:1}];
+  volleDB.projectdocs=[{id:'d1',project_id:'pr1',naam:'Offerte',url:'https://x',soort:'Offerte',ts:1}];
+  var nep3=maakNepSupabase(volleDB,{});        // alle tabellen bestaan én zijn gevuld
+  globalThis.supabase={createClient:function(){ return nep3.client; }};
+  delete globalThis.BBInv;
+  load(PAD);
+  await BBInv.init();
+  await rust();
+  var n=idb3.puts['momentopname']||0;
+  ok(n>0,'de offline kopie is weggeschreven');
+  ok(n<=6,'en niet één keer per tabel ('+n+' schrijfacties voor 15 tabellen)');
   globalThis.indexedDB=undefined;
 
   print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');

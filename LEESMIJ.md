@@ -166,6 +166,39 @@ gevallen.
 De wachtrij blijft bewust in localStorage: die wordt synchroon weggeschreven, zodat een
 offline gemaakte wijziging ook overleeft als de tablet meteen daarna dichtgaat.
 
+**Invullen en meteen doorklikken mag.** Elke wijziging wordt onmiddellijk weggeschreven, niet
+uitgesteld. Dat is belangrijk omdat voor een tabel die nog niet in de database bestaat deze
+kopie de énige is. Alleen het tikken in de voorraadvelden wordt gebundeld (dat vuurt bij elke
+toetsaanslag), en die wijzigingen zijn ook via de wachtrij gedekt.
+
+**Wie je bent, weet de app meteen.** Bij het opstarten toont ze eerst de laatst bekende stand
+— inclusief de namenlijst met de rollen — en pas daarna de verse gegevens uit de database.
+Vroeger was de app de eerste seconden "leeg" en dacht ze dat je geen rechten had. Iemand
+uitloggen omdat hij niet in de lijst staat, gebeurt pas nadat de verse lijst binnen is.
+
+## Hoe snel de app opstart
+
+Er zaten vier onnodige wachttijden in het opstarten. Wat er nu gebeurt:
+
+1. **Meteen tonen wat we al weten.** De laatst bewaarde stand komt eerst op het scherm —
+   inclusief de namenlijst met rollen. De database ververst het daarna.
+2. **Alle tabellen tegelijk ophalen.** Vroeger wachtte elk van de vijftien verzoeken op het
+   vorige: vijftien keer heen en weer naar de server, achter elkaar. Nu vertrekken ze samen.
+3. **Foto's houden het scherm niet op.** Die kunnen megabytes zijn; ze worden nu op de
+   achtergrond bijgeladen. Hetzelfde geldt voor de vraag om blijvende opslag.
+4. **Niet vijftien keer wegschrijven.** Tijdens het laden wordt de offline kopie één keer
+   op het einde bewaard in plaats van na elke tabel.
+
+Daarbovenop: de service worker serveert `js`, afbeeldingen en het manifest nu meteen uit de
+bewaarde kopie en ververst op de achtergrond (`supabase.min.js` alleen al is ruim 200 kB en
+verandert bijna nooit). **Pagina's** blijven netwerk-eerst, zodat je nooit met oude code
+werkt — maar met een limiet van 2,5 seconden: daarna verschijnt de bewaarde versie en haalt
+de app zichzelf even later stil bij. Vroeger keek je op een trage wifi naar een leeg scherm
+tot het verzoek klaar was.
+
+De pagina's zetten ook alvast de verbinding met de database op (`preconnect`), zodat de
+eerste zoekopdracht niet meer op de DNS- en beveiligingshanddruk hoeft te wachten.
+
 ## Mappenstructuur
 
 **Pagina's (hoofdmap — deze moeten hier blijven staan):**

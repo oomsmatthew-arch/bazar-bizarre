@@ -9,7 +9,7 @@
 // ---------------- BASIS ----------------
 // Versie van de Projecten-module. Verhoog dit bij elke aanpassing die je uitrolt,
 // zodat je op de tablet meteen ziet of de nieuwste versie geladen is.
-const APP_VERSION='v1.1';
+const APP_VERSION='v1.2';
 const K_THEME='bb_home_theme';
 const K_PIN='bb_home_pin';
 const DEFAULT_PIN='3920';

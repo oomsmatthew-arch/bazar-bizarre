@@ -146,17 +146,23 @@
       if(!snapshotIDB){ snapshotIDB=true; try{localStorage.removeItem(K_CACHE);}catch(e){} }
     }).catch(e=>{ noteFout('Lokale opslag (IndexedDB)',e); schrijfNaarLocalStorage(); });
   }
-  function persistCache(){
+  // BELANGRIJK: standaard schrijven we METEEN weg, niet uitgesteld. Voor tabellen die nog
+  // niet in de database bestaan is deze momentopname namelijk de énige kopie — daar zou een
+  // uitgestelde schrijfactie een wijziging kwijtspelen als je meteen naar een andere pagina
+  // gaat. Alleen het tikken in de voorraadvelden (queue) gaat gebundeld: dat vuurt bij elke
+  // toetsaanslag, en daar is de wijziging ook nog op andere manieren gedekt.
+  let bulkLaden=false;   // tijdens het opstarten: pas op het einde één keer wegschrijven
+  function persistCache(uitstellen){
     // Zolang de bewaarde stand nog niet ingelezen is (IndexedDB leest asynchroon), mogen we
     // niets wegschrijven: de cache is dan nog leeg en zou de offline kopie wissen.
     if(!snapshotGeladen) return;
     snapshot=bouwSlim();
-    // IndexedDB schrijft asynchroon en per transactie; persistCache wordt bij elke stock-tik
-    // aangeroepen, dus bundelen we de schrijfacties. Wat er tussenuit valt is geen verlies:
-    // offline gemaakte wijzigingen staan in de outbox (localStorage, meteen weggeschreven),
-    // en met internet komt alles sowieso weer uit de database.
-    if(idbKan()){ clearTimeout(snapT); snapT=setTimeout(()=>{ snapT=null; schrijfSnapshot(); },400); }
-    else schrijfNaarLocalStorage();
+    // Bij het laden komen vijftien tabellen tegelijk binnen; zonder dit zou elke tabel een
+    // volledige herschrijving van de offline kopie uitlokken.
+    if(bulkLaden) return;
+    if(!idbKan()) schrijfNaarLocalStorage();
+    else if(uitstellen===true){ clearTimeout(snapT); snapT=setTimeout(()=>{ snapT=null; schrijfSnapshot(); },400); }
+    else { clearTimeout(snapT); snapT=null; schrijfSnapshot(); }
     savePhotosToIDB();
   }
   // Bij het sluiten van de pagina niet wachten op de timer.
@@ -271,13 +277,17 @@
       idbSet(sleutel,met.map(x=>({id:x.id,foto:x.foto}))).catch(()=>{});
     }catch(e){}
   }
-  function herstelFotos(sleutel,lijst){
+  // 'geef' is een functie, geen lijst: het ophalen duurt even, en ondertussen kan de
+  // database-versie van diezelfde lijst al binnen zijn. We vullen dus de lijst aan zoals
+  // ze op dát moment is, niet zoals ze was toen we begonnen.
+  function herstelFotos(sleutel,geef){
     if(typeof indexedDB==='undefined') return Promise.resolve();
     return idbGet(sleutel).then(list=>{
       if(!Array.isArray(list)||!list.length) return;
+      const lijst=geef()||[];
       const by={}; list.forEach(x=>{ if(x&&x.id) by[x.id]=x.foto||''; });
-      (lijst||[]).forEach(x=>{ if(x && !x.foto && by[x.id]) x.foto=by[x.id]; });
-      _fotoSig[sleutel]=(lijst||[]).filter(x=>x&&x.foto).map(x=>x.id+':'+x.foto.length).join('|');
+      lijst.forEach(x=>{ if(x && !x.foto && by[x.id]) x.foto=by[x.id]; });
+      _fotoSig[sleutel]=lijst.filter(x=>x&&x.foto).map(x=>x.id+':'+x.foto.length).join('|');
     }).catch(()=>{});
   }
   function savePhotosToIDB(){
@@ -288,9 +298,9 @@
   // Bij offline laden: de foto's terug in de cache zetten (localStorage bevat ze niet).
   function restorePhotosFromIDB(){
     return Promise.all([
-      herstelFotos(IDB_PHOTOKEY,cache.prijzen),
-      herstelFotos(IDB_LEVFOTO,cache.leveringen),
-      herstelFotos(IDB_GEBRFOTO,cache.gebruikers)
+      herstelFotos(IDB_PHOTOKEY,()=>cache.prijzen),
+      herstelFotos(IDB_LEVFOTO,()=>cache.leveringen),
+      herstelFotos(IDB_GEBRFOTO,()=>cache.gebruikers)
     ]).then(()=>{});
   }
 
@@ -488,17 +498,23 @@
 
   async function init(){
     await laadSnapshot();       // de offline kopie inlezen (IndexedDB) vóór er iets uit gelezen wordt
-    await vraagBlijvendeOpslag();
     bewaarLokaleProjectstand(); // eerst vastleggen wat er lokaal staat, vóór het synchroniseren
     eenmaligWachtVullen();      // bestaande projecten van vóór deze versie alsnog laten vertrekken
+    // METEEN tonen wat we al weten — vooral de namenlijst met de rollen. Anders is de app
+    // de eerste seconden "leeg" en denkt ze dat je geen rechten hebt, tot de database
+    // antwoordt. Wat hier staat is de laatst bekende stand; loadAll() ververst het zo meteen.
+    loadCacheFallback();
+    fire();
+    // Deze twee mogen het scherm niet ophouden: de foto's kunnen megabytes zijn, en de
+    // vraag om blijvende opslag heeft niets met tonen te maken. Ze komen er vanzelf bij.
+    restorePhotosFromIDB().then(fire);
+    vraagBlijvendeOpslag();
     if(!window.supabase){
       // Bibliotheek niet geladen (zeldzaam, bv. offline vóór ze ooit gecacht is):
       // toch de laatst bewaarde gegevens tonen zodat lezen én inloggen offline werken.
       // Schrijfacties wachten in de outbox tot er weer verbinding is.
       console.warn('Supabase-bibliotheek niet geladen — lokale (offline) modus.');
       noteFout('Opstarten','de Supabase-bibliotheek is niet geladen');
-      loadCacheFallback();
-      await restorePhotosFromIDB();
       ensureEntAlgemeen();
       autoOpruimen();
       ready=true; fire();
@@ -510,10 +526,9 @@
     aangemeld=!!toegang;
     if(!toegang){
       noteFout('Aanmelden','dit toestel is niet aangemeld bij de database (toegangscode overgeslagen of geen internet)');
-      // Niet aangemeld (offline, of code overgeslagen): toon wat er lokaal bewaard staat.
-      // Schrijfacties wachten in de outbox tot dit toestel weer aangemeld en online is.
-      loadCacheFallback();
-      await restorePhotosFromIDB();
+      // Niet aangemeld (offline, of code overgeslagen): we tonen wat er lokaal bewaard staat
+      // (hierboven al ingeladen). Schrijfacties wachten in de outbox tot dit toestel weer
+      // aangemeld en online is.
       ensureEntAlgemeen();
       autoOpruimen();
       ready=true; fire();
@@ -620,28 +635,45 @@
       if(l.data) cache.leveringen=l.data.slice();
       kernOK=true; noteSync();
     }catch(e){ online=false; kernOK=false; noteFout('Kerngegevens laden',e); console.error('Laden mislukt (offline?):',e); }
-    if(!online){ loadCacheFallback(); await restorePhotosFromIDB(); return; } // geen internet → laatst bewaarde gegevens + foto's tonen
+    if(!online){ loadCacheFallback(); restorePhotosFromIDB().then(fire); return; } // geen internet → laatst bewaarde gegevens tonen, foto's volgen
     // Gedeelde extra tabellen (vallen lokaal terug als ze nog niet bestaan).
-    await loadShared('bestellingen','bestellingen',mapBestel,K_BESTEL_BACKUP,v=>bestelOK=v);
-    await loadShared('contacten','contacten',mapContact,K_CONTACTEN_BACKUP,v=>contactenOK=v);
-    await loadShared('checklisten','checklisten',mapChecklist,K_CHECKLISTEN_BACKUP,v=>checklistenOK=v);
-    await loadShared('logboek','logboek',mapLog,K_LOGBOEK_BACKUP,v=>logboekOK=v);
-    await loadShared('gebruikers','gebruikers',mapGebr,K_GEBRUIKERS_BACKUP,v=>gebruikersOK=v);
-    await loadShared('projecten','projecten',mapProject,K_PROJECTEN_BACKUP,v=>projectenOK=v);
-    await loadShared('projecttaken','projecttaken',mapTaak,K_PROJTAKEN_BACKUP,v=>projecttakenOK=v);
-    await loadShared('projectberichten','projectberichten',mapBericht,K_PROJBERICHTEN_BACKUP,v=>projectberichtenOK=v);
-    await loadShared('projectagenda','projectagenda',mapAgenda,K_PROJAGENDA_BACKUP,v=>projectagendaOK=v);
-    await loadShared('projectdocs','projectdocs',mapDoc,K_PROJDOCS_BACKUP,v=>projectdocsOK=v);
-    await loadActiviteit();
-    // Enkel-rij documenten (id=1, data jsonb): manuals-boom, app-instellingen, spel-archief
-    await loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v);
-    await loadDoc('appconfig','appconfig',v=>appconfigOK=v);
-    await loadDoc('spelarchief','spelarchief',v=>spelarchiefOK=v);
-    // Gedeelde recente sessies: aparte rij (id=2) in dezelfde spelarchief-tabel — geen extra opzet nodig.
-    try{ const rs=await sb.from('spelarchief').select('data').eq('id',2).maybeSingle();
-      if(rs&&!rs.error){ cache.sessies=(rs.data&&Array.isArray(rs.data.data))?rs.data.data:[]; try{localStorage.setItem('bb_sessies',JSON.stringify(cache.sessies));}catch(e){} } }catch(e){}
+    // ALLEMAAL TEGELIJK: vroeger wachtte elk verzoek op het vorige — vijftien keer heen en
+    // weer naar de server achter elkaar. Op een trage wifi is dat het verschil tussen een
+    // paar honderd milliseconden en enkele seconden. Elke laadfunctie vangt haar eigen
+    // fouten op en schrijft naar haar eigen plek, dus ze zitten elkaar niet in de weg.
+    bulkLaden=true;
+    try{
+    await Promise.all([
+      loadShared('bestellingen','bestellingen',mapBestel,K_BESTEL_BACKUP,v=>bestelOK=v),
+      loadShared('contacten','contacten',mapContact,K_CONTACTEN_BACKUP,v=>contactenOK=v),
+      loadShared('checklisten','checklisten',mapChecklist,K_CHECKLISTEN_BACKUP,v=>checklistenOK=v),
+      loadShared('logboek','logboek',mapLog,K_LOGBOEK_BACKUP,v=>logboekOK=v),
+      loadShared('gebruikers','gebruikers',mapGebr,K_GEBRUIKERS_BACKUP,v=>gebruikersOK=v),
+      loadShared('projecten','projecten',mapProject,K_PROJECTEN_BACKUP,v=>projectenOK=v),
+      loadShared('projecttaken','projecttaken',mapTaak,K_PROJTAKEN_BACKUP,v=>projecttakenOK=v),
+      loadShared('projectberichten','projectberichten',mapBericht,K_PROJBERICHTEN_BACKUP,v=>projectberichtenOK=v),
+      loadShared('projectagenda','projectagenda',mapAgenda,K_PROJAGENDA_BACKUP,v=>projectagendaOK=v),
+      loadShared('projectdocs','projectdocs',mapDoc,K_PROJDOCS_BACKUP,v=>projectdocsOK=v),
+      loadActiviteit(),
+      loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v),
+      loadDoc('appconfig','appconfig',v=>appconfigOK=v),
+      loadDoc('spelarchief','spelarchief',v=>spelarchiefOK=v),
+      laadSessies()
+    ]);
+    } finally { bulkLaden=false; }
     persistCache();
   }
+  // Gedeelde recente sessies: aparte rij (id=2) in dezelfde spelarchief-tabel — geen extra opzet nodig.
+  async function laadSessies(){
+    try{
+      const rs=await sb.from('spelarchief').select('data').eq('id',2).maybeSingle();
+      if(rs&&!rs.error){
+        cache.sessies=(rs.data&&Array.isArray(rs.data.data))?rs.data.data:[];
+        try{localStorage.setItem('bb_sessies',JSON.stringify(cache.sessies));}catch(e){}
+      }
+    }catch(e){}
+  }
+  // Enkel-rij documenten (id=1, data jsonb): manuals-boom, app-instellingen, spel-archief
   async function loadDoc(table,cacheKey,setOK){
     try{
       const r=await sb.from(table).select('*').eq('id',1).maybeSingle();
@@ -1156,7 +1188,8 @@
   // ---------------- SCHRIJVEN (optimistisch + achtergrond naar DB) ----------------
   // gdebouncede bulk-upsert voor stock-aanpassingen
   let dirty=new Set(), flushT=null;
-  function queue(id){ dirty.add(id); persistCache(); clearTimeout(flushT); flushT=setTimeout(flush,500); }
+  // Voorraadvelden: vuurt bij elke toetsaanslag → hier wél bundelen (zie persistCache).
+  function queue(id){ dirty.add(id); persistCache(true); clearTimeout(flushT); flushT=setTimeout(flush,500); }
   function flush(){
     const ids=[...dirty]; dirty.clear(); if(!ids.length) return;
     const rows=cache.prijzen.filter(p=>ids.indexOf(p.id)>=0).map(toRow);

@@ -29,7 +29,7 @@ Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
 | `test-fase2.js` | Agenda, documenten en verslagen, en het omzetten van een actiepunt naar een taak |
 | `test-soorten.js` | Ideeën, materiaal, draaiboek, verslag en evaluatie delen één tabel — deze test bewaakt dat ze elkaar niet in de weg zitten |
 | `test-sync.js` | Het lastigste stuk: wat gebeurt er als je offline werkt, als de tabellen nog niet bestaan, of als een collega ondertussen iets aanmaakt of verwijdert |
-| `test-opslag.js` | De opslag: één momentopname i.p.v. een kopie per tabel, de verhuizing naar IndexedDB (met een nagemaakte IndexedDB), en het geval waarin de opslag al vol zit — telkens wordt eerst ingelezen en pas daarna gewist |
+| `test-opslag.js` | De opslag én het opstarten: één momentopname i.p.v. een kopie per tabel, de verhuizing naar IndexedDB (met een nagemaakte IndexedDB), het geval waarin de opslag al vol zit, "invullen en meteen wegklikken", dat je rol al bekend is vóór de database antwoordt, en dat het laden de offline kopie niet per tabel herschrijft |
 
 `nep-supabase.js` is een nagemaakte database, zodat `test-sync.js` het echte online-gedrag
 kan naspelen zonder internet.

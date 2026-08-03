@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EntertainmentVM</title>
 <link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk), zodat de
+     eerste zoekopdracht daar niet meer op hoeft te wachten. -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
 <meta name="theme-color" content="#2f6450">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1334,7 +1338,7 @@
 <script src="js/inventaris.js"></script>
 <script>
 // ---------------- STATE ----------------
-const APP_VERSION='v3.0';
+const APP_VERSION='v3.2';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1511,6 +1515,7 @@ document.querySelectorAll('[data-link]').forEach(a=>{
 // ---------------- NAV ----------------
 const titles={home:'Entertainment',instellingen:'Instellingen',manuals:'Online manuals',inventaris:'Inventaris',bestellingen:'Besteloverzicht',contacten:'Contacten',checklisten:'Checklists',logboek:'Logboek',gebruikers:'Gebruikers',activiteit:'Activiteit',systeem:'Systeem'};
 function show(view){
+  navSchermGewijzigd(view);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||'Entertainment';
@@ -1522,6 +1527,97 @@ function show(view){
 }
 document.getElementById('homeBtn').onclick=()=>{renderHome();show('home');};
 document.getElementById('homeLogo').onclick=()=>{renderHome();show('home');};
+
+// ---------------- TERUG-KNOP (telefoon en browser) ----------------
+// De hele app is één pagina: schermen en vensters wisselen zonder dat de browser
+// dat merkt. Zonder hulp springt de terugknop dus meteen de app uit, ook als je
+// net een venster open hebt staan. We houden daarom zelf een stapeltje bij van
+// waar je zit en spiegelen dat in de browsergeschiedenis. Terug sluit dan eerst
+// het open venster, gaat daarna naar het vorige scherm, en verlaat de app pas
+// wanneer je op de startpagina staat.
+
+// Elk venster met zijn eigen sluitfunctie (die ruimt ook camera, iframe, ... op).
+const NAV_VENSTERS={
+  profielModal:()=>closeProfiel(),
+  fotoBronModal:()=>closeBron(),
+  fotoKies:()=>document.getElementById('fotoKies').classList.remove('open'),
+  camModal:()=>closeCamera(),
+  manualModal:()=>closeManualModal(),
+  fotoView:()=>closeFotoView(),
+  bestelModal:()=>closeBestelModal(),
+  viewer:()=>closeViewer()
+};
+let navStapel=[];    // bv. ['scherm:inventaris','venster:bestelModal']
+let navBezig=false;  // we zijn zelf een terugstap aan het toepassen
+let navEigenStap=0;  // eigen history.go()'s die we straks mogen negeren
+
+history.replaceState({bb:0},'');
+
+function navDuw(sleutel){
+  if(navBezig) return;
+  if(sleutel.startsWith('venster:') && navStapel.includes(sleutel)) return;
+  navStapel.push(sleutel);
+  history.pushState({bb:navStapel.length},'');
+}
+// De app sloot zelf iets (kruisje, Annuleren, Escape): geschiedenis meeschuiven,
+// anders moet je één keer extra op terug drukken voor er iets gebeurt.
+function navHaalWeg(sleutel){
+  const i=navStapel.lastIndexOf(sleutel);
+  if(i<0) return; // stond er al niet meer in (bv. net door terug gesloten)
+  const stappen=navStapel.length-i;
+  navStapel.length=i;
+  navEigenStap++;
+  history.go(-stappen);
+}
+// Scherm gewisseld: naar home = de hele stapel terug, anders een stap erbij.
+function navSchermGewijzigd(view){
+  if(navBezig) return;
+  if(view==='home'){
+    if(!navStapel.length) return;
+    const stappen=navStapel.length;
+    navStapel.length=0;
+    navEigenStap++;
+    history.go(-stappen);
+    return;
+  }
+  const huidig=document.querySelector('.view.active');
+  if(huidig && huidig.id===view) return;
+  navDuw('scherm:'+view);
+}
+window.addEventListener('popstate',e=>{
+  if(navEigenStap>0){ navEigenStap--; return; } // onze eigen stap, app klopt al
+  const doel=(e.state&&e.state.bb)||0;
+  if(doel>=navStapel.length) return; // vooruit-knop: niets te herstellen
+  navBezig=true;
+  try{
+    while(navStapel.length>doel){
+      const sleutel=navStapel.pop();
+      if(sleutel.startsWith('venster:')){
+        const sluit=NAV_VENSTERS[sleutel.slice(8)];
+        if(sluit) try{ sluit(); }catch(err){}
+      }
+    }
+    const laatste=navStapel.filter(s=>s.startsWith('scherm:')).pop();
+    const view=laatste?laatste.slice(7):'home';
+    if(!document.getElementById(view).classList.contains('active')){
+      if(view==='home') renderHome();
+      show(view);
+    }
+  } finally { navBezig=false; }
+});
+// Vensters gaan op tien plaatsen open en dicht; in plaats van dat overal te
+// herhalen kijken we gewoon mee wanneer de klasse 'open' erbij komt of afgaat.
+Object.keys(NAV_VENSTERS).forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el) return;
+  let open=el.classList.contains('open');
+  new MutationObserver(()=>{
+    const nu=el.classList.contains('open');
+    if(nu===open) return;
+    open=nu;
+    if(nu) navDuw('venster:'+id); else navHaalWeg('venster:'+id);
+  }).observe(el,{attributes:true,attributeFilter:['class']});
+});
 
 // ---------------- THEMA (donker/licht) ----------------
 function applyTheme(){
@@ -3625,7 +3721,10 @@ function refreshAuth(){
   if(document.getElementById('activiteit').classList.contains('active')) renderActiviteit();
   if(document.getElementById('loginOverlay').classList.contains('show') && document.getElementById('loginNames').style.display!=='none') renderLoginNames();
   if(document.getElementById('loginBeheerPanel').style.display!=='none') renderGebrList();
-  // hervalideer: is de ingelogde persoon nog steeds in de gedeelde lijst?
+  // Hervalideer: staat de ingelogde persoon nog in de gedeelde lijst? Pas nadat de verse
+  // lijst geladen is — de lokale kopie die we meteen bij het opstarten tonen kan verouderd
+  // zijn, en dan zou een collega die net is toegevoegd er onterecht uit vliegen.
+  if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;
   const u=currentUser(), users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
   if(u && users.length && !users.some(x=>x.id===u.id)){ setCurrentUser(null,false); showLogin(); }
 }
