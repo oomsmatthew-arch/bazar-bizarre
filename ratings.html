@@ -136,10 +136,21 @@
   .psecties label{display:flex;align-items:center;gap:9px;margin:5px 0;font-size:15px;color:var(--text);font-weight:600;}
   .psecties label input{width:18px;height:18px;flex:0 0 auto;}
   .modalbar{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+  /* laadscherm — blokkeert alle acties tot de gedeelde ratings volledig geladen zijn */
+  .laadoverlay{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;
+    background:var(--bg);transition:opacity .25s;}
+  .laadoverlay.weg{opacity:0;pointer-events:none;}
+  .laadbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+    padding:22px 30px;text-align:center;font-weight:800;color:var(--forest);font-size:18px;}
+  .laadbox .spin{display:inline-block;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--leaf);
+    border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;margin-right:10px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .laadsub{font-weight:600;color:var(--muted);font-size:13px;margin-top:8px;}
   footer{margin-top:26px;text-align:center;color:var(--muted);font-size:12px;}
 </style>
 </head>
 <body>
+<div class="laadoverlay" id="laadOverlay"><div class="laadbox"><span class="spin"></span>Ratings laden…<div class="laadsub">even geduld — de gedeelde gegevens worden opgehaald</div></div></div>
 <div class="wrap">
   <div class="topbar">
     <a href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Home"></a>

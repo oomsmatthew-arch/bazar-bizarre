@@ -601,7 +601,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   const bjs=$('boekjaar'); if(bjs) bjs.onchange=()=>{ _boekjaar=bjs.value; if(_data) render(_data); };
   window.addEventListener('resize',syncActHoogte);
   laadBewaard();
-  syncGedeeld().then(d=>{ if(d) laadBewaard(); }); // gedeelde ratings van andere toestellen ophalen
+  // Laadscherm blokkeert alle acties tot de gedeelde ratings volledig geladen zijn.
+  const verbergLaden=()=>{ const o=$('laadOverlay'); if(o) o.classList.add('weg'); };
+  setTimeout(verbergLaden, 9000); // veiligheidsval: nooit langer dan 9s vasthangen
+  syncGedeeld().then(d=>{ if(d) laadBewaard(); verbergLaden(); }).catch(verbergLaden);
 });
 
 // Gedeelde API voor andere pagina's (bv. de vergelijk-pagina).
