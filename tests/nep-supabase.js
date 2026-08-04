@@ -13,6 +13,7 @@ function maakNepSupabase(db,ontbrekend){
       delete:function(){ st.soort='delete'; return q; },
       eq:function(k,v){ st.filters.push([k,v]); return q; },
       neq:function(k,v){ st.filters.push(['!'+k,v]); return q; },
+      in:function(k,vals){ st.filters.push(['in:'+k,vals||[]]); return q; },
       order:function(){ return q; },
       limit:function(n){ st.limiet=n; return q; },
       maybeSingle:function(){ st.single=true; return q; },
@@ -23,6 +24,7 @@ function maakNepSupabase(db,ontbrekend){
   function past(rij,filters){
     return filters.every(function(f){
       const k=f[0], v=f[1];
+      if(k.slice(0,3)==='in:') return v.indexOf(rij[k.slice(3)])>=0;
       if(k.charAt(0)==='!') return rij[k.slice(1)]!==v;
       return rij[k]===v;
     });

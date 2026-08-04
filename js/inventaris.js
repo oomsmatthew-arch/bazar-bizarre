@@ -859,6 +859,7 @@
   // Bestellingen vullen: bij een lege (gedeelde of lokale) lijst starten we met de
   // standaardlijst uit het Excel-overzicht. Bestaat de gedeelde tabel en is die leeg
   // terwijl we lokaal al iets hebben, dan uploaden we de lokale kopie.
+  const BESTEL_SEED_VER=3; // verhoog dit wanneer de startlijst uit het Excel verandert
   function bestelSeed(){
     const def=window.BESTELLINGEN_DEFAULT||[];
     return def.map((b,i)=>Object.assign({id:uid(),ts:Date.now()+i},JSON.parse(JSON.stringify(b))));
@@ -870,7 +871,10 @@
         const backup=lokaleKopie('bestellingen',K_BESTEL_BACKUP);
         let seed=[];
         if(backup.length) seed=backup;                                 // lokale kopie → gedeeld zetten
-        else if(localStorage.getItem(SEEDED)!=='1') seed=bestelSeed();  // allereerste keer: standaardlijst
+        else if(localStorage.getItem(SEEDED)!=='1'){                    // allereerste keer: standaardlijst
+          seed=bestelSeed();
+          localStorage.setItem('bb_bestel_seed_ver',String(BESTEL_SEED_VER)); // is al de nieuwste versie
+        }
         if(seed.length){
           for(let i=0;i<seed.length;i+=40){ const r=await sb.from('bestellingen').insert(seed.slice(i,i+40).map(bestelToRow)); err(r); }
           cache.bestellingen=seed.slice(); saveBestelBackup();
@@ -879,29 +883,48 @@
       localStorage.setItem(SEEDED,'1'); // gedeelde tabel is in gebruik → nooit meer automatisch vullen
     }else{
       // geen gedeelde tabel: lokaal werken; lege lijst krijgt eenmalig de standaardlijst
-      if(!cache.bestellingen.length && localStorage.getItem(SEEDED)!=='1'){ cache.bestellingen=bestelSeed(); saveBestelBackup(); }
+      if(!cache.bestellingen.length && localStorage.getItem(SEEDED)!=='1'){
+        cache.bestellingen=bestelSeed(); saveBestelBackup();
+        localStorage.setItem('bb_bestel_seed_ver',String(BESTEL_SEED_VER)); // is al de nieuwste versie
+      }
       localStorage.setItem(SEEDED,'1');
     }
   }
 
-  // Bestaande lijsten bijwerken als de standaardlijst nieuwe bestellingen kreeg
-  // (bv. een volledig boekjaar toegevoegd). We voegen enkel toe wat nog niet bestaat,
-  // op basis van datum + omschrijving + leverancier, zodat niets dubbel komt en eigen
-  // toevoegingen blijven staan.
+  // Bestaande lijsten gelijkzetten met een bijgewerkt Excel-overzicht. We herkennen een
+  // bestelling aan datum + omschrijving + leverancier. Alles wat uit de vorige startlijst
+  // kwam wordt vervangen door de nieuwe versie (zo volgen ook gewijzigde statussen,
+  // bedragen en leverdatums mee), bestellingen die iemand zélf in de app toevoegde
+  // blijven staan. Een tweede keer uitvoeren verandert niets meer: rijen die al gelijk
+  // zijn aan de nieuwe lijst worden ook als "startlijst" gezien en dus niet gedupliceerd.
   function bestelKey(b){ return (b.datum||'')+'|'+(b.info||'').trim().toLowerCase()+'|'+(b.leverancier||'').trim().toLowerCase(); }
   async function topUpBestelDefaults(){
-    const VER=2; // verhoog dit wanneer er nieuwe standaardbestellingen bijkomen
     const cur=+(localStorage.getItem('bb_bestel_seed_ver')||1);
-    if(cur>=VER){ return; }
-    const have=new Set(cache.bestellingen.map(bestelKey));
-    const def=window.BESTELLINGEN_DEFAULT||[];
-    const toAdd=def.filter(d=>!have.has(bestelKey(d)));
-    if(toAdd.length){
-      const recs=toAdd.map((d,i)=>Object.assign({id:uid(),ts:Date.now()+i},JSON.parse(JSON.stringify(d))));
-      if(bestelOK){ for(let i=0;i<recs.length;i+=40){ const r=await sb.from('bestellingen').insert(recs.slice(i,i+40).map(bestelToRow)); err(r); } }
-      cache.bestellingen=cache.bestellingen.concat(recs); saveBestelBackup();
+    if(cur>=BESTEL_SEED_VER){ return; }
+    const nieuw=bestelSeed();
+    if(!nieuw.length){ localStorage.setItem('bb_bestel_seed_ver',String(BESTEL_SEED_VER)); return; }
+    const uitLijst=new Set((window.BESTELLINGEN_OUDE_SLEUTELS||[]).concat(nieuw.map(bestelKey)));
+    const eigen=[],weg=[];
+    cache.bestellingen.forEach(b=>{ (uitLijst.has(bestelKey(b))?weg:eigen).push(b); });
+    if(bestelOK){
+      // eerst wissen, dan pas plaatsen — anders staat de lijst even dubbel voor een collega
+      // die net op dat moment opstart. Lukt het wissen niet, dan stoppen we en proberen we
+      // het de volgende keer opnieuw (de versie hieronder wordt dan niet opgeslagen).
+      for(let i=0;i<weg.length;i+=40){
+        const r=await sb.from('bestellingen').delete().in('id',weg.slice(i,i+40).map(b=>b.id));
+        if(r&&r.error){ err(r); return; }
+      }
+      let mis=false;
+      for(let i=0;i<nieuw.length;i+=40){
+        const r=await sb.from('bestellingen').insert(nieuw.slice(i,i+40).map(bestelToRow));
+        if(r&&r.error){ err(r); mis=true; }
+      }
+      // Ging er een stuk mis, dan tonen we lokaal wél de juiste lijst maar onthouden we de
+      // versie niet: bij de volgende start doen we het gewoon opnieuw en klopt alles weer.
+      if(mis){ cache.bestellingen=eigen.concat(nieuw); saveBestelBackup(); return; }
     }
-    localStorage.setItem('bb_bestel_seed_ver',String(VER));
+    cache.bestellingen=eigen.concat(nieuw); saveBestelBackup();
+    localStorage.setItem('bb_bestel_seed_ver',String(BESTEL_SEED_VER));
   }
 
   // ---------------- GETTERS (synchroon, uit cache) ----------------

@@ -729,23 +729,9 @@ window.INVENTARIS_DEFAULT = {
 };
 
 // Standaard startlijst voor "Bestellingen" — overgenomen uit het Excel-overzicht
-// (BJ2025-2026 — OVERZICHT BESTELLINGEN, april t/m juni). Beheer dit verder in de app,
-// onder de kaart "Bestellingen" op de homepagina.
+// (BJ2025-2026 — OVERZICHT BESTELLINGEN, alle vier de kwartalen). Beheer dit verder in
+// de app, onder de kaart "Besteloverzicht" op de homepagina.
 window.BESTELLINGEN_DEFAULT = [
- {datum:"2026-04-16", cat:"CGT",             info:"Boekjes",                                          status:"Besteld",   aantal:"8",          ent:0,       bay:0,       hsb:0, leverancier:"CP print",    leverdatum:"",           opm:""},
- {datum:"2026-04-16", cat:"Live",            info:"Rubberen matten, DJ Poolparty",                    status:"Besteld",   aantal:"3",          ent:203.70,  bay:0,       hsb:0, leverancier:"manutan",     leverdatum:"",           opm:""},
- {datum:"2026-04-06", cat:"CGT",             info:"Prijzen",                                          status:"Uitgepakt", aantal:"",           ent:1250.00, bay:0,       hsb:0, leverancier:"Ready4Bingo", leverdatum:"2026-04-17", opm:"Pakbon door Lien"},
- {datum:"2026-04-23", cat:"Bay workshop",    info:"Knutselmateriaal",                                 status:"Uitgepakt", aantal:"",           ent:0,       bay:1066.48, hsb:0, leverancier:"Lobbes",      leverdatum:"2026-05-05", opm:"Pakbon door Jennifer"},
- {datum:"2026-04-28", cat:"Onderhoud",       info:"Boma alco spray",                                  status:"Uitgepakt", aantal:"12 flessen", ent:88.56,   bay:0,       hsb:0, leverancier:"BOMA",        leverdatum:"2026-05-19", opm:"Pakbon door Christel"},
- {datum:"2026-04-28", cat:"Schmink",         info:"Wattenschijfjes + afwasmiddel",                    status:"Besteld",   aantal:"",           ent:39.40,   bay:0,       hsb:0, leverancier:"Solucious",   leverdatum:"",           opm:"geannuleerd, afhalen bij foodstore iov Sabine"},
- {datum:"2026-04-28", cat:"O&F",             info:"Postkaarten O&F schrijven",                        status:"Uitgepakt", aantal:"1 doos",     ent:0,       bay:0,       hsb:0, leverancier:"CP print",    leverdatum:"2026-01-06", opm:""},
- {datum:"2026-05-13", cat:"Hotspot",         info:"Marshmallows",                                     status:"Besteld",   aantal:"50",         ent:0,       bay:0,       hsb:0, leverancier:"Sligro",      leverdatum:"",           opm:""},
- {datum:"2026-05-21", cat:"Bay workshop",    info:"Verf om te knutselen en ander knutselmateriaal",   status:"Uitgepakt", aantal:"",           ent:0,       bay:644.22,  hsb:0, leverancier:"Lobbes",      leverdatum:"2026-06-08", opm:"Pakbon Jennifer"},
- {datum:"2026-05-21", cat:"Bay activiteiten",info:"Goud en give away",                                status:"Uitgepakt", aantal:"",           ent:0,       bay:418.00,  hsb:0, leverancier:"Espa",        leverdatum:"2026-06-08", opm:"Pakbon Jennifer"},
- {datum:"2026-05-27", cat:"Techniek",        info:"Kabel",                                            status:"Besteld",   aantal:"",           ent:7.30,    bay:0,       hsb:0, leverancier:"Thomann",     leverdatum:"",           opm:""},
- {datum:"2026-06-01", cat:"CGT",             info:"Prijzen",                                          status:"Besteld",   aantal:"8 dozen",    ent:1280.00, bay:0,       hsb:0, leverancier:"Ready4Bingo", leverdatum:"",           opm:""},
- {datum:"2026-05-28", cat:"Bay activiteiten",info:"schmink",                                          status:"Besteld",   aantal:"",           ent:0,       bay:301.75,  hsb:0, leverancier:"Noddies",     leverdatum:"",           opm:""},
-
  // ---- Kwartaal 1: oktober t/m december 2025 ----
  {datum:"2025-10-06", cat:"O&F",              info:"Woops schoenen maat 42",                           status:"Uitgepakt", aantal:"1 paar",         ent:75.00,   bay:0,       hsb:0, leverancier:"Van Beers",       leverdatum:"",           opm:""},
  {datum:"2025-10-06", cat:"O&F",              info:"Rep broek XXL",                                    status:"Uitgepakt", aantal:"1",              ent:175.00,  bay:0,       hsb:0, leverancier:"Zell",            leverdatum:"",           opm:""},
@@ -795,5 +781,66 @@ window.BESTELLINGEN_DEFAULT = [
  {datum:"2026-02-28", cat:"O&F",              info:"Schelpen Woops",                                   status:"In loods", aantal:"",                ent:0,       bay:0,       hsb:0, leverancier:"Lobbes",          leverdatum:"",           opm:""},
  {datum:"2026-03-04", cat:"CGT",              info:"Boekjes",                                          status:"Besteld",   aantal:"8 dozen",        ent:0,       bay:0,       hsb:0, leverancier:"CP printing",     leverdatum:"",           opm:"Voorlopig niet leverbaar!!!!"},
  {datum:"2026-03-23", cat:"Bay activiteiten", info:"give away",                                        status:"Uitgepakt", aantal:"",               ent:0,       bay:601.00,  hsb:0, leverancier:"Espa",            leverdatum:"2026-04-10", opm:""},
- {datum:"2026-05-27", cat:"O&F",              info:"Prijzen spelshow",                                 status:"Besteld",   aantal:"",               ent:0,       bay:0,       hsb:0, leverancier:"Van Der Meulen",  leverdatum:"",           opm:""}
+
+ // ---- Kwartaal 3: april t/m juni 2026 ----
+ {datum:"2026-04-16", cat:"CGT",              info:"Boekjes",                                          status:"Besteld",   aantal:"8",              ent:0,       bay:0,       hsb:0, leverancier:"CP print",        leverdatum:"",           opm:""},
+ {datum:"2026-04-16", cat:"Live",             info:"Rubberen matten, DJ Poolparty",                    status:"Besteld",   aantal:"3",              ent:203.70,  bay:0,       hsb:0, leverancier:"manutan",         leverdatum:"",           opm:""},
+ {datum:"2026-04-06", cat:"CGT",              info:"Prijzen",                                          status:"Uitgepakt", aantal:"",               ent:1250.00, bay:0,       hsb:0, leverancier:"Ready4Bingo",     leverdatum:"2026-04-17", opm:"Pakbon door Lien"},
+ {datum:"2026-04-23", cat:"Bay workshop",     info:"Knutselmateriaal",                                 status:"Uitgepakt", aantal:"",               ent:0,       bay:1066.48, hsb:0, leverancier:"Lobbes",          leverdatum:"2026-05-05", opm:"Pakbon door Jennifer"},
+ {datum:"2026-04-28", cat:"Onderhoud",        info:"Boma alco spray",                                  status:"Uitgepakt", aantal:"12 flessen",     ent:88.56,   bay:0,       hsb:0, leverancier:"BOMA",            leverdatum:"2026-05-19", opm:"Pakbon door Christel"},
+ {datum:"2026-04-28", cat:"Schmink",          info:"Wattenschijfjes + afwasmiddel",                    status:"Besteld",   aantal:"",               ent:39.40,   bay:0,       hsb:0, leverancier:"Solucious",       leverdatum:"",           opm:"geannuleerd, afhalen bij foodstore iov Sabine"},
+ {datum:"2026-04-28", cat:"O&F",              info:"Postkaarten O&F schrijven",                        status:"Uitgepakt", aantal:"1 doos",         ent:0,       bay:0,       hsb:0, leverancier:"CP print",        leverdatum:"2026-01-06", opm:""},
+ {datum:"2026-05-13", cat:"Hotspot",          info:"Marshmallows",                                     status:"Besteld",   aantal:"50",             ent:0,       bay:0,       hsb:0, leverancier:"Sligro",          leverdatum:"",           opm:""},
+ {datum:"2026-05-21", cat:"Bay workshop",     info:"Verf om te knutselen en ander knutselmateriaal",   status:"Uitgepakt", aantal:"",               ent:0,       bay:644.22,  hsb:0, leverancier:"Lobbes",          leverdatum:"2026-06-08", opm:"Pakbon Jennifer"},
+ {datum:"2026-05-21", cat:"Bay activiteiten", info:"Goud en give away",                                status:"Uitgepakt", aantal:"",               ent:0,       bay:418.00,  hsb:0, leverancier:"Espa",            leverdatum:"2026-06-08", opm:"Pakbon Jennifer"},
+ {datum:"2026-05-27", cat:"Techniek",         info:"Kabel",                                            status:"Besteld",   aantal:"",               ent:7.30,    bay:0,       hsb:0, leverancier:"Thomann",         leverdatum:"",           opm:""},
+ {datum:"2026-05-27", cat:"O&F",              info:"Prijzen spelshow",                                 status:"Besteld",   aantal:"",               ent:0,       bay:0,       hsb:0, leverancier:"Van Der Meulen",  leverdatum:"",           opm:"Niet besteld geweest!!!!"},
+ {datum:"2026-06-01", cat:"CGT",              info:"Prijzen",                                          status:"Uitgepakt", aantal:"8 dozen",        ent:1280.00, bay:0,       hsb:0, leverancier:"Ready4Bingo",     leverdatum:"",           opm:""},
+ {datum:"2026-06-16", cat:"Techniek",         info:"Ursa straps, kabel brug en 2x Jack voor live",     status:"Uitgepakt", aantal:"3 straps",       ent:226.00,  bay:0,       hsb:0, leverancier:"Thomann",         leverdatum:"",           opm:""},
+ {datum:"2026-06-16", cat:"Techniek",         info:"Jack naar USB C",                                  status:"Besteld",   aantal:"4 stuks",        ent:40.40,   bay:0,       hsb:0, leverancier:"bax music",       leverdatum:"",           opm:""},
+ {datum:"2026-06-26", cat:"O&F",              info:"Prizenight en orkestbak materiaal",                status:"Besteld",   aantal:"",               ent:339.00,  bay:0,       hsb:0, leverancier:"Heg Productions", leverdatum:"",           opm:""},
+
+ // ---- Kwartaal 4: juli t/m september 2026 ----
+ {datum:"2026-07-06", cat:"Bay workshop",     info:"Vogelverzorging, knuffels",                        status:"Onderweg",  aantal:"",               ent:0,       bay:347.62,  hsb:0, leverancier:"Lobbes",          leverdatum:"",           opm:""},
+ {datum:"2026-07-09", cat:"Techniek",         info:"Tablets",                                          status:"Onderweg",  aantal:"",               ent:486.99,  bay:0,       hsb:0, leverancier:"Coolblue",        leverdatum:"",           opm:""},
+ {datum:"2026-07-12", cat:"Live",             info:"Bolderkar",                                        status:"Onderweg",  aantal:"1",              ent:39.99,   bay:0,       hsb:0, leverancier:"Bol.com",         leverdatum:"",           opm:""},
+ {datum:"2026-07-12", cat:"Live",             info:"Zwarte doek podium",                               status:"Onderweg",  aantal:"2",              ent:184.00,  bay:0,       hsb:0, leverancier:"Baxshop",         leverdatum:"",           opm:""},
+ {datum:"2026-07-13", cat:"Bay activiteiten", info:"Snoep",                                            status:"Besteld",   aantal:"",               ent:0,       bay:175.80,  hsb:0, leverancier:"Snoepstunt",      leverdatum:"",           opm:""},
+ {datum:"2026-07-13", cat:"Bay activiteiten", info:"Drankjes",                                         status:"Besteld",   aantal:"",               ent:0,       bay:0,       hsb:0, leverancier:"Sligro",          leverdatum:"",           opm:""},
+ {datum:"2026-07-15", cat:"Bay activiteiten", info:"Schminkmateriaal",                                 status:"Uitgepakt", aantal:"",               ent:0,       bay:301.75,  hsb:0, leverancier:"Noddies",         leverdatum:"2026-07-31", opm:""},
+ {datum:"2026-07-22", cat:"Bay workshop",     info:"Kistjes + verf",                                   status:"Besteld",   aantal:"",               ent:0,       bay:509.48,  hsb:0, leverancier:"Lobbes",          leverdatum:"",           opm:""},
+ {datum:"2026-07-28", cat:"Bay activiteiten", info:"Knutsel zwaarden XL",                              status:"Besteld",   aantal:"",               ent:0,       bay:913.00,  hsb:0, leverancier:"Lobbes",          leverdatum:"",           opm:""},
+ {datum:"2026-08-07", cat:"O&F",              info:"Prijzen spelshow",                                 status:"Onderweg",  aantal:"",               ent:579.50,  bay:0,       hsb:0, leverancier:"Van Der Meulen",  leverdatum:"",           opm:"Nog te leveren: doeboeken NL, pakbon nog maken voor 20 puzzels en 30 memo's"}
+];
+
+// Sleutels (datum|omschrijving|leverancier) van de vórige startlijst. De eenmalige
+// synchronisatie met het bijgewerkte Excel gebruikt deze om oude startlijst-rijen te
+// vervangen; bestellingen die iemand zélf in de app toevoegde staan hier niet in en
+// blijven dus gewoon staan.
+window.BESTELLINGEN_OUDE_SLEUTELS = [
+ "2026-04-16|boekjes|cp print","2026-04-16|rubberen matten, dj poolparty|manutan","2026-04-06|prijzen|ready4bingo",
+ "2026-04-23|knutselmateriaal|lobbes","2026-04-28|boma alco spray|boma","2026-04-28|wattenschijfjes + afwasmiddel|solucious",
+ "2026-04-28|postkaarten o&f schrijven|cp print","2026-05-13|marshmallows|sligro",
+ "2026-05-21|verf om te knutselen en ander knutselmateriaal|lobbes","2026-05-21|goud en give away|espa",
+ "2026-05-27|kabel|thomann","2026-06-01|prijzen|ready4bingo","2026-05-28|schmink|noddies",
+ "2025-10-06|woops schoenen maat 42|van beers","2025-10-06|rep broek xxl|zell","2025-10-07|netwerk kabel|thomann",
+ "2025-10-10|krijtbordjes|lobbes","2025-10-10|decoratie: jute zakken en vlaggenlijnen|lobbes",
+ "2025-10-21|bingo pakketten|ready4bingo","2025-11-09|werkmateriaal|boma","2025-11-10|papieren draagtassen|bunzl",
+ "2025-11-14|kids bingo prijzen|van der meulen","2025-11-14|kids bingo boekjes|cp printing",
+ "2025-11-18|sint snoep|solucious","2025-11-18|sint snoep|sligro","2025-11-18|trompetten 2|heg productions",
+ "2025-11-18|alco spray|boma","2025-11-18|shoe deo|s&m trading",
+ "2025-11-20|kerst actie intern (kerstboom en ballen)|ava","2025-11-20|knutselmateriaal|lobbes",
+ "2025-11-20|aankleding aquariums + pietenpakket|lobbes","2025-11-20|give away's|espa","2025-11-20|glitter tattoo|florence",
+ "2025-11-22|haardroger|bol.com","2025-11-22|pruiken tape|florence","2025-11-22|pruiken onderhoud|vekemans",
+ "2025-12-08|pennen|discount office","2026-01-02|boekjes spelshow (bingo)|cp printing","2026-01-02|barkruk|kaiserkraft",
+ "2026-01-05|prijzen en troostprijzen|ready4bingo","2026-01-22|chocolade|snoepstunt","2026-01-22|wijn zakjes|ava",
+ "2026-01-26|2 shure + plopkapjes + kabels|thomann","2026-01-26|laarshoezen? tim|fun fashion",
+ "2026-01-30|snoep voor mocktails|snoepstunt",
+ "2026-01-30|bing pet (1) - orry sokken (8) - rep sokken (6) - bing sokken (4)|zell",
+ "2026-01-31|pirates place en vogelverzorging|lobbes","2026-01-31|limonade siroop + rietjes|sligro",
+ "2026-01-31|verjaardag rep + carnaval|sligro","2026-02-18|kss boekjes en handtekeningen|cp printing : de toekomst",
+ "2026-02-18|kss prijzen|van der meulen","2026-02-18|prijzen|ready4bingo","2026-02-18|prijzen|van der meulen",
+ "2026-02-25|paaseieren hol|sligro","2026-02-25|paaseieren en snoeppakketje|solucious","2026-02-25|penselen|bol.com",
+ "2026-02-28|schelpen woops|lobbes","2026-03-04|boekjes|cp printing","2026-03-23|give away|espa",
+ "2026-05-27|prijzen spelshow|van der meulen"
 ];
