@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activiteit · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body data-rol="vast">
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Activiteit</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="view paginainhoud" id="activiteit">
+    <p class="hint">Overzicht van alle wijzigingen: wie heeft wat aangepast en wanneer. Enkel zichtbaar voor admins en vaste medewerkers; wissen kan enkel met het beheer-wachtwoord.</p>
+    <div class="actfilter">
+      <input type="text" id="actZoek" class="finp zoek" placeholder="Zoek in activiteit (naam of actie)…">
+      <div class="actfilrow">
+        <select id="actPersoon" class="finp"><option value="">Iedereen</option></select>
+        <div class="actkinds" id="actKinds">
+          <button class="akind on" data-k="">Alles</button>
+          <button class="akind" data-k="add">➕ Toegevoegd</button>
+          <button class="akind" data-k="edit">✏️ Aangepast</button>
+          <button class="akind" data-k="del">🗑 Verwijderd</button>
+        </div>
+      </div>
+    </div>
+    <div class="actbar"><button class="btn clear" id="actWis">🗑 Logboek wissen</button></div>
+    <div class="actlist" id="actlist"></div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+function fmtActDay(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
+function fmtActTime(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes()); }
+function fmtActDayLabel(ts){
+  const d=new Date(ts), now=new Date();
+  const same=(a,b)=>a.getDate()===b.getDate()&&a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear();
+  const y=new Date(now); y.setDate(now.getDate()-1);
+  if(same(d,now)) return 'Vandaag';
+  if(same(d,y)) return 'Gisteren';
+  const dagen=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  return dagen[d.getDay()]+' '+fmtActDay(ts);
+}
+// Icoon per soort actie (op trefwoord).
+function actIcon(a){ a=(a||'').toLowerCase();
+  if(a.indexOf('bestelling')>=0||a.indexOf('bestellijst')>=0) return '📦';
+  if(a.indexOf('contact')>=0) return '📇';
+  if(a.indexOf('checklist')>=0) return '✅';
+  if(a.indexOf('logboek')>=0) return '📝';
+  if(a.indexOf('gebruiker')>=0) return '👤';
+  if(a.indexOf('prijs')>=0) return '🏷️';
+  if(a.indexOf('levering')>=0) return '🚚';
+  if(a.indexOf('boekjes')>=0) return '📚';
+  if(a.indexOf('formulier')>=0||a.indexOf('spel afgesloten')>=0) return '🎯';
+  if(a.indexOf('mededeling')>=0) return '📢';
+  if(a.indexOf('wachtwoord')>=0) return '🔑';
+  if(a.indexOf('inventaris')>=0||a.indexOf('hersteld')>=0) return '♻️';
+  return '•';
+}
+// Soort (voor de kleur van de streep).
+function actKind(a){ a=(a||'').toLowerCase();
+  if(a.indexOf('verwijderd')>=0||a.indexOf('gewist')>=0) return 'del';
+  if(a.indexOf('toegevoegd')>=0||a.indexOf('geplaatst')>=0||a.indexOf('geregistreerd')>=0||a.indexOf('afgesloten')>=0) return 'add';
+  if(a.indexOf('aangepast')>=0||a.indexOf('gewijzigd')>=0||a.indexOf('gereset')>=0||a.indexOf('hersteld')>=0||a.indexOf('afgehandeld')>=0||a.indexOf('heropend')>=0||a.indexOf('ingesteld')>=0) return 'edit';
+  return 'info';
+}
+function actAvatar(wie){
+  const u=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers().find(x=>(x.naam||'')===wie):null;
+  return '<span class="actav">'+(u?avatarInner(u):esc(initials(wie)))+'</span>';
+}
+let actQ='', actPersoonSel='', actKindSel='';
+function fillActPersonen(){
+  const sel=document.getElementById('actPersoon'); if(!sel) return;
+  const lijst=(window.BBInv&&BBInv.getActiviteit)?BBInv.getActiviteit():[];
+  const namen=[...new Set(lijst.map(a=>a.wie||'?'))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="">Iedereen</option>'+namen.map(n=>'<option>'+esc(n)+'</option>').join('');
+  sel.value=actPersoonSel;
+}
+function renderActiviteit(){
+  const box=document.getElementById('actlist'); if(!box) return;
+  fillActPersonen();
+  let lijst=(window.BBInv&&BBInv.getActiviteit)?BBInv.getActiviteit():[];
+  const totaal=lijst.length;
+  if(actQ){ const q=actQ.toLowerCase(); lijst=lijst.filter(a=>((a.wie||'')+' '+(a.actie||'')).toLowerCase().indexOf(q)>=0); }
+  if(actPersoonSel) lijst=lijst.filter(a=>(a.wie||'?')===actPersoonSel);
+  if(actKindSel) lijst=lijst.filter(a=>actKind(a.actie)===actKindSel);
+  if(!totaal){ box.innerHTML='<div class="actempty">Nog geen activiteit geregistreerd.</div>'; return; }
+  if(!lijst.length){ box.innerHTML='<div class="actempty">Geen resultaten voor deze filter.</div>'; return; }
+  let html='', lastDay='';
+  lijst.forEach(a=>{
+    const day=fmtActDay(a.ts);
+    if(day!==lastDay){ html+='<div class="actday">'+esc(fmtActDayLabel(a.ts))+'</div>'; lastDay=day; }
+    html+='<div class="actrow k-'+actKind(a.actie)+'">'+actAvatar(a.wie)+
+      '<div class="actbody">'+
+        '<div class="actwat"><span class="acticon">'+actIcon(a.actie)+'</span><span>'+esc(a.actie||'')+'</span></div>'+
+        '<div class="actmeta"><span class="actwie">'+esc(a.wie||'?')+'</span><span>·</span><span>'+esc(fmtActTime(a.ts))+'</span></div>'+
+      '</div></div>';
+  });
+  box.innerHTML=html;
+}
+document.getElementById('actWis').onclick=()=>{
+  // Wissen enkel met het beheer-wachtwoord (dus niet via de Vaste-mdw-bypass): enkel Matthew.
+  const p=prompt('Beheer-wachtwoord om het activiteitenlogboek te wissen:'); if(p===null) return;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  if(!confirm('Alle geregistreerde activiteit wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+  BBInv.clearActiviteit(); renderActiviteit();
+};
+document.getElementById('actZoek').oninput=e=>{ actQ=e.target.value.trim(); renderActiviteit(); };
+document.getElementById('actPersoon').onchange=e=>{ actPersoonSel=e.target.value; renderActiviteit(); };
+document.getElementById('actKinds').addEventListener('click',e=>{
+  const b=e.target.closest('.akind'); if(!b) return;
+  actKindSel=b.getAttribute('data-k')||'';
+  document.querySelectorAll('#actKinds .akind').forEach(x=>x.classList.toggle('on', x===b));
+  renderActiviteit();
+});
+
+// ---- opstarten ----
+window.bbStart=()=>{ renderActiviteit(); };
+window.bbNaLogin=()=>{ renderActiviteit(); };
+window.bbOnChange=()=>{ renderActiviteit(); };
+</script>
+</body>
+</html>

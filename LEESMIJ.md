@@ -28,7 +28,7 @@ Aanvinkingen en namen worden **automatisch bewaard** op het toestel (ook na slui
 
 ## Inventaris & formulier (insourced)
 
-De inventaris zit volledig in de app zelf — geen Google of server nodig. `entertainment.html`
+De inventaris zit volledig in de app zelf — geen Google of server nodig. `inventaris.html`
 (Inventaris) en `bazar-bizarre-spel.html` (het spel) draaien op hetzelfde domein en **delen
 daardoor dezelfde opslag** op het toestel.
 
@@ -217,19 +217,51 @@ eerste zoekopdracht niet meer op de DNS- en beveiligingshanddruk hoeft te wachte
 
 **Pagina's (hoofdmap — deze moeten hier blijven staan):**
 - `index.html` — stuurt de kale link automatisch door naar `entertainment.html`
-- `entertainment.html` — de landingspagina (Entertainment / Center Parcs)
+- `entertainment.html` — de startpagina met de kaarten (Entertainment / Center Parcs)
 - `bazar-bizarre-spel.html` — de spelleider-app zelf
-- `projecten.html` — de projectenmodule
 - `manifest.json` — maakt de app installeerbaar
 - `sw.js` — laat de app offline werken
 - `manuals.json` — inhoudsopgave voor "Online manuals"
 
+**Elke kaart op de startpagina = één eigen pagina** (sinds v4.0; daarvoor zat alles
+in `entertainment.html`). Wil je iets aanpassen aan een onderdeel, dan open je gewoon
+dat ene bestand — de rest blijft ongemoeid:
+
+| Kaart | Bestand |
+|---|---|
+| Inventaris lijst BB | `inventaris.html` |
+| Besteloverzicht | `bestellingen.html` |
+| Projecten | `projecten.html` |
+| Ratings | `ratings.html` (+ `ratings-vergelijk.html`) |
+| Checklists | `checklists.html` |
+| Contacten | `contacten.html` |
+| Logboek | `logboek.html` |
+| Online manuals | `manuals.html` |
+| Instellingen | `instellingen.html` |
+| Activiteit | `activiteit.html` (admin of vaste mdw) |
+| Systeem | `systeem.html` (enkel admin) |
+
+**`css/` — de vormgeving:**
+- `app.css` — het volledige uiterlijk, gedeeld door álle pagina's hierboven.
+  Eén kleur aanpassen past dus meteen overal.
+
 **`js/` — de programmacode:**
+- `kern.js` — wat elke pagina nodig heeft: inloggen met pincode, het donkere thema,
+  foto's/camera, de gedeelde instellingen en de "wacht op internet"-melding. Ook het
+  versienummer van de app (`APP_VERSION`) staat hier.
 - `inventaris.js` — de gedeelde motor: opslag, synchronisatie met Supabase, offline-wachtrij.
   Alle pagina's gebruiken deze (via `BBInv`).
 - `inventaris-data.js` — de startlijst met prijzen
 - `projecten.js` — alles wat de projectenpagina doet
 - `supabase.min.js` — de database-bibliotheek
+
+Elke pagina laadt de scripts in deze volgorde en vult daarna zelf `window.bbStart`
+(tekenen bij het openen) en `window.bbOnChange` (opnieuw tekenen als een collega iets
+wijzigt) in:
+
+```
+supabase.min.js → inventaris-data.js → inventaris.js → kern.js → eigen script
+```
 
 **`docs/` — naslag voor jou, niet nodig voor de site:**
 - `projecten-supabase.sql` — eenmalig uit te voeren in Supabase
@@ -247,9 +279,10 @@ eerste zoekopdracht niet meer op de DNS- en beveiligingshanddruk hoeft te wachte
 - `deals/` — de 30 deal-plaatjes (Ronde 1)
 - `manuals/` — PDF's/video's voor "Online manuals" (zie `manuals/LEESMIJ.md`)
 
-Verplaats je een bestand uit `js/`, pas dan ook de `<script src="…">`-regels in de drie
-HTML-pagina's én de lijst `ASSETS` in `sw.js` aan — anders breekt de site of werkt hij niet
-meer offline.
+Verplaats of hernoem je een bestand uit `js/` of `css/`, pas dan ook de
+`<script src="…">`- en `<link rel="stylesheet">`-regels in álle HTML-pagina's én de lijst
+`ASSETS` in `sw.js` aan — anders breekt de site of werkt hij niet meer offline. Maak je
+een nieuwe pagina, zet die er dan ook bij in `ASSETS`.
 
 **`_bron/` (werkmateriaal — blijft lokaal, gaat NIET online):**
 - `_process.ps1` — script dat de deal-plaatjes bijsnijdt en roteert

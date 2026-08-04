@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logboek · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Logboek</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="view paginainhoud" id="logboek">
+    <p class="hint">Korte berichten voor je collega's: wat moet de volgende shift weten? Iedereen ziet dit — ook offline, het synct zodra er internet is.</p>
+    <div class="logadd">
+      <textarea id="logTekst" class="finp" placeholder="Schrijf een bericht voor het team…"></textarea>
+      <div class="logaddrow">
+        <span class="logfrom" id="logFrom">Van: —</span>
+        <button class="btn primary" id="logAdd">Plaatsen</button>
+      </div>
+    </div>
+    <div class="loglist" id="loglist"></div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+// ---------------- LOGBOEK / OVERDRACHT (gedeeld via database) ----------------
+const K_LOGNAAM='bb_logboek_naam';
+function fmtLogTs(ts){ if(!ts)return ''; const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+function renderLogboek(){
+  const box=document.getElementById('loglist'); if(!box)return; box.innerHTML='';
+  const lijst=BBInv.getLogboek();
+  if(!lijst.length){ box.innerHTML='<div class="logempty">Nog geen berichten. Schrijf het eerste hierboven.</div>'; return; }
+  lijst.forEach(l=>{
+    const card=document.createElement('div'); card.className='logcard'+(l.klaar?' klaar':'');
+    card.innerHTML='<div class="logmeta"><b>'+(l.auteur?esc(l.auteur):'Onbekend')+'</b><span>'+esc(fmtLogTs(l.ts))+'</span></div>'+
+      '<div class="logtxt">'+esc(l.tekst)+'</div>'+
+      '<div class="logacties"><button class="done">'+(l.klaar?'↩ Heropenen':'✓ Afgehandeld')+'</button><button class="del">🗑 Verwijderen</button></div>';
+    card.querySelector('.done').onclick=()=>{ BBInv.updateLog(l.id,{klaar:!l.klaar}); renderLogboek(); };
+    card.querySelector('.del').onclick=()=>{ if(!confirm('Dit bericht verwijderen?'))return; BBInv.removeLog(l.id); renderLogboek(); };
+    box.appendChild(card);
+  });
+}
+document.getElementById('logAdd').onclick=()=>{
+  const tekst=document.getElementById('logTekst').value.trim();
+  if(!tekst){ alert('Schrijf eerst een bericht.'); return; }
+  const auteur=currentUserName();
+  BBInv.addLog({tekst,auteur});
+  document.getElementById('logTekst').value='';
+  renderLogboek();
+};
+
+// ---- opstarten ----
+function toonVan(){ document.getElementById('logFrom').textContent='Van: '+(currentUserName()||'—'); }
+window.bbStart=()=>{ toonVan(); renderLogboek(); };
+window.bbNaLogin=toonVan;          // net ingelogd → juiste naam bij "Van:"
+window.bbOnChange=()=>{ toonVan(); renderLogboek(); };
+</script>
+</body>
+</html>

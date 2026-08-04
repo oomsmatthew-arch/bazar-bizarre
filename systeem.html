@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Systeem · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body data-rol="admin">
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Systeem</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <!-- SYSTEEM (diagnose — enkel voor admins) -->
+  <div class="view paginainhoud" id="systeem">
+    <p class="hint">Hier zie je in één oogopslag of alles goed werkt: de verbinding met de database,
+      wat er nog verstuurd moet worden, welke gegevens gedeeld zijn met de andere toestellen en
+      hoeveel ruimte de app inneemt. Dit scherm verandert niets aan je gegevens.</p>
+    <div class="sysbar">
+      <button class="btn primary" id="sysTest">🔌 Verbinding testen</button>
+      <button class="btn" id="sysFlush">📤 Nu versturen</button>
+      <button class="btn" id="sysHerlaad">🔄 Vernieuwen forceren</button>
+      <span class="sysupd" id="sysUpdated"></span>
+    </div>
+    <div id="sysBody"></div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+// ---------------- SYSTEEM (diagnose — enkel voor admins) ----------------
+// Alles wat stil kan mislopen op één scherm: verbinding, wachtrij, welke gegevens
+// gedeeld zijn en hoeveel ruimte de app inneemt. Dit scherm wijzigt zelf geen gegevens.
+let sysTimer=null, sysPingRes=null, sysCaches=[];
+
+function sysTijd(ts){
+  if(!ts) return 'nog nooit';
+  const sec=Math.round((Date.now()-ts)/1000);
+  const p=n=>String(n).padStart(2,'0');
+  const d=new Date(ts), klok=p(d.getHours())+':'+p(d.getMinutes());
+  if(sec<10) return 'net nu';
+  if(sec<60) return sec+' sec geleden';
+  if(sec<3600) return Math.round(sec/60)+' min geleden ('+klok+')';
+  if(sec<86400) return Math.round(sec/3600)+' u geleden ('+klok+')';
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+' om '+klok;
+}
+function sysBytes(n){
+  if(!n) return '0 B';
+  if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(0)+' kB';
+  return (n/1024/1024).toFixed(1)+' MB';
+}
+function sysRij(kleur,k,v){
+  return '<div class="sysrow"><span class="sysdot '+kleur+'"></span><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';
+}
+function sysNote(kleur,tekst){ return '<div class="sysnote '+kleur+'">'+tekst+'</div>'; }
+
+function renderSysteem(){
+  const box=document.getElementById('sysBody'); if(!box) return;
+  const s=(window.BBInv&&BBInv.getSysteem)?BBInv.getSysteem():null;
+  if(!s){ box.innerHTML=sysNote('bad','De gedeelde motor (inventaris.js) is niet geladen. Herlaad de pagina.'); return; }
+  const upd=document.getElementById('sysUpdated');
+  if(upd){ const d=new Date(), p=n=>String(n).padStart(2,'0'); upd.textContent='bijgewerkt om '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
+
+  // 1 — Verbinding
+  let vb='<div class="syscard"><h3>Verbinding</h3><div class="sub">Kan dit toestel bij de gedeelde database?</div>';
+  vb+=sysRij(s.online?'ok':'bad','Internet', s.online?'verbonden':'geen internet');
+  vb+=sysRij(s.lib?'ok':'bad','Databasebibliotheek', s.lib?'geladen':'niet geladen');
+  vb+=sysRij(s.aangemeld?'ok':'bad','Aangemeld bij database', s.aangemeld?'ja':'nee — enkel dit toestel');
+  vb+=sysRij(s.kern?'ok':(s.online?'bad':'warn'),'Gegevens opgehaald', s.kern?'gelukt':'niet gelukt (lokale kopie in gebruik)');
+  vb+=sysRij(s.realtime==='live'?'ok':(s.realtime==='mislukt'?'warn':''),'Live meekijken', esc(s.realtime));
+  if(sysPingRes) vb+=sysRij(sysPingRes.ok?'ok':'bad','Laatste verbindingstest', sysPingRes.ok?('antwoord in '+sysPingRes.ms+' ms'):esc(sysPingRes.fout||'mislukt'));
+  if(!s.aangemeld) vb+=sysNote('bad','Dit toestel is <b>niet aangemeld</b>. Je ziet wel de laatst bewaarde gegevens, maar wijzigingen komen niet bij de collega\'s terecht. Herlaad de pagina en vul de toegangscode in.');
+  else if(!s.kern&&s.online) vb+=sysNote('warn','Verbonden met internet, maar de database antwoordde niet. Vaak is dat een wifi zonder echte internetverbinding. Test de verbinding hierboven.');
+  vb+='</div>';
+
+  // 2 — Synchronisatie
+  const wachtKleur = s.wachtrij===0?'ok':(s.wachtrijEerste&&s.wachtrijEerste.pogingen>=2?'bad':'warn');
+  let sy='<div class="syscard"><h3>Synchronisatie</h3><div class="sub">Wat er nog naar de database moet</div>';
+  sy+=sysRij(wachtKleur,'Wachtrij', s.wachtrij===0?'leeg':(s.wachtrij+' wijziging'+(s.wachtrij===1?'':'en')));
+  sy+=sysRij(s.nogTeBewaren?'warn':'ok','Nog te bewaren', s.nogTeBewaren?(s.nogTeBewaren+' prijs/prijzen'):'niets');
+  sy+=sysRij(s.laatsteSync?'ok':'warn','Laatste geslaagde uitwisseling', esc(sysTijd(s.laatsteSync)));
+  if(s.wachtrijEerste) sy+=sysRij(s.wachtrijEerste.pogingen>=2?'bad':'warn','Wacht op', esc(s.wachtrijEerste.actie+' → '+s.wachtrijEerste.tabel)+(s.wachtrijEerste.pogingen?(' ('+s.wachtrijEerste.pogingen+' pogingen)'):''));
+  if(s.laatsteFout) sy+=sysRij('warn','Laatste foutmelding', esc(s.laatsteFout)+'<br><span style="font-weight:600;color:var(--muted)">'+esc(sysTijd(s.laatsteFoutTs))+'</span>');
+  if(s.wachtrijEerste&&s.wachtrijEerste.pogingen>=2){
+    sy+=sysNote('bad','Deze wijziging blijft mislukken en blokkeert de rest van de wachtrij. Test eerst de verbinding. Blijft het hangen, dan kan je de wachtrij wissen — die wijzigingen zijn dan definitief weg.'+
+      '<div style="margin-top:9px"><button class="btn clear" id="sysWisWachtrij">🗑 Wachtrij wissen</button></div>');
+  } else if(s.wachtrij>0){
+    sy+=sysNote('warn','Er wachten wijzigingen op internet. Ze vertrekken vanzelf zodra er verbinding is — je hoeft niets te doen.');
+  } else {
+    sy+=sysNote('ok','Alles is verstuurd. Dit toestel loopt gelijk met de database.');
+  }
+  sy+='</div>';
+
+  // 3 — Gedeelde gegevens
+  const ontbreekt=s.tabellen.filter(t=>!t.gedeeld);
+  let gd='<div class="syscard"><h3>Gedeelde gegevens</h3><div class="sub">Staat het in de database, of enkel op dit toestel?</div>'+
+    '<table class="systab"><tr><th>Onderdeel</th><th style="text-align:right">Aantal</th><th style="text-align:right">Status</th></tr>';
+  s.tabellen.forEach(t=>{
+    gd+='<tr><td>'+esc(t.label)+'</td><td class="n">'+t.aantal+'</td>'+
+      '<td class="s '+(t.gedeeld?'ja':'nee')+'">'+(t.gedeeld?'✓ gedeeld':'✗ enkel hier')+'</td></tr>';
+  });
+  gd+='</table>';
+  if(!s.kern) gd+=sysNote('warn','Zonder verbinding kunnen we niet nagaan wat gedeeld is — hierboven staat de laatst bekende stand.');
+  else if(ontbreekt.length) gd+=sysNote('warn','<b>'+ontbreekt.length+' onderde'+(ontbreekt.length===1?'el staat':'len staan')+' enkel op dit toestel:</b> '+
+    ontbreekt.map(t=>esc(t.label)).join(', ')+'.<br>De bijbehorende tabel'+(ontbreekt.length===1?'':'len')+' ontbreek'+(ontbreekt.length===1?'t':'en')+' in Supabase. '+
+    'Alles blijft werken, maar collega\'s zien deze gegevens niet. Voer <b>docs/projecten-supabase.sql</b> uit in Supabase (SQL Editor → New query → plakken → Run).');
+  else gd+=sysNote('ok','Alle onderdelen zijn gedeeld met de andere toestellen.');
+  gd+='</div>';
+
+  // 4 — Opslag (vult zich aan zodra de meting binnen is)
+  let op='<div class="syscard" id="sysOpslag"><h3>Opslag op dit toestel</h3><div class="sub">Meten…</div></div>';
+
+  // 5 — Versie
+  const swCtrl='serviceWorker' in navigator && navigator.serviceWorker.controller;
+  let vs='<div class="syscard"><h3>Versie &amp; offline</h3><div class="sub">Draait dit toestel de nieuwste code?</div>';
+  vs+=sysRij('ok','App-versie', esc(APP_VERSION));
+  vs+=sysRij(swCtrl?'ok':'warn','Offline klaargezet', swCtrl?'ja':'nog niet (of geen service worker)');
+  vs+=sysRij(sysCaches.length?'ok':'warn','Offline-cache', sysCaches.length?esc(sysCaches.join(', ')):'nog geen');
+  vs+=sysRij('','Database', esc(s.url.replace('https://','')));
+  vs+=sysNote('ok','Werkt iets niet zoals verwacht na een update? Gebruik <b>Vernieuwen forceren</b> bovenaan — dat haalt de app opnieuw op. Je gegevens blijven staan.');
+  vs+='</div>';
+
+  box.innerHTML='<div class="sysgrid">'+vb+sy+gd+op+vs+'</div>';
+
+  const wis=document.getElementById('sysWisWachtrij');
+  if(wis) wis.onclick=()=>{
+    const p=prompt('Beheer-wachtwoord om de wachtrij te wissen:'); if(p===null) return;
+    if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+    if(!confirm('De wachtende wijzigingen definitief weggooien? Ze bereiken de database dan nooit.')) return;
+    const n=BBInv.wisWachtrij();
+    alert(n+' wijziging(en) gewist.');
+    renderSysteem();
+  };
+
+  if(BBInv.getOpslag) BBInv.getOpslag().then(renderSysOpslag).catch(()=>{});
+  if(window.caches&&!sysCaches.length){
+    caches.keys().then(k=>{ sysCaches=k||[]; }).catch(()=>{});
+  }
+}
+function renderSysOpslag(o){
+  const el=document.getElementById('sysOpslag'); if(!el||!o) return;
+  const lsPct=Math.min(100,Math.round(o.lsBytes/o.lsLimiet*100));
+  const kleur=o.snapshotOK===false?'bad':(lsPct>=90?'bad':(lsPct>=70?'warn':'ok'));
+  let h='<h3>Opslag op dit toestel</h3><div class="sub">De app bewaart alles lokaal zodat ze offline werkt</div>';
+  h+=sysRij(kleur,'Snelle opslag (localStorage)', sysBytes(o.lsBytes)+' — richtlijn ± '+sysBytes(o.lsLimiet));
+  h+='<div class="sysmeter"><i class="'+(kleur==='ok'?'':kleur)+'" style="width:'+lsPct+'%"></i></div>';
+  h+=sysRij(o.snapshotOK===false?'bad':'ok','Bewaren lukt', o.snapshotOK===false?'nee — opslag zit vol':'ja');
+  h+=sysRij(o.plek==='IndexedDB'?'ok':'warn','Offline kopie staat in', esc(o.plek||'onbekend'));
+  if(o.quota) h+=sysRij('ok','Totale ruimte (incl. foto\'s)', sysBytes(o.usage)+' van '+sysBytes(o.quota));
+  if(o.blijvend!==null&&o.blijvend!==undefined)
+    h+=sysRij(o.blijvend?'ok':'warn','Beschermd tegen opruimen', o.blijvend?'ja':'nee — de browser mag dit wissen als het toestel vol raakt');
+  // Wat neemt de plaats in? Zonder deze lijst blijft het gissen.
+  if(o.sleutels&&o.sleutels.length){
+    h+='<table class="systab" style="margin-top:10px"><tr><th>Grootste onderdelen</th><th style="text-align:right">Grootte</th></tr>';
+    o.sleutels.forEach(s=>{
+      h+='<tr><td'+(s.oud?' style="color:#c0392b"':'')+'>'+esc(s.naam)+'</td><td class="n">'+sysBytes(s.bytes)+'</td></tr>';
+    });
+    h+='</table>';
+  }
+  if(o.snapshotOK===false){
+    h+=sysNote('bad','<b>De snelle opslag zit vol — wijzigingen worden niet meer lokaal bewaard.</b> '+
+      'Wat je nu aanpast gaat wél naar de database, maar is weg als je de pagina sluit zonder internet. Ruim hieronder op.');
+  }
+  if(o.teHalen>0){
+    h+=sysNote('warn','Er staat nog <b>'+sysBytes(o.teHalen)+'</b> aan oude kopieën in de snelle opslag. '+
+      'De app bewaart alles nu één keer, in de ruime opslag. Het opruimen gebeurt vanzelf bij het opstarten, of nu meteen:'+
+      '<div style="margin-top:9px"><button class="btn" id="sysOpruimen">🧹 Nu opruimen</button></div>');
+  } else if(o.plek==='IndexedDB'){
+    h+=sysNote('ok','De offline kopie staat in de ruime opslag — hier is de krappe 5 MB-grens niet meer van toepassing.');
+  } else if(lsPct>=70){
+    h+=sysNote('warn','De snelle opslag loopt vol en dit toestel kan de ruime opslag niet gebruiken (privémodus of een oude browser).');
+  } else {
+    h+=sysNote('ok','Ruim voldoende plaats.');
+  }
+  el.innerHTML=h;
+  const op=document.getElementById('sysOpruimen');
+  if(op) op.onclick=()=>{
+    const vrij=BBInv.opruimen();
+    if(!vrij){ alert('Er kon niets opgeruimd worden. Zit de opslag vol, dan lukt het pas weer met internet (de gegevens moeten eerst veilig in de database staan).'); }
+    else alert(sysBytes(vrij)+' vrijgemaakt.');
+    renderSysteem();
+  };
+}
+document.getElementById('sysTest').onclick=async()=>{
+  const b=document.getElementById('sysTest'); b.disabled=true; b.textContent='Testen…';
+  sysPingRes=await BBInv.pingDB();
+  b.disabled=false; b.textContent='🔌 Verbinding testen';
+  renderSysteem();
+};
+document.getElementById('sysFlush').onclick=()=>{ BBInv.flushOutbox(); setTimeout(renderSysteem,400); };
+document.getElementById('sysHerlaad').onclick=async()=>{
+  if(!navigator.onLine){ alert('Daar is internet voor nodig — anders blijft de app zonder opgeslagen kopie achter.'); return; }
+  if(!confirm('De app opnieuw ophalen van het internet?\n\nJe gegevens blijven staan; enkel de opgeslagen kopie van de pagina wordt vernieuwd.')) return;
+  try{ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){}
+  location.reload();
+};
+
+// ---- opstarten ----
+// Deze pagina ververst zichzelf elke 5 seconden, zodat je live ziet wat er gebeurt.
+window.bbStart=()=>{
+  sysPingRes=null; renderSysteem();
+  clearInterval(sysTimer);
+  sysTimer=setInterval(renderSysteem,5000);
+};
+window.bbOnChange=()=>{ renderSysteem(); };
+</script>
+</body>
+</html>

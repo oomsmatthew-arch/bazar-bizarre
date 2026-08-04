@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Besteloverzicht · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Besteloverzicht</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="view paginainhoud" id="bestellingen">
+    <p class="hint">Overzicht van alle bestellingen. Voeg toe, pas aan en volg de status op. Wijzigingen worden automatisch bewaard<span id="bestelDeeltMee"> en met alle toestellen gedeeld</span>.</p>
+    <div class="invtabs">
+      <button class="btab active" data-btab="overzicht">Overzicht</button>
+      <button class="btab" data-btab="financieel">💶 Financieel</button>
+      <button class="btab" data-btab="beheer">🔒 Beheer</button>
+    </div>
+
+    <!-- OVERZICHT -->
+    <div class="bpane active" id="bpane-overzicht">
+      <div class="invsum" id="bestelSum"></div>
+      <div class="row" style="margin:0 2px 12px;">
+        <button class="btn primary" id="bestelNieuw">➕ Nieuwe bestelling</button>
+      </div>
+      <input type="text" id="bestelZoek" class="finp zoek" placeholder="Zoek op bestelling, categorie of leverancier…">
+      <div class="invfilter" id="bestelFilter"></div>
+      <div class="bestelctrls">
+        <select id="bestelBoekjaar" class="bsel"></select>
+        <select id="bestelKwartaal" class="bsel">
+          <option value="all">Heel boekjaar</option>
+          <option value="1">K1 (okt–dec)</option>
+          <option value="2">K2 (jan–mrt)</option>
+          <option value="3">K3 (apr–jun)</option>
+          <option value="4">K4 (jul–sep)</option>
+        </select>
+        <select id="bestelAfd" class="bsel">
+          <option value="all">Alle afdelingen</option>
+          <option value="ENT">Alleen ENT</option>
+          <option value="BAY">Alleen BAY</option>
+          <option value="HSB">Alleen HSB</option>
+        </select>
+        <select id="bestelLev" class="bsel"></select>
+        <select id="bestelSort" class="bsel">
+          <option value="datum-desc">Datum: nieuwste eerst</option>
+          <option value="datum-asc">Datum: oudste eerst</option>
+          <option value="prijs-desc">Prijs: hoog → laag</option>
+          <option value="prijs-asc">Prijs: laag → hoog</option>
+        </select>
+        <button class="bbtn" id="bestelWisFilters">↺ Wis filters</button>
+      </div>
+      <div id="bestelList"></div>
+    </div>
+
+    <!-- FINANCIEEL -->
+    <div class="bpane" id="bpane-financieel">
+      <p class="hint" style="margin:0 2px 12px;">Kosten per afdeling en wat er al ontvangen is. Geannuleerde bestellingen tellen niet mee.</p>
+      <div class="h" style="margin:0 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Kosten per afdeling</div>
+      <div class="statgrid" id="finKas"></div>
+      <div class="h" style="margin:22px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Ontvangen vs. nog te ontvangen</div>
+      <div class="statgrid" id="finStatus"></div>
+      <div class="h" style="margin:22px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Per categorie</div>
+      <div id="finCat"></div>
+      <div class="h" style="margin:22px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Per leverancier</div>
+      <div id="finLev"></div>
+    </div>
+
+    <!-- BEHEER -->
+    <div class="bpane" id="bpane-beheer">
+      <div class="field">
+        <div class="h">Lijsten beheren</div>
+        <p class="hint" style="margin:0 0 12px;">Pas de keuzelijsten aan voor categorie, leverancier, status en boekjaar. <b>Hernoemen</b> past bestaande bestellingen automatisch mee aan; <b>verwijderen</b> vraagt eerst om bevestiging.</p>
+        <div class="mggrid">
+          <div class="mgcol">
+            <div class="mgtitle"><span>Categorieën</span><button class="bbtn mgadd" id="mgCatAdd">+ Toevoegen</button></div>
+            <div id="mgCats"></div>
+          </div>
+          <div class="mgcol">
+            <div class="mgtitle"><span>Leveranciers</span><button class="bbtn mgadd" id="mgLevAdd">+ Toevoegen</button></div>
+            <div id="mgLevs"></div>
+          </div>
+          <div class="mgcol">
+            <div class="mgtitle"><span>Statussen</span><button class="bbtn mgadd" id="mgStatAdd">+ Toevoegen</button></div>
+            <div id="mgStats"></div>
+          </div>
+          <div class="mgcol">
+            <div class="mgtitle"><span>Boekjaren</span><button class="bbtn mgadd" id="mgBjAdd">+ Toevoegen</button></div>
+            <div id="mgBj"></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="h">Exporteren</div>
+        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of open in Google Sheets / Excel.</p>
+        <div class="row"><button class="btn primary" id="bestelExport">⬇ Bestellingen (CSV)</button></div>
+      </div>
+      <div class="field">
+        <div class="h">Afdrukken</div>
+        <p class="hint" style="margin:0 0 10px;">Een nette lijst om mee te nemen of door te geven.</p>
+        <div class="row"><button class="btn" id="bestelPrint">🖨️ Bestellijst afdrukken</button></div>
+      </div>
+      <div class="field">
+        <div class="h">Terugzetten naar startlijst</div>
+        <p class="hint" style="margin:0 0 10px;">Zet de bestellingen terug naar de Excel-lijst van boekjaar 2025-2026 (alle vier de kwartalen). Eigen toevoegingen en wijzigingen gaan verloren.</p>
+        <div class="row"><button class="btn" id="bestelReset">Terug naar startlijst</button></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+
+<!-- BESTELLING bewerken -->
+<div class="cammodal" id="bestelModal"><div class="cammodal-box bestelbox">
+  <div class="cammodal-title" id="bestelModalTitle">Nieuwe bestelling</div>
+  <div class="bestelform">
+    <label>Bestelling (wat)</label>
+    <input type="text" id="bfInfo" class="finp" placeholder="bv. Prijzen, Knutselmateriaal…">
+    <div class="bf2">
+      <div><label>Besteldatum</label><input type="date" id="bfDatum" class="finp"></div>
+      <div><label>Status</label>
+        <select id="bfStatus" class="finp"></select>
+      </div>
+    </div>
+    <div class="bf2">
+      <div><label>Categorie</label><input type="text" id="bfCat" class="finp" list="bfCatList" placeholder="bv. CGT, Bay workshop…"><datalist id="bfCatList"></datalist></div>
+      <div><label>Aantal / eenheid</label><input type="text" id="bfAantal" class="finp" placeholder="bv. 8, 12 flessen"></div>
+    </div>
+    <label>Kosten (€)</label>
+    <div class="bf3">
+      <div><span class="kaslbl ent">ENT</span><input type="number" id="bfEnt" class="finp" min="0" step="0.01" placeholder="0"></div>
+      <div><span class="kaslbl bay">BAY</span><input type="number" id="bfBay" class="finp" min="0" step="0.01" placeholder="0"></div>
+      <div><span class="kaslbl hsb">HSB</span><input type="number" id="bfHsb" class="finp" min="0" step="0.01" placeholder="0"></div>
+    </div>
+    <div class="bf2">
+      <div><label>Leverancier</label><input type="text" id="bfLeverancier" class="finp" list="bfLevList" placeholder="bv. Ready4Bingo"><datalist id="bfLevList"></datalist></div>
+      <div><label>Leverdatum</label><input type="date" id="bfLeverdatum" class="finp"></div>
+    </div>
+    <label>Besteld door (naam)</label>
+    <input type="text" id="bfDoor" class="finp" list="bfDoorList" placeholder="bv. Matthew"><datalist id="bfDoorList"></datalist>
+    <label>Opmerkingen</label>
+    <textarea id="bfOpm" class="finp" style="min-height:70px;resize:vertical;" placeholder="bv. Pakbon door Matthew"></textarea>
+  </div>
+  <div class="cammodal-bar">
+    <button class="btn clear" id="bestelAnnuleer">Annuleren</button>
+    <button class="btn primary" id="bestelOpslaan">Opslaan</button>
+  </div>
+  <div class="row" style="margin-top:10px;"><button class="btn" id="bestelVerwijder" style="display:none;border-color:#e2b6b0;color:#a23b30;background:#fff;">🗑 Verwijderen</button></div>
+</div></div>
+
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+// ================= BESTELLINGEN =================
+// Beheerbare keuzelijsten (op dit toestel bewaard). Categorie/leverancier vullen we
+// aan met wat al in de bestellingen voorkomt, zodat niets verloren gaat.
+let mgCats=lsArr('bb_bestel_cats',[]);
+let mgLevs=lsArr('bb_bestel_levs',[]);
+let mgStats=lsArr('bb_bestel_stats',DEFAULT_STATUSSEN);
+let mgBjExtra=lsArr('bb_bestel_bj_extra',[]);
+let ontvangenStats=lsArr('bb_bestel_ontvangen',['In loods','Uitgepakt']);
+function uniqSort(arr){ return [...new Set(arr.map(s=>(s||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
+function catList(){ return uniqSort(mgCats.concat(BBInv.getBestellingen().map(b=>b.cat))); }
+function levList(){ return uniqSort(mgLevs.concat(BBInv.getBestellingen().map(b=>b.leverancier))); }
+function boekjaarList(){ const der=BBInv.getBestellingen().map(b=>boekjaarVan(b.datum)).filter(Boolean); return [...new Set(der.concat(mgBjExtra))].sort((a,b)=>b.localeCompare(a)); }
+
+let bestelEditId=null, bestelStatusFilter='all', bestelQuery='', bestelAfd='all', bestelLev='all', bestelSort='datum-desc';
+let bestelTab='overzicht', bestelBoekjaar='all', bestelKwartaal='all';
+// Boekjaar start in oktober: okt–dec hoort bij het boekjaar dat dat jaar begint.
+function boekjaarVan(iso){ if(!iso) return ''; const p=String(iso).split('-'); if(p.length<2) return ''; const y=+p[0], m=+p[1]; const start=m>=10?y:y-1; return start+'-'+(start+1); }
+function kwartaalVan(iso){ if(!iso) return 0; const m=+String(iso).split('-')[1]; if(m>=10) return 1; if(m<=3) return 2; if(m<=6) return 3; return 4; }
+function eur(n){ n=+n||0; try{return n.toLocaleString('nl-BE',{style:'currency',currency:'EUR'});}catch(e){return '€ '+n.toFixed(2);} }
+function dmy(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
+function dmShort(iso){ if(!iso) return '—'; const p=String(iso).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0].slice(2):iso; }
+function stClass(s){ return 's-'+String(s||'').toLowerCase().replace(/\s+/g,''); }
+function bestelTotaal(b){ return (+b.ent||0)+(+b.bay||0)+(+b.hsb||0); }
+
+function renderBestelSum(){
+  const list=BBInv.getBestellingen();
+  const counts={};
+  let ent=0,bay=0,hsb=0;
+  list.forEach(b=>{ counts[b.status]=(counts[b.status]||0)+1; ent+=+b.ent||0; bay+=+b.bay||0; hsb+=+b.hsb||0; });
+  let html='<span class="pill"><b>'+list.length+'</b> totaal</span>';
+  mgStats.forEach(s=>{ if(counts[s]) html+='<span class="pill"><b>'+counts[s]+'</b> '+esc(s.toLowerCase())+'</span>'; });
+  if(isVasteMdw()){ // financiële totalen enkel voor vaste medewerkers
+    if(ent) html+='<span class="pill ent">ENT <b>'+eur(ent)+'</b></span>';
+    if(bay) html+='<span class="pill bay">BAY <b>'+eur(bay)+'</b></span>';
+    if(hsb) html+='<span class="pill hsb">HSB <b>'+eur(hsb)+'</b></span>';
+  }
+  document.getElementById('bestelSum').innerHTML=html;
+}
+function renderBestelFilter(){
+  const el=document.getElementById('bestelFilter');
+  const mk=(key,label)=>'<button class="chip'+(bestelStatusFilter===key?' active':'')+'" data-bf="'+esc(key)+'">'+esc(label)+'</button>';
+  el.innerHTML=mk('all','Alle')+mgStats.map(s=>mk(s,s)).join('');
+  el.querySelectorAll('[data-bf]').forEach(c=>c.onclick=()=>{bestelStatusFilter=c.dataset.bf;renderBestelFilter();renderBestelList();});
+}
+function bestelRowHtml(b){
+  let amt='';
+  if(isVasteMdw()){ // bedragen per bestelling enkel voor vaste medewerkers
+    if(+b.ent) amt+='<span class="br-amt ent">ENT '+eur(b.ent)+'</span>';
+    if(+b.bay) amt+='<span class="br-amt bay">BAY '+eur(b.bay)+'</span>';
+    if(+b.hsb) amt+='<span class="br-amt hsb">HSB '+eur(b.hsb)+'</span>';
+  }
+  const meta=[b.cat,b.leverancier,b.aantal?('×'+b.aantal):'',b.door?('door '+b.door):''].filter(Boolean).map(esc).join(' · ');
+  return '<div class="bestelrow" data-edit="'+b.id+'" title="Tik om te bewerken">'+
+    '<span class="br-datum">'+dmShort(b.datum)+'</span>'+
+    '<span class="stbadge sm '+stClass(b.status)+'">'+esc(b.status)+'</span>'+
+    '<span class="br-info"><span class="t">'+esc(b.info||'(zonder omschrijving)')+'</span>'+
+      (meta?'<span class="meta">'+meta+'</span>':'')+'</span>'+
+    '<span class="br-bedrag">'+amt+'</span>'+
+  '</div>';
+}
+function renderBestelList(){
+  const q=bestelQuery.toLowerCase().trim();
+  let list=BBInv.getBestellingen().slice();
+  if(bestelBoekjaar!=='all') list=list.filter(b=>boekjaarVan(b.datum)===bestelBoekjaar);
+  if(bestelKwartaal!=='all') list=list.filter(b=>String(kwartaalVan(b.datum))===bestelKwartaal);
+  if(bestelStatusFilter!=='all') list=list.filter(b=>b.status===bestelStatusFilter);
+  if(bestelAfd!=='all') list=list.filter(b=> bestelAfd==='ENT'?+b.ent>0 : bestelAfd==='BAY'?+b.bay>0 : +b.hsb>0);
+  if(bestelLev!=='all') list=list.filter(b=>b.leverancier===bestelLev);
+  if(q) list=list.filter(b=>((b.info||'')+' '+(b.cat||'')+' '+(b.leverancier||'')+' '+(b.opm||'')).toLowerCase().includes(q));
+  list.sort((a,b)=>{
+    if(bestelSort==='datum-asc') return (a.datum||'').localeCompare(b.datum||'')||(a.ts||0)-(b.ts||0);
+    if(bestelSort==='prijs-desc') return bestelTotaal(b)-bestelTotaal(a);
+    if(bestelSort==='prijs-asc') return bestelTotaal(a)-bestelTotaal(b);
+    return (b.datum||'').localeCompare(a.datum||'')||(b.ts||0)-(a.ts||0); // datum-desc
+  });
+  const gefilterd=(bestelStatusFilter!=='all'||bestelAfd!=='all'||bestelLev!=='all'||bestelBoekjaar!=='all'||bestelKwartaal!=='all'||q);
+  const el=document.getElementById('bestelList');
+  if(!list.length){ el.innerHTML='<div class="empty-note">Geen bestellingen'+(gefilterd?' voor deze filter':'. Voeg er een toe met ➕ Nieuwe bestelling')+'.</div>'; return; }
+  el.innerHTML='<div class="besteltabel">'+list.map(bestelRowHtml).join('')+'</div>';
+  el.querySelectorAll('.bestelrow[data-edit]').forEach(r=>r.onclick=()=>openBestelModal(r.dataset.edit));
+}
+function renderBestellingen(){
+  document.getElementById('bestelDeeltMee').style.display = BBInv.isBestelGedeeld()?'':'none';
+  const sel=document.getElementById('bfStatus');
+  const curStatus=sel.value;
+  sel.innerHTML=mgStats.map(s=>'<option>'+esc(s)+'</option>').join('');
+  if(mgStats.indexOf(curStatus)>=0) sel.value=curStatus;
+  const cats=catList();
+  const levs=levList();
+  document.getElementById('bfCatList').innerHTML=cats.map(c=>'<option value="'+esc(c)+'">').join('');
+  document.getElementById('bfLevList').innerHTML=levs.map(l=>'<option value="'+esc(l)+'">').join('');
+  const namen=uniqSort(BBInv.getBestellingen().map(b=>b.door||''));
+  document.getElementById('bfDoorList').innerHTML=namen.map(n=>'<option value="'+esc(n)+'">').join('');
+  // leverancier-filter vullen (en huidige keuze behouden als die nog bestaat)
+  const levSel=document.getElementById('bestelLev');
+  if(bestelLev!=='all' && levs.indexOf(bestelLev)<0) bestelLev='all';
+  levSel.innerHTML='<option value="all">Alle leveranciers</option>'+levs.map(l=>'<option value="'+esc(l)+'">'+esc(l)+'</option>').join('');
+  levSel.value=bestelLev;
+  // boekjaar-filter vullen (nieuwste eerst)
+  const bjs=boekjaarList();
+  const bjSel=document.getElementById('bestelBoekjaar');
+  if(bestelBoekjaar!=='all' && bjs.indexOf(bestelBoekjaar)<0) bestelBoekjaar='all';
+  bjSel.innerHTML='<option value="all">Alle boekjaren</option>'+bjs.map(j=>'<option value="'+j+'">Boekjaar '+j+'</option>').join('');
+  bjSel.value=bestelBoekjaar;
+  document.getElementById('bestelKwartaal').value=bestelKwartaal;
+  document.getElementById('bestelAfd').value=bestelAfd;
+  document.getElementById('bestelSort').value=bestelSort;
+  renderBestelSum(); renderBestelFilter(); renderBestelList();
+}
+
+// ---- Financieel ----
+function statCard(label,val,cls){ return '<div class="statcard money '+(cls||'')+'"><div class="v">'+val+'</div><div class="l">'+esc(label)+'</div></div>'; }
+function finGroep(list,key){
+  const m={};
+  list.forEach(b=>{ const k=(b[key]||'').trim()||'(geen)'; if(!m[k])m[k]={n:0,tot:0}; m[k].n++; m[k].tot+=bestelTotaal(b); });
+  return Object.keys(m).map(k=>({k,n:m[k].n,tot:m[k].tot})).sort((a,b)=>b.tot-a.tot||b.n-a.n);
+}
+function finTabel(rows){
+  if(!rows.length) return '<div class="empty-note">Nog niets.</div>';
+  return '<div class="fintab">'+rows.map(r=>'<div class="finrow"><span class="fk">'+esc(r.k)+'</span><span class="fn">'+r.n+'×</span><span class="fv">'+eur(r.tot)+'</span></div>').join('')+'</div>';
+}
+function renderFinancieel(){
+  const list=BBInv.getBestellingen().filter(b=>b.status!=='Geannuleerd');
+  let ent=0,bay=0,hsb=0;
+  list.forEach(b=>{ ent+=+b.ent||0; bay+=+b.bay||0; hsb+=+b.hsb||0; });
+  const tot=ent+bay+hsb;
+  document.getElementById('finKas').innerHTML=
+    statCard('ENT',eur(ent))+statCard('BAY',eur(bay))+statCard('HSB',eur(hsb))+statCard('Totaal',eur(tot),'green');
+  let ontv=0, open=0;
+  list.forEach(b=>{ const t=bestelTotaal(b); if(ontvangenStats.indexOf(b.status)>=0) ontv+=t; else open+=t; });
+  document.getElementById('finStatus').innerHTML=
+    statCard('Al ontvangen',eur(ontv),'green')+statCard('Nog te ontvangen',eur(open),'orange');
+  document.getElementById('finCat').innerHTML=finTabel(finGroep(list,'cat'));
+  document.getElementById('finLev').innerHTML=finTabel(finGroep(list,'leverancier'));
+}
+
+// ---- tabbladen (Beheer met wachtwoord, net als de inventaris) ----
+function showBestelTab(t){
+  if(t==='financieel' && !isVasteMdw()){ return; } // financieel overzicht enkel voor vaste medewerkers
+  if(t==='beheer' && !eisBeheer('de lijsten te beheren')) return;
+  bestelTab=t;
+  document.querySelectorAll('.btab').forEach(x=>x.classList.toggle('active',x.dataset.btab===t));
+  document.querySelectorAll('.bpane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('bpane-'+t).classList.add('active');
+  if(t==='overzicht') renderBestellingen();
+  else if(t==='financieel') renderFinancieel();
+  else if(t==='beheer') renderBeheerLijsten();
+}
+// De Financieel-tab is enkel voor vaste medewerkers: knop verbergen en, indien nodig,
+// terugvallen op het gewone overzicht.
+function updateBestelTabs(){
+  const btn=document.querySelector('.btab[data-btab="financieel"]');
+  const mag=isVasteMdw();
+  if(btn) btn.style.display = mag ? '' : 'none';
+  if(!mag && bestelTab==='financieel') showBestelTab('overzicht');
+}
+document.querySelectorAll('.btab').forEach(b=>{ b.onclick=()=>showBestelTab(b.dataset.btab); });
+function renderBestelActief(){
+  if(bestelTab==='financieel') renderFinancieel();
+  else if(bestelTab==='beheer') renderBeheerLijsten();
+  else renderBestellingen();
+}
+
+// ---- Lijsten beheren (categorie / leverancier / status / boekjaar) ----
+function lijstHtml(items,type){
+  if(!items.length) return '<div class="empty-note" style="padding:10px;">Nog niets.</div>';
+  return '<div class="mglist">'+items.map(it=>
+    '<div class="mgrow"><span class="mgnaam">'+esc(it.naam)+(it.meta?' <span class="mgmeta">'+esc(it.meta)+'</span>':'')+'</span>'+
+      (it.canRename?'<button class="mgbtn" data-act="rename" data-type="'+type+'" data-naam="'+esc(it.naam)+'" title="Hernoemen">✎</button>':'')+
+      (it.deletable?'<button class="mgbtn del" data-act="delete" data-type="'+type+'" data-naam="'+esc(it.naam)+'" title="Verwijderen">✕</button>':'<span style="width:30px;flex:0 0 auto;"></span>')+
+    '</div>').join('')+'</div>';
+}
+function renderBeheerLijsten(){
+  document.getElementById('mgCats').innerHTML=lijstHtml(catList().map(n=>({naam:n,canRename:true,deletable:true})),'cat');
+  document.getElementById('mgLevs').innerHTML=lijstHtml(levList().map(n=>({naam:n,canRename:true,deletable:true})),'lev');
+  document.getElementById('mgStats').innerHTML=lijstHtml(mgStats.map(n=>({naam:n,canRename:true,deletable:true,meta:ontvangenStats.indexOf(n)>=0?'telt als ontvangen':''})),'stat');
+  const der=new Set(BBInv.getBestellingen().map(b=>boekjaarVan(b.datum)).filter(Boolean));
+  document.getElementById('mgBj').innerHTML=lijstHtml(boekjaarList().map(n=>({naam:n,canRename:false,deletable:!der.has(n),meta:der.has(n)?'automatisch':'zelf toegevoegd'})),'bj');
+  document.querySelectorAll('#bpane-beheer .mgbtn').forEach(btn=>{
+    btn.onclick=()=>mgActie(btn.dataset.act,btn.dataset.type,btn.dataset.naam);
+  });
+}
+// Hernoemt een waarde in alle bestellingen (categorie/leverancier/status)
+function mgRenameInOrders(veld,oud,nieuw){
+  BBInv.getBestellingen().filter(b=>b[veld]===oud).forEach(b=>{ const p={}; p[veld]=nieuw; BBInv.updateBestelling(b.id,p); });
+}
+function mgGebruik(veld,naam){ return BBInv.getBestellingen().filter(b=>b[veld]===naam).length; }
+function mgActie(act,type,naam){
+  if(type==='bj'){ // boekjaar: enkel zelf-toegevoegde kunnen weg
+    if(act==='delete'){ mgBjExtra=mgBjExtra.filter(x=>x!==naam); lsSave('bb_bestel_bj_extra',mgBjExtra); renderBeheerLijsten(); renderBestellingen(); }
+    return;
+  }
+  const cfg={cat:{veld:'cat',list:'mgCats',arr:()=>mgCats,set:a=>{mgCats=a;},key:'bb_bestel_cats',wat:'categorie'},
+             lev:{veld:'leverancier',list:'mgLevs',arr:()=>mgLevs,set:a=>{mgLevs=a;},key:'bb_bestel_levs',wat:'leverancier'},
+             stat:{veld:'status',arr:()=>mgStats,set:a=>{mgStats=a;},key:'bb_bestel_stats',wat:'status'}}[type];
+  if(!cfg) return;
+  if(act==='rename'){
+    const v=prompt('Nieuwe naam voor '+cfg.wat+' "'+naam+'":',naam); if(v===null) return;
+    const t=v.trim(); if(!t||t===naam) return;
+    mgRenameInOrders(cfg.veld,naam,t);
+    let arr=cfg.arr().map(x=>x===naam?t:x); if(arr.indexOf(t)<0) arr.push(t); arr=arr.filter((x,i)=>arr.indexOf(x)===i);
+    cfg.set(arr); lsSave(cfg.key,arr);
+    if(type==='stat'){ ontvangenStats=ontvangenStats.map(x=>x===naam?t:x); lsSave('bb_bestel_ontvangen',ontvangenStats); }
+    renderBeheerLijsten(); renderBestellingen();
+  } else if(act==='delete'){
+    const used=mgGebruik(cfg.veld,naam);
+    if(type==='stat'){
+      if(mgStats.length<=1){ alert('Er moet minstens één status zijn.'); return; }
+      const fallback=mgStats.filter(s=>s!==naam)[0];
+      if(!confirm('Status "'+naam+'" verwijderen?'+(used?'\n'+used+' bestelling(en) krijgen status "'+fallback+'".':''))) return;
+      if(used) BBInv.getBestellingen().filter(b=>b.status===naam).forEach(b=>BBInv.updateBestelling(b.id,{status:fallback}));
+      mgStats=mgStats.filter(s=>s!==naam); lsSave('bb_bestel_stats',mgStats);
+      ontvangenStats=ontvangenStats.filter(s=>s!==naam); lsSave('bb_bestel_ontvangen',ontvangenStats);
+    } else {
+      if(!confirm(cfg.wat.charAt(0).toUpperCase()+cfg.wat.slice(1)+' "'+naam+'" verwijderen?'+(used?'\n'+used+' bestelling(en) gebruiken deze; het veld wordt daar leeggemaakt.':''))) return;
+      if(used){ const p={}; p[cfg.veld]=''; BBInv.getBestellingen().filter(b=>b[cfg.veld]===naam).forEach(b=>BBInv.updateBestelling(b.id,p)); }
+      const arr=cfg.arr().filter(x=>x!==naam); cfg.set(arr); lsSave(cfg.key,arr);
+    }
+    renderBeheerLijsten(); renderBestellingen();
+  }
+}
+function mgToevoegen(type){
+  if(type==='cat'){ const v=prompt('Nieuwe categorie:'); if(!v)return; const t=v.trim(); if(!t)return; if(catList().indexOf(t)>=0){alert('Bestaat al.');return;} mgCats.push(t); lsSave('bb_bestel_cats',mgCats); }
+  else if(type==='lev'){ const v=prompt('Nieuwe leverancier:'); if(!v)return; const t=v.trim(); if(!t)return; if(levList().indexOf(t)>=0){alert('Bestaat al.');return;} mgLevs.push(t); lsSave('bb_bestel_levs',mgLevs); }
+  else if(type==='stat'){ const v=prompt('Nieuwe status:'); if(!v)return; const t=v.trim(); if(!t)return; if(mgStats.indexOf(t)>=0){alert('Bestaat al.');return;} mgStats.push(t); lsSave('bb_bestel_stats',mgStats);
+    if(confirm('Telt deze status als "ontvangen" voor het financieel overzicht?\n(OK = ja, Annuleren = nee)')){ ontvangenStats.push(t); lsSave('bb_bestel_ontvangen',ontvangenStats); } }
+  else if(type==='bj'){ const v=prompt('Startjaar van het boekjaar (bv. 2026 voor boekjaar 2026-2027):'); if(v===null)return; const y=parseInt(v,10); if(isNaN(y)||y<2000||y>2100){alert('Geef een geldig jaartal, bv. 2026.');return;} const label=y+'-'+(y+1); if(boekjaarList().indexOf(label)>=0){alert('Bestaat al.');return;} mgBjExtra.push(label); lsSave('bb_bestel_bj_extra',mgBjExtra); }
+  renderBeheerLijsten(); renderBestellingen();
+}
+function openBestelModal(id){
+  bestelEditId=id||null;
+  const b = id ? BBInv.getBestellingen().find(x=>x.id===id) : null;
+  document.getElementById('bestelModalTitle').textContent = b?'Bestelling bewerken':'Nieuwe bestelling';
+  const v=(idd,val)=>{document.getElementById(idd).value=val;};
+  v('bfInfo',b?b.info:''); v('bfDatum',b?b.datum:''); v('bfStatus',b?b.status:'Besteld');
+  v('bfCat',b?b.cat:''); v('bfAantal',b?b.aantal:'');
+  v('bfEnt',b&&+b.ent?b.ent:''); v('bfBay',b&&+b.bay?b.bay:''); v('bfHsb',b&&+b.hsb?b.hsb:'');
+  v('bfLeverancier',b?b.leverancier:''); v('bfLeverdatum',b?b.leverdatum:''); v('bfDoor',b?(b.door||''):(currentUserName()||'')); v('bfOpm',b?b.opm:'');
+  document.getElementById('bestelVerwijder').style.display = b?'':'none';
+  document.getElementById('bestelModal').classList.add('open');
+}
+function closeBestelModal(){ document.getElementById('bestelModal').classList.remove('open'); bestelEditId=null; }
+
+document.getElementById('bestelNieuw').onclick=()=>openBestelModal(null);
+document.getElementById('bestelZoek').oninput=e=>{ bestelQuery=e.target.value; renderBestelList(); };
+document.getElementById('bestelBoekjaar').onchange=e=>{ bestelBoekjaar=e.target.value; renderBestelList(); };
+document.getElementById('bestelKwartaal').onchange=e=>{ bestelKwartaal=e.target.value; renderBestelList(); };
+document.getElementById('bestelAfd').onchange=e=>{ bestelAfd=e.target.value; renderBestelList(); };
+document.getElementById('bestelLev').onchange=e=>{ bestelLev=e.target.value; renderBestelList(); };
+document.getElementById('bestelSort').onchange=e=>{ bestelSort=e.target.value; renderBestelList(); };
+document.getElementById('bestelWisFilters').onclick=()=>{
+  bestelStatusFilter='all'; bestelQuery=''; bestelAfd='all'; bestelLev='all'; bestelSort='datum-desc'; bestelBoekjaar='all'; bestelKwartaal='all';
+  document.getElementById('bestelZoek').value='';
+  renderBestellingen();
+};
+document.getElementById('bestelAnnuleer').onclick=closeBestelModal;
+document.getElementById('bestelModal').addEventListener('click',e=>{ if(e.target.id==='bestelModal') closeBestelModal(); });
+document.getElementById('bestelOpslaan').onclick=()=>{
+  const g=idd=>document.getElementById(idd).value;
+  const data={
+    info:g('bfInfo').trim(), datum:g('bfDatum'), status:g('bfStatus'),
+    cat:g('bfCat').trim(), aantal:g('bfAantal').trim(),
+    ent:parseFloat(g('bfEnt'))||0, bay:parseFloat(g('bfBay'))||0, hsb:parseFloat(g('bfHsb'))||0,
+    leverancier:g('bfLeverancier').trim(), leverdatum:g('bfLeverdatum'), door:g('bfDoor').trim(), opm:g('bfOpm').trim()
+  };
+  if(!data.info && !data.cat){ alert('Vul minstens een omschrijving of categorie in.'); return; }
+  if(bestelEditId) BBInv.updateBestelling(bestelEditId,data); else BBInv.addBestelling(data);
+  closeBestelModal(); renderBestellingen();
+};
+document.getElementById('bestelVerwijder').onclick=()=>{
+  if(!bestelEditId) return;
+  if(!confirm('Deze bestelling verwijderen?')) return;
+  BBInv.removeBestelling(bestelEditId); closeBestelModal(); renderBestellingen();
+};
+document.getElementById('bestelExport').onclick=()=>{
+  const rows=[['Besteldatum','Categorie','Bestelling','Status','Aantal/eenheid','Kosten ENT','Kosten BAY','Kosten HSB','Leverancier','Leverdatum','Besteld door','Opmerkingen']];
+  BBInv.getBestellingen().slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||'')).forEach(b=>{
+    rows.push([b.datum,b.cat,b.info,b.status,b.aantal,(+b.ent||0).toFixed(2).replace('.',','),(+b.bay||0).toFixed(2).replace('.',','),(+b.hsb||0).toFixed(2).replace('.',','),b.leverancier,b.leverdatum,b.door||'',b.opm]);
+  });
+  const csv=rows.map(r=>r.map(c=>{c=String(c==null?'':c);return /[";\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bestellingen.csv'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+document.getElementById('bestelReset').onclick=()=>{
+  if(!confirm('De bestellingen terugzetten naar de oorspronkelijke Excel-lijst?\nEigen toevoegingen en wijzigingen gaan verloren.')) return;
+  BBInv.resetBestellingen().then(()=>{ renderBestelActief(); alert('Bestellingen hersteld naar de startlijst.'); });
+};
+document.getElementById('bestelPrint').onclick=()=>{
+  const list=BBInv.getBestellingen().slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+  const rows=list.map(b=>'<tr><td>'+esc(dmy(b.datum))+'</td><td>'+esc(b.cat)+'</td><td>'+esc(b.info)+'</td><td>'+esc(b.status)+'</td><td>'+esc(b.aantal)+'</td><td class="n">'+(+b.ent?eur(b.ent):'')+'</td><td class="n">'+(+b.bay?eur(b.bay):'')+'</td><td class="n">'+(+b.hsb?eur(b.hsb):'')+'</td><td>'+esc(b.leverancier)+'</td><td>'+esc(dmy(b.leverdatum))+'</td><td>'+esc(b.door||'')+'</td><td>'+esc(b.opm)+'</td></tr>').join('');
+  const body='<h1>Besteloverzicht</h1><div class="sub">Afgedrukt op '+dmy(new Date().toISOString().slice(0,10))+'</div>'+
+    '<table><tr><th>Datum</th><th>Categorie</th><th>Bestelling</th><th>Status</th><th>Aantal</th><th class="n">ENT</th><th class="n">BAY</th><th class="n">HSB</th><th>Leverancier</th><th>Geleverd</th><th>Besteld door</th><th>Opmerkingen</th></tr>'+rows+'</table>';
+  const css='body{font-family:Arial,Helvetica,sans-serif;color:#1d2e22;margin:20px;}h1{font-size:19px;margin:0 0 4px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}table{border-collapse:collapse;width:100%;font-size:12px;}th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;vertical-align:top;}td.n,th.n{text-align:right;white-space:nowrap;}';
+  const w=window.open('','_blank');
+  if(!w){ alert('Kon het afdrukvenster niet openen (popup geblokkeerd?).'); return; }
+  w.document.open(); w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Besteloverzicht</title><style>'+css+'</style></head><body>'+body+'</body></html>'); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
+};
+document.getElementById('mgCatAdd').onclick=()=>mgToevoegen('cat');
+document.getElementById('mgLevAdd').onclick=()=>mgToevoegen('lev');
+document.getElementById('mgStatAdd').onclick=()=>mgToevoegen('stat');
+document.getElementById('mgBjAdd').onclick=()=>mgToevoegen('bj');
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('bestelModal').classList.contains('open')) closeBestelModal(); });
+
+// ---- opstarten ----
+window.bbVensterSluiters={ bestelModal:closeBestelModal };
+window.bbStart=()=>{ showBestelTab('overzicht'); updateBestelTabs(); };
+window.bbRolGewijzigd=()=>{ updateBestelTabs(); };   // Financieel-tab volgens rol
+window.bbOnChange=()=>{ renderBestelActief(); };
+// De gedeelde instellingen zijn binnengekomen: onze keuzelijsten opnieuw inlezen.
+window.bbConfigToegepast=()=>{
+  mgCats=lsArr('bb_bestel_cats',[]);
+  mgLevs=lsArr('bb_bestel_levs',[]);
+  mgStats=lsArr('bb_bestel_stats',DEFAULT_STATUSSEN);
+  mgBjExtra=lsArr('bb_bestel_bj_extra',[]);
+  ontvangenStats=lsArr('bb_bestel_ontvangen',['In loods','Uitgepakt']);
+};
+</script>
+</body>
+</html>

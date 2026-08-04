@@ -553,6 +553,9 @@
   }
 
   async function init(){
+    // Mag veilig meerdere keren aangeroepen worden (bv. de pagina én de zoekfunctie doen dit):
+    // enkel de eerste keer telt, de rest is een no-op.
+    if(init.__gestart) return; init.__gestart=true;
     // ALLEREERST de namen (synchroon uit localStorage, een paar honderd bytes). Zo staat
     // het inlogscherm er meteen; vroeger wachtte het op de volledige offline kopie uit
     // IndexedDB hieronder, en dat is op een gsm het verschil tussen meteen en enkele seconden.

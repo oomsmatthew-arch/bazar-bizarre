@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklists · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Checklists</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="view paginainhoud" id="checklisten">
+    <p class="hint">Vink items af om af te werken. Wil je lijsten of items toevoegen, hernoemen of verwijderen? Open dan eerst <b>🔒 Beheer</b>.</p>
+    <div class="chktopbar"><button class="btn" id="chkBeheerBtn">🔒 Beheer</button></div>
+    <div class="chktabs" id="chkTabs"></div>
+    <div class="chkbar">
+      <span class="chkcount"><b id="chkDone">0</b> / <span id="chkTot">0</span> klaar</span>
+      <span class="chkprog"><i id="chkFill"></i></span>
+      <button class="btn clear" id="chkReset">Afvinken wissen</button>
+    </div>
+    <div class="chklist" id="chkGrid"></div>
+    <div class="chkadd">
+      <input type="text" id="chkNew" class="finp" placeholder="Nieuw item toevoegen…">
+      <button class="btn" id="chkAdd">Toevoegen</button>
+    </div>
+    <div class="chkacties">
+      <button class="btn" id="chkRename">✎ Lijst hernoemen</button>
+      <button class="btn" id="chkDelList">🗑 Lijst verwijderen</button>
+    </div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+// ---------------- CHECKLISTS (gedeeld via database) ----------------
+let chkActief=null;
+let chkBeheer=false;
+function chkActieveLijst(){ const ls=BBInv.getChecklisten(); return ls.find(l=>l.id===chkActief)||ls[0]||null; }
+// Media per checklist-item: array van {type:'foto'|'video', src}. Max 2.
+// Terugvalcompatibel met oude items die enkel een 'foto'-veld hadden.
+function chkMedia(it){
+  if(Array.isArray(it.media)) return it.media;
+  if(it.foto) return [{type:'foto',src:it.foto}];
+  return [];
+}
+function chkSetMedia(it,arr){ it.media=(arr||[]).slice(0,2); if('foto' in it) delete it.foto; }
+// Object-URL's van video-thumbnails bijhouden en vrijgeven bij elke herteken.
+let _chkThumbUrls=[];
+function _chkRevokeThumbUrls(){ _chkThumbUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(_){}}); _chkThumbUrls=[]; }
+let chkTabJustDragged=false;
+// Sleep-herschikken van de checklist-tabbladen (muis + touch).
+function chkTabDragInit(tab, cont){
+  tab.addEventListener('pointerdown', e=>{
+    if(e.button!==undefined && e.button>0) return;
+    const startX=e.clientX, startY=e.clientY;
+    let dragging=false;
+    const move=ev=>{
+      if(!dragging){
+        if(Math.abs(ev.clientX-startX)+Math.abs(ev.clientY-startY)<8) return;
+        dragging=true;
+        tab.classList.add('dragging');
+      }
+      const el=document.elementFromPoint(ev.clientX,ev.clientY);
+      const over=el&&el.closest?el.closest('.chktab'):null;
+      if(over&&over!==tab&&over.parentElement===cont&&!over.classList.contains('add')){
+        const rect=over.getBoundingClientRect();
+        if(ev.clientX>rect.left+rect.width/2) cont.insertBefore(tab,over.nextSibling);
+        else cont.insertBefore(tab,over);
+      }
+    };
+    const up=()=>{
+      document.removeEventListener('pointermove',move);
+      document.removeEventListener('pointerup',up);
+      document.removeEventListener('pointercancel',up);
+      if(dragging){
+        tab.classList.remove('dragging');
+        chkTabJustDragged=true; setTimeout(()=>{chkTabJustDragged=false;},0);
+        const ids=[...cont.querySelectorAll('.chktab')].filter(x=>!x.classList.contains('add')).map(x=>x.dataset.id);
+        BBInv.reorderChecklisten(ids);
+        renderChecklisten();
+      }
+    };
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',up);
+    document.addEventListener('pointercancel',up);
+  });
+}
+function renderChkTabs(){
+  const t=document.getElementById('chkTabs'); if(!t)return; t.innerHTML='';
+  t.classList.toggle('beheer',chkBeheer);
+  const ls=BBInv.getChecklisten();
+  if(ls.length && !ls.find(l=>l.id===chkActief)) chkActief=ls[0].id;
+  ls.forEach(l=>{
+    const done=l.items.filter(x=>x.done).length;
+    const b=document.createElement('button'); b.className='chktab'+(l.id===chkActief?' active':''); b.dataset.id=l.id;
+    b.innerHTML=esc(l.naam)+' <span class="ct">'+done+'/'+l.items.length+'</span>';
+    b.onclick=()=>{ if(chkTabJustDragged)return; chkActief=l.id; renderChecklisten(); };
+    if(chkBeheer) chkTabDragInit(b,t);
+    t.appendChild(b);
+  });
+  if(chkBeheer){
+    const add=document.createElement('button'); add.className='chktab add'; add.textContent='+ Nieuwe lijst';
+    add.onclick=()=>{
+      const n=prompt('Naam van de nieuwe checklist:'); if(n===null)return; const naam=n.trim(); if(!naam)return;
+      const rec=BBInv.addChecklist(naam); chkActief=rec.id; renderChecklisten();
+    };
+    t.appendChild(add);
+  }
+}
+// Sleep-herschikken van checklist-items (werkt met muis en touch via pointer events).
+// De move/up-listeners staan op document, zodat het slepen doorloopt ook als de
+// muis/vinger het kleine handvat verlaat.
+function chkDragInit(handle, row, g, lijst){
+  handle.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    row.classList.add('dragging');
+    const rows=()=>[...g.querySelectorAll('.chk')];
+    const move=ev=>{
+      const y=ev.clientY;
+      let before=null;
+      for(const sib of rows()){
+        if(sib===row) continue;
+        const rect=sib.getBoundingClientRect();
+        if(y < rect.top + rect.height/2){ before=sib; break; }
+      }
+      if(before) g.insertBefore(row,before); else g.appendChild(row);
+    };
+    const up=()=>{
+      document.removeEventListener('pointermove',move);
+      document.removeEventListener('pointerup',up);
+      document.removeEventListener('pointercancel',up);
+      row.classList.remove('dragging');
+      const order=rows().map(r=>+r.dataset.idx);
+      if(order.some((v,idx)=>v!==idx)){
+        lijst.items=order.map(idx=>lijst.items[idx]);
+        BBInv.saveChecklist(lijst);
+      }
+      renderChecklisten();
+    };
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',up);
+    document.addEventListener('pointercancel',up);
+  });
+}
+
+function renderChecklisten(){
+  renderChkTabs();
+  const lijst=chkActieveLijst();
+  const g=document.getElementById('chkGrid'); if(!g)return; _chkRevokeThumbUrls(); g.innerHTML='';
+  const bb=document.getElementById('chkBeheerBtn');
+  bb.textContent=chkBeheer?'🔓 Beheer sluiten':'🔒 Beheer'; bb.classList.toggle('aan',chkBeheer);
+  if(!lijst){
+    g.innerHTML='<div class="chkempty">'+(chkBeheer?'Nog geen checklist. Tik op “+ Nieuwe lijst”.':'Nog geen checklist. Open 🔒 Beheer om er een toe te voegen.')+'</div>';
+    document.getElementById('chkDone').textContent='0'; document.getElementById('chkTot').textContent='0';
+    document.getElementById('chkFill').style.width='0%';
+    document.getElementById('chkAdd').parentElement.style.display='none';
+    document.querySelector('.chkacties').style.display='none';
+    return;
+  }
+  lijst.items.forEach((it,i)=>{
+    const row=document.createElement('div'); row.className='chk'+(it.done?' done':'')+(chkBeheer?' beheer':'');
+    row.dataset.idx=i;
+    const media=chkMedia(it);
+    let html='<div class="chkbox">'+(it.done?'✓':'')+'</div>';
+    if(chkBeheer) html+='<div class="chkdrag" title="Sleep om te verplaatsen">⇅</div>';
+    // media-strook (foto's/video's)
+    if(chkBeheer || media.length){
+      html+='<div class="chkmedia">';
+      media.forEach((m,mi)=>{
+        const el = m.type==='video'
+          ? '<video class="thumb ro chkm" data-mi="'+mi+'" muted playsinline preload="metadata"></video><span class="vbadge">▶</span>'
+          : '<img class="thumb ro chkm" data-mi="'+mi+'" src="'+(m.src||'')+'" alt="">';
+        html+='<div class="thumbwrap">'+el+(chkBeheer?'<button type="button" class="thumbx" data-rm="'+mi+'" title="Verwijderen">✕</button>':'')+'</div>';
+      });
+      if(chkBeheer && media.length<2){
+        html+='<button type="button" class="chkaddmedia" data-add="foto" title="Foto toevoegen">📷</button>';
+        html+='<button type="button" class="chkaddmedia" data-add="video" title="Video toevoegen">🎬</button>';
+      }
+      html+='</div>';
+    }
+    html+='<div class="chktxt">'+esc(it.text)+'</div>';
+    if(chkBeheer) html+='<button class="chkedit" title="Bewerken">✎</button><button class="chkdel" title="Verwijderen">✕</button>';
+    row.innerHTML=html;
+    const toggle=()=>{ it.done=!it.done; BBInv.saveChecklist(lijst); renderChecklisten(); };
+    row.querySelector('.chkbox').onclick=toggle;
+    // media aanklikken → vergroten (in beide modi); video's laden async uit IndexedDB
+    row.querySelectorAll('.chkm').forEach(elm=>{
+      const m=chkMedia(it)[+elm.dataset.mi];
+      elm.style.cursor='zoom-in';
+      if(m.type==='video'){
+        if(m.src){ elm.src=m.src; }
+        else if(m.id && BBInv.getChkMedia){ BBInv.getChkMedia(m.id).then(blob=>{ if(blob){ const u=URL.createObjectURL(blob); _chkThumbUrls.push(u); elm.src=u; elm._blob=blob; } }).catch(()=>{}); }
+        elm.onclick=e=>{ e.stopPropagation();
+          if(elm._blob) viewMediaVideoBlob(elm._blob);
+          else if(m.src) viewMedia({type:'video',src:m.src});
+          else if(m.id && BBInv.getChkMedia) BBInv.getChkMedia(m.id).then(b=>{ if(b) viewMediaVideoBlob(b); });
+        };
+      } else {
+        elm.onclick=e=>{ e.stopPropagation(); viewMedia(m); };
+      }
+    });
+    if(chkBeheer){
+      const bewerk=()=>{ const n=prompt('Item bewerken:',it.text); if(n===null)return; const t=n.trim(); if(!t)return; it.text=t; BBInv.saveChecklist(lijst); renderChecklisten(); };
+      row.querySelector('.chktxt').onclick=bewerk;
+      row.querySelector('.chkedit').onclick=e=>{ e.stopPropagation(); bewerk(); };
+      row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); BBInv.saveChecklist(lijst); renderChecklisten(); };
+      chkDragInit(row.querySelector('.chkdrag'), row, g, lijst);
+      // media verwijderen
+      row.querySelectorAll('.thumbx[data-rm]').forEach(btn=>{
+        btn.onclick=e=>{ e.stopPropagation(); if(!confirm('Deze media verwijderen?'))return;
+          const arr=chkMedia(it).slice(); const removed=arr.splice(+btn.dataset.rm,1)[0];
+          if(removed && removed.type==='video' && removed.id && BBInv.delChkMedia) BBInv.delChkMedia(removed.id).catch(()=>{});
+          chkSetMedia(it,arr);
+          BBInv.saveChecklist(lijst); renderChecklisten(); };
+      });
+      // foto toevoegen (klein, direct in het item), max 2
+      const addFoto=m=>{ if(!m)return; const prev=chkMedia(it).slice(); if(prev.length>=2)return;
+        chkSetMedia(it,prev.concat([m]));
+        try{ BBInv.saveChecklist(lijst); }
+        catch(err){ chkSetMedia(it,prev); alert('Onvoldoende opslagruimte voor deze foto.'); return; }
+        renderChecklisten(); };
+      row.querySelectorAll('.chkaddmedia').forEach(btn=>{
+        btn.onclick=e=>{ e.stopPropagation();
+          if(btn.dataset.add==='video'){
+            if(!BBInv.setChkMedia){ alert('Video-opslag is niet beschikbaar op dit toestel.'); return; }
+            pickVideo(file=>{
+              if(!file) return;
+              const prev=chkMedia(it).slice(); if(prev.length>=2) return;
+              const id='v'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+              BBInv.setChkMedia(id,file).then(()=>{
+                chkSetMedia(it, prev.concat([{type:'video',id,name:file.name||'video'}]));
+                BBInv.saveChecklist(lijst);
+                renderChecklisten();
+              }).catch(()=>{ alert('Kon de video niet op dit toestel opslaan (opslag vol?).'); });
+            });
+          } else {
+            chooseFoto(url=>{ if(url) addFoto({type:'foto',src:url}); });
+          }
+        };
+      });
+    } else {
+      row.querySelector('.chktxt').onclick=toggle;
+    }
+    g.appendChild(row);
+  });
+  if(!lijst.items.length) g.innerHTML='<div class="chkempty">'+(chkBeheer?'Nog geen items. Voeg er hieronder een toe.':'Nog geen items in deze lijst.')+'</div>';
+  const done=lijst.items.filter(x=>x.done).length, tot=lijst.items.length;
+  document.getElementById('chkDone').textContent=done; document.getElementById('chkTot').textContent=tot;
+  document.getElementById('chkFill').style.width=(tot?done/tot*100:0)+'%';
+  // Beheer-elementen tonen/verbergen
+  document.getElementById('chkAdd').parentElement.style.display=chkBeheer?'':'none';
+  document.querySelector('.chkacties').style.display=chkBeheer?'':'none';
+}
+document.getElementById('chkBeheerBtn').onclick=()=>{
+  if(chkBeheer){ chkBeheer=false; renderChecklisten(); return; }
+  if(!magBeheren()) return;
+  chkBeheer=true; renderChecklisten();
+};
+document.getElementById('chkAdd').onclick=()=>{
+  const inp=document.getElementById('chkNew'); const v=inp.value.trim(); if(!v)return;
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  lijst.items.push({text:v,done:false}); inp.value=''; BBInv.saveChecklist(lijst); renderChecklisten();
+};
+document.getElementById('chkNew').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('chkAdd').click(); });
+document.getElementById('chkReset').onclick=()=>{
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  lijst.items.forEach(x=>x.done=false); BBInv.saveChecklist(lijst); renderChecklisten();
+};
+document.getElementById('chkRename').onclick=()=>{
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  const n=prompt('Nieuwe naam voor deze lijst:',lijst.naam); if(n===null)return; const naam=n.trim(); if(!naam)return;
+  lijst.naam=naam; BBInv.saveChecklist(lijst); renderChecklisten();
+};
+document.getElementById('chkDelList').onclick=()=>{
+  const lijst=chkActieveLijst(); if(!lijst)return;
+  if(!confirm('De checklist "'+lijst.naam+'" volledig verwijderen?'))return;
+  BBInv.removeChecklist(lijst.id); chkActief=null; renderChecklisten();
+};
+
+// ---- opstarten ----
+window.bbStart=()=>{ chkBeheer=false; renderChecklisten(); };
+window.bbOnChange=()=>{ renderChecklisten(); };
+</script>
+</body>
+</html>

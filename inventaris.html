@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventaris · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Inventaris</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="view paginainhoud" id="inventaris">
+    <p class="hint">Beheer hier je voorraad. Het formulier in Bazar Bizarre boekt automatisch af; hier registreer je leveringen, voeg je artikelen toe en bekijk je de inzendingen.</p>
+    <div class="invtabs">
+      <button class="invtab active" data-tab="stock">Stock</button>
+      <button class="invtab" data-tab="boekjes">Boekjes</button>
+      <button class="invtab" data-tab="formulieren">Formulieren</button>
+      <button class="invtab" data-tab="leveringen">Leveringen</button>
+      <button class="invtab" data-tab="beheer">🔒 Beheer</button>
+    </div>
+
+    <!-- STOCK (overzicht, alleen-lezen) -->
+    <div class="invpane active" id="pane-stock">
+      <p class="hint" style="margin:0 2px 12px;">Actuele voorraad. Verandert automatisch door leveringen en doorgestuurde formulieren. Aanpassen doe je onder <b>🔒 Beheer</b>.</p>
+      <div class="invsum" id="invSum"></div>
+      <input type="text" id="invZoek" class="finp zoek" placeholder="Zoek een prijs…">
+      <div class="invfilter">
+        <button class="chip active" data-cat="all">Alle</button>
+        <button class="chip" data-cat="klein">Kleine</button>
+        <button class="chip" data-cat="groot">Grote</button>
+        <button class="usefilter" id="invUseFilter">★ Alleen 'in gebruik'</button>
+      </div>
+      <div class="invlist" id="invList"></div>
+    </div>
+
+    <!-- BOEKJES (saldo + historiek) -->
+    <div class="invpane" id="pane-boekjes">
+      <p class="hint" style="margin:0 2px 12px;">Saldo en historiek van de boekjes. De voorraad past zich automatisch aan door leveringen (+) en doorgestuurde formulieren (−).</p>
+      <div class="statgrid" id="boekjesGrid"></div>
+      <p class="hint" style="margin:10px 2px 2px;">Startvoorraad + geleverd − uitgedeeld. Handmatige aanpassingen onder Beheer kunnen het saldo beïnvloeden.</p>
+      <div class="h" style="margin:16px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Historiek</div>
+      <div id="boekjesHist"></div>
+    </div>
+
+    <!-- BEHEER (wachtwoord) -->
+    <div class="invpane" id="pane-beheer">
+      <div class="beheertop">
+        <div class="field gezondheid">
+          <div class="h">Voorraad-gezondheid</div>
+          <div class="statgrid" id="statGrid"></div>
+          <div class="statlist" id="statTop"></div>
+        </div>
+        <div class="field">
+          <div class="h">Voorraad-waarschuwingen</div>
+          <label for="setDrempel">🔴 Bijna op — waarschuw op of onder dit aantal</label>
+          <input type="number" id="setDrempel" min="0" value="16" style="max-width:120px">
+          <label for="setDrempel2">🟠 Aandacht — waarschuw op of onder dit aantal</label>
+          <input type="number" id="setDrempel2" min="0" value="24" style="max-width:120px">
+          <label for="setDrempelBk">📕 Boekjes — waarschuw op of onder dit aantal</label>
+          <input type="number" id="setDrempelBk" min="0" value="500" style="max-width:120px">
+          <div class="row"><button class="btn primary" id="saveLowstock">Opslaan</button></div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="h">Nieuwe levering registreren</div>
+        <label for="levDatum">Datum</label>
+        <input type="date" id="levDatum" class="finp">
+        <label for="levBoekjes">Boekjes geleverd (komt bij de boekjes-voorraad)</label>
+        <input type="number" id="levBoekjes" class="finp" min="0" value="0">
+        <label for="levTekst">Notitie / opmerking (optioneel)</label>
+        <input type="text" id="levTekst" class="finp" placeholder="bv. 8 dozen nieuwe prijzen">
+        <div class="row" style="margin-top:10px;align-items:center;">
+          <button class="btn" id="levFotoBtn">📷 Foto</button>
+          <img id="levFotoPrev" class="thumb" alt="" style="display:none">
+          <button class="btn primary" id="levAdd">Levering toevoegen</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Prijs toevoegen</div>
+        <div class="addrow">
+          <select id="invNewCat">
+            <option value="klein">Kleine prijs</option>
+            <option value="groot">Grote prijs</option>
+          </select>
+          <input type="text" id="invNewNaam" class="nm" placeholder="Naam nieuwe prijs">
+          <input type="number" id="invNewStock" style="width:90px" placeholder="aantal" value="0">
+          <button class="btn" id="invAddFoto">📷 Foto</button>
+          <img id="invAddFotoPrev" class="thumb" alt="" style="display:none">
+          <button class="btn primary" id="invAdd">Toevoegen</button>
+        </div>
+      </div>
+      <div class="h" style="margin:28px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Prijzen &amp; hoeveelheden</div>
+      <input type="text" id="beheerZoek" class="finp zoek" placeholder="Zoek een prijs om te bewerken…">
+      <div class="invfilter">
+        <button class="chip" id="beheerUseFilter">★ Alleen 'in gebruik'</button>
+        <button class="bchip active" data-bcat="all">Alle</button>
+        <button class="bchip" data-bcat="klein">Kleine</button>
+        <button class="bchip" data-bcat="groot">Grote</button>
+      </div>
+      <div class="invlist" id="beheerList"></div>
+
+      <div class="field">
+        <div class="h">Exporteren</div>
+        <p class="hint" style="margin:0 0 10px;">Bewaar als bestand of kopieer rechtstreeks naar Google Sheets / Excel.</p>
+        <div class="row">
+          <button class="btn primary" id="expStockCsv">⬇ Stock (CSV)</button>
+          <button class="btn" id="copyStock">📋 Stock kopiëren</button>
+          <button class="btn" id="expFormCsv">⬇ Formulieren (CSV)</button>
+          <button class="btn" id="expLevCsv">⬇ Leveringen (CSV)</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="h">Afdrukken</div>
+        <p class="hint" style="margin:0 0 10px;">Een nette lijst om mee te nemen naar de opslag.</p>
+        <div class="row">
+          <button class="btn" id="printInv">🖨️ Inventaris afdrukken</button>
+          <button class="btn" id="printBestel">🖨️ Bestellijst (laag in voorraad)</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="h">Importeren (stock)</div>
+        <p class="hint" style="margin:0 0 10px;">CSV met kolommen <b>Categorie, Naam, Stock</b>. Bestaande prijzen worden bijgewerkt op naam; nieuwe worden toegevoegd.</p>
+        <input type="file" id="impFile" accept=".csv,text/csv">
+      </div>
+      <div class="field">
+        <div class="h">Alles terugzetten</div>
+        <p class="hint" style="margin:0 0 10px;">Zet de volledige inventaris terug naar de oorspronkelijke Excel-lijst. Stock en eigen toevoegingen gaan verloren.</p>
+        <div class="row"><button class="btn" id="invReset">Inventaris herstellen naar startlijst</button></div>
+      </div>
+    </div>
+
+    <!-- FORMULIEREN -->
+    <div class="invpane" id="pane-formulieren">
+      <p class="hint"><b id="formCount">0</b> doorgestuurde formulieren vanuit Bazar Bizarre.</p>
+      <div id="formList"></div>
+    </div>
+
+    <!-- LEVERINGEN (overzicht) -->
+    <div class="invpane" id="pane-leveringen">
+      <p class="hint">Overzicht van alle geregistreerde leveringen (datum, boekjes en notitie). Een nieuwe levering registreer je onder 🔒 Beheer.</p>
+      <div id="levList"></div>
+    </div>
+
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+// ================= INVENTARIS BEHEER =================
+let invCat='all';
+
+// tabs (Beheer is met wachtwoord beveiligd zodat niet iedereen kan wijzigen)
+// eisBeheer() staat in kern.js: het onthoudt de toegang voor dit tabblad, dus je
+// hoeft het wachtwoord niet opnieuw in te tikken als je van pagina wisselt.
+document.querySelectorAll('.invtab').forEach(b=>{
+  b.onclick=()=>{
+    const t=b.dataset.tab;
+    if(t==='beheer' && !eisBeheer('de inventaris te beheren')) return;
+    document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('pane-'+t).classList.add('active');
+    if(t==='stock'){renderInvSum();renderInvStock();}
+    else if(t==='boekjes') renderBoekjes();
+    else if(t==='formulieren') renderFormulieren();
+    else if(t==='leveringen') renderLeveringen();
+    else if(t==='beheer') renderBeheer();
+  };
+});
+// filters + zoek
+document.querySelectorAll('.chip').forEach(c=>{
+  c.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');invCat=c.dataset.cat;renderInvStock();};
+});
+document.getElementById('invZoek').oninput=renderInvStock;
+document.getElementById('beheerZoek').oninput=renderBeheerList;
+// Stock-filter "Alleen in gebruik" (zelfde als in Beheer) — onafhankelijke toggle.
+let invOnlyUse=false;
+document.getElementById('invUseFilter').onclick=function(){
+  invOnlyUse=!invOnlyUse; this.classList.toggle('active',invOnlyUse); renderInvStock();
+};
+
+function renderInventaris(){ renderInvSum(); renderInvStock(); renderFormulieren(); }
+
+function renderInvSum(){
+  const pr=BBInv.getPrijzen(), bk=BBInv.getBoekjes();
+  const k=pr.filter(p=>p.cat==='klein').length, g=pr.filter(p=>p.cat==='groot').length;
+  const pill=(l,v,neg)=>'<span class="pill'+(neg?' neg':'')+'">'+l+': <b>'+v+'</b></span>';
+  document.getElementById('invSum').innerHTML=
+    pill('Boekjes',(bk.stock||0),(bk.stock||0)<0)+pill('Kleine prijzen',k+' soorten')+pill('Grote prijzen',g+' soorten');
+}
+
+function prijsRow(p){
+  const row=document.createElement('div'); row.className='invrow';
+  row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
+    '<button type="button" class="use'+(p.inGebruik?' on':'')+'" title="Tellen voor de lage-voorraad melding?">'+(p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik')+'</button>'+
+    '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(p.stock||0)+'"><button type="button" class="pl">+</button></div>'+
+    '<button type="button" class="del" title="Verwijderen">✕</button>';
+  // foto-thumbnail vooraan
+  const tw=document.createElement('div'); tw.className='thumbwrap';
+  tw.innerHTML=p.foto?('<img class="thumb" src="'+p.foto+'" alt=""><button type="button" class="thumbx" title="Foto verwijderen">✕</button>'):'<div class="thumb ph">📷</div>';
+  tw.querySelector('.thumb').onclick=()=>chooseFoto(url=>{
+    if(!url) return;
+    BBInv.setFoto(p.id,url);
+    renderBeheerList();
+  });
+  if(p.foto) tw.querySelector('.thumbx').onclick=e=>{e.stopPropagation();if(confirm('Foto verwijderen?')){BBInv.setFoto(p.id,'');renderBeheerList();}};
+  row.prepend(tw);
+  const inp=row.querySelector('.stk input');
+  const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
+    BBInv.setStock(p.id,v);inp.value=v;inp.classList.toggle('neg',v<0);
+    const ub=row.querySelector('.use');if(ub){ub.classList.toggle('on',!!p.inGebruik);ub.textContent=p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik';}
+    renderInvSum();renderStats();};
+  row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
+  row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
+  inp.onchange=()=>commit(+inp.value||0);
+  inp.classList.toggle('neg',(p.stock||0)<0);
+  const useBtn=row.querySelector('.use');
+  useBtn.onclick=()=>{
+    p.inGebruik=!p.inGebruik;
+    BBInv.setGebruik(p.id,p.inGebruik);
+    useBtn.classList.toggle('on',p.inGebruik);
+    useBtn.textContent=p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik';
+    if(beheerOnlyUse) renderBeheerList();
+    renderStats();
+  };
+  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();renderStats();}};
+  return row;
+}
+function boekjesRow(){
+  const bk=BBInv.getBoekjes();
+  const row=document.createElement('div'); row.className='invrow span';
+  row.innerHTML='<div class="nm"><div class="t">Boekjes</div><div class="c">voorraad</div></div>'+
+    '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(bk.stock||0)+'"><button type="button" class="pl">+</button></div>'+
+    '<span style="width:36px;flex:0 0 auto;"></span>';
+  const inp=row.querySelector('input');
+  const commit=v=>{v=Math.round(v||0);const o=BBInv.getBoekjes();o.stock=v;BBInv.setBoekjes(o);inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
+  row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
+  row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
+  inp.onchange=()=>commit(+inp.value||0);
+  inp.classList.toggle('neg',(bk.stock||0)<0);
+  return row;
+}
+// STOCK-overzicht (alleen-lezen, toont de actuele gesynchroniseerde voorraad)
+function stockRow(p){
+  const row=document.createElement('div'); row.className='invrow';
+  row.innerHTML=(p.foto?'<img class="thumb ro" src="'+p.foto+'" alt="">':'<div class="thumb ph ro">📷</div>')+
+    '<div class="nm"><div class="t">'+esc(p.naam)+'</div><div class="c">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+'</div></div>'+
+    '<span class="usetag'+(p.inGebruik?'':' off')+'" title="Telt mee voor de lage-voorraad melding?">'+(p.inGebruik?'✓ In gebruik':'✗ Niet in gebruik')+'</span>'+
+    '<div class="stocknum'+((p.stock||0)<0?' neg':'')+'">'+(p.stock||0)+'</div>';
+  if(p.foto){const t=row.querySelector('.thumb'); if(t){t.style.cursor='zoom-in'; t.onclick=()=>viewFoto(p.foto);}}
+  return row;
+}
+function boekjesStockRow(){
+  const bk=BBInv.getBoekjes();
+  const row=document.createElement('div'); row.className='invrow span';
+  row.innerHTML='<div class="thumb ph ro">📕</div><div class="nm"><div class="t">Boekjes</div><div class="c">voorraad</div></div>'+
+    '<div class="stocknum'+((bk.stock||0)<0?' neg':'')+'">'+(bk.stock||0)+'</div>';
+  return row;
+}
+function summaryRow(naam,sub,total,emoji){
+  const row=document.createElement('div'); row.className='invrow sumrow';
+  row.innerHTML='<div class="thumb ph ro">'+emoji+'</div><div class="nm"><div class="t">'+naam+'</div><div class="c">'+sub+'</div></div>'+
+    '<div class="stocknum'+(total<0?' neg':'')+'">'+total+'</div>';
+  return row;
+}
+function renderInvStock(){
+  const list=document.getElementById('invList'); list.innerHTML='';
+  const q=(document.getElementById('invZoek').value||'').toLowerCase().trim();
+  const all=BBInv.getPrijzen();
+  let pr=all.slice();
+  if(invCat!=='all') pr=pr.filter(p=>p.cat===invCat);
+  if(invOnlyUse) pr=pr.filter(p=>p.inGebruik);
+  if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
+  if(invCat==='all'&&!q&&!invOnlyUse){
+    const kl=all.filter(p=>p.cat==='klein'), gr=all.filter(p=>p.cat==='groot');
+    const sum=a=>a.reduce((s,p)=>s+(p.stock||0),0);
+    list.appendChild(summaryRow('Boekjes','voorraad',BBInv.getBoekjes().stock||0,'📕'));
+    list.appendChild(summaryRow('Kleine prijzen',kl.length+' soorten',sum(kl),'🎁'));
+    list.appendChild(summaryRow('Grote prijzen',gr.length+' soorten',sum(gr),'🏆'));
+    const div=document.createElement('div'); div.className='invdiv'; list.appendChild(div);
+  }
+  pr.sort((a,b)=>a.naam.localeCompare(b.naam));
+  pr.forEach(p=>list.appendChild(stockRow(p)));
+  if(!pr.length&&!(invCat==='all'&&!q&&!invOnlyUse)) list.innerHTML='<div class="empty-note">'+(invOnlyUse?'Geen prijzen "in gebruik" gevonden.':'Geen prijzen gevonden.')+'</div>';
+}
+// BOEKJES (saldo + historiek)
+function renderBoekjes(){
+  const bk=BBInv.getBoekjes(), levs=BBInv.getLeveringen(), forms=BBInv.getFormulieren();
+  const neg=(bk.stock||0)<0;
+  document.getElementById('boekjesGrid').innerHTML=
+    '<div class="statcard'+(neg?' neg':'')+'"><div class="v">'+(bk.stock||0)+'</div><div class="l">Huidige voorraad</div></div>';
+  const ev=[];
+  levs.forEach(l=>{ if(+l.boekjes) ev.push({ts:l.ts,datum:l.datum,type:'in',n:+l.boekjes,txt:l.tekst||''}); });
+  forms.forEach(f=>{const b=f.boekjes||{};const u=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0); if(u) ev.push({ts:f.ts,type:'uit',n:u,txt:f.namen||''}); });
+  ev.sort((a,b)=>b.ts-a.ts);
+  const wrap=document.getElementById('boekjesHist'); wrap.innerHTML='';
+  if(!ev.length){wrap.innerHTML='<p class="hint">Nog geen boekjes-beweging.</p>';return;}
+  ev.forEach(e=>{
+    const d=document.createElement('div'); d.className='subrec';
+    const sign=e.type==='in'?'+':'−', col=e.type==='in'?'var(--leaf)':'#c0392b';
+    d.innerHTML='<div class="pr"><b style="color:'+col+';font-size:16px;">'+sign+e.n+'</b> boekjes '+(e.type==='in'?'geleverd':'uitgedeeld')+(e.txt?(' · '+esc(e.txt)):'')+'</div>'+
+      '<div class="meta">'+(e.datum?esc(e.datum):bbFmtTs(e.ts))+'</div>';
+    wrap.appendChild(d);
+  });
+}
+
+// BEHEER (bewerkbaar)
+function renderBeheer(){
+  renderStats(); renderLeveringen(); renderBeheerList();
+  document.getElementById('setDrempel').value=getDrempel();
+  document.getElementById('setDrempel2').value=getDrempel2();
+  document.getElementById('setDrempelBk').value=getDrempelBoekjes();
+}
+
+// ---- Statistiek ----
+// Voorraad-gezondheid: enkel prijzen die 'in gebruik' zijn, in disjuncte groepen.
+function renderStats(){
+  const pr=BBInv.getPrijzen().filter(p=>p.inGebruik);
+  const dK=getDrempel(), dA=getDrempel2();
+  // Status op basis van het TOTAAL aantal stuks (niet per prijs).
+  let totaal=0,uitverkocht=0,totK=0,totG=0;
+  pr.forEach(p=>{const s=p.stock||0; if(s>0){ totaal+=s; if(p.cat==='groot')totG+=s; else totK+=s; } else uitverkocht++;});
+  const bk=BBInv.getBoekjes().stock||0, dBk=getDrempelBoekjes();
+  const stat=(v,lo,hi)=> v<=lo?{c:'red',t:'🔴 Bijna op'}:(v<=hi?{c:'orange',t:'🟠 Aandacht'}:{c:'green',t:'🟢 Goed op voorraad'});
+  const ps=stat(totaal,dK,dA);
+  const bs=bk<=dBk?{c:'red',t:'🔴 Bijna op'}:{c:'green',t:'🟢 Goed op voorraad'};
+  // laatste levering
+  const levs=BBInv.getLeveringen();
+  const last=levs.length?levs.slice().sort((a,b)=>b.ts-a.ts)[0]:null;
+  let levVal='—', levLbl='Laatste levering — nog geen';
+  if(last){
+    let d=last.datum||'';
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d)){const p=d.split('-');d=p[2]+'/'+p[1];}
+    else{const dd=new Date(last.ts);d=String(dd.getDate()).padStart(2,'0')+'/'+String(dd.getMonth()+1).padStart(2,'0');}
+    levVal=d;
+    const parts=[]; if(last.boekjes)parts.push(last.boekjes+' boekjes'); if(last.tekst)parts.push(last.tekst);
+    levLbl='Laatste levering'+(parts.length?(' · '+parts.join(' · ')):'');
+  }
+  const card=(v,l,cls)=>'<div class="statcard'+(cls?' '+cls:'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
+  document.getElementById('statGrid').innerHTML=
+    card(totaal,'Prijzen op voorraad · '+ps.t,ps.c)+
+    card(totK,'Kleine prijzen op voorraad')+
+    card(totG,'Grote prijzen op voorraad')+
+    card(bk,'Boekjes op voorraad · '+bs.t,bs.c)+
+    card(levVal,levLbl);
+  const el=document.getElementById('statTop'); if(el) el.innerHTML='';
+}
+let beheerOnlyUse=false;
+let beheerCat='all';
+function renderBeheerList(){
+  const list=document.getElementById('beheerList'); list.innerHTML='';
+  const q=(document.getElementById('beheerZoek').value||'').toLowerCase().trim();
+  if(!q&&!beheerOnlyUse&&beheerCat==='all') list.appendChild(boekjesRow());
+  let pr=BBInv.getPrijzen();
+  if(beheerCat!=='all') pr=pr.filter(p=>p.cat===beheerCat);
+  if(beheerOnlyUse) pr=pr.filter(p=>p.inGebruik);
+  if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
+  pr.sort((a,b)=>a.naam.localeCompare(b.naam));
+  pr.forEach(p=>list.appendChild(prijsRow(p)));
+  if(!pr.length&&(q||beheerOnlyUse||beheerCat!=='all')) list.innerHTML='<div class="empty-note">'+(beheerOnlyUse?'Nog geen prijzen als ‘in gebruik’ aangeduid. Tik bij een prijs op “In gebruik”.':'Geen prijzen gevonden.')+'</div>';
+}
+document.getElementById('beheerUseFilter').onclick=function(){
+  beheerOnlyUse=!beheerOnlyUse;
+  this.classList.toggle('active',beheerOnlyUse);
+  renderBeheerList();
+};
+document.querySelectorAll('.bchip').forEach(c=>{
+  c.onclick=()=>{document.querySelectorAll('.bchip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');beheerCat=c.dataset.bcat;renderBeheerList();};
+});
+let invAddFoto='';
+document.getElementById('invAddFoto').onclick=()=>chooseFoto(url=>{
+  if(!url) return;
+  invAddFoto=url;
+  const prev=document.getElementById('invAddFotoPrev'); prev.src=url; prev.style.display='block';
+});
+document.getElementById('invAdd').onclick=()=>{
+  const naam=document.getElementById('invNewNaam').value.trim();
+  const cat=document.getElementById('invNewCat').value;
+  const stock=+document.getElementById('invNewStock').value||0;
+  if(!naam){alert('Geef eerst een naam in.');return;}
+  const rec=BBInv.addPrijs(cat,naam,stock,invAddFoto);
+  if(rec===null){alert('Onvoldoende opslagruimte om (de foto van) deze prijs te bewaren. Gebruik kleinere of minder foto’s.');return;}
+  document.getElementById('invNewNaam').value=''; document.getElementById('invNewStock').value='0';
+  invAddFoto=''; const prev=document.getElementById('invAddFotoPrev'); prev.src=''; prev.style.display='none';
+  renderBeheerList(); renderInvSum(); renderStats();
+};
+
+// ---- Leveringen ----
+let levFoto='';
+document.getElementById('levFotoBtn').onclick=()=>chooseFoto(url=>{ levFoto=url||''; const p=document.getElementById('levFotoPrev'); if(p){p.src=levFoto;p.style.display=levFoto?'':'none';} });
+document.getElementById('levAdd').onclick=()=>{
+  const datum=document.getElementById('levDatum').value;
+  const boekjes=+document.getElementById('levBoekjes').value||0;
+  const tekst=document.getElementById('levTekst').value.trim();
+  if(!boekjes&&!tekst&&!levFoto){alert('Vul minstens boekjes, een notitie of een foto in.');return;}
+  BBInv.addLevering({datum,boekjes,tekst,foto:levFoto});
+  document.getElementById('levBoekjes').value='0';
+  document.getElementById('levTekst').value='';
+  levFoto=''; const p=document.getElementById('levFotoPrev'); if(p){p.src='';p.style.display='none';}
+  renderInvSum();renderStats();renderLeveringen();
+  alert('Levering geregistreerd.');
+};
+function renderLeveringen(){
+  const wrap=document.getElementById('levList'); if(!wrap) return; // lijst niet meer zichtbaar in Beheer
+  const levs=BBInv.getLeveringen().slice().sort((a,b)=>b.ts-a.ts);
+  wrap.innerHTML='';
+  if(!levs.length){wrap.innerHTML='<p class="hint">Nog geen leveringen geregistreerd.</p>';return;}
+  levs.forEach(l=>{
+    const d=document.createElement('div'); d.className='subrec';
+    const parts=[];
+    if(l.boekjes) parts.push('<b>'+l.boekjes+'</b> boekjes');
+    if(l.prijsNaam&&l.prijsAantal) parts.push('<b>'+l.prijsAantal+'</b>× '+esc(l.prijsNaam));
+    if(l.tekst) parts.push(esc(l.tekst));
+    const fotoHtml=l.foto?'<img class="thumb ro" src="'+l.foto+'" alt="" style="float:right;margin-left:10px;cursor:zoom-in">':'';
+    d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
+      '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
+    if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
+    d.querySelector('.rm').onclick=()=>{if(!eisBeheer('de levering te verwijderen'))return;if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
+    wrap.appendChild(d);
+  });
+}
+
+// ---- Formulieren ----
+function renderFormulieren(){
+  const forms=BBInv.getFormulieren().slice().sort((a,b)=>b.ts-a.ts);
+  document.getElementById('formCount').textContent=forms.length;
+  const wrap=document.getElementById('formList'); wrap.innerHTML='';
+  if(!forms.length){wrap.innerHTML='<p class="hint">Nog geen formulieren. Sluit een spel af in Bazar Bizarre en stuur het door.</p>';return;}
+  forms.forEach(f=>{
+    const pl=arr=>(arr||[]).map(x=>esc(x.naam)+(x.n>1?(' ×'+x.n):'')).join(', ')||'—';
+    const aantal=arr=>(arr||[]).reduce((s,x)=>s+(+x.n||1),0);
+    const b=f.boekjes||{};
+    const nK=aantal(f.kleine), nG=aantal(f.groot);
+    const bkTot=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
+    const d=document.createElement('div'); d.className='subrec';
+    d.innerHTML='<h4>'+(f.namen?esc(f.namen):'Zonder naam')+'</h4>'+
+      '<div class="meta">'+bbFmtTs(f.ts)+'</div>'+
+      '<div class="chips">'+
+        '<span class="fc">🎁 '+nK+' kleine</span>'+
+        '<span class="fc">🏆 '+nG+' grote</span>'+
+        '<span class="fc bk">📕 '+bkTot+' boekjes</span>'+
+      '</div>'+
+      '<div class="blk"><span class="bl">Kleine prijzen</span><span>'+pl(f.kleine)+'</span></div>'+
+      '<div class="blk"><span class="bl">Grote prijzen</span><span>'+pl(f.groot)+'</span></div>'+
+      '<div class="blk"><span class="bl">Boekjes</span><span><b>'+bkTot+'</b> totaal — '+(b.gereserveerd||0)+' gereserveerd · '+(b.extra||0)+' extra · '+(b.gratis||0)+' gratis</span></div>'+
+      (f.finale?('<div class="blk"><span class="bl">Finale</span><span>'+esc(f.finale)+'</span></div>'):'')+
+      (f.opmerking?('<div class="blk"><span class="bl">Opmerking</span><span>'+esc(f.opmerking)+'</span></div>'):'')+
+      '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
+    d.querySelector('.rm').onclick=()=>{if(!eisBeheer('het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
+    wrap.appendChild(d);
+  });
+}
+
+function stockRows(){
+  const rows=[['Categorie','Naam','Stock']];
+  const bk=BBInv.getBoekjes(); rows.push(['Boekjes','Boekjes',bk.stock||0]);
+  BBInv.getPrijzen().slice().sort((a,b)=>a.cat.localeCompare(b.cat)||a.naam.localeCompare(b.naam))
+    .forEach(p=>rows.push([p.cat==='groot'?'Grote prijs':'Kleine prijs',p.naam,p.stock||0]));
+  return rows;
+}
+function formRows(){
+  const rows=[['Datum','Namen','Kleine prijzen','Grote prijzen','Boekjes gereserveerd','Extra verkocht','Gratis (3+1)','Finale','Opmerking']];
+  const pl=arr=>(arr||[]).map(x=>x.naam+(x.n>1?(' x'+x.n):'')).join('; ');
+  BBInv.getFormulieren().slice().sort((a,b)=>a.ts-b.ts).forEach(f=>{const b=f.boekjes||{};
+    rows.push([bbFmtTs(f.ts),f.namen||'',pl(f.kleine),pl(f.groot),b.gereserveerd||0,b.extra||0,b.gratis||0,f.finale||'',f.opmerking||'']);});
+  return rows;
+}
+function levRows(){
+  const rows=[['Datum','Boekjes','Prijs','Aantal','Notitie']];
+  BBInv.getLeveringen().slice().sort((a,b)=>a.ts-b.ts).forEach(l=>rows.push([l.datum||bbFmtTs(l.ts),l.boekjes||0,l.prijsNaam||'',l.prijsAantal||0,l.tekst||'']));
+  return rows;
+}
+document.getElementById('expStockCsv').onclick=()=>dl('inventaris-stock.csv',rowsToCSV(stockRows()));
+document.getElementById('copyStock').onclick=()=>copyText(rowsToTSV(stockRows()));
+document.getElementById('expFormCsv').onclick=()=>{if(BBInv.getFormulieren().length)dl('formulieren.csv',rowsToCSV(formRows()));else alert('Nog geen formulieren.');};
+document.getElementById('expLevCsv').onclick=()=>{if(BBInv.getLeveringen().length)dl('leveringen.csv',rowsToCSV(levRows()));else alert('Nog geen leveringen.');};
+
+// ---- Afdrukken (#8) — staat in inventaris.js (extern, parse-veilig) ----
+document.getElementById('printInv').onclick=()=>BBInv.printInventaris();
+document.getElementById('printBestel').onclick=()=>BBInv.printBestellijst();
+
+function parseCSV(text){
+  text=text.replace(/^﻿/,'');
+  const firstLine=(text.split(/\r?\n/)[0]||'');
+  const delim=(firstLine.split(';').length>firstLine.split(',').length)?';':',';
+  const rows=[];let row=[],cell='',inQ=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(inQ){ if(ch==='"'){ if(text[i+1]==='"'){cell+='"';i++;}else inQ=false; } else cell+=ch; }
+    else{ if(ch==='"')inQ=true; else if(ch===delim){row.push(cell);cell='';}
+      else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell='';}
+      else if(ch==='\r'){} else cell+=ch; } }
+  if(cell.length||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+document.getElementById('impFile').onchange=e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const rows=parseCSV(String(reader.result)).filter(r=>r.some(c=>String(c).trim()!==''));
+      if(rows.length<2){alert('Geen rijen gevonden in het bestand.');return;}
+      const head=rows[0].map(h=>h.toLowerCase().trim());
+      const iCat=head.findIndex(h=>h.startsWith('categ')), iNaam=head.findIndex(h=>h.startsWith('naam')), iStock=head.findIndex(h=>h.startsWith('stock'));
+      if(iNaam<0||iStock<0){alert('Kolommen "Naam" en "Stock" niet gevonden in de eerste rij.');return;}
+      const pr=BBInv.getPrijzen(); const byNaam={}; pr.forEach(p=>byNaam[p.naam.toLowerCase()]=p);
+      let upd=0,add=0,bk=0;
+      rows.slice(1).forEach(r=>{
+        const naam=(r[iNaam]||'').trim(); if(!naam)return;
+        const stock=Math.round(parseFloat(String(r[iStock]).replace(',','.'))||0);
+        const cat=((iCat>=0?r[iCat]:'')||'').toLowerCase();
+        if(naam.toLowerCase()==='boekjes'){const o=BBInv.getBoekjes();o.stock=stock;BBInv.setBoekjes(o);bk++;return;}
+        const ex=byNaam[naam.toLowerCase()];
+        if(ex){ex.stock=stock;upd++;}
+        else{const c=cat.indexOf('groot')>=0?'groot':'klein';const rec=BBInv.addPrijs(c,naam,stock);byNaam[naam.toLowerCase()]=rec;add++;}
+      });
+      BBInv.setPrijzen(pr);
+      renderInventaris();
+      alert('Import klaar: '+upd+' bijgewerkt, '+add+' toegevoegd'+(bk?', boekjes bijgewerkt':'')+'.');
+    }catch(err){alert('Kon het bestand niet inlezen: '+err.message);}
+    document.getElementById('impFile').value='';
+  };
+  reader.readAsText(file);
+};
+document.getElementById('invReset').onclick=()=>{
+  if(!confirm('De volledige inventaris terugzetten naar de oorspronkelijke Excel-lijst?\nAlle stock-aanpassingen en eigen toevoegingen gaan verloren. (Formulieren en leveringen blijven staan.)'))return;
+  BBInv.resetInventaris().then(()=>{ renderInventaris(); alert('Inventaris hersteld naar de startlijst.'); });
+};
+
+// ---- Voorraad-waarschuwingen (drempels) ----
+// Deze staan onder 🔒 Beheer, dus horen bij deze pagina. De homepagina leest
+// dezelfde waarden om haar rode/oranje melding te tonen.
+document.getElementById('saveLowstock').onclick=()=>{
+  const d=parseInt(document.getElementById('setDrempel').value,10);
+  const d2=parseInt(document.getElementById('setDrempel2').value,10);
+  const dbk=parseInt(document.getElementById('setDrempelBk').value,10);
+  localStorage.setItem(K_DREMPEL,isNaN(d)||d<0?DEFAULT_DREMPEL:d);
+  localStorage.setItem(K_DREMPEL2,isNaN(d2)||d2<0?DEFAULT_DREMPEL2:d2);
+  localStorage.setItem(K_DREMPEL_BK,isNaN(dbk)||dbk<0?DEFAULT_DREMPEL_BK:dbk);
+  pushConfig(); renderStats();
+  alert('Opgeslagen. De waarschuwingen op de homepagina zijn bijgewerkt.');
+};
+
+// ---- opstarten ----
+window.bbStart=()=>{ renderInventaris(); };
+window.bbOnChange=()=>{
+  if(document.getElementById('pane-stock').classList.contains('active')){renderInvSum();renderInvStock();}
+  if(document.getElementById('pane-boekjes').classList.contains('active')) renderBoekjes();
+  if(document.getElementById('pane-formulieren').classList.contains('active')) renderFormulieren();
+  if(document.getElementById('pane-leveringen').classList.contains('active')) renderLeveringen();
+  if(document.getElementById('pane-beheer').classList.contains('active')) renderStats();
+};
+</script>
+</body>
+</html>

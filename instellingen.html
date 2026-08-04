@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instellingen · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Instellingen</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <p class="hint" id="wachtNote">Even geduld — deze pagina is beveiligd met het beheer-wachtwoord.</p>
+  <div class="view paginainhoud" id="instellingen" style="display:none">
+    <p class="hint">Wijzig hier de mededeling op de homepagina. Alles wordt automatisch op dit toestel bewaard.</p>
+    <div class="settings">
+      <div class="field breed">
+        <div class="h">Mededeling op de homepagina</div>
+        <label for="setMededeling">Eén mededeling per regel. Staan er meerdere, dan wisselen ze op de homepagina elke 4 seconden af.</label>
+        <textarea id="setMededeling" placeholder="Typ hier een mededeling&#10;Elke nieuwe regel is een aparte mededeling"></textarea>
+        <div class="row">
+          <button class="btn primary" id="saveMededeling">Mededeling opslaan</button>
+          <button class="btn clear" id="clearMededeling">Mededeling wissen</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Projecten — wie mag wat?</div>
+        <label for="setProjMaken">Een project aanmaken, bewerken, archiveren of verwijderen</label>
+        <select id="setProjMaken" class="finp" style="max-width:320px">
+          <option value="vast">Enkel vaste medewerkers</option>
+          <option value="iedereen">Iedereen die ingelogd is</option>
+          <option value="beheer">Enkel met het beheer-wachtwoord</option>
+        </select>
+        <label for="setProjBewerken" style="margin-top:12px">In een project werken: taken maken, verslepen en afvinken</label>
+        <select id="setProjBewerken" class="finp" style="max-width:320px">
+          <option value="iedereen">Iedereen die ingelogd is</option>
+          <option value="vast">Enkel vaste medewerkers</option>
+        </select>
+        <div class="row">
+          <button class="btn primary" id="saveProjRechten">Opslaan</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Gebruikers (inloggen)</div>
+        <label>Beheer wie kan inloggen: voeg collega's toe, geef ze een pincode of reset een vergeten code.
+          Met <b>Admin</b> geef je iemand toegang tot Systeem en Activiteit; met <b>Vaste mdw</b> tot alle beheerschermen zonder wachtwoord.</label>
+        <div class="row">
+          <button class="btn" id="openGebruikers">👤 Namenlijst beheren</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="h">Systeem &amp; diagnose</div>
+        <label>Verbinding, synchronisatie, gedeelde tabellen en opslag. Admins vinden dit ook als kaart op de homepagina;
+          hier kan je er altijd bij met het beheer-wachtwoord.</label>
+        <div class="row">
+          <button class="btn" id="openSysteemBtn">🩺 Systeem bekijken</button>
+        </div>
+      </div>
+
+      <div class="field" id="entRememberField" style="display:none">
+        <div class="h">Ingelogd blijven op dit toestel</div>
+        <label style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);cursor:pointer;">
+          <input type="checkbox" id="entRemember" style="width:20px;height:20px;flex:0 0 auto;">
+          <span>Onthoud "ENT algemeen" op dit toestel — blijf ingelogd, ook na het wisselen tussen het spel en Entertainment. (Enkel doen op een eigen/vertrouwd toestel.)</span>
+        </label>
+      </div>
+
+      <div class="field">
+        <div class="h">Wachtwoord</div>
+        <div class="row">
+          <button class="btn" id="changePin">Wachtwoord wijzigen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+// ---------------- INSTELLINGEN (achter het wachtwoord) ----------------
+// Deze pagina is beveiligd: eerst het beheer-wachtwoord (vaste medewerkers komen
+// er zonder). Zolang dat niet gebeurd is blijft de inhoud verborgen.
+let toegangGevraagd=false;
+function vulVelden(){
+  document.getElementById('setMededeling').value=getMededeling();
+  document.getElementById('setProjMaken').value=getProjMaken();
+  document.getElementById('setProjBewerken').value=getProjBewerken();
+  // "Ingelogd blijven" enkel tonen voor het gedeelde ENT-account
+  const u=currentUser(), isEnt=!!(u&&u.id==='entalg'), fld=document.getElementById('entRememberField');
+  if(fld){
+    fld.style.display=isEnt?'':'none';
+    document.getElementById('entRemember').checked=localStorage.getItem(K_REMEMBER_ENT)==='1';
+  }
+}
+function vraagToegang(){
+  if(toegangGevraagd) return;
+  if(!currentUser()) return;                                    // eerst inloggen
+  if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;    // rollen nog niet geladen
+  toegangGevraagd=true;
+  if(!magBeheren()){ location.replace('entertainment.html'); return; }
+  document.getElementById('wachtNote').style.display='none';
+  document.getElementById('instellingen').style.display='';
+  vulVelden();
+}
+// 🩺 Systeem bekijken — via het wachtwoord, ook als er (nog) niemand admin is.
+document.getElementById('openSysteemBtn').onclick=()=>{
+  if(!isAdmin() && !magBeheren('om het systeem te bekijken')) return;
+  location.href='systeem.html';
+};
+document.getElementById('entRemember').onchange=function(){
+  const on=this.checked;
+  if(on) localStorage.setItem(K_REMEMBER_ENT,'1'); else localStorage.removeItem(K_REMEMBER_ENT);
+  // meteen laten gelden voor de huidige ENT-sessie (geen her-login nodig)
+  const u=currentUser();
+  if(u&&u.id==='entalg'){ if(on) localStorage.setItem(K_REMEMBER,'1'); else localStorage.removeItem(K_REMEMBER); }
+};
+
+document.getElementById('saveMededeling').onclick=()=>{
+  localStorage.setItem(K_MED,document.getElementById('setMededeling').value);
+  pushConfig();
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Mededeling aangepast');
+  alert('Mededeling opgeslagen.');
+};
+document.getElementById('saveProjRechten').onclick=()=>{
+  localStorage.setItem(K_PROJ_MAKEN,document.getElementById('setProjMaken').value);
+  localStorage.setItem(K_PROJ_BEWERKEN,document.getElementById('setProjBewerken').value);
+  pushConfig();
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Rechten voor Projecten aangepast');
+  alert('Opgeslagen. De rechten voor Projecten gelden op alle toestellen.');
+};
+document.getElementById('clearMededeling').onclick=()=>{
+  if(!confirm('De mededeling wissen?'))return;
+  localStorage.removeItem(K_MED);
+  document.getElementById('setMededeling').value='';
+  pushConfig();
+};
+document.getElementById('changePin').onclick=()=>{
+  const cur=prompt('Huidig wachtwoord:'); if(cur===null) return;
+  if(cur!==getPin()){alert('Onjuist wachtwoord.');return;}
+  const n=prompt('Nieuw wachtwoord, drie tot acht cijfers:'); if(n===null) return;
+  if(!/^\d{3,8}$/.test(n)){alert('Gebruik drie tot acht cijfers.');return;}
+  localStorage.setItem(K_PIN,n); pushConfig();
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Beheer-wachtwoord gewijzigd');
+  alert('Wachtwoord gewijzigd.');
+};
+
+// ---- opstarten ----
+window.bbStart=vraagToegang;      // lukt pas als je ingelogd bent
+window.bbNaLogin=vraagToegang;
+window.bbRolGewijzigd=vraagToegang;
+</script>
+</body>
+</html>
