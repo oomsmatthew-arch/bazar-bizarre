@@ -215,31 +215,55 @@ eerste zoekopdracht niet meer op de DNS- en beveiligingshanddruk hoeft te wachte
 
 ## Mappenstructuur
 
-**Pagina's (hoofdmap — deze moeten hier blijven staan):**
+In één oogopslag:
+
+```
+bazar-bizarre/
+├─ index.html               → stuurt de kale link door naar entertainment.html
+├─ entertainment.html       → DE STARTPAGINA met de kaarten
+├─ bazar-bizarre-spel.html  → de spelleider-app
+├─ manifest.json  sw.js  manuals.json  CNAME
+├─ paginas/                 → alle andere schermen, één bestand per kaart
+├─ css/                     → app.css: het volledige uiterlijk
+├─ js/                      → de programmacode
+├─ assets/  deals/  manuals/ → afbeeldingen, deal-plaatjes, PDF's/video's
+├─ docs/                    → naslag voor jou (SQL, plannen, stappenplannen)
+├─ tests/                   → controles op de opslag
+└─ _bron/                   → werkmateriaal, gaat NIET online
+```
+
+**Hoofdmap — enkel wat mensen rechtstreeks openen (deze moeten hier blijven staan):**
 - `index.html` — stuurt de kale link automatisch door naar `entertainment.html`
-- `entertainment.html` — de startpagina met de kaarten (Entertainment / Center Parcs)
+- `entertainment.html` — de startpagina met de kaarten (staat in `manifest.json` en op
+  ieders startscherm — dit bestand mag dus nooit verhuizen)
 - `bazar-bizarre-spel.html` — de spelleider-app zelf
 - `manifest.json` — maakt de app installeerbaar
 - `sw.js` — laat de app offline werken
 - `manuals.json` — inhoudsopgave voor "Online manuals"
 
-**Elke kaart op de startpagina = één eigen pagina** (sinds v4.0; daarvoor zat alles
-in `entertainment.html`). Wil je iets aanpassen aan een onderdeel, dan open je gewoon
-dat ene bestand — de rest blijft ongemoeid:
+**`paginas/` — elke kaart op de startpagina is één eigen bestand** (sinds v4.0; daarvoor
+zat alles in `entertainment.html`, sinds v4.6 staan ze samen in deze map). Wil je iets
+aanpassen aan een onderdeel, dan open je gewoon dat ene bestand — de rest blijft ongemoeid:
 
 | Kaart | Bestand |
 |---|---|
-| Inventaris lijst BB | `inventaris.html` |
-| Besteloverzicht | `bestellingen.html` |
-| Projecten | `projecten.html` |
-| Ratings | `ratings.html` (+ `ratings-vergelijk.html`) |
-| Checklists | `checklists.html` |
-| Contacten | `contacten.html` |
-| Logboek | `logboek.html` |
-| Online manuals | `manuals.html` |
-| Instellingen | `instellingen.html` |
-| Activiteit | `activiteit.html` (admin of vaste mdw) |
-| Systeem | `systeem.html` (enkel admin) |
+| Inventaris lijst BB | `paginas/inventaris.html` |
+| Besteloverzicht | `paginas/bestellingen.html` |
+| Projecten | `paginas/projecten.html` |
+| Ratings | `paginas/ratings.html` (+ `ratings-vergelijk.html`) |
+| Checklists | `paginas/checklists.html` |
+| Contacten | `paginas/contacten.html` |
+| Logboek | `paginas/logboek.html` |
+| Online manuals | `paginas/manuals.html` |
+| Instellingen | `paginas/instellingen.html` |
+| Activiteit | `paginas/activiteit.html` (admin of vaste mdw) |
+| Systeem | `paginas/systeem.html` (enkel admin) |
+
+Omdat die pagina's één map dieper staan, verwijzen ze met `../` naar de gedeelde
+bestanden (`../css/app.css`, `../js/kern.js`, `../entertainment.html`). Onderling
+verwijzen ze gewoon naar elkaar (`contacten.html`). In de programmacode doet
+`bbUrl('paginas/inventaris.html')` dat rekenwerk automatisch, zodat dezelfde code
+werkt vanaf de startpagina én vanuit `paginas/`.
 
 **`css/` — de vormgeving:**
 - `app.css` — het volledige uiterlijk, gedeeld door álle pagina's hierboven.
@@ -251,8 +275,10 @@ dat ene bestand — de rest blijft ongemoeid:
   versienummer van de app (`APP_VERSION`) staat hier.
 - `inventaris.js` — de gedeelde motor: opslag, synchronisatie met Supabase, offline-wachtrij.
   Alle pagina's gebruiken deze (via `BBInv`).
+- `zoek.js` — het vergrootglas in de balk dat over alle categorieën tegelijk zoekt
 - `inventaris-data.js` — de startlijst met prijzen
 - `projecten.js` — alles wat de projectenpagina doet
+- `ratings.js` / `ratings-vergelijk.js` — de gastbeoordelingen
 - `supabase.min.js` — de database-bibliotheek
 
 Elke pagina laadt de scripts in deze volgorde en vult daarna zelf `window.bbStart`
@@ -283,6 +309,14 @@ Verplaats of hernoem je een bestand uit `js/` of `css/`, pas dan ook de
 `<script src="…">`- en `<link rel="stylesheet">`-regels in álle HTML-pagina's én de lijst
 `ASSETS` in `sw.js` aan — anders breekt de site of werkt hij niet meer offline. Maak je
 een nieuwe pagina, zet die er dan ook bij in `ASSETS`.
+
+**Een nieuwe pagina toevoegen** gaat zo:
+1. Kopieer een bestaande pagina uit `paginas/` (bv. `contacten.html`) als vertrekpunt.
+2. Pas de titel in de balk aan en zet je eigen inhoud in het blok `view paginainhoud`.
+3. Vul onderaan `window.bbStart` (tekenen bij het openen) en eventueel `window.bbOnChange`
+   (opnieuw tekenen als een collega iets wijzigt) in.
+4. Voeg een kaart toe in `entertainment.html` met `href="paginas/jouwpagina.html"`.
+5. Zet het bestand in de lijst `ASSETS` in `sw.js` en verhoog daar het versienummer.
 
 **`_bron/` (werkmateriaal — blijft lokaal, gaat NIET online):**
 - `_process.ps1` — script dat de deal-plaatjes bijsnijdt en roteert

@@ -1762,9 +1762,9 @@ async function bewaarProject(){
 }
 
 // ---------------- KOPPELINGEN ----------------
-$('homeLogo').onclick=()=>{ location.href='entertainment.html'; };
-$('terugBtn').onclick=()=>{ if(huidigProject) naarLijst(); else location.href='entertainment.html'; };
-$('userBtn').onclick=()=>{ location.href='entertainment.html'; };
+$('homeLogo').onclick=()=>{ location.href='../entertainment.html'; };
+$('terugBtn').onclick=()=>{ if(huidigProject) naarLijst(); else location.href='../entertainment.html'; };
+$('userBtn').onclick=()=>{ location.href='../entertainment.html'; };
 $('themeBtn').onclick=()=>{
   const dark=localStorage.getItem(K_THEME)==='dark';
   localStorage.setItem(K_THEME,dark?'light':'dark');
@@ -1950,7 +1950,7 @@ function herteken(){
 }
 // Niet ingelogd? Dan eerst langs de startpagina, want daar staat het inlogscherm.
 if(!currentUser()){
-  location.replace('entertainment.html');
+  location.replace('../entertainment.html');
 }else if(window.BBInv){
   BBInv.setOnChange(herteken);
   BBInv.init();
@@ -1961,5 +1961,5 @@ if(!currentUser()){
   $('projLeeg').style.display='';
   $('projLeeg').textContent='Kon de gegevens niet laden. Ververs de pagina.';
 }
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('../sw.js').catch(()=>{}); }
 })();

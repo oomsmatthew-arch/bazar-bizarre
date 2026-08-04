@@ -3,11 +3,13 @@ const CACHE = 'bazar-bizarre-v4.6';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
-// Sinds v4.0 is elke kaart een eigen pagina; ze staan hier allemaal in zodat de
-// app volledig offline blijft werken.
-const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./projecten.html','./ratings.html','./ratings-vergelijk.html','./manifest.json',
-  './inventaris.html','./bestellingen.html','./checklists.html','./contacten.html','./logboek.html',
-  './manuals.html','./instellingen.html','./activiteit.html','./systeem.html',
+// Sinds v4.0 is elke kaart een eigen pagina; sinds v4.6 staan die samen in paginas/.
+// Ze staan hier allemaal in zodat de app volledig offline blijft werken.
+const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./manifest.json','./manuals.json',
+  './paginas/inventaris.html','./paginas/bestellingen.html','./paginas/checklists.html',
+  './paginas/contacten.html','./paginas/logboek.html','./paginas/manuals.html',
+  './paginas/instellingen.html','./paginas/activiteit.html','./paginas/systeem.html',
+  './paginas/projecten.html','./paginas/ratings.html','./paginas/ratings-vergelijk.html',
   './css/app.css','./js/kern.js','./js/zoek.js',
   './js/inventaris-data.js','./js/inventaris.js','./js/projecten.js','./js/ratings.js','./js/ratings-vergelijk.js','./js/supabase.min.js',
   './assets/icon-192.png','./assets/icon-512.png','./assets/Logo_kleine_tekst.png']

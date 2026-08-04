@@ -1,9 +1,10 @@
 // =====================================================================
 //  KERN — het gedeelte dat ELKE pagina nodig heeft.
-//  Sinds v4.0 is elke kaart van de startpagina een eigen pagina
-//  (inventaris.html, bestellingen.html, ...). Alles wat die pagina's
-//  gemeen hebben staat hier één keer: inloggen, thema, foto's, de
-//  gedeelde instellingen en de synchronisatie-melding.
+//  Sinds v4.0 is elke kaart van de startpagina een eigen pagina; sinds v4.6
+//  staan die pagina's samen in de map paginas/ (de startpagina zelf en het
+//  spel blijven in de hoofdmap). Alles wat die pagina's gemeen hebben staat
+//  hier één keer: inloggen, thema, foto's, de gedeelde instellingen en de
+//  synchronisatie-melding.
 //
 //  Volgorde in elke pagina (onderaan de body):
 //     supabase.min.js → inventaris-data.js → inventaris.js → kern.js → eigen script
@@ -11,13 +12,24 @@
 //  pagina hoeft enkel window.bbOnChange / window.bbStart in te vullen.
 // =====================================================================
 
+// ---------------- WAAR STAAT DE APP? ----------------
+// Een pagina uit paginas/ zit één map dieper dan de startpagina. In plaats van
+// overal '../' te gissen, leiden we de hoofdmap één keer af uit het adres van
+// dit bestand (js/kern.js staat altijd rechtstreeks onder de hoofdmap).
+const BB_ROOT=(function(){
+  const s=document.currentScript||[...document.scripts].find(x=>/js\/kern\.js/.test(x.src||''));
+  return (s&&s.src)? s.src.replace(/js\/kern\.js.*$/,'') : new URL('./',location.href).href;
+})();
+// bbUrl('paginas/inventaris.html') werkt vanaf élke pagina.
+function bbUrl(pad){ return BB_ROOT+pad; }
+
 // ---------------- GEDEELDE VENSTERS (op elke pagina hetzelfde) -------
 // Eén keer hier beschreven i.p.v. in tien HTML-bestanden.
 document.body.insertAdjacentHTML('afterbegin',`
 <div id="loginOverlay">
   <div class="login-card">
     <div class="login-head">
-      <img src="assets/logo-cp.png" alt="Center Parcs">
+      <img src="${BB_ROOT}assets/logo-cp.png" alt="Center Parcs">
       <div>
         <h2>Welkom</h2>
         <div class="login-sub" id="loginSub">Tik op je naam om in te loggen</div>
@@ -653,7 +665,7 @@ function bewaakPagina(){
   const ok = nodig==='admin' ? isAdmin() : (isAdmin()||isVasteMdw());
   if(ok) return;
   alert('Deze pagina is enkel voor '+(nodig==='admin'?'beheerders (admin)':'admins en vaste medewerkers')+'.');
-  location.replace('entertainment.html');
+  location.replace(bbUrl('entertainment.html'));
 }
 function refreshAuth(){
   updateUserBtn(); // avatar/foto in de balk bijwerken zodra de gedeelde lijst (met foto's) laadt
@@ -683,7 +695,7 @@ function updateSys(){
 window.addEventListener('online',updateSys);
 window.addEventListener('offline',updateSys);
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(updateSys).catch(updateSys);
+  navigator.serviceWorker.register(bbUrl('sw.js')).then(()=>navigator.serviceWorker.ready).then(updateSys).catch(updateSys);
   navigator.serviceWorker.addEventListener('controllerchange',updateSys);
 }
 
@@ -708,7 +720,7 @@ async function checkForUpdate(){
   if(updateReady || !navigator.onLine) return;
   try{
     // Het versienummer staat sinds v4.0 in dit bestand (kern.js), niet meer in de pagina.
-    const url=new URL('js/kern.js', location.href).href+'?_v='+Date.now();
+    const url=bbUrl('js/kern.js')+'?_v='+Date.now();
     const res=await fetch(url,{cache:'no-store'});
     if(!res.ok) return;
     const m=(await res.text()).match(/APP_VERSION='([^']+)'/);

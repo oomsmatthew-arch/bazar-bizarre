@@ -16,6 +16,16 @@
     'contacten.html':'contZoek','manuals.html':'manualsZoek','projecten.html':'projZoek',
     'activiteit.html':'actZoek','ratings.html':'fZoek'};
 
+  // De pagina's staan in paginas/. Vanaf de startpagina moet er dus 'paginas/' voor,
+  // vanaf een pagina uit die map niet. We leiden de hoofdmap af uit het adres van dit
+  // bestand (js/zoek.js staat altijd rechtstreeks onder de hoofdmap), zodat dit ook
+  // werkt op pagina's die kern.js niet laden — zoals het spel.
+  const ROOT=(function(){
+    const s=document.currentScript||[...document.scripts].find(x=>/js\/zoek\.js/.test(x.src||''));
+    return (s&&s.src)? s.src.replace(/js\/zoek\.js.*$/,'') : '';
+  })();
+  function paginaUrl(bestand){ return ROOT+'paginas/'+bestand; }
+
   function bevat(q,...vals){ return vals.some(v=>v&&String(v).toLowerCase().indexOf(q)>=0); }
 
   // Doorzoekt de manuals-boom (mappen + bestanden) recursief.
@@ -91,10 +101,10 @@
       if(!totaal){ res.innerHTML='<div class="gzoek-leeg">Niets gevonden voor “'+esc(q)+'”.</div>'; return; }
       res.innerHTML=groepen.map(g=>
         '<div class="gzoek-groep"><div class="gzoek-groeptitel">'+esc(g.titel)+'</div>'+
-        g.rijen.map(r=>'<a class="gzoek-item" href="'+g.page+'?zoek='+encodeURIComponent(q)+'">'+
+        g.rijen.map(r=>'<a class="gzoek-item" href="'+paginaUrl(g.page)+'?zoek='+encodeURIComponent(q)+'">'+
           '<span class="gzoek-lbl">'+esc(r.label)+'</span>'+
           (r.sub?'<span class="gzoek-sub">'+esc(r.sub)+'</span>':'')+'</a>').join('')+
-        (g.meer?'<a class="gzoek-meer" href="'+g.page+'?zoek='+encodeURIComponent(q)+'">+ '+g.meer+' meer in '+esc(g.titel)+'</a>':'')+
+        (g.meer?'<a class="gzoek-meer" href="'+paginaUrl(g.page)+'?zoek='+encodeURIComponent(q)+'">+ '+g.meer+' meer in '+esc(g.titel)+'</a>':'')+
         '</div>').join('');
     };
     inp.addEventListener('input',teken);
