@@ -33,15 +33,42 @@
   .navbtn:active{transform:translateY(1px);}
   .navbtn.home{display:none;}
   .navbtn.home.show{display:block;}
+  /* Vergrootglas: enkel het icoon, geen tekst */
+  .gzoek-btn{font-size:18px;line-height:1;padding:9px 12px;}
   /* gsm: compactere balk + Instellingen als tandwiel-icoon i.p.v. het woord */
   @media(max-width:560px){
     .topbar{gap:8px;padding:12px 12px;}
     .navbtn{font-size:13px;padding:9px 11px;}
     #gearBtn{font-size:0;padding:9px 11px;}
     #gearBtn::before{content:"⚙";font-size:19px;}
+    .gzoek-btn{font-size:16px;padding:9px 11px;}
     .syncbadge{padding:4px 8px;}
     .syncbadge .lbl{display:none;}
   }
+
+  /* ---- algemene zoekfunctie (overlay) ---- */
+  .gzoek-overlay{position:fixed;inset:0;z-index:120;display:none;background:rgba(15,30,20,.55);
+    backdrop-filter:blur(2px);padding:70px 14px 14px;justify-content:center;}
+  .gzoek-overlay.open{display:flex;}
+  .gzoek-box{width:100%;max-width:640px;max-height:100%;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;}
+  .gzoek-top{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel2);}
+  .gzoek-ic{font-size:18px;flex:0 0 auto;}
+  .gzoek-input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:inherit;
+    font-size:16px;color:var(--text);}
+  .gzoek-input::placeholder{color:var(--muted);}
+  .gzoek-sluit{flex:0 0 auto;border:none;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1;}
+  .gzoek-results{overflow:auto;padding:6px;}
+  .gzoek-leeg{color:var(--muted);font-style:italic;padding:22px 14px;text-align:center;}
+  .gzoek-groep{margin:6px 4px 10px;}
+  .gzoek-groeptitel{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--forest);padding:6px 8px;}
+  .gzoek-item{display:flex;flex-direction:column;gap:1px;text-decoration:none;padding:9px 10px;border-radius:10px;}
+  .gzoek-item:hover{background:var(--panel2);}
+  .gzoek-lbl{font-weight:700;font-size:15px;color:var(--text);}
+  .gzoek-sub{font-size:12px;color:var(--muted);}
+  .gzoek-meer{display:block;text-decoration:none;padding:7px 10px;font-size:13px;font-weight:700;color:var(--forest2);}
+  .gzoek-meer:hover{text-decoration:underline;}
 
   /* ---- mededeling ---- */
   .mededeling{margin-top:18px;border:1px solid var(--line);border-radius:18px;overflow:hidden;
