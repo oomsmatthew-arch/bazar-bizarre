@@ -76,7 +76,7 @@
   .card[data-key="projecten"]{--accent:#4a63c0;background:linear-gradient(150deg,#eef1fc,#fff);}
   .card[data-key="ratings"]{--accent:#e0a24a;background:linear-gradient(150deg,#fdf6ea,#fff);}
   /* Contacten */
-  .contlist{display:flex;flex-direction:column;gap:10px;margin:4px 0 18px;}
+  .contlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:10px;margin:4px 0 18px;align-items:start;}
   .contcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid #8a5cc7;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);}
   .contcard .cnaam{font-weight:700;font-size:16px;color:var(--text);}
   .contcard .crol{font-size:13px;color:var(--muted);margin-top:1px;}

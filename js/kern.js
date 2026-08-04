@@ -97,7 +97,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v4.0';
+const APP_VERSION='v4.1';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -201,6 +201,7 @@ function applyTheme(){
   const tc=document.querySelector('meta[name="theme-color"]');
   if(tc) tc.setAttribute('content',dark?'#0f1a14':'#2f6450');
 }
+applyTheme(); // meteen, nog voor de pagina getekend is (geen witte flits)
 { const tb=document.getElementById('themeBtn');
   if(tb) tb.onclick=()=>{
     const dark=localStorage.getItem(K_THEME)==='dark';
@@ -440,8 +441,10 @@ function beheerKlaar(){ if(currentUser()) hideLogin(); else toNames(); }
 function loginDirect(u){
   // ENT algemeen mag op dit toestel ingelogd blijven als dat zo is ingesteld (Instellingen).
   const rem=(u&&u.id==='entalg')&&localStorage.getItem(K_REMEMBER_ENT)==='1';
-  setCurrentUser(u,rem); hideLogin(); toNames(); show('home'); renderHome();
+  setCurrentUser(u,rem); hideLogin(); toNames(); naLogin();
 }
+// Na het inloggen: de pagina waar je op staat gewoon opnieuw laten tekenen.
+function naLogin(){ if(typeof window.bbNaLogin==='function') window.bbNaLogin(); refreshAuth(); }
 function renderLoginNames(){
   const grid=document.getElementById('nameGrid'); if(!grid) return;
   const users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
@@ -494,7 +497,7 @@ async function tryPin(){
   if(ok){
     msg.className='pin-msg ok'; msg.textContent='✓ Welkom!';
     setCurrentUser(loginSel, document.getElementById('pinRemember').checked);
-    setTimeout(()=>{ hideLogin(); toNames(); show('home'); renderHome(); }, 250);
+    setTimeout(()=>{ hideLogin(); toNames(); naLogin(); }, 250);
   }else{
     msg.className='pin-msg'; msg.textContent='Onjuiste pincode, probeer opnieuw.';
     pinBuf=''; renderPinDots();
@@ -563,7 +566,7 @@ function renderGebrList(){
     box.appendChild(row);
   });
 }
-document.getElementById('openGebruikers').onclick=openGebruikers;
+{ const og=document.getElementById('openGebruikers'); if(og) og.onclick=openGebruikers; } // enkel op Instellingen
 document.getElementById('gebrAdd').onclick=async()=>{
   const naam=document.getElementById('gebrNaam').value.trim();
   const pin=document.getElementById('gebrPin').value.trim();
@@ -634,15 +637,27 @@ document.getElementById('profielModal').addEventListener('click',e=>{ if(e.targe
 
 // ---- Inlog-status bij het opstarten en na het laden van de gedeelde lijst ----
 function bootAuth(){
+  // Ingelogd blijven: ofwel "onthoud mij" (eigen gsm), ofwel binnen dezelfde
+  // app-sessie — dat laatste is nodig omdat elke pagina apart geladen wordt.
+  let sessie=false; try{ sessie=sessionStorage.getItem(K_SESSIE)==='1'; }catch(e){}
   const remembered=localStorage.getItem(K_REMEMBER)==='1', u=currentUser();
-  if(remembered && u){ updateUserBtn(); hideLogin(); }
+  if((remembered||sessie) && u){ updateUserBtn(); hideLogin(); }
   else { setCurrentUser(null,false); showLogin(); } // verse start: altijd opnieuw inloggen (geen hervatten zonder pincode)
+}
+// Sommige pagina's zijn enkel voor bepaalde rollen (Systeem = admin, Activiteit =
+// admin of vaste mdw). Wie er via de webadresbalk toch op belandt, sturen we terug.
+function bewaakPagina(){
+  const nodig=document.body.getAttribute('data-rol'); if(!nodig) return;
+  if(!currentUser()) return;                                   // nog niet ingelogd: eerst het inlogscherm
+  if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;   // rollen nog niet geladen
+  const ok = nodig==='admin' ? isAdmin() : (isAdmin()||isVasteMdw());
+  if(ok) return;
+  alert('Deze pagina is enkel voor '+(nodig==='admin'?'beheerders (admin)':'admins en vaste medewerkers')+'.');
+  location.replace('entertainment.html');
 }
 function refreshAuth(){
   updateUserBtn(); // avatar/foto in de balk bijwerken zodra de gedeelde lijst (met foto's) laadt
-  updateBestelTabs(); // Financieel-tab tonen/verbergen volgens rol
-  updateActiviteitCard(); // Activiteit-kaart tonen/verbergen volgens rol
-  if(document.getElementById('activiteit').classList.contains('active')) renderActiviteit();
+  if(typeof window.bbRolGewijzigd==='function') window.bbRolGewijzigd(); // de pagina past zich aan de rol aan
   if(document.getElementById('loginOverlay').classList.contains('show') && document.getElementById('loginNames').style.display!=='none') renderLoginNames();
   if(document.getElementById('loginBeheerPanel').style.display!=='none') renderGebrList();
   // Hervalideer: staat de ingelogde persoon nog in de gedeelde lijst? Pas nadat de verse
@@ -650,12 +665,14 @@ function refreshAuth(){
   // zijn, en dan zou een collega die net is toegevoegd er onterecht uit vliegen.
   if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;
   const u=currentUser(), users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
-  if(u && users.length && !users.some(x=>x.id===u.id)){ setCurrentUser(null,false); showLogin(); }
+  if(u && users.length && !users.some(x=>x.id===u.id)){ setCurrentUser(null,false); showLogin(); return; }
+  bewaakPagina();
 }
 
 // ---------------- OFFLINE-STATUS + VERSIE ----------------
 function updateSys(){
   const stat=document.getElementById('sysStat'), txt=document.getElementById('sysStatTxt');
+  if(!stat||!txt) return;
   if(!navigator.onLine){ stat.className='sysstat off'; txt.textContent='Geen internet · '+APP_VERSION; return; }
   if('serviceWorker' in navigator && navigator.serviceWorker.controller){
     stat.className='sysstat ready'; txt.textContent='Klaar voor offline · '+APP_VERSION;
@@ -690,7 +707,8 @@ function tryReload(){
 async function checkForUpdate(){
   if(updateReady || !navigator.onLine) return;
   try{
-    const url=new URL('entertainment.html', location.href).href+'?_v='+Date.now();
+    // Het versienummer staat sinds v4.0 in dit bestand (kern.js), niet meer in de pagina.
+    const url=new URL('js/kern.js', location.href).href+'?_v='+Date.now();
     const res=await fetch(url,{cache:'no-store'});
     if(!res.ok) return;
     const m=(await res.text()).match(/APP_VERSION='([^']+)'/);
@@ -699,3 +717,53 @@ async function checkForUpdate(){
 }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(updateReady) location.reload(); } else { checkForUpdate(); } });
 window.addEventListener('online',checkForUpdate);
+
+// ---------------- TERUG-KNOP: eerst een open venster sluiten ----------------
+// Tussen pagina's regelt de browser de terugknop nu zelf. Alleen open vensters
+// (foto, camera, profiel, formulier…) vangen we op, zodat terug die eerst sluit.
+(function(){
+  let vensterOpen=null, eigenStap=false;
+  history.replaceState({bbv:0},'');
+  // Een pagina kan een eigen sluitfunctie opgeven (bv. om een video te stoppen):
+  //   window.bbVensterSluiters={ viewer:closeViewer }
+  function sluitAlles(){
+    document.querySelectorAll('.cammodal.open, .modal.open').forEach(el=>{
+      const eigen=(window.bbVensterSluiters||{})[el.id];
+      if(typeof eigen==='function') eigen();
+      else if(el.id==='camModal'&&typeof closeCamera==='function') closeCamera();
+      else if(el.id==='fotoView'&&typeof closeFotoView==='function') closeFotoView();
+      else el.classList.remove('open');
+    });
+  }
+  new MutationObserver(()=>{
+    const open=document.querySelector('.cammodal.open, .modal.open');
+    if(open && !vensterOpen){ vensterOpen=open; history.pushState({bbv:1},''); }
+    else if(!open && vensterOpen){ vensterOpen=null; if(!eigenStap){ eigenStap=true; history.back(); } }
+  }).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+  window.addEventListener('popstate',()=>{
+    if(eigenStap){ eigenStap=false; return; }
+    if(vensterOpen){ eigenStap=true; vensterOpen=null; sluitAlles(); setTimeout(()=>{eigenStap=false;},0); }
+  });
+})();
+
+// ---------------- OPSTARTEN ----------------
+// Elke pagina laadt deze kern en daarna haar eigen script. Zodra alles klaarstaat
+// starten we hier de gedeelde database op en laten we de pagina zich tekenen.
+document.addEventListener('DOMContentLoaded',()=>{
+  updateSys(); bootAuth();
+  BBInv.setOnChange(()=>{
+    syncConfig();   // gedeelde instellingen + keuzelijsten ophalen/zaaien
+    refreshAuth();  // namenlijst + inlogstatus bijwerken zodra de gedeelde lijst laadt
+    if(typeof window.bbOnChange==='function') window.bbOnChange();
+    updateSyncBadge();
+  });
+  if(typeof window.bbStart==='function') window.bbStart();
+  BBInv.init();
+  updateSyncBadge();
+  setInterval(updateSyncBadge,3000);
+  // Automatisch vernieuwen: eerste check na 1 min, daarna elk kwartier; en elke 30s
+  // kijken of het een geschikt moment is om (stil) te herladen bij een nieuwe versie.
+  setTimeout(checkForUpdate,60000);
+  setInterval(checkForUpdate,15*60*1000);
+  setInterval(tryReload,30000);
+});

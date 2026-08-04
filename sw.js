@@ -1,9 +1,14 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v3.27';
+const CACHE = 'bazar-bizarre-v4.1';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
+// Sinds v4.0 is elke kaart een eigen pagina; ze staan hier allemaal in zodat de
+// app volledig offline blijft werken.
 const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./projecten.html','./ratings.html','./ratings-vergelijk.html','./manifest.json',
+  './inventaris.html','./bestellingen.html','./checklists.html','./contacten.html','./logboek.html',
+  './manuals.html','./instellingen.html','./activiteit.html','./systeem.html',
+  './css/app.css','./js/kern.js',
   './js/inventaris-data.js','./js/inventaris.js','./js/projecten.js','./js/ratings.js','./js/ratings-vergelijk.js','./js/supabase.min.js',
   './assets/icon-192.png','./assets/icon-512.png','./assets/Logo_kleine_tekst.png']
   .concat(DEALS);
@@ -32,7 +37,7 @@ self.addEventListener('activate', e=>{
 //  • PAGINA'S (html) — netwerk eerst, zodat je nooit met verouderde code werkt. Maar mét
 //    een tijdslimiet van 1,5 s: op een trage wifi kreeg je vroeger een wit scherm tot het
 //    verzoek klaar was. Nu tonen we na die limiet de bewaarde versie, en de app haalt
-//    zichzelf even later stil bij (zie checkForUpdate in entertainment.html).
+//    zichzelf even later stil bij (zie checkForUpdate in js/kern.js).
 //    (Stond op 2,5 s — dat was net die paar tellen wachten die je op de wifi ter plaatse voelde.)
 //  • DE REST (js, afbeeldingen, manifest) — bewaarde versie eerst, dus meteen op het
 //    scherm, en ondertussen op de achtergrond verversen. Dit scheelt het meest:
