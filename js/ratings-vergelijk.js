@@ -65,19 +65,27 @@ function vergelijk(){
   cmpTabel('cmpTaal','Per taal', A.taal, B.taal);
 }
 
-async function init(){
-  initThema();
-  if(R.syncGedeeld){ try{ await R.syncGedeeld(); }catch(e){} } // gedeelde ratings ophalen
-  _rev=(R&&R.laadReviews?R.laadReviews():[])||[];
+function bouwOp(){
   if(!_rev.length){ $('geenData').style.display='block'; return; }
+  $('geenData').style.display='none';
   const mnd=maanden();
   const laatste=mnd.length?mnd[mnd.length-1]:'';
   let vorigJaar='';
   if(laatste){ const p=laatste.split('-'); vorigJaar=(+p[0]-1)+'-'+p[1]; if(mnd.indexOf(vorigJaar)<0) vorigJaar=mnd.length?mnd[0]:laatste; }
-  $('aVan').value=laatste; $('aTot').value=laatste;
-  $('bVan').value=vorigJaar; $('bTot').value=vorigJaar;
+  if(!$('aVan').value){ $('aVan').value=laatste; $('aTot').value=laatste; }   // enkel de eerste keer instellen
+  if(!$('bVan').value){ $('bVan').value=vorigJaar; $('bTot').value=vorigJaar; } // (zodat een achtergrond-update je keuze niet wist)
   $('vglBtn').onclick=vergelijk;
   vergelijk();
+}
+async function init(){
+  initThema();
+  // Meteen tonen met wat er lokaal staat; op de achtergrond bijwerken.
+  _rev=(R&&R.laadReviews?R.laadReviews():[])||[];
+  bouwOp();
+  if(R.syncGedeeld){ try{ await R.syncGedeeld();
+    const na=(R.laadReviews?R.laadReviews():[])||[];
+    if(na.length!==_rev.length){ _rev=na; bouwOp(); } // enkel hertekenen bij echte verandering
+  }catch(e){} }
 }
 document.addEventListener('DOMContentLoaded',init);
 })();

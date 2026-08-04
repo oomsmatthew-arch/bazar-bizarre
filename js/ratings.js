@@ -19,22 +19,32 @@ async function laadGedeeldRaw(){ const sb=sbClient(); if(!sb) return null;
   try{ const r=await sb.from('spelarchief').select('data').eq('id',3).maybeSingle();
     if(r && !r.error && r.data && r.data.data && Array.isArray(r.data.data.reviews)) return r.data.data; }catch(e){}
   return null; }
+// Bewaart de volledige set (rij id=3) én een piepklein "versie"-vinkje (rij id=4: {ts,n}),
+// zodat andere toestellen snel kunnen zien of er iets veranderd is zonder de grote set op te halen.
 async function bewaarGedeeld(serial){ const sb=sbClient(); if(!sb) return false;
-  try{ const r=await sb.from('spelarchief').upsert({id:3,data:serial}); return !(r&&r.error); }catch(e){ return false; } }
-// Gedeelde + lokale ratings SAMENVOEGEN (union, dubbels eruit) en beide bijwerken.
-// Zo gaat nooit iets verloren, ongeacht welk toestel eerst opent of wie het meest had.
+  try{ const meta={ts:serial.ts, n:(serial.reviews||[]).length};
+    const r=await sb.from('spelarchief').upsert([{id:3,data:serial},{id:4,data:meta}]); return !(r&&r.error); }catch(e){ return false; } }
+async function laadGedeeldMeta(){ const sb=sbClient(); if(!sb) return null;
+  try{ const r=await sb.from('spelarchief').select('data').eq('id',4).maybeSingle();
+    if(r && !r.error && r.data && r.data.data) return r.data.data; }catch(e){}
+  return null; }
+// Gedeelde + lokale ratings SAMENVOEGEN (union, dubbels eruit). Eerst een snelle versiecontrole:
+// is de gedeelde versie gelijk aan wat we lokaal hebben, dan halen we de grote set NIET op (snel!).
 async function syncGedeeld(){
-  const gedeeld=await laadGedeeldRaw();
   let lokaal=null; try{ const raw=localStorage.getItem(K_DATA); if(raw) lokaal=JSON.parse(raw); }catch(e){}
-  const gRev=(gedeeld&&Array.isArray(gedeeld.reviews))?gedeeld.reviews:[];
   const lRev=(lokaal&&Array.isArray(lokaal.reviews))?lokaal.reviews:[];
+  const meta=await laadGedeeldMeta();
+  if(meta && lokaal && meta.ts===lokaal.ts && +meta.n===lRev.length) return lokaal; // niets veranderd → klaar
+  const gedeeld=await laadGedeeldRaw();
+  const gRev=(gedeeld&&Array.isArray(gedeeld.reviews))?gedeeld.reviews:[];
   if(!gRev.length && !lRev.length) return null;
   const seen={}, union=[];
   gRev.concat(lRev).forEach(r=>{ const k=reviewKey(r); if(!seen[k]){ seen[k]=1; union.push(r); } });
-  const data={ ts:(gedeeld&&gedeeld.ts)||(lokaal&&lokaal.ts)||Date.now(),
+  const veranderd = union.length!==gRev.length; // lokaal had extra's (of gedeeld was leeg)
+  const data={ ts: veranderd?Date.now():((gedeeld&&gedeeld.ts)||(lokaal&&lokaal.ts)||Date.now()),
     bestand:(gedeeld&&gedeeld.bestand)||(lokaal&&lokaal.bestand)||'', reviews:union };
   try{ localStorage.setItem(K_DATA,JSON.stringify(data)); }catch(e){}
-  if(union.length>gRev.length) bewaarGedeeld(data); // lokaal had extra's → gedeelde set aanvullen
+  if(veranderd) bewaarGedeeld(data); // gedeelde set aanvullen + nieuwe versie
   return data;
 }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -600,11 +610,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   const ms=$('maandSort'); if(ms) ms.onclick=()=>{ _maandSort=(_maandSort==='nieuw')?'oud':'nieuw'; renderPerMaand(); };
   const bjs=$('boekjaar'); if(bjs) bjs.onchange=()=>{ _boekjaar=bjs.value; if(_data) render(_data); };
   window.addEventListener('resize',syncActHoogte);
+  // Staat er al iets op dit toestel? Dan meteen tonen en op de achtergrond verversen.
+  let heeftLokaal=false, voorN=0;
+  try{ const raw=localStorage.getItem(K_DATA); const d=raw&&JSON.parse(raw); if(d&&d.reviews){ voorN=d.reviews.length; heeftLokaal=voorN>0; } }catch(e){}
   laadBewaard();
-  // Laadscherm blokkeert alle acties tot de gedeelde ratings volledig geladen zijn.
   const verbergLaden=()=>{ const o=$('laadOverlay'); if(o) o.classList.add('weg'); };
-  setTimeout(verbergLaden, 9000); // veiligheidsval: nooit langer dan 9s vasthangen
-  syncGedeeld().then(d=>{ if(d) laadBewaard(); verbergLaden(); }).catch(verbergLaden);
+  if(heeftLokaal) verbergLaden();            // meteen de pagina; update volgt vanzelf
+  else setTimeout(verbergLaden, 6000);       // nog niks te tonen → kort wachten op de eerste sync
+  // Op de achtergrond bijwerken; enkel opnieuw tekenen als er echt iets bijgekomen is
+  // (zo wist een achtergrond-update nooit een filter die je net had ingesteld).
+  syncGedeeld().then(d=>{ const naN=(d&&d.reviews)?d.reviews.length:0; if(naN!==voorN) laadBewaard(); verbergLaden(); }).catch(verbergLaden);
 });
 
 // Gedeelde API voor andere pagina's (bv. de vergelijk-pagina).
