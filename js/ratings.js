@@ -21,13 +21,21 @@ async function laadGedeeldRaw(){ const sb=sbClient(); if(!sb) return null;
   return null; }
 async function bewaarGedeeld(serial){ const sb=sbClient(); if(!sb) return false;
   try{ const r=await sb.from('spelarchief').upsert({id:3,data:serial}); return !(r&&r.error); }catch(e){ return false; } }
-// Gedeelde ratings ophalen en lokaal spiegelen (zodat de rest van de pagina onveranderd werkt). Geeft het data-object terug of null.
+// Gedeelde + lokale ratings SAMENVOEGEN (union, dubbels eruit) en beide bijwerken.
+// Zo gaat nooit iets verloren, ongeacht welk toestel eerst opent of wie het meest had.
 async function syncGedeeld(){
-  const d=await laadGedeeldRaw();
-  if(d){ try{ localStorage.setItem(K_DATA,JSON.stringify(d)); }catch(e){} return d; }
-  // Nog niets gedeeld maar wél lokale ratings? Die één keer delen (zaaien), zodat ze niet verloren gaan.
-  try{ const raw=localStorage.getItem(K_DATA); if(raw){ const local=JSON.parse(raw); if(local&&Array.isArray(local.reviews)&&local.reviews.length){ bewaarGedeeld(local); return local; } } }catch(e){}
-  return null;
+  const gedeeld=await laadGedeeldRaw();
+  let lokaal=null; try{ const raw=localStorage.getItem(K_DATA); if(raw) lokaal=JSON.parse(raw); }catch(e){}
+  const gRev=(gedeeld&&Array.isArray(gedeeld.reviews))?gedeeld.reviews:[];
+  const lRev=(lokaal&&Array.isArray(lokaal.reviews))?lokaal.reviews:[];
+  if(!gRev.length && !lRev.length) return null;
+  const seen={}, union=[];
+  gRev.concat(lRev).forEach(r=>{ const k=reviewKey(r); if(!seen[k]){ seen[k]=1; union.push(r); } });
+  const data={ ts:(gedeeld&&gedeeld.ts)||(lokaal&&lokaal.ts)||Date.now(),
+    bestand:(gedeeld&&gedeeld.bestand)||(lokaal&&lokaal.bestand)||'', reviews:union };
+  try{ localStorage.setItem(K_DATA,JSON.stringify(data)); }catch(e){}
+  if(union.length>gRev.length) bewaarGedeeld(data); // lokaal had extra's → gedeelde set aanvullen
+  return data;
 }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 // score-klasse: groen ≥4, oranje 3–<4, rood <3 (zoals de donut op papier)
