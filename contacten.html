@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contacten · Entertainment</title>
+<link rel="manifest" href="manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="assets/logo-cp.png">
+<link rel="apple-touch-icon" href="assets/logo-cp.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <h1>Contacten</h1>
+    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
+    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
+    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
+    <a class="navbtn" href="entertainment.html">Home</a>
+  </div>
+
+  <div class="view paginainhoud" id="contacten">
+    <p class="hint">Telefoonnummers en e-mails van het team en de leveranciers. Tik een nummer om te bellen, of een e-mail om te mailen. Wordt op dit toestel bewaard.</p>
+    <div class="manualsbar"><button class="btn" id="contBeheerBtn">🔒 Beheer</button></div>
+    <input type="text" id="contZoek" class="finp zoek" placeholder="Zoek op naam, rol of leverancier…">
+    <div class="contlist" id="contlist"></div>
+    <div class="contadd" id="contAddBox">
+      <div class="h">Nieuw contact</div>
+      <input type="text" id="contNaam" class="finp" placeholder="Naam">
+      <input type="text" id="contRol" class="finp" placeholder="Rol / functie (bv. Teamleader, Leverancier boekjes)">
+      <input type="tel" id="contTel" class="finp" placeholder="Telefoon (optioneel)">
+      <input type="email" id="contMail" class="finp" placeholder="E-mail (optioneel)">
+      <button class="btn" id="contAdd">Contact toevoegen</button>
+    </div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+<script src="js/supabase.min.js"></script>
+<script src="js/inventaris-data.js"></script>
+<script src="js/inventaris.js"></script>
+<script src="js/kern.js"></script>
+<script>
+// ---------------- CONTACTEN (gedeeld via database) ----------------
+function telLink(t){return 'tel:'+String(t).replace(/[^+0-9]/g,'');}
+let contBeheer=false;
+// Elke rol/functie krijgt een eigen, vaste kleur. Zelfde rol = zelfde kleur, ook na herladen.
+const CONT_KLEUREN=['#8a5cc7','#2f8f6b','#1f6b9a','#c0803a','#b5476b','#4a7ac0','#7a8b2b','#c0574a','#2f8f8f','#9a5bb8'];
+function contKleur(rol){
+  const s=(rol||'').trim().toLowerCase();
+  if(!s) return '#8a5cc7'; // geen rol ingevuld -> standaard paars
+  let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; }
+  return CONT_KLEUREN[h%CONT_KLEUREN.length];
+}
+function renderContacten(){
+  const box=document.getElementById('contlist'); if(!box)return;
+  const q=(document.getElementById('contZoek').value||'').toLowerCase().trim();
+  const lijst=BBInv.getContacten().filter(c=>!q||((c.naam||'')+' '+(c.rol||'')).toLowerCase().indexOf(q)>=0);
+  box.innerHTML='';
+  if(!lijst.length){ box.innerHTML='<div class="contempty">'+(q?'Geen contact gevonden.':(contBeheer?'Nog geen contacten. Voeg er hieronder een toe.':'Nog geen contacten.'))+'</div>'; return; }
+  lijst.forEach(c=>{
+    const links=[];
+    if(c.tel) links.push('<a href="'+telLink(c.tel)+'">📞 '+esc(c.tel)+'</a>');
+    if(c.mail) links.push('<a class="mail" href="mailto:'+esc(c.mail)+'">✉️ '+esc(c.mail)+'</a>');
+    const kleur=contKleur(c.rol);
+    const card=document.createElement('div'); card.className='contcard'; card.style.borderLeftColor=kleur;
+    card.innerHTML=(contBeheer?'<button class="cdel" title="Verwijderen">✕</button>':'')+
+      '<div class="cnaam">'+esc(c.naam)+'</div>'+
+      (c.rol?'<div class="crol" style="color:'+kleur+'">'+esc(c.rol)+'</div>':'')+
+      (links.length?'<div class="clinks">'+links.join('')+'</div>':'');
+    if(contBeheer) card.querySelector('.cdel').onclick=()=>{ if(!confirm('Contact "'+(c.naam||'')+'" verwijderen?'))return; BBInv.removeContact(c.id); renderContacten(); };
+    box.appendChild(card);
+  });
+}
+function setContBeheer(on){
+  contBeheer=on;
+  const btn=document.getElementById('contBeheerBtn');
+  btn.textContent=on?'✓ Klaar met beheren':'🔒 Beheer';
+  btn.classList.toggle('primary',on);
+  document.getElementById('contAddBox').style.display=on?'':'none';
+  renderContacten();
+}
+document.getElementById('contBeheerBtn').onclick=()=>{
+  if(contBeheer){ setContBeheer(false); return; }
+  if(!magBeheren('voor beheer')) return;
+  setContBeheer(true);
+};
+document.getElementById('contZoek').addEventListener('input',renderContacten);
+document.getElementById('contAdd').onclick=()=>{
+  const naam=document.getElementById('contNaam').value.trim();
+  if(!naam){alert('Geef minstens een naam.');return;}
+  BBInv.addContact({naam,rol:document.getElementById('contRol').value.trim(),
+    tel:document.getElementById('contTel').value.trim(),mail:document.getElementById('contMail').value.trim()});
+  ['contNaam','contRol','contTel','contMail'].forEach(id=>document.getElementById(id).value='');
+  renderContacten();
+};
+
+// ---- opstarten (de kern roept dit aan zodra de pagina klaarstaat) ----
+window.bbStart=()=>{ setContBeheer(false); };
+window.bbOnChange=()=>{ renderContacten(); };
+</script>
+</body>
+</html>
