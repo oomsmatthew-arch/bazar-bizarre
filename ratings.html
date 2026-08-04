@@ -30,6 +30,7 @@
   .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 70px;}
   .topbar{position:relative;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:20px;
     background:linear-gradient(120deg,var(--forest),var(--forest2));box-shadow:var(--shadow);}
+  .topbar .logo{height:44px;width:44px;border-radius:12px;object-fit:cover;background:var(--forest2);display:block;flex:0 0 auto;cursor:pointer;}
   .topbar h1{margin:0;font-family:var(--serif);font-size:clamp(19px,3.4vw,26px);font-weight:700;color:#fff;flex:1;
     min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .navbtn{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:14px;
@@ -141,6 +142,7 @@
 <body>
 <div class="wrap">
   <div class="topbar">
+    <a href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Home"></a>
     <h1>Ratings</h1>
     <button class="navbtn" id="themeBtn" title="Donker/licht">🌙</button>
     <a class="navbtn" href="entertainment.html">Home</a>
@@ -226,6 +228,7 @@
 
   <footer>Entertainment · De Vossemeren</footer>
 </div>
+<script src="js/supabase.min.js"></script>
 <script src="js/ratings.js"></script>
 </body>
 </html>

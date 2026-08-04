@@ -65,8 +65,9 @@ function vergelijk(){
   cmpTabel('cmpTaal','Per taal', A.taal, B.taal);
 }
 
-function init(){
+async function init(){
   initThema();
+  if(R.syncGedeeld){ try{ await R.syncGedeeld(); }catch(e){} } // gedeelde ratings ophalen
   _rev=(R&&R.laadReviews?R.laadReviews():[])||[];
   if(!_rev.length){ $('geenData').style.display='block'; return; }
   const mnd=maanden();

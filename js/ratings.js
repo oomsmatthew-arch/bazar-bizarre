@@ -10,6 +10,25 @@ const MND=['januari','februari','maart','april','mei','juni','juli','augustus','
 const TAALNAAM={nl:'Nederlands',de:'Duits',en:'Engels',fr:'Frans',es:'Spaans',it:'Italiaans',pl:'Pools',pt:'Portugees',da:'Deens',nb:'Noors',no:'Noors',sv:'Zweeds',cs:'Tsjechisch',ru:'Russisch'};
 const K_DATA='bb_ratings_data_v1';
 const K_TR='bb_ratings_trcache_v1';
+// ---- Gedeelde opslag: ratings syncen over alle toestellen (Supabase, aparte rij id=3 in de gedeelde tabel) ----
+const SB_URL='https://tbromtomzglqtuyezoav.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
+let _sb=null;
+function sbClient(){ if(_sb) return _sb; if(!(window.supabase&&window.supabase.createClient)) return null; try{ _sb=window.supabase.createClient(SB_URL,SB_KEY); }catch(e){ _sb=null; } return _sb; }
+async function laadGedeeldRaw(){ const sb=sbClient(); if(!sb) return null;
+  try{ const r=await sb.from('spelarchief').select('data').eq('id',3).maybeSingle();
+    if(r && !r.error && r.data && r.data.data && Array.isArray(r.data.data.reviews)) return r.data.data; }catch(e){}
+  return null; }
+async function bewaarGedeeld(serial){ const sb=sbClient(); if(!sb) return false;
+  try{ const r=await sb.from('spelarchief').upsert({id:3,data:serial}); return !(r&&r.error); }catch(e){ return false; } }
+// Gedeelde ratings ophalen en lokaal spiegelen (zodat de rest van de pagina onveranderd werkt). Geeft het data-object terug of null.
+async function syncGedeeld(){
+  const d=await laadGedeeldRaw();
+  if(d){ try{ localStorage.setItem(K_DATA,JSON.stringify(d)); }catch(e){} return d; }
+  // Nog niets gedeeld maar wél lokale ratings? Die één keer delen (zaaien), zodat ze niet verloren gaan.
+  try{ const raw=localStorage.getItem(K_DATA); if(raw){ const local=JSON.parse(raw); if(local&&Array.isArray(local.reviews)&&local.reviews.length){ bewaarGedeeld(local); return local; } } }catch(e){}
+  return null;
+}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 // score-klasse: groen ≥4, oranje 3–<4, rood <3 (zoals de donut op papier)
 function kl(v){ return v>=4?'goed':(v>=3?'let':'slecht'); }
@@ -386,7 +405,8 @@ async function importFile(file){
     const {reviews:nieuw,mapping}=mapTable(aoa);
     if(!nieuw.length){ st.className='status fout'; st.textContent='Geen reviews met een score gevonden. Klopt het bestand? (kolommen score/activiteit/datum/tekst)'; return; }
     if(mapping.score<0){ st.className='status fout'; st.textContent='Geen scorekolom gevonden.'; return; }
-    // Samenvoegen met wat er al is; identieke reacties overslaan (geen dubbeltelling).
+    // Eerst de GEDEELDE set (van alle toestellen) vers ophalen, dan samenvoegen (geen dubbeltelling).
+    st.textContent='Gedeelde ratings ophalen…'; await syncGedeeld();
     const bestaand=laadOpgeslagenReviews();
     const gezien=new Set(bestaand.map(reviewKey));
     const toeTeVoegen=nieuw.filter(r=>{ const k=reviewKey(r); if(gezien.has(k)) return false; gezien.add(k); return true; });
@@ -409,9 +429,12 @@ async function importFile(file){
     st.className='status fout'; st.textContent='Kon het bestand niet inlezen: '+(e&&e.message?e.message:e);
   }
 }
+function serialiseer(data){ return {ts:data.ts,bestand:data.bestand,
+  reviews:data.reviews.map(r=>({score:r.score,activiteit:r.activiteit,datum:(r.datum instanceof Date?r.datum.getTime():(r.datum||null)),uur:r.uur,tekst:r.tekst,vertaald:r.vertaald,lang:r.lang,code:r.code}))}; }
 function bewaar(data){
-  try{ localStorage.setItem(K_DATA, JSON.stringify({ts:data.ts,bestand:data.bestand,
-    reviews:data.reviews.map(r=>({score:r.score,activiteit:r.activiteit,datum:r.datum?r.datum.getTime():null,uur:r.uur,tekst:r.tekst,vertaald:r.vertaald,lang:r.lang,code:r.code}))})); }catch(e){}
+  const s=serialiseer(data);
+  try{ localStorage.setItem(K_DATA, JSON.stringify(s)); }catch(e){}
+  bewaarGedeeld(s); // ook delen zodat alle toestellen het zien
 }
 // De al ingelezen reacties ophalen (datum terug als Date).
 function laadOpgeslagenReviews(){
@@ -570,10 +593,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   const bjs=$('boekjaar'); if(bjs) bjs.onchange=()=>{ _boekjaar=bjs.value; if(_data) render(_data); };
   window.addEventListener('resize',syncActHoogte);
   laadBewaard();
+  syncGedeeld().then(d=>{ if(d) laadBewaard(); }); // gedeelde ratings van andere toestellen ophalen
 });
 
 // Gedeelde API voor andere pagina's (bv. de vergelijk-pagina).
 window.Ratings={ canonAct:canonAct, groepeer:groepeer, avg:avg, fmtScore:fmtScore, kl:kl,
   maandKey:maandKey, maandLabel:maandLabel, taalVan:taalVan, boekjaarKey:boekjaarKey, boekjaarLabel:boekjaarLabel,
-  esc:esc, fmtDate:fmtDate, MND:MND, laadReviews:laadOpgeslagenReviews };
+  esc:esc, fmtDate:fmtDate, MND:MND, laadReviews:laadOpgeslagenReviews, syncGedeeld:syncGedeeld };
 })();
