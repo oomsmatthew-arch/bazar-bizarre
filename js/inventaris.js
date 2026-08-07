@@ -1344,6 +1344,16 @@
     return uit;
   }
 
+  // Een bestand uit de opslagmap weggooien (Database-overzicht bij Instellingen).
+  // Let op: dit kan niet ongedaan gemaakt worden.
+  async function verwijderOpslag(pad){
+    if(!sb) throw new Error('Daar is internet voor nodig.');
+    const r=await sb.storage.from('manuals').remove([pad]);
+    if(r.error) throw r.error;
+    logAct('Bestand uit de opslagmap verwijderd: '+pad);
+    return true;
+  }
+
   // ---------------- SCHRIJVEN (optimistisch + achtergrond naar DB) ----------------
   // gdebouncede bulk-upsert voor stock-aanpassingen
   let dirty=new Set(), flushT=null;
@@ -1619,7 +1629,7 @@
     STD_KOLOMMEN,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
     setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,
-    getManualsTree,saveManualsTree,uploadFile,lijstOpslag,isManualsGedeeld:()=>manualsdocOK,
+    getManualsTree,saveManualsTree,uploadFile,lijstOpslag,verwijderOpslag,isManualsGedeeld:()=>manualsdocOK,
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,

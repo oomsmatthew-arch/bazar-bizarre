@@ -125,9 +125,21 @@ Foto's zitten op vijf plaatsen, en die staan er alle vijf in:
 | 📎 Opslagmap | de losse bestanden (PDF's, video's, projectdocumenten) uit Supabase Storage |
 
 Tik een foto om ze groot te bekijken; met de knopjes filter je per soort en met het zoekveld
-zoek je op naam. Het scherm **toont enkel** — je kan er niets mee wissen of wijzigen.
-Video's uit een checklist staan er ook bij, met de melding *enkel op dit toestel*: die worden
-om plaatsredenen niet in de database bewaard maar in de ruime opslag van de browser.
+zoek je op naam. Video's uit een checklist staan er ook bij, met de melding *enkel op dit
+toestel*: die worden om plaatsredenen niet in de database bewaard maar in de ruime opslag
+van de browser.
+
+**Downloaden.** Op elke foto staat rechtsboven een **⬇**-knopje dat die ene foto bewaart, met
+een herkenbare naam (bv. `Voorraad-Beertje-knuffel.jpg`). Bovenaan staat **⬇ Alles downloaden
+(.zip)**: dat maakt één zip-bestand van alles wat op dat moment op het scherm staat — dus
+filter of zoek eerst als je maar een deel wil. De zip wordt in de app zelf gemaakt (geen
+extra bibliotheek, zie `dbZip` in `paginas/instellingen.html`); de foto's gaan er
+ongecomprimeerd in, want JPEG's krimpen toch niet meer.
+
+**Verwijderen** kan enkel bij de **📎 Opslagmap** — dat is de enige plek waar je die losse
+bestanden anders niet weg krijgt. De app kijkt eerst na of het bestand ergens gebruikt wordt
+(Online manuals of een projectdocument) en zegt dat in de vraag. Weg is weg. De andere foto's
+verwijder je waar ze horen: bij de prijs, bij de levering, bij de checklist of bij je profiel.
 
 ## Systeem (diagnose)
 

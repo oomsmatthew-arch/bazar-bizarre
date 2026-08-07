@@ -40,6 +40,7 @@
       <p class="hint">Alles wat er aan foto's en bestanden in de gedeelde database zit, op één plek.
         Tik een foto om ze groot te bekijken. Dit scherm toont enkel — het wijzigt niets.</p>
       <div class="invsum" id="dbSum"></div>
+      <div class="dbbalk"><button class="btn primary" id="dbAlles">⬇ Alles downloaden (.zip)</button></div>
       <input type="text" id="dbZoek" class="finp zoek" placeholder="Zoek op naam…">
       <div class="invfilter" id="dbFilter"></div>
       <div class="fotogrid" id="dbGrid"></div>
@@ -246,10 +247,144 @@ function dbVerzamel(){
   (dbOpslag||[]).forEach(f=>{
     const beeld=/^image\//.test(f.type||'')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.naam||'');
     uit.push({bron:'opslag',bronLabel:'Opslagmap', naam:f.naam, sub:f.pad.indexOf('/')>0?('in '+f.pad.split('/').slice(0,-1).join(' › ')):'los bestand',
-      src:beeld?f.url:'', url:f.url, bestand:!beeld, bytes:f.grootte});
+      src:beeld?f.url:'', url:f.url, pad:f.pad, bestand:!beeld, bytes:f.grootte});
   });
   return uit;
 }
+// ---- Downloaden ----
+// Een foto staat als tekst in de database; met fetch() maken we daar weer een
+// echt bestand van, zodat de browser hem gewoon kan bewaren.
+function dbVeiligeNaam(s){
+  return String(s||'foto').replace(/[^\w\s.\-]+/g,'').trim().replace(/\s+/g,'-').slice(0,60)||'foto';
+}
+function dbExtensie(x){
+  if(x.bestand||!x.src) return '';                       // los bestand: naam heeft al een extensie
+  const m=/^data:image\/([a-z0-9.+-]+)/i.exec(x.src||'');
+  const t=(m?m[1]:'jpeg').toLowerCase();
+  return '.'+(t==='jpeg'?'jpg':t==='svg+xml'?'svg':t);
+}
+function dbBestandsnaam(x){
+  if(x.bestand) return dbVeiligeNaam(x.naam);
+  return dbVeiligeNaam(x.bronLabel+'-'+x.naam)+dbExtensie(x);
+}
+async function dbBlob(x){
+  const bron=x.src||x.url; if(!bron) return null;
+  const r=await fetch(bron); if(!r.ok) throw new Error('http '+r.status);
+  return await r.blob();
+}
+function dbBewaar(blob,naam){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=naam;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+async function dbDownload(x){
+  try{
+    const blob=await dbBlob(x);
+    if(!blob){ alert('Van dit item is er niets om te downloaden.'); return; }
+    dbBewaar(blob,dbBestandsnaam(x));
+  }catch(e){
+    if(x.url) window.open(x.url,'_blank','noopener');     // lukt het niet, dan gewoon openen
+    else alert('Downloaden is niet gelukt: '+(e&&e.message?e.message:e));
+  }
+}
+
+// ---- Alles in één zip-bestand (zonder extra bibliotheek) ----
+// De foto's gaan ongecomprimeerd in de zip ("store"): het zijn JPEG's en die krimpen
+// toch niet meer. Zo blijft dit een handvol regels in plaats van een hele bibliotheek.
+const DB_CRC=(()=>{ const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; }
+  return t; })();
+function dbCrc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=DB_CRC[(c^u8[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function dbZip(bestanden){
+  const enc=new TextEncoder(), delen=[], centraal=[];
+  const d=new Date();
+  const tijd=((d.getHours()&31)<<11)|((d.getMinutes()&63)<<5)|((d.getSeconds()/2)&31);
+  const datum=(((d.getFullYear()-1980)&127)<<9)|(((d.getMonth()+1)&15)<<5)|(d.getDate()&31);
+  let offset=0;
+  bestanden.forEach(b=>{
+    const naam=enc.encode(b.naam), data=b.data, crc=dbCrc32(data);
+    const lok=new DataView(new ArrayBuffer(30));
+    lok.setUint32(0,0x04034b50,true); lok.setUint16(4,20,true); lok.setUint16(6,0x0800,true);
+    lok.setUint16(8,0,true); lok.setUint16(10,tijd,true); lok.setUint16(12,datum,true);
+    lok.setUint32(14,crc,true); lok.setUint32(18,data.length,true); lok.setUint32(22,data.length,true);
+    lok.setUint16(26,naam.length,true); lok.setUint16(28,0,true);
+    delen.push(new Uint8Array(lok.buffer),naam,data);
+    const cen=new DataView(new ArrayBuffer(46));
+    cen.setUint32(0,0x02014b50,true); cen.setUint16(4,20,true); cen.setUint16(6,20,true);
+    cen.setUint16(8,0x0800,true); cen.setUint16(10,0,true);
+    cen.setUint16(12,tijd,true); cen.setUint16(14,datum,true);
+    cen.setUint32(16,crc,true); cen.setUint32(20,data.length,true); cen.setUint32(24,data.length,true);
+    cen.setUint16(28,naam.length,true); cen.setUint16(30,0,true); cen.setUint16(32,0,true);
+    cen.setUint16(34,0,true); cen.setUint16(36,0,true); cen.setUint32(38,0,true);
+    cen.setUint32(42,offset,true);
+    centraal.push(new Uint8Array(cen.buffer),naam);
+    offset+=30+naam.length+data.length;
+  });
+  let cenLen=0; centraal.forEach(x=>cenLen+=x.length);
+  const eind=new DataView(new ArrayBuffer(22));
+  eind.setUint32(0,0x06054b50,true); eind.setUint16(4,0,true); eind.setUint16(6,0,true);
+  eind.setUint16(8,bestanden.length,true); eind.setUint16(10,bestanden.length,true);
+  eind.setUint32(12,cenLen,true); eind.setUint32(16,offset,true); eind.setUint16(20,0,true);
+  return new Blob(delen.concat(centraal,[new Uint8Array(eind.buffer)]),{type:'application/zip'});
+}
+async function dbDownloadAlles(){
+  const knop=document.getElementById('dbAlles');
+  const lijst=dbZichtbaar().filter(x=>x.src||x.url);
+  if(!lijst.length){ alert('Er is hier niets om te downloaden.'); return; }
+  const oud=knop.textContent; knop.disabled=true;
+  const gebruikt={}, bestanden=[]; let mislukt=0;
+  for(let i=0;i<lijst.length;i++){
+    knop.textContent='Bezig… '+(i+1)+' van '+lijst.length;
+    try{
+      const blob=await dbBlob(lijst[i]); if(!blob) throw new Error('leeg');
+      let naam=dbBestandsnaam(lijst[i]);
+      if(gebruikt[naam]){ const p=naam.lastIndexOf('.'); const n=(gebruikt[naam]++);
+        naam=(p>0?naam.slice(0,p)+'-'+n+naam.slice(p):naam+'-'+n); }
+      else gebruikt[naam]=2;
+      bestanden.push({naam,data:new Uint8Array(await blob.arrayBuffer())});
+    }catch(e){ mislukt++; }
+  }
+  knop.disabled=false; knop.textContent=oud;
+  if(!bestanden.length){ alert('Er kon niets opgehaald worden. Is er internet?'); return; }
+  const nu=new Date(), p=n=>String(n).padStart(2,'0');
+  dbBewaar(dbZip(bestanden),'entertainment-fotos-'+nu.getFullYear()+p(nu.getMonth()+1)+p(nu.getDate())+'.zip');
+  if(mislukt) alert(bestanden.length+' bewaard. '+mislukt+' item(s) lukten niet — die staan waarschijnlijk enkel op een ander toestel.');
+}
+
+// ---- Een bestand uit de opslagmap weggooien ----
+// Enkel voor de opslagmap: foto's bij een prijs, levering, profiel of checklist haal
+// je weg op de plek zelf. Eerst nakijken of het bestand ergens gebruikt wordt.
+function dbInGebruik(url){
+  const waar=[];
+  try{
+    const zoek=(node,pad)=>{
+      (node.folders||[]).forEach(f=>zoek(f,pad.concat(f.name)));
+      (node.items||[]).forEach(it=>{ if(it.src===url) waar.push('Online manuals: '+(it.title||it.src)); });
+    };
+    const tr=BBInv.getManualsTree(); if(tr) zoek(tr,[]);
+  }catch(e){}
+  try{
+    (BBInv.getProjecten()||[]).forEach(p=>{
+      (BBInv.getDocs(p.id)||[]).forEach(d=>{ if(d.url===url) waar.push('Projecten · '+p.naam+': '+(d.naam||d.url)); });
+    });
+  }catch(e){}
+  return waar;
+}
+async function dbVerwijder(x){
+  if(!x.pad){ return; }
+  const gebruikt=dbInGebruik(x.url);
+  const waarschuwing=gebruikt.length
+    ? '\n\nLET OP — dit bestand wordt gebruikt bij:\n· '+gebruikt.join('\n· ')+'\nDaar werkt het dan niet meer.'
+    : '\n\nEr is geen koppeling gevonden bij Online manuals of Projecten.';
+  if(!confirm('"'+x.naam+'" ('+dbFmt(x.bytes)+') definitief uit de opslagmap verwijderen?'+waarschuwing+'\n\nDit kan niet ongedaan gemaakt worden.')) return;
+  try{
+    await BBInv.verwijderOpslag(x.pad);
+    dbOpslag=(dbOpslag||[]).filter(f=>f.pad!==x.pad);
+    renderDatabase();
+  }catch(e){ alert('Verwijderen is niet gelukt: '+(e&&e.message?e.message:e)); }
+}
+
 function renderDbFilter(){
   const el=document.getElementById('dbFilter');
   const alles=dbVerzamel();
@@ -260,6 +395,13 @@ function renderDbFilter(){
   }).join('');
   el.querySelectorAll('[data-db]').forEach(c=>c.onclick=()=>{ dbFilter=c.dataset.db; renderDatabase(); });
 }
+// Wat er op dit moment op het scherm staat (filter + zoekterm toegepast).
+function dbZichtbaar(){
+  let lijst=dbVerzamel();
+  if(dbFilter!=='all') lijst=lijst.filter(x=>x.bron===dbFilter);
+  if(dbQ){ const q=dbQ.toLowerCase(); lijst=lijst.filter(x=>((x.naam||'')+' '+(x.sub||'')).toLowerCase().indexOf(q)>=0); }
+  return lijst.sort((a,b)=>b.bytes-a.bytes);   // grootste bovenaan: die kosten de meeste plaats
+}
 function renderDatabase(){
   const grid=document.getElementById('dbGrid'); if(!grid) return;
   const alles=dbVerzamel();
@@ -269,10 +411,11 @@ function renderDatabase(){
     '<span class="pill">samen <b>'+dbFmt(totaal)+'</b></span>'+
     (dbOpslagBezig?'<span class="pill">opslagmap ophalen…</span>':'');
   renderDbFilter();
-  let lijst=alles;
-  if(dbFilter!=='all') lijst=lijst.filter(x=>x.bron===dbFilter);
-  if(dbQ){ const q=dbQ.toLowerCase(); lijst=lijst.filter(x=>((x.naam||'')+' '+(x.sub||'')).toLowerCase().indexOf(q)>=0); }
-  lijst.sort((a,b)=>b.bytes-a.bytes);   // grootste bovenaan: die kosten de meeste plaats
+  const lijst=dbZichtbaar();
+  const teHalen=lijst.filter(x=>x.src||x.url).length;
+  const alle=document.getElementById('dbAlles');
+  alle.style.display=teHalen?'':'none';
+  alle.textContent='⬇ Alles downloaden (.zip) — '+teHalen+' stuk'+(teHalen===1?'':'s');
   if(!lijst.length){
     grid.innerHTML='<div class="dbleeg">'+(dbQ||dbFilter!=='all'
       ? 'Niets gevonden voor deze keuze.'
@@ -285,17 +428,21 @@ function renderDatabase(){
         (x.src?('<img src="'+esc(x.src)+'" alt="" data-i="'+i+'" loading="lazy">')
              :('<span class="geenbeeld">'+(x.video?'🎬':'📄')+'</span>'))+
         '<span class="bron">'+esc(x.bronLabel)+'</span>'+
+        ((x.src||x.url)?('<button class="dl" data-dl="'+i+'" title="Downloaden">⬇</button>'):'')+
       '</div>'+
       '<div class="tekst">'+
         '<div class="nm">'+esc(x.naam)+'</div>'+
         '<div class="sub">'+esc(x.sub||'')+'</div>'+
         (x.video?'<div class="mb lokaal">enkel op dit toestel</div>':'<div class="mb">'+dbFmt(x.bytes)+'</div>')+
         (x.bestand&&x.url?'<a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">openen ›</a>':'')+
+        (x.pad?'<a class="open" href="#" data-del="'+i+'" style="color:#c0392b;margin-left:10px;">verwijderen</a>':'')+
       '</div>'+
     '</div>').join('');
   grid.querySelectorAll('img[data-i]').forEach(img=>{
     img.onclick=()=>viewMedia({type:'foto',src:lijst[+img.dataset.i].src});
   });
+  grid.querySelectorAll('[data-dl]').forEach(b=>{ b.onclick=e=>{ e.stopPropagation(); dbDownload(lijst[+b.dataset.dl]); }; });
+  grid.querySelectorAll('[data-del]').forEach(b=>{ b.onclick=e=>{ e.preventDefault(); dbVerwijder(lijst[+b.dataset.del]); }; });
 }
 // De opslagmap zit niet in de gewone gegevens: die halen we apart op (één keer).
 function dbHaalOpslag(){
@@ -307,6 +454,7 @@ function dbHaalOpslag(){
     .then(()=>{ dbOpslagBezig=false; renderDatabase(); });
 }
 document.getElementById('dbZoek').oninput=e=>{ dbQ=e.target.value.trim(); renderDatabase(); };
+document.getElementById('dbAlles').onclick=dbDownloadAlles;
 
 // ---- tabbladen ----
 let sTab='algemeen';
