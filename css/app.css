@@ -692,3 +692,26 @@
   .topbar .logolink{flex:0 0 auto;display:block;}
   /* De inhoud van een aparte pagina staat altijd zichtbaar. */
   .view.paginainhoud{display:block;}
+
+  /* ---- Database-overzicht (Instellingen → Database): alle foto's en bestanden ---- */
+  .fotogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px;}
+  .fotokaart{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;}
+  .fotokaart .beeld{position:relative;width:100%;aspect-ratio:1/1;background:var(--panel2);
+    display:grid;place-items:center;overflow:hidden;}
+  .fotokaart .beeld img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
+  .fotokaart .beeld .geenbeeld{font-size:34px;color:var(--muted);}
+  .fotokaart .bron{position:absolute;left:6px;top:6px;font-size:10px;font-weight:800;letter-spacing:.4px;
+    text-transform:uppercase;background:rgba(255,255,255,.92);color:var(--forest);border-radius:999px;
+    padding:2px 8px;border:1px solid var(--line);}
+  [data-theme="dark"] .fotokaart .bron{background:rgba(24,39,31,.92);}
+  .fotokaart .tekst{padding:9px 11px 11px;}
+  .fotokaart .nm{font-weight:700;font-size:13px;color:var(--text);line-height:1.25;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
+  .fotokaart .sub{font-size:11px;color:var(--muted);margin-top:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fotokaart .mb{font-size:11px;font-weight:800;color:var(--forest);margin-top:4px;}
+  .fotokaart .mb.lokaal{color:var(--muted);font-weight:700;}
+  .fotokaart a.open{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;color:var(--water);}
+  .dbleeg{grid-column:1/-1;background:var(--panel);border:1px dashed var(--line);border-radius:14px;
+    padding:18px;color:var(--muted);font-size:14px;line-height:1.5;}

@@ -30,6 +30,23 @@
 
   <p class="hint" id="wachtNote">Even geduld — deze pagina is beveiligd met het beheer-wachtwoord.</p>
   <div class="view paginainhoud" id="instellingen" style="display:none">
+    <div class="invtabs">
+      <button class="invtab active" data-stab="algemeen">⚙ Instellingen</button>
+      <button class="invtab" data-stab="database">🗄️ Database</button>
+    </div>
+
+    <!-- DATABASE: alle foto's en bestanden die in de gedeelde database staan -->
+    <div class="invpane" id="spane-database">
+      <p class="hint">Alles wat er aan foto's en bestanden in de gedeelde database zit, op één plek.
+        Tik een foto om ze groot te bekijken. Dit scherm toont enkel — het wijzigt niets.</p>
+      <div class="invsum" id="dbSum"></div>
+      <input type="text" id="dbZoek" class="finp zoek" placeholder="Zoek op naam…">
+      <div class="invfilter" id="dbFilter"></div>
+      <div class="fotogrid" id="dbGrid"></div>
+    </div>
+
+    <!-- INSTELLINGEN -->
+    <div class="invpane active" id="spane-algemeen">
     <p class="hint">Wijzig hier de mededeling op de homepagina. Alles wordt automatisch op dit toestel bewaard.</p>
     <div class="settings">
       <div class="field breed">
@@ -93,6 +110,7 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 
   <footer>
@@ -109,7 +127,7 @@
 // ---------------- INSTELLINGEN (achter het wachtwoord) ----------------
 // Deze pagina is beveiligd: eerst het beheer-wachtwoord (vaste medewerkers komen
 // er zonder). Zolang dat niet gebeurd is blijft de inhoud verborgen.
-let toegangGevraagd=false;
+let toegangGevraagd=false, toegangTimer=null;
 function vulVelden(){
   document.getElementById('setMededeling').value=getMededeling();
   document.getElementById('setProjMaken').value=getProjMaken();
@@ -124,9 +142,20 @@ function vulVelden(){
 function vraagToegang(){
   if(toegangGevraagd) return;
   if(!currentUser()) return;                                    // eerst inloggen
-  if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;    // rollen nog niet geladen
+  // Zijn de rollen nog niet geladen, dan wachten we even: een vaste medewerker hoeft
+  // geen wachtwoord. Maar niet eindeloos — lukt het laden niet (geen internet, of de
+  // toegangscode is nog niet ingevuld), dan vragen we het wachtwoord gewoon alsnog.
+  if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())){
+    if(!toegangTimer) toegangTimer=setTimeout(()=>{ toegangTimer=null; openInstellingen(); },3000);
+    return;
+  }
+  openInstellingen();
+}
+function openInstellingen(){
+  if(toegangGevraagd||!currentUser()) return;
   toegangGevraagd=true;
-  if(!magBeheren()){ location.replace('entertainment.html'); return; }
+  clearTimeout(toegangTimer); toegangTimer=null;
+  if(!magBeheren()){ location.replace('../entertainment.html'); return; }
   document.getElementById('wachtNote').style.display='none';
   document.getElementById('instellingen').style.display='';
   vulVelden();
@@ -173,10 +202,130 @@ document.getElementById('changePin').onclick=()=>{
   alert('Wachtwoord gewijzigd.');
 };
 
+// ================= DATABASE: alle foto's en bestanden =================
+// Foto's zitten op vier plaatsen in de gedeelde database (bij een prijs, bij een
+// levering, bij een gebruiker en in een checklist-item) en de losse bestanden staan
+// in de opslagmap. Hier zetten we dat allemaal naast elkaar, zodat je in één blik
+// ziet wat er bewaard is — en vooral hoeveel plaats het inneemt.
+const DB_BRONNEN=[
+  {key:'all',      label:'Alles'},
+  {key:'voorraad', label:'🏷️ Voorraad'},
+  {key:'levering', label:'🚚 Leveringen'},
+  {key:'profiel',  label:'👤 Profielfoto\'s'},
+  {key:'checklist',label:'✅ Checklists'},
+  {key:'opslag',   label:'📎 Opslagmap'}
+];
+let dbFilter='all', dbQ='', dbOpslag=null, dbOpslagBezig=false;
+
+// Een foto staat als tekst (data-URL) in de database; ±3 tekens = 4 bytes.
+function dbBytes(src){ return src?Math.round((String(src).length-22)*0.75):0; }
+function dbFmt(n){
+  if(!n) return '—';
+  if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(0)+' kB';
+  return (n/1024/1024).toFixed(1)+' MB';
+}
+// Alles verzamelen wat in de gedeelde database staat.
+function dbVerzamel(){
+  const uit=[];
+  BBInv.getPrijzen().forEach(p=>{ if(p.foto) uit.push({bron:'voorraad',bronLabel:'Voorraad',
+    naam:p.naam, sub:(p.cat==='groot'?'Grote prijs':'Kleine prijs'), src:p.foto, bytes:dbBytes(p.foto)}); });
+  BBInv.getLeveringen().forEach(l=>{ if(l.foto) uit.push({bron:'levering',bronLabel:'Levering',
+    naam:l.tekst||'Levering', sub:l.datum||bbFmtTs(l.ts), src:l.foto, bytes:dbBytes(l.foto)}); });
+  ((window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[]).forEach(u=>{ if(u.foto) uit.push({bron:'profiel',bronLabel:'Profiel',
+    naam:u.naam||'Zonder naam', sub:'Profielfoto', src:u.foto, bytes:dbBytes(u.foto)}); });
+  BBInv.getChecklisten().forEach(l=>(l.items||[]).forEach(it=>{
+    const media=Array.isArray(it.media)?it.media:(it.foto?[{type:'foto',src:it.foto}]:[]);
+    media.forEach(m=>{
+      if(m.type==='video') uit.push({bron:'checklist',bronLabel:'Checklist',
+        naam:it.text||'Zonder tekst', sub:l.naam+' · video', src:'', video:true, bytes:0});
+      else uit.push({bron:'checklist',bronLabel:'Checklist',
+        naam:it.text||'Zonder tekst', sub:l.naam, src:m.src||'', bytes:dbBytes(m.src)});
+    });
+  }));
+  (dbOpslag||[]).forEach(f=>{
+    const beeld=/^image\//.test(f.type||'')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.naam||'');
+    uit.push({bron:'opslag',bronLabel:'Opslagmap', naam:f.naam, sub:f.pad.indexOf('/')>0?('in '+f.pad.split('/').slice(0,-1).join(' › ')):'los bestand',
+      src:beeld?f.url:'', url:f.url, bestand:!beeld, bytes:f.grootte});
+  });
+  return uit;
+}
+function renderDbFilter(){
+  const el=document.getElementById('dbFilter');
+  const alles=dbVerzamel();
+  el.innerHTML=DB_BRONNEN.map(b=>{
+    const n=b.key==='all'?alles.length:alles.filter(x=>x.bron===b.key).length;
+    if(b.key!=='all'&&!n) return '';   // lege bronnen niet tonen
+    return '<button class="chip'+(dbFilter===b.key?' active':'')+'" data-db="'+b.key+'">'+b.label+' ('+n+')</button>';
+  }).join('');
+  el.querySelectorAll('[data-db]').forEach(c=>c.onclick=()=>{ dbFilter=c.dataset.db; renderDatabase(); });
+}
+function renderDatabase(){
+  const grid=document.getElementById('dbGrid'); if(!grid) return;
+  const alles=dbVerzamel();
+  const totaal=alles.reduce((s,x)=>s+x.bytes,0);
+  document.getElementById('dbSum').innerHTML=
+    '<span class="pill"><b>'+alles.length+'</b> in totaal</span>'+
+    '<span class="pill">samen <b>'+dbFmt(totaal)+'</b></span>'+
+    (dbOpslagBezig?'<span class="pill">opslagmap ophalen…</span>':'');
+  renderDbFilter();
+  let lijst=alles;
+  if(dbFilter!=='all') lijst=lijst.filter(x=>x.bron===dbFilter);
+  if(dbQ){ const q=dbQ.toLowerCase(); lijst=lijst.filter(x=>((x.naam||'')+' '+(x.sub||'')).toLowerCase().indexOf(q)>=0); }
+  lijst.sort((a,b)=>b.bytes-a.bytes);   // grootste bovenaan: die kosten de meeste plaats
+  if(!lijst.length){
+    grid.innerHTML='<div class="dbleeg">'+(dbQ||dbFilter!=='all'
+      ? 'Niets gevonden voor deze keuze.'
+      : 'Er staan nog geen foto\'s of bestanden in de database. Voeg er een toe bij een prijs, een levering, een checklist of je profiel.')+'</div>';
+    return;
+  }
+  grid.innerHTML=lijst.map((x,i)=>
+    '<div class="fotokaart">'+
+      '<div class="beeld">'+
+        (x.src?('<img src="'+esc(x.src)+'" alt="" data-i="'+i+'" loading="lazy">')
+             :('<span class="geenbeeld">'+(x.video?'🎬':'📄')+'</span>'))+
+        '<span class="bron">'+esc(x.bronLabel)+'</span>'+
+      '</div>'+
+      '<div class="tekst">'+
+        '<div class="nm">'+esc(x.naam)+'</div>'+
+        '<div class="sub">'+esc(x.sub||'')+'</div>'+
+        (x.video?'<div class="mb lokaal">enkel op dit toestel</div>':'<div class="mb">'+dbFmt(x.bytes)+'</div>')+
+        (x.bestand&&x.url?'<a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">openen ›</a>':'')+
+      '</div>'+
+    '</div>').join('');
+  grid.querySelectorAll('img[data-i]').forEach(img=>{
+    img.onclick=()=>viewMedia({type:'foto',src:lijst[+img.dataset.i].src});
+  });
+}
+// De opslagmap zit niet in de gewone gegevens: die halen we apart op (één keer).
+function dbHaalOpslag(){
+  if(dbOpslag||dbOpslagBezig||!(window.BBInv&&BBInv.lijstOpslag)) return;
+  dbOpslagBezig=true; renderDatabase();
+  BBInv.lijstOpslag()
+    .then(l=>{ dbOpslag=l||[]; })
+    .catch(()=>{ dbOpslag=[]; })
+    .then(()=>{ dbOpslagBezig=false; renderDatabase(); });
+}
+document.getElementById('dbZoek').oninput=e=>{ dbQ=e.target.value.trim(); renderDatabase(); };
+
+// ---- tabbladen ----
+let sTab='algemeen';
+document.querySelectorAll('.invtab[data-stab]').forEach(b=>{
+  b.onclick=()=>{
+    sTab=b.dataset.stab;
+    document.querySelectorAll('.invtab[data-stab]').forEach(x=>x.classList.toggle('active',x===b));
+    document.querySelectorAll('#instellingen .invpane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('spane-'+sTab).classList.add('active');
+    if(sTab==='database'){ renderDatabase(); dbHaalOpslag(); }
+  };
+});
+
 // ---- opstarten ----
 window.bbStart=vraagToegang;      // lukt pas als je ingelogd bent
 window.bbNaLogin=vraagToegang;
 window.bbRolGewijzigd=vraagToegang;
+// Komen de foto's achteraf binnen (die worden apart nageladen), dan meteen bijwerken.
+window.bbOnChange=()=>{ if(sTab==='database') renderDatabase(); };
 </script>
 </body>
 </html>

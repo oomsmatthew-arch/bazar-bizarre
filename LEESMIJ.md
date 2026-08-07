@@ -107,6 +107,28 @@ tegelijk hebben, of geen van beide.
   het financieel overzicht, projecten aanmaken…).
 - **Admin** — ziet op de homepagina de kaarten **Systeem** en **Activiteit**.
 
+## Database (alle foto's op één plek)
+
+Bij **Instellingen** staat een tweede tabblad **🗄️ Database**. Daar zie je alles wat er aan
+foto's en bestanden in de gedeelde database zit, met de grootste bovenaan — want foto's zijn
+veruit het zwaarste dat de app bewaart. Handig als de opslag vol dreigt te lopen (zie
+*Systeem → Opslag op dit toestel*): hier zie je meteen wélke foto de plaats inneemt.
+
+Foto's zitten op vijf plaatsen, en die staan er alle vijf in:
+
+| Waar | Wat |
+|---|---|
+| 🏷️ Voorraad | de foto bij een prijs |
+| 🚚 Leveringen | de foto bij een geregistreerde levering |
+| 👤 Profielfoto's | de foto bij een collega in de namenlijst |
+| ✅ Checklists | foto's bij een checklist-item |
+| 📎 Opslagmap | de losse bestanden (PDF's, video's, projectdocumenten) uit Supabase Storage |
+
+Tik een foto om ze groot te bekijken; met de knopjes filter je per soort en met het zoekveld
+zoek je op naam. Het scherm **toont enkel** — je kan er niets mee wissen of wijzigen.
+Video's uit een checklist staan er ook bij, met de melding *enkel op dit toestel*: die worden
+om plaatsredenen niet in de database bewaard maar in de ruime opslag van de browser.
+
 ## Systeem (diagnose)
 
 De kaart **Systeem** op de homepagina (zichtbaar voor admins; anders via ⚙ Instellingen →

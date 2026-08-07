@@ -1314,6 +1314,36 @@
     return (pub&&pub.data)?pub.data.publicUrl:'';
   }
 
+  // Alles opsommen wat er in de opslagmap (bucket 'manuals') staat, ook in submappen.
+  // Puur lezen — bedoeld voor het Database-overzicht bij Instellingen.
+  async function lijstOpslag(){
+    if(!sb) return [];
+    const uit=[];
+    async function doorloop(prefix,diep){
+      if(diep>4) return;                                  // veiligheidsrem tegen diepe mappen
+      let offset=0;
+      for(;;){
+        const r=await sb.storage.from('manuals').list(prefix,{limit:100,offset,sortBy:{column:'name',order:'asc'}});
+        if(r.error||!r.data||!r.data.length) return;
+        for(const it of r.data){
+          if(!it.name||it.name.charAt(0)==='.') continue;  // .emptyFolderPlaceholder e.d.
+          const pad=(prefix?prefix+'/':'')+it.name;
+          if(!it.metadata){ await doorloop(pad,diep+1); continue; }   // dit is een map
+          const pub=sb.storage.from('manuals').getPublicUrl(pad);
+          uit.push({naam:it.name, pad,
+            url:(pub&&pub.data)?pub.data.publicUrl:'',
+            grootte:+(it.metadata.size||0),
+            type:it.metadata.mimetype||'',
+            gewijzigd:it.updated_at||it.created_at||''});
+        }
+        if(r.data.length<100) return;
+        offset+=100;
+      }
+    }
+    try{ await doorloop('',0); }catch(e){}
+    return uit;
+  }
+
   // ---------------- SCHRIJVEN (optimistisch + achtergrond naar DB) ----------------
   // gdebouncede bulk-upsert voor stock-aanpassingen
   let dirty=new Set(), flushT=null;
@@ -1589,7 +1619,7 @@
     STD_KOLOMMEN,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
     setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,
-    getManualsTree,saveManualsTree,uploadFile,isManualsGedeeld:()=>manualsdocOK,
+    getManualsTree,saveManualsTree,uploadFile,lijstOpslag,isManualsGedeeld:()=>manualsdocOK,
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
