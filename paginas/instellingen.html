@@ -40,7 +40,11 @@
       <p class="hint">Alles wat er aan foto's en bestanden in de gedeelde database zit, op één plek.
         Tik een foto om ze groot te bekijken. Dit scherm toont enkel — het wijzigt niets.</p>
       <div class="invsum" id="dbSum"></div>
-      <div class="dbbalk"><button class="btn primary" id="dbAlles">⬇ Alles downloaden (.zip)</button></div>
+      <div class="dbbalk">
+        <button class="btn primary" id="dbAlles">⬇ Alles downloaden (.zip)</button>
+        <button class="btn" id="dbNu">🔄 Nu bijwerken</button>
+        <span class="sysupd" id="dbUpd"></span>
+      </div>
       <input type="text" id="dbZoek" class="finp zoek" placeholder="Zoek op naam…">
       <div class="invfilter" id="dbFilter"></div>
       <div class="fotogrid" id="dbGrid"></div>
@@ -409,7 +413,7 @@ function renderDatabase(){
   document.getElementById('dbSum').innerHTML=
     '<span class="pill"><b>'+alles.length+'</b> in totaal</span>'+
     '<span class="pill">samen <b>'+dbFmt(totaal)+'</b></span>'+
-    (dbOpslagBezig?'<span class="pill">opslagmap ophalen…</span>':'');
+    (dbOpslagBezig?'<span class="pill">bijwerken…</span>':'');
   renderDbFilter();
   const lijst=dbZichtbaar();
   const teHalen=lijst.filter(x=>x.src||x.url).length;
@@ -444,17 +448,34 @@ function renderDatabase(){
   grid.querySelectorAll('[data-dl]').forEach(b=>{ b.onclick=e=>{ e.stopPropagation(); dbDownload(lijst[+b.dataset.dl]); }; });
   grid.querySelectorAll('[data-del]').forEach(b=>{ b.onclick=e=>{ e.preventDefault(); dbVerwijder(lijst[+b.dataset.del]); }; });
 }
-// De opslagmap zit niet in de gewone gegevens: die halen we apart op (één keer).
-function dbHaalOpslag(){
-  if(dbOpslag||dbOpslagBezig||!(window.BBInv&&BBInv.lijstOpslag)) return;
+// ---- Bijwerken ----
+// Twee dingen komen NIET vanzelf binnen als een collega iets toevoegt:
+//  1. een nieuwe foto bij een prijs, levering of profiel — die kolom is te zwaar om
+//     bij elke wijziging mee te sturen, dus vragen we ze apart op (haalFotosBij);
+//  2. de opslagmap, want die staat los van de gewone gegevens.
+// (Checklist-foto's komen wél meteen mee.) Daarom werken we bij zodra je dit tabblad
+// opent, daarna elke 30 seconden zolang het openstaat, en met de knop 🔄 Nu bijwerken.
+function dbStempel(){
+  const el=document.getElementById('dbUpd'); if(!el) return;
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  el.textContent='bijgewerkt om '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+function dbVernieuw(){
+  if(dbOpslagBezig) return;
   dbOpslagBezig=true; renderDatabase();
-  BBInv.lijstOpslag()
-    .then(l=>{ dbOpslag=l||[]; })
-    .catch(()=>{ dbOpslag=[]; })
-    .then(()=>{ dbOpslagBezig=false; renderDatabase(); });
+  const werk=[];
+  if(window.BBInv&&BBInv.haalFotosBij) werk.push(BBInv.haalFotosBij().catch(()=>{}));
+  if(window.BBInv&&BBInv.lijstOpslag) werk.push(BBInv.lijstOpslag().then(l=>{ dbOpslag=l||[]; }).catch(()=>{ if(!dbOpslag) dbOpslag=[]; }));
+  Promise.all(werk).then(()=>{ dbOpslagBezig=false; dbStempel(); renderDatabase(); });
+}
+let dbTimer=null;
+function dbAutoBijwerken(aan){
+  clearInterval(dbTimer); dbTimer=null;
+  if(aan) dbTimer=setInterval(dbVernieuw,30000);
 }
 document.getElementById('dbZoek').oninput=e=>{ dbQ=e.target.value.trim(); renderDatabase(); };
 document.getElementById('dbAlles').onclick=dbDownloadAlles;
+document.getElementById('dbNu').onclick=dbVernieuw;
 
 // ---- tabbladen ----
 let sTab='algemeen';
@@ -464,7 +485,8 @@ document.querySelectorAll('.invtab[data-stab]').forEach(b=>{
     document.querySelectorAll('.invtab[data-stab]').forEach(x=>x.classList.toggle('active',x===b));
     document.querySelectorAll('#instellingen .invpane').forEach(p=>p.classList.remove('active'));
     document.getElementById('spane-'+sTab).classList.add('active');
-    if(sTab==='database'){ renderDatabase(); dbHaalOpslag(); }
+    if(sTab==='database'){ renderDatabase(); dbVernieuw(); }
+    dbAutoBijwerken(sTab==='database');   // enkel bijwerken zolang je ernaar kijkt
   };
 });
 

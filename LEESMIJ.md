@@ -136,6 +136,14 @@ filter of zoek eerst als je maar een deel wil. De zip wordt in de app zelf gemaa
 extra bibliotheek, zie `dbZip` in `paginas/instellingen.html`); de foto's gaan er
 ongecomprimeerd in, want JPEG's krimpen toch niet meer.
 
+**Blijft het overzicht actueel?** Ja, zolang je ernaar kijkt. Zet een collega een foto
+online, dan verschijnt die vanzelf. Twee soorten komen niet met de gewone live-verbinding
+mee — een nieuwe foto bij een prijs, levering of profiel (die kolom is te zwaar om bij elke
+voorraadtik mee te sturen) en de opslagmap (die staat los van de tabellen). Die haalt dit
+scherm daarom apart op: zodra je het tabblad opent, daarna elke 30 seconden zolang het
+openstaat, en met de knop **🔄 Nu bijwerken**. Rechts staat wanneer het laatst gebeurde.
+Sluit je het tabblad, dan stopt dat bijwerken weer.
+
 **Verwijderen** kan enkel bij de **📎 Opslagmap** — dat is de enige plek waar je die losse
 bestanden anders niet weg krijgt. De app kijkt eerst na of het bestand ergens gebruikt wordt
 (Online manuals of een projectdocument) en zegt dat in de vraag. Weg is weg. De andere foto's

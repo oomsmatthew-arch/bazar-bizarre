@@ -1630,6 +1630,7 @@
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
     setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,
     getManualsTree,saveManualsTree,uploadFile,lijstOpslag,verwijderOpslag,isManualsGedeeld:()=>manualsdocOK,
+    haalFotosBij,   // foto's van collega's alsnog ophalen (het Database-overzicht gebruikt dit)
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
