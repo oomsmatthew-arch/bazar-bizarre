@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v5.0';
+const APP_VERSION='v5.1';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -730,33 +730,8 @@ async function checkForUpdate(){
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(updateReady) location.reload(); } else { checkForUpdate(); } });
 window.addEventListener('online',checkForUpdate);
 
-// ---------------- TERUG-KNOP: eerst een open venster sluiten ----------------
-// Tussen pagina's regelt de browser de terugknop nu zelf. Alleen open vensters
-// (foto, camera, profiel, formulier…) vangen we op, zodat terug die eerst sluit.
-(function(){
-  let vensterOpen=null, eigenStap=false;
-  history.replaceState({bbv:0},'');
-  // Een pagina kan een eigen sluitfunctie opgeven (bv. om een video te stoppen):
-  //   window.bbVensterSluiters={ viewer:closeViewer }
-  function sluitAlles(){
-    document.querySelectorAll('.cammodal.open, .modal.open').forEach(el=>{
-      const eigen=(window.bbVensterSluiters||{})[el.id];
-      if(typeof eigen==='function') eigen();
-      else if(el.id==='camModal'&&typeof closeCamera==='function') closeCamera();
-      else if(el.id==='fotoView'&&typeof closeFotoView==='function') closeFotoView();
-      else el.classList.remove('open');
-    });
-  }
-  new MutationObserver(()=>{
-    const open=document.querySelector('.cammodal.open, .modal.open');
-    if(open && !vensterOpen){ vensterOpen=open; history.pushState({bbv:1},''); }
-    else if(!open && vensterOpen){ vensterOpen=null; if(!eigenStap){ eigenStap=true; history.back(); } }
-  }).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
-  window.addEventListener('popstate',()=>{
-    if(eigenStap){ eigenStap=false; return; }
-    if(vensterOpen){ eigenStap=true; vensterOpen=null; sluitAlles(); setTimeout(()=>{eigenStap=false;},0); }
-  });
-})();
+// De terugknop wordt geregeld in js/terug.js, dat elke pagina apart inlaadt —
+// ook de pagina's die deze kern niet gebruiken (projecten, ratings).
 
 // ---------------- OPSTARTEN ----------------
 // Elke pagina laadt deze kern en daarna haar eigen script. Zodra alles klaarstaat

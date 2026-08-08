@@ -338,6 +338,9 @@ function openProject(id){
   toonTab('overzicht');
   renderProject();
   window.scrollTo(0,0);
+  // Eén project openen verbergt de lijst, maar dat ziet de browser niet. We
+  // melden het, zodat de terugknop naar de lijst gaat en niet de pagina uit.
+  if(window.bbStap) bbStap.open('project',naarLijst);
 }
 // Zoekvelden en filters horen bij één project; bij het wisselen zetten we ze schoon,
 // anders lijkt een ander project ineens leeg door een filter die je vergeten was.
@@ -354,6 +357,7 @@ function naarLijst(){
   $('title').textContent='Projecten';
   renderLijst();
   window.scrollTo(0,0);
+  if(window.bbStap) bbStap.dicht('project');
 }
 function toonTab(p){
   huidigTab=p;
@@ -1760,6 +1764,21 @@ async function bewaarProject(){
     sluitProjectVenster(); openProject(rec.id);
   }
 }
+
+// ---------------- TERUG-KNOP (zie js/terug.js) ----------------
+// Elk venster zijn eigen sluitfunctie, zodat de terugknop hetzelfde doet als
+// Annuleren. Voor dlgModal is dat extra belangrijk: dat venster laat een vraag
+// wachten (een Promise), en die moet een antwoord krijgen — anders blijft de
+// code erachter voor altijd hangen.
+window.bbVensterSluiters={
+  dlgModal:()=>dlgSluit(dlgSoort==='tekst'?null:false),
+  taakModal:sluitTaak,
+  agModal:sluitAgendaVenster,
+  vsModal:sluitVerslagVenster,
+  matModal:sluitMateriaalVenster,
+  dbModal:sluitDraaiboekVenster,
+  projModal:sluitProjectVenster
+};
 
 // ---------------- KOPPELINGEN ----------------
 $('homeLogo').onclick=()=>{ location.href='../entertainment.html'; };

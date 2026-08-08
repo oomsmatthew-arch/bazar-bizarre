@@ -488,6 +488,7 @@ function vulPrintOpties(){
 }
 function openPrintDialog(){ if(!_data){ alert('Nog geen gegevens om af te drukken.'); return; } vulPrintOpties(); $('printModal').classList.add('open'); }
 function sluitPrint(){ const m=$('printModal'); if(m) m.classList.remove('open'); }
+window.bbVensterSluiters={ printModal:sluitPrint }; // terugknop sluit het printvenster (zie js/terug.js)
 function doePrint(){
   const o={ boekjaar:$('pBoekjaar').value, maand:$('pMaand').value, categorie:$('pCat').value,
     samenv:$('pSamenv').checked, mnd:$('pMnd').checked, act:$('pAct').checked, taal:$('pTaal').checked, reacties:$('pReacties').checked };
