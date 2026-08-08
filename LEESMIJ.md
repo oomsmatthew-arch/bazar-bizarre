@@ -35,6 +35,15 @@ daardoor dezelfde opslag** op het toestel.
 - **Formulier** (in Bazar Bizarre): de knop **"Spel afsluiten"** opent een formulier waar
   je de weggegeven kleine/grote prijzen aanklikt (met zoek + aantal), boekjes invult,
   finale en opmerkingen. **Doorsturen** boekt alles af van de voorraad én sluit het spel af.
+  - **Finalevraag** — het vak *Finalevraag & antwoord* vult zichzelf met wat je bij het
+    **Finalespel** hebt ingetypt (`V1: vraag → antwoord`, één per regel). Je kan het gerust
+    aanpassen of aanvullen; met **↻ Opnieuw overnemen uit finale** haal je de vragen weer op
+    als je ze pas ná het openen van het formulier hebt ingevuld. Het staat los van
+    *Finalereeks* (welke reeks je gebruikte) en is achteraf terug te vinden bij
+    **Inventaris → Formulieren** en in de CSV-export.
+    <br>Eenmalig instellen: voer `docs/finalevraag-kolom.sql` uit in Supabase. Doe je dat
+    niet, dan werkt alles gewoon, maar komt de vraag achter de finalereeks te staan in
+    plaats van in een eigen veld. Het Systeem-scherm zegt of de kolom er al is.
 - **Inventaris-beheer** (in home, kaart "Inventaris lijst BB"), met tabbladen:
   - **Stock** — voorraad per prijs en boekjes aanpassen, prijzen toevoegen/verwijderen.
   - **Leveringen** — geleverde boekjes/prijzen registreren → voorraad omhoog.
@@ -333,6 +342,7 @@ supabase.min.js → inventaris-data.js → inventaris.js → kern.js → eigen s
 
 **`docs/` — naslag voor jou, niet nodig voor de site:**
 - `projecten-supabase.sql` — eenmalig uit te voeren in Supabase
+- `finalevraag-kolom.sql` — voegt de kolom `finalevraag` toe aan de tabel `formulieren`
 - `PROJECTEN-PLAN.md` — het plan en de gemaakte keuzes achter Projecten
 - `STAPPENPLAN.md` — de checklist: beveiligen, naam kiezen, eigen domeinnaam
 - `BEVEILIGING.md` — de database op slot zetten met een gedeelde toegangscode

@@ -474,7 +474,9 @@ function renderFormulieren(){
       '<div class="blk"><span class="bl">Kleine prijzen</span><span>'+pl(f.kleine)+'</span></div>'+
       '<div class="blk"><span class="bl">Grote prijzen</span><span>'+pl(f.groot)+'</span></div>'+
       '<div class="blk"><span class="bl">Boekjes</span><span><b>'+bkTot+'</b> totaal — '+(b.gereserveerd||0)+' gereserveerd · '+(b.extra||0)+' extra · '+(b.gratis||0)+' gratis</span></div>'+
-      (f.finale?('<div class="blk"><span class="bl">Finale</span><span>'+esc(f.finale)+'</span></div>'):'')+
+      (f.finale?('<div class="blk"><span class="bl">Finalereeks</span><span>'+esc(f.finale)+'</span></div>'):'')+
+      // De vraag kan meerdere regels bevatten (V1/V2) — die houden we ook zo op het scherm.
+      (f.finalevraag?('<div class="blk"><span class="bl">Finalevraag</span><span style="white-space:pre-line">'+esc(f.finalevraag)+'</span></div>'):'')+
       (f.opmerking?('<div class="blk"><span class="bl">Opmerking</span><span>'+esc(f.opmerking)+'</span></div>'):'')+
       '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
     d.querySelector('.rm').onclick=()=>{if(!eisBeheer('het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
@@ -490,10 +492,12 @@ function stockRows(){
   return rows;
 }
 function formRows(){
-  const rows=[['Datum','Namen','Kleine prijzen','Grote prijzen','Boekjes gereserveerd','Extra verkocht','Gratis (3+1)','Finale','Opmerking']];
+  const rows=[['Datum','Namen','Kleine prijzen','Grote prijzen','Boekjes gereserveerd','Extra verkocht','Gratis (3+1)','Finalereeks','Finalevraag','Opmerking']];
   const pl=arr=>(arr||[]).map(x=>x.naam+(x.n>1?(' x'+x.n):'')).join('; ');
   BBInv.getFormulieren().slice().sort((a,b)=>a.ts-b.ts).forEach(f=>{const b=f.boekjes||{};
-    rows.push([bbFmtTs(f.ts),f.namen||'',pl(f.kleine),pl(f.groot),b.gereserveerd||0,b.extra||0,b.gratis||0,f.finale||'',f.opmerking||'']);});
+    // In een cel past geen regeleinde (dat breekt de CSV), dus V1/V2 achter elkaar.
+    const fv=(f.finalevraag||'').replace(/\s*\n\s*/g,' | ');
+    rows.push([bbFmtTs(f.ts),f.namen||'',pl(f.kleine),pl(f.groot),b.gereserveerd||0,b.extra||0,b.gratis||0,f.finale||'',fv,f.opmerking||'']);});
   return rows;
 }
 function levRows(){

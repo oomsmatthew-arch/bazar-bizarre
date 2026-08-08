@@ -13,6 +13,10 @@
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
   let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
   let projectenOK=false, projecttakenOK=false, projectberichtenOK=false, projectagendaOK=false, projectdocsOK=false;
+  // Losse kolom die er later bij kwam: 'finalevraag' op de tabel formulieren.
+  // Zie docs/finalevraag-kolom.sql — zonder die kolom werkt alles gewoon, maar komt de
+  // finalevraag achter de finalereeks te staan i.p.v. in een eigen veld.
+  let finalevraagOK=false;
   // Diagnose: wat het Systeem-scherm toont. Zonder dit merk je pas veel later dat er iets
   // stilletjes misliep (tabel ontbreekt, wachtrij vast, nooit aangemeld…).
   const K_LAST_SYNC='bb_last_sync';
@@ -432,7 +436,7 @@
   // ingeladen (foto's komen achteraf). Zouden we ze toch meesturen, dan zetten we een lege
   // foto over de echte in de database. De foto zelf gaat enkel mee via setFoto().
   const toRowKaal=p=>({id:p.id,cat:p.cat==='groot'?'groot':'klein',naam:p.naam||'',stock:+p.stock||0,in_gebruik:!!p.inGebruik});
-  const mapForm=r=>({id:r.id,ts:r.ts,namen:r.namen||'',kleine:r.kleine||[],groot:r.groot||[],boekjes:r.boekjes||{},finale:r.finale||'',opmerking:r.opmerking||''});
+  const mapForm=r=>({id:r.id,ts:r.ts,namen:r.namen||'',kleine:r.kleine||[],groot:r.groot||[],boekjes:r.boekjes||{},finale:r.finale||'',finalevraag:r.finalevraag||'',opmerking:r.opmerking||''});
   const mapBestel=r=>({id:r.id,ts:r.ts||0,datum:r.besteldatum||'',cat:r.categorie||'',info:r.info||'',status:r.status||'Besteld',aantal:r.aantal||'',ent:+r.kost_ent||0,bay:+r.kost_bay||0,hsb:+r.kost_hsb||0,leverancier:r.leverancier||'',leverdatum:r.leverdatum||'',door:r.door||'',opm:r.opmerking||''});
   const bestelToRow=b=>({id:b.id,ts:b.ts||0,besteldatum:b.datum||'',categorie:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',kost_ent:+b.ent||0,kost_bay:+b.bay||0,kost_hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opmerking:b.opm||''});
   const mapContact=r=>({id:r.id,naam:r.naam||'',rol:r.rol||'',tel:r.tel||'',mail:r.mail||'',ts:r.ts||0});
@@ -760,10 +764,17 @@
       loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v),
       loadDoc('appconfig','appconfig',v=>appconfigOK=v),
       loadDoc('spelarchief','spelarchief',v=>spelarchiefOK=v),
-      laadSessies()
+      laadSessies(),
+      probeerFinalevraag()
     ]);
     } finally { bulkLaden=false; }
     persistCache();
+  }
+  // Bestaat de kolom 'finalevraag' al? Eén klein verzoekje; faalt het, dan weten we dat
+  // de kolom nog niet is toegevoegd en past submitFormulier zich aan.
+  async function probeerFinalevraag(){
+    try{ const r=await sb.from('formulieren').select('finalevraag').limit(1); finalevraagOK=!(r&&r.error); }
+    catch(e){ finalevraagOK=false; }
   }
   // Gedeelde recente sessies: aparte rij (id=2) in dezelfde spelarchief-tabel — geen extra opzet nodig.
   async function laadSessies(){
@@ -1393,12 +1404,18 @@
     const kleine=expand(f.kleine), groot=expand(f.groot);
     const b=f.boekjes||{}; const used=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
     cache.boekjes.stock=(cache.boekjes.stock||0)-used;
-    const rec={id:uid(),ts:Date.now(),namen:f.namen||'',kleine,groot,boekjes:{gereserveerd:+b.gereserveerd||0,extra:+b.extra||0,gratis:+b.gratis||0},finale:f.finale||'',opmerking:f.opmerking||''};
+    const rec={id:uid(),ts:Date.now(),namen:f.namen||'',kleine,groot,boekjes:{gereserveerd:+b.gereserveerd||0,extra:+b.extra||0,gratis:+b.gratis||0},finale:f.finale||'',finalevraag:(f.finalevraag||'').trim(),opmerking:f.opmerking||''};
     cache.formulieren.push(rec);
     const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRowKaal);
     if(rows.length) dbUpsert('prijzen',rows);
     dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
-    dbInsert('formulieren',{id:rec.id,ts:rec.ts,namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,finale:rec.finale,opmerking:rec.opmerking});
+    const rij={id:rec.id,ts:rec.ts,namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,opmerking:rec.opmerking,finale:rec.finale};
+    // Bestaat de kolom 'finalevraag' al in de database? Zo niet, dan zetten we de vraag
+    // achter de finalereeks in het bestaande veld. Meesturen van een onbekende kolom zou
+    // de hele inzending laten mislukken — en dan was het net afgesloten spel weg.
+    if(finalevraagOK) rij.finalevraag=rec.finalevraag;
+    else if(rec.finalevraag) rij.finale=[rec.finale,rec.finalevraag].filter(Boolean).join(' — ');
+    dbInsert('formulieren',rij);
     logAct('Spel afgesloten / formulier ingezonden'+(rec.namen?': '+rec.namen:''));
     return rec;
   }
@@ -1614,6 +1631,7 @@
   window.BBInv={init,setOnChange:fn=>{onChange=fn;},isReady:()=>ready,
     seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
+    isFinalevraagGedeeld:()=>finalevraagOK,
     getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,
     getContacten,addContact,updateContact,removeContact,isContactenGedeeld:()=>contactenOK,
     getChecklisten,addChecklist,saveChecklist,removeChecklist,reorderChecklisten,isChecklistenGedeeld:()=>checklistenOK,

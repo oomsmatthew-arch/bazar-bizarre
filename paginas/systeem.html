@@ -127,6 +127,12 @@ function renderSysteem(){
       '<td class="s '+(t.gedeeld?'ja':'nee')+'">'+(t.gedeeld?'✓ gedeeld':'✗ enkel hier')+'</td></tr>';
   });
   gd+='</table>';
+  // Losse kolom die er later bij kwam — apart vermeld, want een ontbrekende kolom is
+  // iets anders dan een ontbrekende tabel en vraagt een ander stukje SQL.
+  const fvOK=!!(window.BBInv&&BBInv.isFinalevraagGedeeld&&BBInv.isFinalevraagGedeeld());
+  if(s.kern && !fvOK) gd+=sysNote('warn','De kolom <b>finalevraag</b> ontbreekt nog in de tabel <b>formulieren</b>. '+
+    'De finalevraag gaat dan mee achter de finalereeks in plaats van in een eigen veld — er gaat niets verloren, '+
+    'maar het overzicht toont ze niet apart. Voer <b>docs/finalevraag-kolom.sql</b> uit in Supabase.');
   if(!s.kern) gd+=sysNote('warn','Zonder verbinding kunnen we niet nagaan wat gedeeld is — hierboven staat de laatst bekende stand.');
   else if(ontbreekt.length) gd+=sysNote('warn','<b>'+ontbreekt.length+' onderde'+(ontbreekt.length===1?'el staat':'len staan')+' enkel op dit toestel:</b> '+
     ontbreekt.map(t=>esc(t.label)).join(', ')+'.<br>De bijbehorende tabel'+(ontbreekt.length===1?'':'len')+' ontbreek'+(ontbreekt.length===1?'t':'en')+' in Supabase. '+

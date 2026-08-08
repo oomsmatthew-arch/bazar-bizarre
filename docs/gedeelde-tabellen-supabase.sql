@@ -51,9 +51,12 @@ create table if not exists public.formulieren (
   kleine    jsonb default '[]'::jsonb,       -- [{id,naam,n}]
   groot     jsonb default '[]'::jsonb,
   boekjes   jsonb default '{}'::jsonb,       -- {gereserveerd,extra,gratis}
-  finale    text default '',
+  finale    text default '',                 -- welke finalereeks
+  finalevraag text default '',               -- welke vraag(en) er gesteld zijn + het antwoord
   opmerking text default ''
 );
+-- Voor installaties van vóór deze kolom (zie ook docs/finalevraag-kolom.sql):
+alter table public.formulieren add column if not exists finalevraag text default '';
 
 -- ---------------------------------------------------------------------------
 -- 2) BESTELLINGEN
