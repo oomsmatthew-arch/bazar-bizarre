@@ -38,9 +38,11 @@ daardoor dezelfde opslag** op het toestel.
   - **Finalevraag** — het vak *Finalevraag & antwoord* vult zichzelf met wat je bij het
     **Finalespel** hebt ingetypt (`V1: vraag → antwoord`, één per regel). Je kan het gerust
     aanpassen of aanvullen; met **↻ Opnieuw overnemen uit finale** haal je de vragen weer op
-    als je ze pas ná het openen van het formulier hebt ingevuld. Het staat los van
-    *Finalereeks* (welke reeks je gebruikte) en is achteraf terug te vinden bij
-    **Inventaris → Formulieren** en in de CSV-export.
+    als je ze pas ná het openen van het formulier hebt ingevuld. Achteraf terug te vinden bij
+    **Inventaris → Formulieren** — daar staat de vraag van het **laatst ingezonden formulier**
+    ook altijd in een kader rechts — en in de CSV-export.
+    <br>Het oude vak *Finalereeks* is uit het formulier gehaald; formulieren van vóór die
+    wijziging blijven hun ingevulde reeks gewoon tonen.
     <br>Eenmalig instellen: voer `docs/finalevraag-kolom.sql` uit in Supabase. Doe je dat
     niet, dan werkt alles gewoon, maar komt de vraag achter de finalereeks te staan in
     plaats van in een eigen veld. Het Systeem-scherm zegt of de kolom er al is.

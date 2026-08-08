@@ -522,11 +522,9 @@
       </div>
     </div>
 
-    <div class="formblok">
-      <label class="flbl" for="fFinale">Finalereeks</label>
-      <input type="text" id="fFinale" class="finp" placeholder="Welke finalereeks…">
-    </div>
-
+    <!-- "Finalereeks" is bewust weggehaald: de finalevraag hieronder vervangt het.
+         Het veld 'finale' blijft wel bestaan in de gegevens, zodat oudere formulieren
+         hun ingevulde reeks houden en blijven tonen in het inventarisoverzicht. -->
     <div class="formblok">
       <label class="flbl" for="fFinaleVraag">Finalevraag &amp; antwoord</label>
       <div class="hint" style="margin:0 0 8px;">Automatisch overgenomen uit het Finalespel — pas aan waar nodig.</div>
@@ -1197,7 +1195,6 @@ function renderFormulier(){
   document.getElementById('fDatum').textContent=fmtTs(Date.now()).split(' ')[0];
   document.getElementById('fNamen').value=recente[0]||'';
   document.getElementById('fNamenLijst').innerHTML=recente.map(n=>'<option value="'+esc(n)+'">').join('');
-  document.getElementById('fFinale').value='';
   document.getElementById('fFinaleVraag').value=finaleVraagTekst();
   document.getElementById('fOpm').value='';
   // --- overnemen vanuit het controleblad (vorige pagina) ---
@@ -1242,8 +1239,9 @@ document.getElementById('fDoorsturen').onclick=()=>{
   if(!kleine.length&&!groot.length&&!(bk.gereserveerd+bk.extra+bk.gratis)){
     if(!confirm('Je hebt niets ingevuld. Toch het spel afsluiten?'))return;
   }
-  const f={namen,kleine,groot,boekjes:bk,
-    finale:document.getElementById('fFinale').value.trim(),
+  // 'finale' (de oude finalereeks) wordt niet meer gevraagd; het veld blijft leeg zodat
+  // oudere formulieren hun ingevulde reeks houden.
+  const f={namen,kleine,groot,boekjes:bk,finale:'',
     finalevraag:document.getElementById('fFinaleVraag').value.trim(),
     opmerking:document.getElementById('fOpm').value.trim()};
   bbSetActor(); // zorg dat de juiste naam in het activiteitenlog komt
@@ -1470,7 +1468,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v2.7';
+const APP_VERSION='v2.8';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

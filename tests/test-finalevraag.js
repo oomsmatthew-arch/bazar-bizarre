@@ -92,5 +92,31 @@ var VRAAG='V1: Hoeveel ballonnen hangen er? → 42\nV2: Hoofdstad van Frankrijk?
   var rij3=(db3.formulieren||[])[0]||{};
   ok(rij3.finale==='Reeks 1','de finalereeks krijgt geen aanhangsel');
 
+  print('\n— Zoals het formulier het nu stuurt: geen reeks meer, wél een vraag —');
+  // Het veld "Finalereeks" is uit het formulier gehaald; er komt dus altijd finale:''.
+  // Zonder de kolom moet de vraag dan kaal in 'finale' belanden — zonder losse streep
+  // ervoor, anders leest het overzicht ze niet goed terug.
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var db4=basisDB();
+  await sessie(db4,{formulieren:['finalevraag']});
+  BBInv.submitFormulier({namen:'Matthew',kleine:[],groot:[],
+    boekjes:{gereserveerd:1,extra:0,gratis:0},finale:'',finalevraag:VRAAG,opmerking:''});
+  await rust(); draaiTimers(); await rust();
+  var rij4=(db4.formulieren||[])[0]||{};
+  ok((db4.formulieren||[]).length===1,'het formulier is aangekomen');
+  ok(rij4.finale===VRAAG,'de vraag staat er kaal in, zonder losse " — " ervoor');
+  ok((rij4.finale||'').indexOf(' — ')<0,'geen restje van de weggehaalde finalereeks');
+
+  print('\n— En mét de kolom blijft finale gewoon leeg —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var db5=basisDB();
+  await sessie(db5);
+  BBInv.submitFormulier({namen:'Matthew',kleine:[],groot:[],
+    boekjes:{gereserveerd:1,extra:0,gratis:0},finale:'',finalevraag:VRAAG,opmerking:''});
+  await rust(); draaiTimers(); await rust();
+  var rij5=(db5.formulieren||[])[0]||{};
+  ok(rij5.finale==='','de finalereeks blijft leeg');
+  ok(rij5.finalevraag===VRAAG,'en de vraag zit in de eigen kolom');
+
   print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');
 })();

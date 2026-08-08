@@ -152,7 +152,11 @@
     <!-- FORMULIEREN -->
     <div class="invpane" id="pane-formulieren">
       <p class="hint"><b id="formCount">0</b> doorgestuurde formulieren vanuit Bazar Bizarre.</p>
-      <div id="formList"></div>
+      <div class="formlayout">
+        <div id="formList"></div>
+        <!-- Rechts blijft de finalevraag van het laatst ingezonden formulier staan. -->
+        <aside class="laatstevraag" id="laatsteVraag"></aside>
+      </div>
     </div>
 
     <!-- LEVERINGEN (overzicht) -->
@@ -452,9 +456,50 @@ function renderLeveringen(){
 }
 
 // ---- Formulieren ----
+// De finalevraag van een formulier. Staat de kolom 'finalevraag' nog niet in de database,
+// dan is de vraag achter de finalereeks in 'finale' beland — die halen we er hier weer uit.
+function vraagVan(f){
+  if(!f) return '';
+  if(f.finalevraag) return f.finalevraag;
+  const fin=(f.finale||'');
+  const i=fin.indexOf(' — ');
+  if(i>=0) return fin.slice(i+3);
+  return /(^|\s)V\d+\s*:/.test(fin) ? fin : '';
+}
+// Toont het laatst ingezonden formulier in het kader rechts — altijd het nieuwste, ook
+// als daar geen vraag bij zit (dan zeggen we dat er niets ingevuld is).
+function renderLaatsteVraag(forms){
+  const box=document.getElementById('laatsteVraag'); if(!box) return;
+  const f=forms[0];
+  if(!f){ box.style.display='none'; return; }
+  box.style.display='';
+  const vraag=vraagVan(f);
+  let body='';
+  if(!vraag){
+    body='<div class="lv-leeg">Bij dit formulier is geen finalevraag ingevuld.</div>';
+  }else{
+    // Regels zien er zo uit: "V1: vraag → antwoord". Past een regel niet in dat patroon,
+    // dan tonen we ze gewoon zoals ze is.
+    vraag.split('\n').map(r=>r.trim()).filter(Boolean).forEach(regel=>{
+      const m=regel.match(/^(V\d+)\s*:\s*([\s\S]*)$/);
+      const nr=m?m[1]:'', rest=m?m[2]:regel;
+      const d=rest.split('→');
+      const v=d[0].trim(), a=d.length>1?d.slice(1).join('→').trim():'';
+      body+='<div class="lv-qa">'+
+        (nr?'<div class="lv-nr">Vraag '+esc(nr.slice(1))+'</div>':'')+
+        '<div class="lv-v">'+esc(v)+'</div>'+
+        (a?'<span class="lv-a">'+esc(a)+'</span>':'')+
+      '</div>';
+    });
+  }
+  box.innerHTML='<div class="lv-kop"><div class="t">Laatste finalevraag</div>'+
+      '<div class="s">'+esc(f.namen||'zonder naam')+' · '+bbFmtTs(f.ts)+'</div></div>'+
+    '<div class="lv-body">'+body+'</div>';
+}
 function renderFormulieren(){
   const forms=BBInv.getFormulieren().slice().sort((a,b)=>b.ts-a.ts);
   document.getElementById('formCount').textContent=forms.length;
+  renderLaatsteVraag(forms);
   const wrap=document.getElementById('formList'); wrap.innerHTML='';
   if(!forms.length){wrap.innerHTML='<p class="hint">Nog geen formulieren. Sluit een spel af in Bazar Bizarre en stuur het door.</p>';return;}
   forms.forEach(f=>{
@@ -463,6 +508,10 @@ function renderFormulieren(){
     const b=f.boekjes||{};
     const nK=aantal(f.kleine), nG=aantal(f.groot);
     const bkTot=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);
+    // De vraag kan ook in 'finale' zijn beland (zolang de kolom ontbreekt); vraagVan()
+    // pikt hem daar weer uit, zodat 'Finalereeks' enkel een echte reeks toont.
+    const vraag=vraagVan(f);
+    const reeks=(f.finale&&f.finale!==vraag)?f.finale.replace(' — '+vraag,'').trim():'';
     const d=document.createElement('div'); d.className='subrec';
     d.innerHTML='<h4>'+(f.namen?esc(f.namen):'Zonder naam')+'</h4>'+
       '<div class="meta">'+bbFmtTs(f.ts)+'</div>'+
@@ -474,9 +523,9 @@ function renderFormulieren(){
       '<div class="blk"><span class="bl">Kleine prijzen</span><span>'+pl(f.kleine)+'</span></div>'+
       '<div class="blk"><span class="bl">Grote prijzen</span><span>'+pl(f.groot)+'</span></div>'+
       '<div class="blk"><span class="bl">Boekjes</span><span><b>'+bkTot+'</b> totaal — '+(b.gereserveerd||0)+' gereserveerd · '+(b.extra||0)+' extra · '+(b.gratis||0)+' gratis</span></div>'+
-      (f.finale?('<div class="blk"><span class="bl">Finalereeks</span><span>'+esc(f.finale)+'</span></div>'):'')+
+      (reeks?('<div class="blk"><span class="bl">Finalereeks</span><span>'+esc(reeks)+'</span></div>'):'')+
       // De vraag kan meerdere regels bevatten (V1/V2) — die houden we ook zo op het scherm.
-      (f.finalevraag?('<div class="blk"><span class="bl">Finalevraag</span><span style="white-space:pre-line">'+esc(f.finalevraag)+'</span></div>'):'')+
+      (vraag?('<div class="blk"><span class="bl">Finalevraag</span><span style="white-space:pre-line">'+esc(vraag)+'</span></div>'):'')+
       (f.opmerking?('<div class="blk"><span class="bl">Opmerking</span><span>'+esc(f.opmerking)+'</span></div>'):'')+
       '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
     d.querySelector('.rm').onclick=()=>{if(!eisBeheer('het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
@@ -496,8 +545,10 @@ function formRows(){
   const pl=arr=>(arr||[]).map(x=>x.naam+(x.n>1?(' x'+x.n):'')).join('; ');
   BBInv.getFormulieren().slice().sort((a,b)=>a.ts-b.ts).forEach(f=>{const b=f.boekjes||{};
     // In een cel past geen regeleinde (dat breekt de CSV), dus V1/V2 achter elkaar.
-    const fv=(f.finalevraag||'').replace(/\s*\n\s*/g,' | ');
-    rows.push([bbFmtTs(f.ts),f.namen||'',pl(f.kleine),pl(f.groot),b.gereserveerd||0,b.extra||0,b.gratis||0,f.finale||'',fv,f.opmerking||'']);});
+    const vraag=vraagVan(f);
+    const reeks=(f.finale&&f.finale!==vraag)?f.finale.replace(' — '+vraag,'').trim():'';
+    rows.push([bbFmtTs(f.ts),f.namen||'',pl(f.kleine),pl(f.groot),b.gereserveerd||0,b.extra||0,b.gratis||0,
+      reeks,vraag.replace(/\s*\n\s*/g,' | '),f.opmerking||'']);});
   return rows;
 }
 function levRows(){
