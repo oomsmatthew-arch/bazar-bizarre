@@ -35,6 +35,15 @@ globalThis.FINALEVRAGEN_DEFAULT=[
   {vraag:'Wanneer valt Black Friday?',antwoord:'27 november'},
   {vraag:'Oprichting ALDI?',antwoord:'1946'}
 ];
+// De echte startlijst, om de handmatig doorgegeven speelbeurten te kunnen nakijken.
+var ECHTE_LIJST=[
+  {vraag:'Wanneer valt Black Friday?',antwoord:'27 november'},
+  {vraag:'Volgens Wikipedia: wat is het gemiddelde gewicht van 1 banaan?',antwoord:'150 gram'},
+  {vraag:'Hoeveel tijd brengt een Amerikaan gemiddeld door per supermarktbezoek volgens het Time Use Institute? Onderzoek uit 2023.',antwoord:'41 minuten'},
+  {vraag:'Hoe groot is de grootste supermarkt van Frankrijk? In vierkante meter…',antwoord:'25.000 vierkante meter'},
+  {vraag:'Wanneer werd winkelketen ALDI opgericht volgens Wikipedia?',antwoord:'1946, in Essen (Duitsland)'},
+  {vraag:'De eerste aardappelen kwamen vanuit Zuid-Amerika naar Europa, maar wanneer was dat volgens Wikipedia?',antwoord:'1536'}
+];
 
 function basisDB(){
   return {prijzen:[], boekjes:[{id:1,stock:0}], formulieren:[], leveringen:[], gebruikers:[], appconfig:[]};
@@ -136,6 +145,41 @@ function namen(lijst){ return lijst.map(function(v){return v.vraag;}); }
   var na=BBInv.getFinalevragen().find(function(v){return v.id===idNu;});
   ok(na && (na.keer||0)>=1,'de teller staat na het opnieuw opstarten nog op '+((na&&na.keer)||0));
   ok(BBInv.gesorteerdeFinalevragen()[0].id!==idNu,'en die vraag staat niet meer bovenaan');
+
+  print('\n— De handmatig doorgegeven speelbeurten worden ingevuld —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  globalThis.FINALEVRAGEN_DEFAULT=ECHTE_LIJST;
+  db=basisDB();
+  await sessie(db);
+  function zoek(stuk){
+    return BBInv.getFinalevragen().find(function(v){
+      return (v.vraag||'').toLowerCase().indexOf(stuk)>=0;
+    });
+  }
+  var tijd=zoek('time use institute'), sup=zoek('grootste supermarkt'),
+      ban=zoek('banaan'), aldi=zoek('aldi'), aard=zoek('aardappelen');
+  ok(tijd && tijd.keer===1,'de Time Use-vraag staat op 1× gespeeld');
+  ok(sup && sup.keer===1,'de supermarkt-vraag ook');
+  ok(ban && ban.keer===1,'de banaan-vraag ook');
+  ok(aldi && aldi.keer===1,'de ALDI-vraag ook');
+  ok(aard && (aard.keer||0)===0,'de aardappel-vraag is nog nooit gespeeld');
+  var d=new Date(tijd.laatst);
+  ok(d.getFullYear()===2026 && d.getMonth()===7 && d.getDate()===8 && d.getHours()===22 && d.getMinutes()===36,
+     'met de juiste datum en tijd (08/08/2026 22:36 → '+d.toString().slice(0,24)+')');
+
+  print('\n— En de volgorde klopt met die geschiedenis —');
+  var volg5=BBInv.gesorteerdeFinalevragen();
+  ok(volg5[0].id===aard.id,'de nooit gespeelde aardappel-vraag staat bovenaan');
+  var posBF=volg5.findIndex(function(v){return (v.vraag||'').toLowerCase().indexOf('black friday')>=0;});
+  ok(posBF===1,'Black Friday (ook nooit gespeeld) staat tweede');
+  ok(volg5[volg5.length-1].id===tijd.id,'de vraag van gisteren staat helemaal onderaan');
+  var posAldi=volg5.findIndex(function(v){return v.id===aldi.id;});
+  ok(posAldi===2,'ALDI, het langst geleden van de gespeelde, komt daarna');
+
+  print('\n— Een tweede start telt ze niet nog eens mee —');
+  await sessie(db);
+  var tijd2=zoek('time use institute');
+  ok(tijd2 && tijd2.keer===1,'nog steeds 1× gespeeld');
 
   print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');
 })();

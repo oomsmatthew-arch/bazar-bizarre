@@ -336,9 +336,11 @@
   .vbrij button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;
     padding:6px 11px;font-weight:700;font-size:13px;cursor:pointer;}
   .vbrij button.del{border-color:var(--red);color:#f0a3ad;background:transparent;}
-  .vbrij .vert{font-size:12px;color:var(--muted);margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;}
-  .vbrij .vert span{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;}
+  .vbrij .vert{font-size:12px;color:var(--muted);margin-top:8px;display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+  .vbrij .vert span{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-weight:700;}
   .vbrij .vert span.eigen{color:var(--ok);border-color:var(--ok);}
+  .vbrij .vert span.nieuw{color:var(--ok);border-color:var(--ok);}
+  .vbrij .vert span.gespeeld{color:var(--gold);border-color:var(--gold);}
   /* venster om een vraag toe te voegen of te bewerken */
   .vqbox,.bvbox{max-width:640px;}
   .vq-head{padding:14px 18px;border-bottom:1px solid var(--line);font-family:var(--serif);
@@ -360,17 +362,20 @@
   .vq-voet{display:flex;gap:10px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);}
   .bv-tekst{font-size:15px;line-height:1.5;color:var(--text);}
   .qa{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:9px;}
-  .qa-q{display:flex;align-items:center;gap:10px;}
+  .qa-q{display:flex;align-items:flex-start;gap:10px;}
   .qa-q .pn{flex:0 0 30px;height:30px;border-radius:7px;display:grid;place-items:center;
-    font-weight:800;background:var(--bg);color:var(--gold);border:1px solid var(--line);font-size:14px;}
-  .qa input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);
-    font-size:16px;padding:9px 11px;border-radius:9px;outline:none;}
-  .qa input:focus{border-color:var(--gold);}
-  .qa-a{display:flex;align-items:center;gap:10px;}
+    font-weight:800;background:var(--bg);color:var(--gold);border:1px solid var(--line);font-size:14px;margin-top:3px;}
+  /* Tekstvakken i.p.v. één regel: een lange vraag werd anders afgekapt en je zag niet
+     meer wat er staat. Ze groeien mee met de tekst (zie groeiMee). */
+  .qa input,.qa textarea{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:16px;padding:9px 11px;border-radius:9px;outline:none;font-family:inherit;
+    resize:none;overflow:hidden;line-height:1.35;}
+  .qa input:focus,.qa textarea:focus{border-color:var(--gold);}
+  .qa-a{display:flex;align-items:flex-start;gap:10px;}
   .qa-a .a{transition:filter .15s;}
   .qa-a .a.hidden{filter:blur(7px);}
   .qa-q .eye,.qa-a .eye{flex:0 0 auto;background:var(--panel2);border:1px solid var(--line);color:var(--text);
-    font-weight:700;font-size:13px;padding:9px 13px;border-radius:9px;cursor:pointer;min-width:84px;}
+    font-weight:700;font-size:13px;padding:9px 13px;border-radius:9px;cursor:pointer;min-width:84px;align-self:flex-start;}
   .qa .eye:hover{border-color:var(--gold);color:var(--gold);}
   .trstatus{margin:12px 2px 0;font-size:13px;color:var(--muted);line-height:1.4;}
   .trstatus.ok{color:var(--ok);}
@@ -381,16 +386,23 @@
   /* ===== Presentatie-overlay (grote vraag + vertaling / antwoord-reveal) ===== */
   .present{position:fixed;inset:0;z-index:1000;display:none;overflow:auto;padding:26px 20px;
     background:radial-gradient(circle at 50% 28%,#17326d 0%,#0a1730 60%,#06101f 100%);}
-  .present.open{display:flex;align-items:center;justify-content:center;}
+  /* align-items:center kapt de bovenkant af zodra de inhoud hoger is dan het scherm —
+     een bekende eigenschap van flexbox. Met margin:auto op het kind blijft alles
+     gecentreerd én volledig scrollbaar. */
+  .present.open{display:flex;align-items:flex-start;justify-content:center;}
   .present-close{position:fixed;top:16px;right:16px;width:50px;height:50px;border-radius:50%;
     border:1px solid var(--line);background:rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer;z-index:3;}
   .present-close:hover{background:rgba(255,255,255,.22);}
-  .present-inner{width:100%;max-width:1000px;text-align:center;}
+  .present-inner{width:100%;max-width:1000px;text-align:center;margin:auto;}
 
   /* vraag-modus */
   .q-flag{font-size:clamp(15px,2.6vw,22px);color:var(--gold);margin-bottom:14px;font-weight:700;letter-spacing:1px;}
   .q-big{font-family:var(--serif);font-size:clamp(30px,6vw,68px);font-weight:800;color:#fff;line-height:1.18;
     margin:0 auto 34px;max-width:900px;text-shadow:0 2px 0 rgba(0,0,0,.35);}
+  /* Een lange vraag in de grootste letter past niet op één scherm. We zakken in twee
+     stappen mee met de lengte, zodat alles zichtbaar blijft zonder te scrollen. */
+  .q-big.lang{font-size:clamp(26px,4.4vw,48px);}
+  .q-big.xlang{font-size:clamp(22px,3.4vw,38px);line-height:1.22;}
   .tr-grid{display:grid;gap:13px;max-width:760px;margin:0 auto;}
   .tr{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:14px;padding:13px 18px;text-align:left;}
   .tr-head{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
@@ -407,6 +419,8 @@
   .a-flag{font-size:clamp(17px,3vw,26px);color:var(--gold);margin-bottom:18px;font-weight:700;}
   .a-big{font-family:var(--serif);font-size:clamp(34px,8vw,92px);font-weight:800;color:#fff;line-height:1.15;max-width:900px;margin:0 auto;
     text-shadow:0 0 32px rgba(255,210,63,.6);animation:abig .6s cubic-bezier(.2,1.3,.4,1) both;}
+  .a-big.lang{font-size:clamp(28px,5.4vw,58px);}
+  .a-big.xlang{font-size:clamp(24px,4vw,42px);line-height:1.2;}
   .a-big+.tr-grid{margin-top:34px;}
   .flashfx{position:fixed;inset:0;background:#fff;animation:flashfx .45s ease-out forwards;pointer-events:none;z-index:2;}
   @keyframes blink{0%,100%{opacity:.25;}50%{opacity:1;}}
@@ -825,7 +839,9 @@ function freshState(){
     antwoorden: new Array(8).fill(""),
     // Welke vraag uit de gedeelde lijst in vak 1 en 2 staat. Nodig om na afloop te
     // kunnen aanvinken dat ze gespeeld zijn — daar hangt de volgorde van af.
-    vraagIds: ["",""]
+    vraagIds: ["",""],
+    // true zodra iemand zelf een vraag koos of typte; dan stopt het automatisch bijstellen.
+    vraagHand: false
   };
 }
 function loadState(){
@@ -958,6 +974,12 @@ function renderCoins(){
     g.appendChild(t);
   }
 }
+// Een tekstvak precies zo hoog maken als zijn inhoud.
+function groeiMee(el){
+  if(!el) return;
+  el.style.height='auto';
+  el.style.height=Math.max(38,el.scrollHeight)+'px';
+}
 function renderFinale(){
   vulVragenVoor();   // eerst aanvullen, dan pas tekenen — anders tonen de vakken de oude stand
   const q=document.querySelector('[data-grid="qa"]'); q.innerHTML='';
@@ -965,8 +987,8 @@ function renderFinale(){
     const card=document.createElement('div'); card.className='qa';
     const qr=document.createElement('div'); qr.className='qa-q';
     qr.innerHTML=`<span class="pn">${i+1}</span>`;
-    const qi=document.createElement('input');
-    qi.type='text'; qi.placeholder='Vraag…'; qi.value=state.vragen[i]||'';
+    const qi=document.createElement('textarea');
+    qi.rows=1; qi.placeholder='Vraag…'; qi.value=state.vragen[i]||'';
     // Zelf iets anders typen betekent: dit is niet langer de vraag uit de lijst. We laten
     // het verband dan los, zodat we na afloop niet de verkeerde vraag afvinken.
     qi.oninput=e=>{state.vragen[i]=e.target.value;losVerbandBijWijziging(i);save();schedulePrewarm();updateTrStatus();renderVragenlijst();};
@@ -976,8 +998,8 @@ function renderFinale(){
     qShow.onclick=()=>presentQuestion(state.vragen[i]||'');
     qr.appendChild(qi); qr.appendChild(qShow);
     const ar=document.createElement('div'); ar.className='qa-a';
-    const ai=document.createElement('input');
-    ai.type='text'; ai.placeholder='Antwoord…'; ai.value=state.antwoorden[i]||'';
+    const ai=document.createElement('textarea');
+    ai.rows=1; ai.placeholder='Antwoord…'; ai.value=state.antwoorden[i]||'';
     ai.className='a';
     ai.oninput=e=>{state.antwoorden[i]=e.target.value;save();schedulePrewarm();updateTrStatus();};
     qi.dataset.slot=i; ai.dataset.slot=i;
@@ -987,6 +1009,7 @@ function renderFinale(){
     aShow.onclick=()=>presentAnswer(state.antwoorden[i]||'');
     ar.appendChild(ai); ar.appendChild(aShow);
     card.appendChild(qr); card.appendChild(ar); q.appendChild(card);
+    [qi,ai].forEach(el=>{ groeiMee(el); el.addEventListener('input',()=>groeiMee(el)); });
   }
   renderVragenlijst();
   neemHandmatigeVertalingenOver();   // eigen vertalingen krijgen voorrang op de automatische
@@ -1007,25 +1030,36 @@ function zetVraag(slot,v){
   state.vragen[slot]=v.vraag||'';
   state.antwoorden[slot]=v.antwoord||'';
   state.vraagIds[slot]=v.id||'';
+  state.vraagHand=true;   // zelf gekozen → niet meer automatisch bijstellen
   save(); renderFinale();
 }
-// Typt iemand zelf iets anders? Dan hoort dit vak niet meer bij die vraag uit de lijst.
+// Typt iemand zelf iets anders? Dan hoort dit vak niet meer bij die vraag uit de lijst,
+// en houden we op met automatisch aanvullen.
 function losVerbandBijWijziging(slot){
+  state.vraagHand=true;
   const id=state.vraagIds[slot]; if(!id) return;
   const v=vraagOpId(id);
   if(!v || (state.vragen[slot]||'')!==(v.vraag||'')) state.vraagIds[slot]='';
 }
-// De twee eerstvolgende voorstellen — enkel in vakken die nog leeg zijn, zodat we nooit
-// overschrijven wat iemand al heeft ingevuld.
+// Vak 1 en 2 volgen gewoon de bovenkant van de lijst: vak 1 = de bovenste vraag, vak 2 =
+// de tweede. Verandert de volgorde (bv. nadat een spel is afgesloten), dan schuiven ze
+// mee. Zodra je zélf een vraag kiest of iets typt, laten we ze met rust — anders zou de
+// app je keuze overschrijven.
 function vulVragenVoor(forceer){
   const bank=vragenBank(); if(!bank.length) return;
-  const gebruikt=[];
+  if(forceer) state.vraagHand=false;
+  if(!state.vraagHand){
+    for(let i=0;i<2 && i<bank.length;i++){
+      const v=bank[i];
+      state.vragen[i]=v.vraag||''; state.antwoorden[i]=v.antwoord||''; state.vraagIds[i]=v.id;
+    }
+    save(); return;
+  }
+  // Zelf gekozen: enkel nog echt lege vakken aanvullen.
   for(let i=0;i<2;i++){
-    const leeg=!(state.vragen[i]||'').trim() && !(state.antwoorden[i]||'').trim();
-    if(!forceer && !leeg){ if(state.vraagIds[i]) gebruikt.push(state.vraagIds[i]); continue; }
-    const v=bank.find(x=>gebruikt.indexOf(x.id)<0);
-    if(!v) break;
-    gebruikt.push(v.id);
+    if((state.vragen[i]||'').trim() || (state.antwoorden[i]||'').trim()) continue;
+    const bezet=state.vraagIds.filter(Boolean);
+    const v=bank.find(x=>bezet.indexOf(x.id)<0); if(!v) break;
     state.vragen[i]=v.vraag||''; state.antwoorden[i]=v.antwoord||''; state.vraagIds[i]=v.id;
   }
   save();
@@ -1070,8 +1104,7 @@ document.getElementById('vlZoek').oninput=e=>{ vlQuery=e.target.value.trim(); re
 // Twee nieuwe voorstellen, ook als de vakken al gevuld waren.
 document.getElementById('vraagOpnieuw').onclick=()=>{
   if(!vragenBank().length){ alert('Er staan nog geen vragen in de lijst.'); return; }
-  state.vraagIds=["",""]; state.vragen[0]=''; state.vragen[1]='';
-  state.antwoorden[0]=''; state.antwoorden[1]='';
+  state.vraagIds=["",""]; state.vraagHand=false;
   vulVragenVoor(true); renderFinale();
 };
 
@@ -1180,13 +1213,17 @@ function renderVragenBeheer(){
     const d=document.createElement('div'); d.className='vbrij';
     d.innerHTML='<div class="v">'+esc(v.vraag||'')+'</div>'+
       (v.antwoord?'<div class="a">'+esc(v.antwoord)+'</div>':'')+
-      '<div class="m">'+((v.keer||0)?(v.keer+'× gespeeld'):'nog nooit gespeeld')+
-        (v.laatst?(' · laatst '+esc(fmtTs(v.laatst))):'')+'</div>'+
-      '<div class="vert">'+['en','fr','de'].map(function(c){
-        const t=(v.vert||{})[c]||{}; const eigen=!!(t.v||t.a);
-        const vlag={en:'🇬🇧',fr:'🇫🇷',de:'🇩🇪'}[c];
-        return '<span class="'+(eigen?'eigen':'')+'">'+vlag+' '+(eigen?'zelf ingevuld':'automatisch')+'</span>';
-      }).join('')+'</div>'+
+      // Speelaantal en talen in dezelfde pil-stijl, op één rij.
+      '<div class="vert">'+
+        '<span class="'+((v.keer||0)?'gespeeld':'nieuw')+'">'+
+          ((v.keer||0)?(v.keer+'× gespeeld'):'nog nooit gespeeld')+'</span>'+
+        (v.laatst?('<span>laatst '+esc(fmtTs(v.laatst))+'</span>'):'')+
+        ['en','fr','de'].map(function(c){
+          const t=(v.vert||{})[c]||{}; const eigen=!!(t.v||t.a);
+          const vlag={en:'🇬🇧',fr:'🇫🇷',de:'🇩🇪'}[c];
+          return '<span class="'+(eigen?'eigen':'')+'">'+vlag+' '+(eigen?'zelf ingevuld':'automatisch')+'</span>';
+        }).join('')+
+      '</div>'+
       '<div class="acts"><button class="bew">Bewerken</button>'+
         '<button class="nul">Teller op nul</button>'+
         '<button class="del">Verwijderen</button></div>';
@@ -1358,12 +1395,18 @@ function closePresent(){
 }
 
 // Toon de vraag groot + automatisch vertaald (EN/FR/DE)
+// Hoe langer de tekst, hoe kleiner de letter — anders past een lange vraag of een lang
+// antwoord niet op één scherm en valt de bovenkant weg.
+function lengteKlasse(text){
+  const n=String(text||'').trim().length;
+  return n>90 ? ' xlang' : (n>40 ? ' lang' : '');
+}
 function presentQuestion(text){
   _pendingReveal=null;
   const inner=document.getElementById('presentInner');
   inner.innerHTML=
     '<div class="q-flag">🇳🇱 Vraag</div>'+
-    '<div class="q-big">'+(escHtml(text)||'—')+'</div>'+
+    '<div class="q-big'+lengteKlasse(text)+'">'+(escHtml(text)||'—')+'</div>'+
     transGridHtml();
   openPresent();
   fillTransGrid(inner,text);
@@ -1388,7 +1431,7 @@ function revealAnswer(text){
   inner.innerHTML=
     '<div class="flashfx"></div>'+
     '<div class="a-flag">🎉 Het antwoord</div>'+
-    '<div class="a-big">'+(escHtml(text)||'—')+'</div>'+
+    '<div class="a-big'+lengteKlasse(text)+'">'+(escHtml(text)||'—')+'</div>'+
     transGridHtml();
   fillTransGrid(inner,text);
 }
@@ -1928,7 +1971,7 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
     const k=b.dataset.reset;
     if(!confirm('Weet je het zeker? Dit wist deze ronde.'))return;
     if(k==='finale')state.finale=new Array(8).fill("");
-    else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");state.vraagIds=["",""];}
+    else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");state.vraagIds=["",""];state.vraagHand=false;}
     else if(k==='prijzen')state.prijzen=new Array(8).fill("");
     else if(k==='controle')state.controle=CONTROLE.map(()=>0);
     else state[k]=state[k].map(()=>false);
@@ -1965,7 +2008,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.1';
+const APP_VERSION='v3.2';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

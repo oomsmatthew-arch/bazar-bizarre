@@ -615,8 +615,9 @@
     await migrateSharedLists();
     ensureEntAlgemeen(); // gedeeld account "ENT algemeen" (zonder pincode) altijd beschikbaar
     if(appconfigOK){
-      zaaiFinalevragen();   // eenmalig de startlijst met finalevragen plaatsen
-      leerUitFormulieren(); // en de tellers bijwerken met wat er al ingezonden is
+      zaaiFinalevragen();    // eenmalig de startlijst met finalevragen plaatsen
+      leerUitFormulieren();  // tellers bijwerken met wat er al ingezonden is
+      vulOudeSpeelbeurten(); // en met de handmatig doorgegeven speelbeurten
     }
     normalizeInGebruik(); // prijzen op 0 die nog "in gebruik" stonden opschonen + syncen
     subscribe();
@@ -1413,6 +1414,33 @@
     if(raak) console.log('Finalevragen: '+raak+' uit eerdere formulieren meegeteld.');
     return raak;
   }
+  // Speelbeurten van vóór deze versie, met de hand doorgegeven. Ze staan niet in een
+  // formulier (die werden toen nog niet bijgehouden), maar bepalen wél de volgorde: zonder
+  // deze stelt de app een vraag voor die de gasten vorige week nog hoorden.
+  // 'zoek' is een stukje van de vraag; maand is 0-gebaseerd in new Date(...).
+  const OUDE_SPEELBEURTEN=[
+    {zoek:'time use institute', wanneer:new Date(2026,7,8,22,36)},   // 08/08/2026 22:36
+    {zoek:'grootste supermarkt', wanneer:new Date(2026,7,5,22,29)},  // 05/08/2026 22:29
+    {zoek:'banaan',              wanneer:new Date(2026,7,1,23,21)},  // 01/08/2026 23:21
+    {zoek:'aldi',                wanneer:new Date(2026,6,25,22,49)}  // 25/07/2026 22:49
+  ];
+  function vulOudeSpeelbeurten(){
+    const c=cache.appconfig;
+    if(!c || c.finalevragenBeurten) return 0;
+    const lijst=_vragenLijst(); if(!lijst) return 0;
+    let raak=0;
+    OUDE_SPEELBEURTEN.forEach(b=>{
+      const rec=lijst.find(v=>_normVraag(v.vraag).indexOf(b.zoek)>=0);
+      if(!rec) return;
+      const ts=b.wanneer.getTime();
+      rec.keer=(rec.keer||0)+1;
+      if(ts>(rec.laatst||0)) rec.laatst=ts;
+      raak++;
+    });
+    saveConfig({finalevragen:lijst,finalevragenBeurten:true});
+    if(raak) console.log('Finalevragen: '+raak+' eerdere speelbeurt(en) ingevuld.');
+    return raak;
+  }
   // Aanvinken dat een vraag gespeeld is — dit stuurt de volgorde voor de volgende keer.
   function markeerFinalevraagGebruikt(ids){
     const lijst=_vragenLijst(); if(!lijst) return;
@@ -1791,6 +1819,7 @@
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getFinalevragen,gesorteerdeFinalevragen,addFinalevraag,updateFinalevraag,
     removeFinalevraag,markeerFinalevraagGebruikt,zaaiFinalevragen,leerUitFormulieren,
+    vulOudeSpeelbeurten,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,
