@@ -462,9 +462,18 @@ function vraagVan(f){
   if(!f) return '';
   if(f.finalevraag) return f.finalevraag;
   const fin=(f.finale||'');
-  const i=fin.indexOf(' — ');
-  if(i>=0) return fin.slice(i+3);
-  return /(^|\s)V\d+\s*:/.test(fin) ? fin : '';
+  const mark=(window.BBInv&&BBInv.VRAAG_MARKER)||'[Finalevraag] ';
+  const i=fin.indexOf(mark);
+  if(i>=0) return fin.slice(i+mark.length);
+  return '';
+}
+// Wat er van 'finale' overblijft als de vraag eruit gehaald is: de oude finalereeks.
+function reeksVan(f){
+  const fin=(f&&f.finale)||'';
+  const mark=(window.BBInv&&BBInv.VRAAG_MARKER)||'[Finalevraag] ';
+  const i=fin.indexOf(mark);
+  if(i<0) return fin;
+  return fin.slice(0,i).replace(/\s*—\s*$/,'').trim();
 }
 // Toont het laatst ingezonden formulier in het kader rechts — altijd het nieuwste, ook
 // als daar geen vraag bij zit (dan zeggen we dat er niets ingevuld is).
@@ -511,7 +520,7 @@ function renderFormulieren(){
     // De vraag kan ook in 'finale' zijn beland (zolang de kolom ontbreekt); vraagVan()
     // pikt hem daar weer uit, zodat 'Finalereeks' enkel een echte reeks toont.
     const vraag=vraagVan(f);
-    const reeks=(f.finale&&f.finale!==vraag)?f.finale.replace(' — '+vraag,'').trim():'';
+    const reeks=reeksVan(f);
     const d=document.createElement('div'); d.className='subrec';
     d.innerHTML='<h4>'+(f.namen?esc(f.namen):'Zonder naam')+'</h4>'+
       '<div class="meta">'+bbFmtTs(f.ts)+'</div>'+
@@ -546,7 +555,7 @@ function formRows(){
   BBInv.getFormulieren().slice().sort((a,b)=>a.ts-b.ts).forEach(f=>{const b=f.boekjes||{};
     // In een cel past geen regeleinde (dat breekt de CSV), dus V1/V2 achter elkaar.
     const vraag=vraagVan(f);
-    const reeks=(f.finale&&f.finale!==vraag)?f.finale.replace(' — '+vraag,'').trim():'';
+    const reeks=reeksVan(f);
     rows.push([bbFmtTs(f.ts),f.namen||'',pl(f.kleine),pl(f.groot),b.gereserveerd||0,b.extra||0,b.gratis||0,
       reeks,vraag.replace(/\s*\n\s*/g,' | '),f.opmerking||'']);});
   return rows;

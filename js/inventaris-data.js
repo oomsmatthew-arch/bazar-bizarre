@@ -844,3 +844,25 @@ window.BESTELLINGEN_OUDE_SLEUTELS = [
  "2026-02-28|schelpen woops|lobbes","2026-03-04|boekjes|cp printing","2026-03-23|give away|espa",
  "2026-05-27|prijzen spelshow|van der meulen"
 ];
+
+// ---------------------------------------------------------------------------
+// STARTLIJST FINALEVRAGEN
+// ---------------------------------------------------------------------------
+// De vragen voor het finalespel. Deze lijst wordt één keer ingelezen; daarna leeft
+// ze gedeeld in de database (bij de app-instellingen) en beheer je ze in de app zelf
+// via "Vragen beheren" op het Finalespel-scherm.
+// Enkel Nederlands: de app vertaalt zelf naar Engels, Frans en Duits.
+window.FINALEVRAGEN_DEFAULT = [
+  {vraag:'Wanneer valt Black Friday?',
+   antwoord:'2026: 27 november · 2027: 26 november · 2028: 24 november · 2029: 23 november · 2030: 29 november'},
+  {vraag:'Volgens Wikipedia: wat is het gemiddelde gewicht van 1 banaan?',
+   antwoord:'150 gram'},
+  {vraag:'Hoeveel tijd brengt een Amerikaan gemiddeld door per supermarktbezoek volgens het Time Use Institute? Onderzoek uit 2023.',
+   antwoord:'41 minuten'},
+  {vraag:'Hoe groot is de grootste supermarkt van Frankrijk? In vierkante meter…',
+   antwoord:'25.000 vierkante meter — de Carrefour in Villiers-en-Bière, Frankrijk'},
+  {vraag:'Wanneer werd winkelketen ALDI opgericht volgens Wikipedia?',
+   antwoord:'1946, in Essen (Duitsland)'},
+  {vraag:'De eerste aardappelen kwamen vanuit Zuid-Amerika naar Europa, maar wanneer was dat volgens Wikipedia?',
+   antwoord:'1536'}
+];

@@ -15,8 +15,15 @@
   let projectenOK=false, projecttakenOK=false, projectberichtenOK=false, projectagendaOK=false, projectdocsOK=false;
   // Losse kolom die er later bij kwam: 'finalevraag' op de tabel formulieren.
   // Zie docs/finalevraag-kolom.sql — zonder die kolom werkt alles gewoon, maar komt de
-  // finalevraag achter de finalereeks te staan i.p.v. in een eigen veld.
+  // finalevraag in het bestaande veld 'finale' terecht, herkenbaar aan VRAAG_MARKER.
+  // Zonder dat merkteken kan je een vrij getypte vraag niet onderscheiden van een oude
+  // finalereeks, en zou ze in het overzicht onzichtbaar blijven.
+  const VRAAG_MARKER='[Finalevraag] ';
+  const K_FVCOL='bb_finalevraag_kolom';
+  // Onthouden of de kolom bestaat: bij een start zonder internet weten we het anders niet
+  // en zou een inzending onnodig in de terugvalweg belanden.
   let finalevraagOK=false;
+  try{ finalevraagOK=localStorage.getItem(K_FVCOL)==='1'; }catch(e){}
   // Diagnose: wat het Systeem-scherm toont. Zonder dit merk je pas veel later dat er iets
   // stilletjes misliep (tabel ontbreekt, wachtrij vast, nooit aangemeld…).
   const K_LAST_SYNC='bb_last_sync';
@@ -607,6 +614,7 @@
     await topUpBestelDefaults();
     await migrateSharedLists();
     ensureEntAlgemeen(); // gedeeld account "ENT algemeen" (zonder pincode) altijd beschikbaar
+    if(appconfigOK) zaaiFinalevragen(); // eenmalig de startlijst met finalevragen plaatsen
     normalizeInGebruik(); // prijzen op 0 die nog "in gebruik" stonden opschonen + syncen
     subscribe();
     flushOutbox(); // eventuele offline gemaakte wijzigingen alsnog doorsturen
@@ -773,8 +781,14 @@
   // Bestaat de kolom 'finalevraag' al? Eén klein verzoekje; faalt het, dan weten we dat
   // de kolom nog niet is toegevoegd en past submitFormulier zich aan.
   async function probeerFinalevraag(){
-    try{ const r=await sb.from('formulieren').select('finalevraag').limit(1); finalevraagOK=!(r&&r.error); }
-    catch(e){ finalevraagOK=false; }
+    try{
+      const r=await sb.from('formulieren').select('finalevraag').limit(1);
+      // Een antwoord mét foutmelding = de kolom bestaat echt niet. Een verzoek dat
+      // helemaal niet aankomt (hieronder) zegt daar niets over — dan houden we vast
+      // aan wat we de vorige keer wisten.
+      finalevraagOK=!(r&&r.error);
+      try{ localStorage.setItem(K_FVCOL, finalevraagOK?'1':'0'); }catch(e){}
+    }catch(e){ /* netwerk weg → laatst bekende stand behouden */ }
   }
   // Gedeelde recente sessies: aparte rij (id=2) in dezelfde spelarchief-tabel — geen extra opzet nodig.
   async function laadSessies(){
@@ -1276,10 +1290,62 @@
   }
   // ---------------- APP-INSTELLINGEN (gedeeld document) ----------------
   const getConfig=()=>cache.appconfig;
+  // SAMENVOEGEN, niet vervangen. Verschillende schermen bewaren elk hun eigen stukje
+  // instellingen; wie het hele document zou overschrijven, gooit de rest weg (zo zou
+  // pushConfig() in kern.js de vragenbank hieronder wissen).
   function saveConfig(obj){
-    cache.appconfig=obj;
-    try{localStorage.setItem('bb_appconfig',JSON.stringify(obj));}catch(e){}
-    if(appconfigOK) dbUpsert('appconfig',{id:1,data:obj}); else persistCache();
+    cache.appconfig=Object.assign({},cache.appconfig||{},obj||{});
+    try{localStorage.setItem('bb_appconfig',JSON.stringify(cache.appconfig));}catch(e){}
+    if(appconfigOK) dbUpsert('appconfig',{id:1,data:cache.appconfig}); else persistCache();
+  }
+
+  // ---------------- FINALEVRAGEN (gedeelde vragenbank) ----------------
+  // Woont in het gedeelde instellingen-document, dus er is géén extra tabel of SQL nodig.
+  // Per vraag houden we bij hoe vaak ze al gebruikt is en wanneer voor het laatst; daarop
+  // sorteren we, zodat je bovenaan altijd een vraag krijgt die lang niet aan bod kwam.
+  function _vragenLijst(){
+    const c=cache.appconfig;
+    return (c && Array.isArray(c.finalevragen)) ? c.finalevragen : null;
+  }
+  function _bewaarVragen(lijst){ saveConfig({finalevragen:lijst}); }
+  // Eén keer de startlijst plaatsen als er nog niets staat.
+  function zaaiFinalevragen(){
+    if(_vragenLijst()) return false;
+    const def=(typeof window!=='undefined' && window.FINALEVRAGEN_DEFAULT)||[];
+    if(!def.length) return false;
+    _bewaarVragen(def.map(v=>({id:uid(),vraag:v.vraag||'',antwoord:v.antwoord||'',keer:0,laatst:0})));
+    return true;
+  }
+  const getFinalevragen=()=>(_vragenLijst()||[]).slice();
+  // Minst gebruikt eerst; bij gelijke stand degene die het langst geleden aan bod kwam.
+  function gesorteerdeFinalevragen(){
+    return getFinalevragen().sort((a,b)=>
+      ((a.keer||0)-(b.keer||0)) || ((a.laatst||0)-(b.laatst||0)) || (a.vraag||'').localeCompare(b.vraag||''));
+  }
+  function addFinalevraag(v){
+    const lijst=_vragenLijst()||[];
+    const rec={id:uid(),vraag:(v&&v.vraag)||'',antwoord:(v&&v.antwoord)||'',keer:0,laatst:0};
+    lijst.push(rec); _bewaarVragen(lijst);
+    logAct('Finalevraag toegevoegd: '+rec.vraag.slice(0,60));
+    return rec;
+  }
+  function updateFinalevraag(id,patch){
+    const lijst=_vragenLijst()||[]; const r=lijst.find(x=>x.id===id); if(!r) return null;
+    Object.assign(r,patch||{}); _bewaarVragen(lijst);
+    logAct('Finalevraag aangepast: '+String(r.vraag||'').slice(0,60));
+    return r;
+  }
+  function removeFinalevraag(id){
+    const lijst=_vragenLijst()||[]; const r=lijst.find(x=>x.id===id);
+    _bewaarVragen(lijst.filter(x=>x.id!==id));
+    logAct('Finalevraag verwijderd'+(r?': '+String(r.vraag||'').slice(0,60):''));
+  }
+  // Aanvinken dat een vraag gespeeld is — dit stuurt de volgorde voor de volgende keer.
+  function markeerFinalevraagGebruikt(ids){
+    const lijst=_vragenLijst(); if(!lijst) return;
+    const nu=Date.now(); let raak=0;
+    (ids||[]).forEach(id=>{ const r=lijst.find(x=>x.id===id); if(r){ r.keer=(r.keer||0)+1; r.laatst=nu; raak++; } });
+    if(raak) _bewaarVragen(lijst);
   }
   // ---------------- SPEL-ARCHIEF (gedeeld document) ----------------
   const getArchief=()=>cache.spelarchief;
@@ -1414,7 +1480,7 @@
     // achter de finalereeks in het bestaande veld. Meesturen van een onbekende kolom zou
     // de hele inzending laten mislukken — en dan was het net afgesloten spel weg.
     if(finalevraagOK) rij.finalevraag=rec.finalevraag;
-    else if(rec.finalevraag) rij.finale=[rec.finale,rec.finalevraag].filter(Boolean).join(' — ');
+    else if(rec.finalevraag) rij.finale=[rec.finale,VRAAG_MARKER+rec.finalevraag].filter(Boolean).join(' — ');
     dbInsert('formulieren',rij);
     logAct('Spel afgesloten / formulier ingezonden'+(rec.namen?': '+rec.namen:''));
     return rec;
@@ -1631,7 +1697,7 @@
   window.BBInv={init,setOnChange:fn=>{onChange=fn;},isReady:()=>ready,
     seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
-    isFinalevraagGedeeld:()=>finalevraagOK,
+    isFinalevraagGedeeld:()=>finalevraagOK, VRAAG_MARKER,
     getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,
     getContacten,addContact,updateContact,removeContact,isContactenGedeeld:()=>contactenOK,
     getChecklisten,addChecklist,saveChecklist,removeChecklist,reorderChecklisten,isChecklistenGedeeld:()=>checklistenOK,
@@ -1650,6 +1716,8 @@
     getManualsTree,saveManualsTree,uploadFile,lijstOpslag,verwijderOpslag,isManualsGedeeld:()=>manualsdocOK,
     haalFotosBij,   // foto's van collega's alsnog ophalen (het Database-overzicht gebruikt dit)
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
+    getFinalevragen,gesorteerdeFinalevragen,addFinalevraag,updateFinalevraag,
+    removeFinalevraag,markeerFinalevraagGebruikt,zaaiFinalevragen,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,

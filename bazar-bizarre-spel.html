@@ -295,6 +295,42 @@
     font-weight:700;font-size:14px;cursor:pointer;}
   .segmented .seg.active{background:var(--gold);color:#1a1a1a;}
   .qawrap{display:grid;gap:14px;max-width:640px;}
+
+  /* finale: vragenlijst rechts naast de twee vraagvelden */
+  .finalelayout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start;}
+  @media(max-width:980px){ .finalelayout{grid-template-columns:1fr;} }
+  .vragenlijst{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    display:flex;flex-direction:column;max-height:640px;}
+  .vl-kop{background:linear-gradient(120deg,#1b3360,#13294a);padding:12px 14px;border-bottom:1px solid var(--line);}
+  .vl-kop .t{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--gold);}
+  .vl-kop .s{font-size:12px;color:var(--muted);margin-top:2px;}
+  .vl-body{overflow-y:auto;padding:0 12px 12px;display:grid;gap:8px;}
+  .vl-voet{border-top:1px solid var(--line);padding:10px 12px;}
+  .vl-voet .btn{width:100%;}
+  .vq{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;
+    cursor:pointer;text-align:left;color:var(--text);font:inherit;display:block;width:100%;}
+  .vq:hover{border-color:var(--gold);}
+  .vq:active{transform:translateY(1px);}
+  .vq .v{font-size:14px;line-height:1.4;font-weight:600;}
+  .vq .a{font-size:13px;color:var(--gold);margin-top:3px;font-weight:700;}
+  .vq .m{font-size:11px;color:var(--muted);margin-top:5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .vq .tag{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;}
+  .vq .tag.nieuw{color:var(--ok);border-color:var(--ok);}
+  /* De twee die nu in vraag 1 en 2 staan, duidelijk gemarkeerd. */
+  .vq.inzet1{border-color:var(--gold);box-shadow:inset 3px 0 0 var(--gold);}
+  .vq.inzet2{border-color:var(--purple);box-shadow:inset 3px 0 0 var(--purple);}
+  .vq .inzet{font-weight:800;color:var(--gold);}
+  .vq.inzet2 .inzet{color:var(--purple);}
+  .vl-leeg{font-size:13px;color:var(--muted);line-height:1.5;padding:10px 2px;}
+  /* vragenbeheer */
+  .vbrij{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px;}
+  .vbrij .v{font-size:15px;font-weight:700;line-height:1.4;}
+  .vbrij .a{font-size:14px;color:var(--gold);margin-top:3px;}
+  .vbrij .m{font-size:12px;color:var(--muted);margin-top:5px;}
+  .vbrij .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
+  .vbrij button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;
+    padding:6px 11px;font-weight:700;font-size:13px;cursor:pointer;}
+  .vbrij button.del{border-color:var(--red);color:#f0a3ad;background:transparent;}
   .qa{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:9px;}
   .qa-q{display:flex;align-items:center;gap:10px;}
   .qa-q .pn{flex:0 0 30px;height:30px;border-radius:7px;display:grid;place-items:center;
@@ -471,13 +507,51 @@
 
   <!-- FINALE -->
   <div class="view" id="finale">
-    <p class="hint">Typ de vraag en het antwoord. Klik op <b>▶ Toon</b> bij de vraag om ze groot te tonen — automatisch vertaald in Engels, Frans en Duits. Klik op <b>▶ Toon</b> bij het antwoord voor een aftel-onthulling (na 8 sec verschijnt het antwoord).</p>
-    <div class="qawrap" data-grid="qa" id="finaleQA"></div>
-    <div class="bar" style="margin-top:14px;gap:12px;flex-wrap:wrap;">
-      <button class="btn" id="trPrewarm">⤓ Vertalingen offline klaarzetten</button>
-      <button class="btn clear" data-reset="qa">Vragen wissen</button>
+    <p class="hint">Vraag 1 en 2 (backup) zijn automatisch gekozen uit de vragenlijst rechts: bovenaan staat wat het minst en het langst geleden gespeeld is. Tik een andere vraag in de lijst aan om te wisselen. Klik op <b>▶ Toon</b> bij de vraag om ze groot te tonen — automatisch vertaald in Engels, Frans en Duits. Klik op <b>▶ Toon</b> bij het antwoord voor een aftel-onthulling.</p>
+    <div class="finalelayout">
+      <div>
+        <div class="qawrap" data-grid="qa" id="finaleQA"></div>
+        <div class="bar" style="margin-top:14px;gap:12px;flex-wrap:wrap;">
+          <button class="btn" id="trPrewarm">⤓ Vertalingen offline klaarzetten</button>
+          <button class="btn" id="vraagOpnieuw">↻ Opnieuw voorstellen</button>
+          <button class="btn clear" data-reset="qa">Vragen wissen</button>
+        </div>
+        <div id="trStatus" class="trstatus"></div>
+      </div>
+
+      <!-- Vragenlijst: minst en langst geleden gespeeld bovenaan. -->
+      <aside class="vragenlijst" id="vragenlijst">
+        <div class="vl-kop">
+          <div class="t">Vragenlijst</div>
+          <div class="s" id="vlAantal">—</div>
+        </div>
+        <input type="text" id="vlZoek" class="finp zoek" placeholder="Zoek een vraag…" style="margin:10px 12px;width:calc(100% - 24px);">
+        <div class="vl-body" id="vlBody"></div>
+        <div class="vl-voet">
+          <button class="btn" id="vlBeheer">🔒 Vragen beheren</button>
+        </div>
+      </aside>
     </div>
-    <div id="trStatus" class="trstatus"></div>
+  </div>
+
+  <!-- VRAGEN BEHEREN (achter het beheer-wachtwoord) -->
+  <div class="view" id="vragenbeheer">
+    <p class="hint">Voeg finalevragen toe of pas ze aan. De lijst is gedeeld met alle toestellen. Enkel het Nederlands invullen volstaat — de app vertaalt zelf naar Engels, Frans en Duits.</p>
+    <div class="formblok">
+      <label class="flbl" for="vbVraag">Nieuwe vraag</label>
+      <input type="text" id="vbVraag" class="finp" placeholder="bv. Volgens Wikipedia: wat is het gemiddelde gewicht van 1 banaan?">
+      <label class="flbl" for="vbAntwoord" style="margin-top:10px;">Antwoord</label>
+      <input type="text" id="vbAntwoord" class="finp" placeholder="bv. 150 gram">
+      <div class="bar" style="margin-top:10px;gap:10px;">
+        <button class="finishbtn" id="vbAdd">＋ Vraag toevoegen</button>
+        <button class="btn clear" id="vbTerug">‹ Terug naar het finalespel</button>
+      </div>
+    </div>
+    <div class="formblok">
+      <div class="flbl">Alle vragen <span id="vbTel" class="telpil">0</span></div>
+      <input type="text" id="vbZoek" class="finp zoek" placeholder="Zoek in de vragen…">
+      <div id="vbLijst"></div>
+    </div>
   </div>
 
   <!-- FORMULIER (spel afsluiten → inventaris) -->
@@ -671,7 +745,10 @@ function freshState(){
     finale: new Array(8).fill(""),
     finaleMode: "namen",
     vragen: new Array(8).fill(""),
-    antwoorden: new Array(8).fill("")
+    antwoorden: new Array(8).fill(""),
+    // Welke vraag uit de gedeelde lijst in vak 1 en 2 staat. Nodig om na afloop te
+    // kunnen aanvinken dat ze gespeeld zijn — daar hangt de volgorde van af.
+    vraagIds: ["",""]
   };
 }
 function loadState(){
@@ -805,6 +882,7 @@ function renderCoins(){
   }
 }
 function renderFinale(){
+  vulVragenVoor();   // eerst aanvullen, dan pas tekenen — anders tonen de vakken de oude stand
   const q=document.querySelector('[data-grid="qa"]'); q.innerHTML='';
   for(let i=0;i<2;i++){
     const card=document.createElement('div'); card.className='qa';
@@ -812,7 +890,9 @@ function renderFinale(){
     qr.innerHTML=`<span class="pn">${i+1}</span>`;
     const qi=document.createElement('input');
     qi.type='text'; qi.placeholder='Vraag…'; qi.value=state.vragen[i]||'';
-    qi.oninput=e=>{state.vragen[i]=e.target.value;save();schedulePrewarm();updateTrStatus();};
+    // Zelf iets anders typen betekent: dit is niet langer de vraag uit de lijst. We laten
+    // het verband dan los, zodat we na afloop niet de verkeerde vraag afvinken.
+    qi.oninput=e=>{state.vragen[i]=e.target.value;losVerbandBijWijziging(i);save();schedulePrewarm();updateTrStatus();renderVragenlijst();};
     const qShow=document.createElement('button');
     qShow.type='button'; qShow.className='eye'; qShow.textContent='▶ Toon';
     qShow.title='Toon de vraag groot, met vertaling';
@@ -823,6 +903,7 @@ function renderFinale(){
     ai.type='text'; ai.placeholder='Antwoord…'; ai.value=state.antwoorden[i]||'';
     ai.className='a';
     ai.oninput=e=>{state.antwoorden[i]=e.target.value;save();schedulePrewarm();updateTrStatus();};
+    qi.dataset.slot=i; ai.dataset.slot=i;
     const aShow=document.createElement('button');
     aShow.type='button'; aShow.className='eye'; aShow.textContent='▶ Toon';
     aShow.title='Onthul het antwoord met aftel-animatie';
@@ -830,8 +911,146 @@ function renderFinale(){
     ar.appendChild(ai); ar.appendChild(aShow);
     card.appendChild(qr); card.appendChild(ar); q.appendChild(card);
   }
+  renderVragenlijst();
   updateTrStatus();
   if(navigator.onLine && !finaleAllCached()) schedulePrewarm();
+}
+
+// ---------------- VRAGENLIJST (gedeelde bank, minst gespeeld bovenaan) ----------------
+function vragenBank(){ return (window.BBInv&&BBInv.gesorteerdeFinalevragen)?BBInv.gesorteerdeFinalevragen():[]; }
+function vraagOpId(id){ return vragenBank().find(v=>v.id===id)||null; }
+if(!Array.isArray(state.vraagIds)) state.vraagIds=["",""];   // sessies van vóór deze versie
+
+// Zet een vraag uit de lijst in vak 1 of 2.
+function zetVraag(slot,v){
+  if(!v) return;
+  state.vragen[slot]=v.vraag||'';
+  state.antwoorden[slot]=v.antwoord||'';
+  state.vraagIds[slot]=v.id||'';
+  save(); renderFinale();
+}
+// Typt iemand zelf iets anders? Dan hoort dit vak niet meer bij die vraag uit de lijst.
+function losVerbandBijWijziging(slot){
+  const id=state.vraagIds[slot]; if(!id) return;
+  const v=vraagOpId(id);
+  if(!v || (state.vragen[slot]||'')!==(v.vraag||'')) state.vraagIds[slot]='';
+}
+// De twee eerstvolgende voorstellen — enkel in vakken die nog leeg zijn, zodat we nooit
+// overschrijven wat iemand al heeft ingevuld.
+function vulVragenVoor(forceer){
+  const bank=vragenBank(); if(!bank.length) return;
+  const gebruikt=[];
+  for(let i=0;i<2;i++){
+    const leeg=!(state.vragen[i]||'').trim() && !(state.antwoorden[i]||'').trim();
+    if(!forceer && !leeg){ if(state.vraagIds[i]) gebruikt.push(state.vraagIds[i]); continue; }
+    const v=bank.find(x=>gebruikt.indexOf(x.id)<0);
+    if(!v) break;
+    gebruikt.push(v.id);
+    state.vragen[i]=v.vraag||''; state.antwoorden[i]=v.antwoord||''; state.vraagIds[i]=v.id;
+  }
+  save();
+}
+let vlQuery='';
+function renderVragenlijst(){
+  const box=document.getElementById('vlBody'); if(!box) return;
+  let bank=vragenBank();
+  const tel=document.getElementById('vlAantal');
+  if(tel) tel.textContent = bank.length ? (bank.length+' vragen · minst gespeeld bovenaan') : 'nog geen vragen';
+  if(vlQuery){
+    const q=vlQuery.toLowerCase();
+    bank=bank.filter(v=>((v.vraag||'')+' '+(v.antwoord||'')).toLowerCase().indexOf(q)>=0);
+  }
+  box.innerHTML='';
+  if(!bank.length){
+    box.innerHTML='<div class="vl-leeg">'+(vlQuery?'Geen vraag gevonden.':'Nog geen vragen in de lijst. Voeg ze toe via <b>🔒 Vragen beheren</b>.')+'</div>';
+    return;
+  }
+  bank.forEach(v=>{
+    const slot=state.vraagIds.indexOf(v.id);
+    const b=document.createElement('button');
+    b.type='button'; b.className='vq'+(slot===0?' inzet1':(slot===1?' inzet2':''));
+    b.innerHTML='<div class="v">'+esc(v.vraag||'')+'</div>'+
+      (v.antwoord?'<div class="a">'+esc(v.antwoord)+'</div>':'')+
+      '<div class="m">'+
+        (slot>=0?'<span class="inzet">▸ staat in vraag '+(slot+1)+'</span>':'')+
+        '<span class="tag'+((v.keer||0)?'':' nieuw')+'">'+((v.keer||0)?((v.keer)+'× gespeeld'):'nog nooit gespeeld')+'</span>'+
+        (v.laatst?'<span class="tag">laatst '+esc(fmtTs(v.laatst).split(' ')[0])+'</span>':'')+
+      '</div>';
+    b.title='Tik om in vraag 1 te zetten · lang indrukken of ⇄ voor vraag 2';
+    b.onclick=()=>zetVraag(0,v);
+    // Rechtsklikken of lang indrukken zet ze in het backup-vak.
+    b.oncontextmenu=e=>{ e.preventDefault(); zetVraag(1,v); };
+    let lang=null;
+    b.addEventListener('touchstart',()=>{ lang=setTimeout(()=>{ lang=null; zetVraag(1,v); },600); },{passive:true});
+    b.addEventListener('touchend',()=>{ if(lang){ clearTimeout(lang); lang=null; } });
+    box.appendChild(b);
+  });
+}
+document.getElementById('vlZoek').oninput=e=>{ vlQuery=e.target.value.trim(); renderVragenlijst(); };
+// Twee nieuwe voorstellen, ook als de vakken al gevuld waren.
+document.getElementById('vraagOpnieuw').onclick=()=>{
+  if(!vragenBank().length){ alert('Er staan nog geen vragen in de lijst.'); return; }
+  state.vraagIds=["",""]; state.vragen[0]=''; state.vragen[1]='';
+  state.antwoorden[0]=''; state.antwoorden[1]='';
+  vulVragenVoor(true); renderFinale();
+};
+
+// ---------------- VRAGEN BEHEREN ----------------
+let vbQuery='';
+document.getElementById('vlBeheer').onclick=()=>{
+  const p=prompt('Beheer-wachtwoord om de vragen te beheren:'); if(p===null) return;
+  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+  renderVragenBeheer(); show('vragenbeheer');
+};
+document.getElementById('vbTerug').onclick=()=>{ renderFinale(); show('finale'); };
+document.getElementById('vbZoek').oninput=e=>{ vbQuery=e.target.value.trim(); renderVragenBeheer(); };
+document.getElementById('vbAdd').onclick=()=>{
+  const v=document.getElementById('vbVraag').value.trim();
+  const a=document.getElementById('vbAntwoord').value.trim();
+  if(!v){ alert('Vul eerst een vraag in.'); return; }
+  bbSetActor();
+  BBInv.addFinalevraag({vraag:v,antwoord:a});
+  document.getElementById('vbVraag').value=''; document.getElementById('vbAntwoord').value='';
+  renderVragenBeheer();
+};
+function renderVragenBeheer(){
+  const box=document.getElementById('vbLijst'); if(!box) return;
+  const alle=(window.BBInv&&BBInv.getFinalevragen)?BBInv.getFinalevragen():[];
+  document.getElementById('vbTel').textContent=alle.length;
+  let lijst=alle.slice().sort((a,b)=>(a.vraag||'').localeCompare(b.vraag||''));
+  if(vbQuery){
+    const q=vbQuery.toLowerCase();
+    lijst=lijst.filter(v=>((v.vraag||'')+' '+(v.antwoord||'')).toLowerCase().indexOf(q)>=0);
+  }
+  box.innerHTML='';
+  if(!lijst.length){
+    box.innerHTML='<p class="hint">'+(vbQuery?'Geen vraag gevonden.':'Nog geen vragen. Voeg er hierboven een toe.')+'</p>';
+    return;
+  }
+  lijst.forEach(v=>{
+    const d=document.createElement('div'); d.className='vbrij';
+    d.innerHTML='<div class="v">'+esc(v.vraag||'')+'</div>'+
+      (v.antwoord?'<div class="a">'+esc(v.antwoord)+'</div>':'')+
+      '<div class="m">'+((v.keer||0)?(v.keer+'× gespeeld'):'nog nooit gespeeld')+
+        (v.laatst?(' · laatst '+esc(fmtTs(v.laatst))):'')+'</div>'+
+      '<div class="acts"><button class="bew">Bewerken</button>'+
+        '<button class="nul">Teller op nul</button>'+
+        '<button class="del">Verwijderen</button></div>';
+    d.querySelector('.bew').onclick=()=>{
+      const nv=prompt('Vraag:',v.vraag||''); if(nv===null) return;
+      const na=prompt('Antwoord:',v.antwoord||''); if(na===null) return;
+      bbSetActor(); BBInv.updateFinalevraag(v.id,{vraag:nv.trim(),antwoord:na.trim()});
+      renderVragenBeheer();
+    };
+    d.querySelector('.nul').onclick=()=>{
+      bbSetActor(); BBInv.updateFinalevraag(v.id,{keer:0,laatst:0}); renderVragenBeheer();
+    };
+    d.querySelector('.del').onclick=()=>{
+      if(!confirm('Deze vraag verwijderen?\n\n'+(v.vraag||''))) return;
+      bbSetActor(); BBInv.removeFinalevraag(v.id); renderVragenBeheer();
+    };
+    box.appendChild(d);
+  });
 }
 
 // ---------------- PRESENTATIE: grote vraag (vertaling) + antwoord-reveal ----------------
@@ -994,7 +1213,8 @@ function updateAll(){
 const titles={menu:"Bazar Bizarre",controle:"Controle lijst",superdeals:"Ronde 1 · Super Deals",
   trolley:"Ronde 2 · Trolley Tunes",howmuch:"Ronde 3 · How Much?",
   coins:"Ronde 4 · Crazy Coins",finale:"Finalespel",admin:"Beheer · Archief",
-  formulier:"Spel afsluiten · Formulier",formulierKlaar:"Doorgestuurd"};
+  formulier:"Spel afsluiten · Formulier",formulierKlaar:"Doorgestuurd",
+  vragenbeheer:"Finalevragen beheren"};
 function show(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
@@ -1245,6 +1465,9 @@ document.getElementById('fDoorsturen').onclick=()=>{
     finalevraag:document.getElementById('fFinaleVraag').value.trim(),
     opmerking:document.getElementById('fOpm').value.trim()};
   bbSetActor(); // zorg dat de juiste naam in het activiteitenlog komt
+  // Aanvinken welke vragen gespeeld zijn: daardoor zakken ze in de lijst en krijg je de
+  // volgende keer vanzelf een andere. Alleen vakken die nog écht bij een lijstvraag horen.
+  if(BBInv.markeerFinalevraagGebruikt) BBInv.markeerFinalevraagGebruikt((state.vraagIds||[]).filter(Boolean));
   const rec=BBInv.submitFormulier(f);
   onthoudNaam(namen);
   // archiveer ook de spel-sessie (bestaande spel-archief met turven/finale)
@@ -1436,7 +1659,7 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
     const k=b.dataset.reset;
     if(!confirm('Weet je het zeker? Dit wist deze ronde.'))return;
     if(k==='finale')state.finale=new Array(8).fill("");
-    else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");}
+    else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");state.vraagIds=["",""];}
     else if(k==='prijzen')state.prijzen=new Array(8).fill("");
     else if(k==='controle')state.controle=CONTROLE.map(()=>0);
     else state[k]=state[k].map(()=>false);
@@ -1462,13 +1685,18 @@ if(window.BBInv){
     renderControle();
     if(document.getElementById('formulier').classList.contains('active')){renderKiesLijst('klein');renderKiesLijst('groot');}
     if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+    // De vragenbank komt uit de gedeelde instellingen en is bij het opstarten nog leeg;
+    // zodra ze binnen is (of een collega iets wijzigt) tekenen we het finalescherm opnieuw.
+    if(document.getElementById('finale').classList.contains('active')) renderFinale();
+    else renderVragenlijst();
+    if(document.getElementById('vragenbeheer').classList.contains('active')) renderVragenBeheer();
     updateKlaarSync(); // sync-status op het "Doorgestuurd"-scherm live bijwerken
   });
   BBInv.init();
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v2.8';
+const APP_VERSION='v2.9';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

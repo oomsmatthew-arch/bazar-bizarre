@@ -103,9 +103,25 @@ var VRAAG='V1: Hoeveel ballonnen hangen er? → 42\nV2: Hoofdstad van Frankrijk?
     boekjes:{gereserveerd:1,extra:0,gratis:0},finale:'',finalevraag:VRAAG,opmerking:''});
   await rust(); draaiTimers(); await rust();
   var rij4=(db4.formulieren||[])[0]||{};
+  var MARK=BBInv.VRAAG_MARKER;
   ok((db4.formulieren||[]).length===1,'het formulier is aangekomen');
-  ok(rij4.finale===VRAAG,'de vraag staat er kaal in, zonder losse " — " ervoor');
+  ok(rij4.finale===MARK+VRAAG,'de vraag staat er met merkteken in, zonder losse " — " ervoor');
   ok((rij4.finale||'').indexOf(' — ')<0,'geen restje van de weggehaalde finalereeks');
+  // Zonder merkteken kan het overzicht een vrij getypte vraag niet onderscheiden van een
+  // oude finalereeks — dan zou ze onzichtbaar blijven.
+  ok(rij4.finale.indexOf(MARK)===0,'het merkteken staat vooraan, zodat het overzicht ze terugvindt');
+
+  print('\n— Ook een vrij getypte vraag zonder "V1:" blijft terugvindbaar —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var db6=basisDB();
+  await sessie(db6,{formulieren:['finalevraag']});
+  BBInv.submitFormulier({namen:'Matthew',kleine:[],groot:[],
+    boekjes:{gereserveerd:1,extra:0,gratis:0},finale:'',
+    finalevraag:'Hoeveel ballonnen hangen er?',opmerking:''});
+  await rust(); draaiTimers(); await rust();
+  var rij6=(db6.formulieren||[])[0]||{};
+  ok(rij6.finale===BBInv.VRAAG_MARKER+'Hoeveel ballonnen hangen er?',
+     'ook zonder V-nummer staat het merkteken ervoor');
 
   print('\n— En mét de kolom blijft finale gewoon leeg —');
   Object.keys(store).forEach(function(k){ delete store[k]; });

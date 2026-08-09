@@ -32,6 +32,17 @@ De inventaris zit volledig in de app zelf — geen Google of server nodig. `inve
 (Inventaris) en `bazar-bizarre-spel.html` (het spel) draaien op hetzelfde domein en **delen
 daardoor dezelfde opslag** op het toestel.
 
+- **Vragenlijst finalespel** (in Bazar Bizarre → Finalespel): rechts staat de gedeelde lijst
+  met alle finalevragen, **bovenaan wat het minst en het langst geleden gespeeld is**. Vraag 1
+  en 2 (backup) worden daar automatisch uit gevuld. Tik een andere vraag aan om ze in vak 1 te
+  zetten; lang indrukken (of rechtsklikken) zet ze in vak 2. **↻ Opnieuw voorstellen** kiest
+  twee verse vragen. Sluit je het spel af, dan worden de gebruikte vragen afgevinkt en zakken
+  ze in de lijst — zo krijg je nooit twee keer kort na elkaar dezelfde.
+  - **🔒 Vragen beheren** (onderaan de lijst, met het beheer-wachtwoord): vragen toevoegen,
+    aanpassen, de teller op nul zetten of verwijderen. Enkel het Nederlands invullen volstaat —
+    de app vertaalt zelf naar Engels, Frans en Duits.
+  - De lijst is **gedeeld met alle toestellen** en zit in het instellingen-document; er is dus
+    géén extra tabel of SQL voor nodig. De startlijst staat in `js/inventaris-data.js`.
 - **Formulier** (in Bazar Bizarre): de knop **"Spel afsluiten"** opent een formulier waar
   je de weggegeven kleine/grote prijzen aanklikt (met zoek + aantal), boekjes invult,
   finale en opmerkingen. **Doorsturen** boekt alles af van de voorraad én sluit het spel af.
