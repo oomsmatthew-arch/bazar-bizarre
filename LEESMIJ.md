@@ -37,7 +37,10 @@ daardoor dezelfde opslag** op het toestel.
   gespeeld is én hoe lang geleden dat was. Een vraag die vaker aan bod kwam maar al heel lang
   niet meer, komt dus vóór eentje die pas één keer gespeeld is maar vorige week nog. (Zou de
   app enkel op aantal sorteren met de tijd als scheidsrechter, dan telde die tijd alleen mee
-  bij een exact gelijk aantal.) Nooit gespeelde vragen staan altijd bovenaan. Vraag 1
+  bij een exact gelijk aantal.) Nooit gespeelde vragen staan altijd bovenaan.
+  **Enkel vraag 1 telt mee** voor die volgorde — vak 2 is de backup en wordt normaal niet
+  gesteld. Verwijder je een formulier in de inventaris, dan gaat die speelbeurt er ook weer
+  af. Klopt er toch iets niet, dan pas je het aantal en de datum aan bij *Bewerken*. Vraag 1
   en 2 (backup) worden daar automatisch uit gevuld. Tik een andere vraag aan om ze in vak 1 te
   zetten; lang indrukken (of rechtsklikken) zet ze in vak 2. **↻ Opnieuw voorstellen** kiest
   twee verse vragen. Sluit je het spel af, dan worden de gebruikte vragen afgevinkt en zakken

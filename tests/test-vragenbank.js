@@ -176,7 +176,59 @@ function namen(lijst){ return lijst.map(function(v){return v.vraag;}); }
   var posAldi=volg5.findIndex(function(v){return v.id===aldi.id;});
   ok(posAldi===2,'ALDI, het langst geleden van de gespeelde, komt daarna');
 
+  print('\n— Alleen vraag 1 uit een formulier telt mee, niet de backup —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var db2=basisDB();
+  // Eén ingezonden formulier met twee vragen: V1 is gesteld, V2 was de backup.
+  db2.formulieren=[{id:'f1',ts:new Date(2026,7,9,22,0).getTime(),namen:'Test',
+    kleine:[],groot:[],boekjes:{},opmerking:'',finale:'',
+    finalevraag:'V1: Vraag A? → antwoord A\nV2: Vraag B? → antwoord B'}];
+  globalThis.FINALEVRAGEN_DEFAULT=[
+    {vraag:'Vraag A?',antwoord:'antwoord A'},
+    {vraag:'Vraag B?',antwoord:'antwoord B'}
+  ];
+  await sessie(db2);
+  var aldi2=BBInv.getFinalevragen().find(function(v){return (v.vraag||'').indexOf('Vraag A')>=0;});
+  var ban2=BBInv.getFinalevragen().find(function(v){return (v.vraag||'').indexOf('Vraag B')>=0;});
+  ok(aldi2 && aldi2.keer===1,'de gestelde vraag (V1) staat op 1×');
+  ok(ban2 && (ban2.keer||0)===0,'de backup (V2) telt niet mee');
+  ok(BBInv.gesorteerdeFinalevragen()[0].id===ban2.id,'de backup staat dus nog steeds bovenaan');
+  globalThis.FINALEVRAGEN_DEFAULT=ECHTE_LIJST;
+
+  print('\n— Een formulier verwijderen draait de telling terug —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var db3=basisDB();
+  var t1=new Date(2026,7,1,20,0).getTime(), t2=new Date(2026,7,9,20,0).getTime();
+  db3.formulieren=[
+    {id:'f1',ts:t1,namen:'A',kleine:[],groot:[],boekjes:{},opmerking:'',finale:'',
+     finalevraag:'V1: Vraag A? → antwoord A'},
+    {id:'f2',ts:t2,namen:'B',kleine:[],groot:[],boekjes:{},opmerking:'',finale:'',
+     finalevraag:'V1: Vraag A? → antwoord A'}
+  ];
+  globalThis.FINALEVRAGEN_DEFAULT=[
+    {vraag:'Vraag A?',antwoord:'antwoord A'},
+    {vraag:'Vraag B?',antwoord:'antwoord B'}
+  ];
+  await sessie(db3);
+  var vA=function(){ return BBInv.getFinalevragen().find(function(v){return (v.vraag||'').indexOf('Vraag A')>=0;}); };
+  ok(vA().keer===2,'twee formulieren → 2× gespeeld');
+  ok(vA().laatst===t2,'met de datum van het recentste');
+  // Het recentste formulier verwijderen.
+  BBInv.setFormulieren(BBInv.getFormulieren().filter(function(f){return f.id!=='f2';}));
+  ok(vA().keer===1,'na verwijderen nog 1× gespeeld');
+  ok(vA().laatst===t1,'en de datum valt terug op het formulier dat er nog is');
+  // En het laatste ook.
+  BBInv.setFormulieren([]);
+  ok(vA().keer===0,'geen formulieren meer → nog nooit gespeeld');
+  ok(vA().laatst===0,'en geen datum meer');
+  ok(BBInv.gesorteerdeFinalevragen()[0].id===vA().id,'ze staat dus weer bovenaan');
+  globalThis.FINALEVRAGEN_DEFAULT=ECHTE_LIJST;
+
   print('\n— Een tweede start telt ze niet nog eens mee —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  db=basisDB();
+  await sessie(db);
+  zoek('aldi');
   await sessie(db);
   var tijd2=zoek('time use institute');
   ok(tijd2 && tijd2.keer===1,'nog steeds 1× gespeeld');

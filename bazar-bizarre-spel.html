@@ -549,7 +549,7 @@
 
   <!-- FINALE -->
   <div class="view" id="finale">
-    <p class="hint">Vraag 1 en 2 (backup) zijn automatisch gekozen uit de vragenlijst rechts. De volgorde kijkt naar <b>twee dingen tegelijk</b>, allebei even zwaar: hoe <b>vaak</b> een vraag al gespeeld is én hoe <b>lang geleden</b>. Een vraag die vaker aan bod kwam maar al heel lang niet meer, komt dus vóór eentje die pas één keer gespeeld is maar vorige week nog. Tik een andere vraag in de lijst aan om te wisselen. Klik op <b>▶ Toon</b> bij de vraag om ze groot te tonen — automatisch vertaald in Engels, Frans en Duits. Klik op <b>▶ Toon</b> bij het antwoord voor een aftel-onthulling.</p>
+    <p class="hint">Vraag 1 en 2 (backup) zijn automatisch gekozen uit de vragenlijst rechts. De volgorde kijkt naar <b>twee dingen tegelijk</b>, allebei even zwaar: hoe <b>vaak</b> een vraag al gespeeld is én hoe <b>lang geleden</b>. Een vraag die vaker aan bod kwam maar al heel lang niet meer, komt dus vóór eentje die pas één keer gespeeld is maar vorige week nog. Enkel <b>vraag 1</b> telt mee voor die volgorde — vak 2 is de backup en wordt normaal niet gesteld. Tik een andere vraag in de lijst aan om te wisselen. Klik op <b>▶ Toon</b> bij de vraag om ze groot te tonen — automatisch vertaald in Engels, Frans en Duits. Klik op <b>▶ Toon</b> bij het antwoord voor een aftel-onthulling.</p>
     <div class="finalelayout">
       <div>
         <div class="qawrap" data-grid="qa" id="finaleQA"></div>
@@ -622,6 +622,20 @@
         </div>
         <div class="bar" style="margin-top:4px;">
           <button type="button" class="btn" id="vqVertaalNu">✨ Automatisch invullen</button>
+        </div>
+
+        <!-- Alleen bij bewerken: de speelgeschiedenis rechtzetten. Die bepaalt de volgorde
+             in de lijst, dus het moet mogelijk zijn om er iets aan te corrigeren. -->
+        <div id="vqGeschiedenis" style="display:none;">
+          <div class="vq-scheiding">
+            <span>Gespeeld</span>
+            <em>Bepaalt waar de vraag in de lijst staat.</em>
+          </div>
+          <div class="vq-taalrij" style="grid-template-columns:34px 1fr 1fr;">
+            <div class="vq-vlag">🎯</div>
+            <input type="number" id="vqKeer" class="finp" min="0" step="1" placeholder="Aantal keer">
+            <input type="datetime-local" id="vqLaatst" class="finp">
+          </div>
         </div>
         <div class="vq-melding" id="vqMelding"></div>
       </div>
@@ -1143,6 +1157,17 @@ let vqBewerktId=null;
 const VQ={en:['vqEnV','vqEnA'],fr:['vqFrV','vqFrA'],de:['vqDeV','vqDeA']};
 function vqZet(id,w){ document.getElementById(id).value=w||''; }
 function vqLees(id){ return document.getElementById(id).value.trim(); }
+// Een tijdstip omzetten naar/van wat <input type="datetime-local"> verwacht (lokale tijd).
+function tsNaarVeld(ts){
+  if(!ts) return '';
+  const d=new Date(ts), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+}
+function veldNaarTs(w){
+  if(!w) return 0;
+  const t=new Date(w).getTime();
+  return isNaN(t)?0:t;
+}
 function openVraagVenster(v){
   vqBewerktId=v?v.id:null;
   document.getElementById('vqKop').textContent=v?'Vraag bewerken':'Nieuwe vraag';
@@ -1153,6 +1178,9 @@ function openVraagVenster(v){
     const t=vert[code]||{};
     vqZet(VQ[code][0],t.v); vqZet(VQ[code][1],t.a);
   });
+  document.getElementById('vqGeschiedenis').style.display=v?'':'none';
+  vqZet('vqKeer', v?String(v.keer||0):'0');
+  vqZet('vqLaatst', v?tsNaarVeld(v.laatst):'');
   vqMeld('');
   document.getElementById('vqModal').classList.add('open');
   setTimeout(()=>document.getElementById('vqVraag').focus(),60);
@@ -1188,7 +1216,11 @@ document.getElementById('vqBewaar').onclick=()=>{
     if(qv||qa) vert[code]={v:qv,a:qa};
   });
   bbSetActor();
-  if(vqBewerktId) BBInv.updateFinalevraag(vqBewerktId,{vraag:v,antwoord:a,vert:vert});
+  if(vqBewerktId){
+    const keer=Math.max(0,Math.round(+document.getElementById('vqKeer').value||0));
+    const laatst=veldNaarTs(document.getElementById('vqLaatst').value);
+    BBInv.updateFinalevraag(vqBewerktId,{vraag:v,antwoord:a,vert:vert,keer:keer,laatst:keer?laatst:0});
+  }
   else BBInv.addFinalevraag({vraag:v,antwoord:a,vert:vert});
   sluitVraagVenster();
   neemHandmatigeVertalingenOver();
@@ -1777,9 +1809,9 @@ document.getElementById('fDoorsturen').onclick=async()=>{
     finalevraag:fvEl.value.trim(),
     opmerking:document.getElementById('fOpm').value.trim()};
   bbSetActor(); // zorg dat de juiste naam in het activiteitenlog komt
-  // Aanvinken welke vragen gespeeld zijn: daardoor zakken ze in de lijst en krijg je de
-  // volgende keer vanzelf een andere. Alleen vakken die nog écht bij een lijstvraag horen.
-  if(BBInv.markeerFinalevraagGebruikt) BBInv.markeerFinalevraagGebruikt((state.vraagIds||[]).filter(Boolean));
+  // Enkel VRAAG 1 telt mee: vak 2 is de backup en wordt normaal niet gesteld. Zou die ook
+  // meetellen, dan zakte een vraag in de lijst zonder dat ze ooit gespeeld is.
+  if(BBInv.markeerFinalevraagGebruikt) BBInv.markeerFinalevraagGebruikt([(state.vraagIds||[])[0]].filter(Boolean));
   const rec=BBInv.submitFormulier(f);
   onthoudNaam(namen);
   // archiveer ook de spel-sessie (bestaande spel-archief met turven/finale)
@@ -2008,7 +2040,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.2';
+const APP_VERSION='v3.3';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

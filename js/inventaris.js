@@ -1388,6 +1388,34 @@
     const i=fin.indexOf(VRAAG_MARKER);
     return i>=0 ? fin.slice(i+VRAAG_MARKER.length) : '';
   }
+  // De vraag die in een formulier écht gesteld is: de eerste regel (V1). De tweede is de
+  // backup en telt nooit mee.
+  function _eersteVraagVan(f){
+    const tekst=_vraagUitFormulier(f); if(!tekst) return '';
+    const regel=String(tekst).split('\n')[0]||'';
+    const kaal=regel.replace(/^\s*V\d+\s*:\s*/,'').trim(); if(!kaal) return '';
+    return (kaal.split('→')[0]||'').trim();
+  }
+  // Een verwijderd formulier terugdraaien in de telling.
+  function telFormulierAf(f){
+    const lijst=_vragenLijst(); if(!lijst) return;
+    const v=_eersteVraagVan(f); if(!v) return;
+    const sleutel=_normVraag(v);
+    const rec=lijst.find(x=>_normVraag(x.vraag)===sleutel); if(!rec) return;
+    rec.keer=Math.max(0,(rec.keer||0)-1);
+    // 'laatst' opnieuw bepalen uit de formulieren die er nog wél zijn.
+    let nieuwste=0;
+    (cache.formulieren||[]).forEach(g=>{
+      if(_normVraag(_eersteVraagVan(g))!==sleutel) return;
+      if((g.ts||0)>nieuwste) nieuwste=g.ts||0;
+    });
+    if(nieuwste) rec.laatst=nieuwste;
+    else if(!rec.keer) rec.laatst=0;
+    // Blijft de teller boven nul zonder formulier (bv. een speelbeurt van vóór deze
+    // versie), dan laten we de datum staan — beter dan hem op "nooit" zetten. Corrigeren
+    // kan met de hand via Vragen beheren.
+    _bewaarVragen(lijst);
+  }
   function leerUitFormulieren(){
     const c=cache.appconfig;
     if(!c || c.finalevragenGeleerd) return 0;
@@ -1395,20 +1423,18 @@
     const opNaam={}; lijst.forEach(v=>{ opNaam[_normVraag(v.vraag)]=v; });
     let raak=0;
     (cache.formulieren||[]).forEach(f=>{
-      const tekst=_vraagUitFormulier(f); if(!tekst) return;
-      String(tekst).split('\n').forEach(regel=>{
-        const kaal=String(regel).replace(/^\s*V\d+\s*:\s*/,'').trim(); if(!kaal) return;
-        const d=kaal.split('→');
-        const v=(d[0]||'').trim(); if(!v) return;
-        const a=d.length>1?d.slice(1).join('→').trim():'';
-        const sleutel=_normVraag(v);
-        let rec=opNaam[sleutel];
-        if(!rec){ rec={id:uid(),vraag:v,antwoord:a,keer:0,laatst:0}; lijst.push(rec); opNaam[sleutel]=rec; }
-        else if(!rec.antwoord && a) rec.antwoord=a;
-        rec.keer=(rec.keer||0)+1;
-        if((f.ts||0)>(rec.laatst||0)) rec.laatst=f.ts||0;
-        raak++;
-      });
+      // Alleen de EERSTE regel (V1) telt — zie _eersteVraagVan.
+      const v=_eersteVraagVan(f); if(!v) return;
+      const eerste=(String(_vraagUitFormulier(f)).split('\n')[0]||'').replace(/^\s*V\d+\s*:\s*/,'');
+      const d=eerste.split('→');
+      const a=d.length>1?d.slice(1).join('→').trim():'';
+      const sleutel=_normVraag(v);
+      let rec=opNaam[sleutel];
+      if(!rec){ rec={id:uid(),vraag:v,antwoord:a,keer:0,laatst:0}; lijst.push(rec); opNaam[sleutel]=rec; }
+      else if(!rec.antwoord && a) rec.antwoord=a;
+      rec.keer=(rec.keer||0)+1;
+      if((f.ts||0)>(rec.laatst||0)) rec.laatst=f.ts||0;
+      raak++;
     });
     saveConfig({finalevragen:lijst,finalevragenGeleerd:true});
     if(raak) console.log('Finalevragen: '+raak+' uit eerdere formulieren meegeteld.');
@@ -1608,7 +1634,17 @@
     return rec;
   }
   // verwijderen via "set(filter(...))"-patroon: bepaal welke rij wegviel en wis die in de DB
-  function setFormulieren(arr){ const keep={}; arr.forEach(f=>keep[f.id]=1); const weg=cache.formulieren.filter(f=>!keep[f.id]); weg.forEach(f=>dbDelete('formulieren','id',f.id)); cache.formulieren=arr; persistCache(); if(weg.length) logAct('Formulier verwijderd'); }
+  function setFormulieren(arr){
+    const keep={}; arr.forEach(f=>keep[f.id]=1);
+    const weg=cache.formulieren.filter(f=>!keep[f.id]);
+    weg.forEach(f=>dbDelete('formulieren','id',f.id));
+    cache.formulieren=arr;
+    // Een verwijderd formulier hoort ook uit de telling van de finalevraag te verdwijnen,
+    // anders zakt een vraag in de lijst door een spel dat er niet meer is.
+    weg.forEach(telFormulierAf);
+    persistCache();
+    if(weg.length) logAct('Formulier verwijderd');
+  }
   function setLeveringen(arr){ const keep={}; arr.forEach(l=>keep[l.id]=1); const weg=cache.leveringen.filter(l=>!keep[l.id]); weg.forEach(l=>dbDelete('leveringen','id',l.id)); cache.leveringen=arr; persistCache(); if(weg.length) logAct('Levering verwijderd'); }
 
   // ---- Bestellingen (optimistisch + naar DB als de gedeelde tabel bestaat) ----
