@@ -614,7 +614,10 @@
     await topUpBestelDefaults();
     await migrateSharedLists();
     ensureEntAlgemeen(); // gedeeld account "ENT algemeen" (zonder pincode) altijd beschikbaar
-    if(appconfigOK) zaaiFinalevragen(); // eenmalig de startlijst met finalevragen plaatsen
+    if(appconfigOK){
+      zaaiFinalevragen();   // eenmalig de startlijst met finalevragen plaatsen
+      leerUitFormulieren(); // en de tellers bijwerken met wat er al ingezonden is
+    }
     normalizeInGebruik(); // prijzen op 0 die nog "in gebruik" stonden opschonen + syncen
     subscribe();
     flushOutbox(); // eventuele offline gemaakte wijzigingen alsnog doorsturen
@@ -1317,14 +1320,42 @@
     return true;
   }
   const getFinalevragen=()=>(_vragenLijst()||[]).slice();
-  // Minst gebruikt eerst; bij gelijke stand degene die het langst geleden aan bod kwam.
-  function gesorteerdeFinalevragen(){
-    return getFinalevragen().sort((a,b)=>
-      ((a.keer||0)-(b.keer||0)) || ((a.laatst||0)-(b.laatst||0)) || (a.vraag||'').localeCompare(b.vraag||''));
+  // DUBBEL CRITERIUM: minst gespeeld ÉN langst geleden, allebei even zwaar.
+  // We maken twee ranglijsten — één op aantal keer gespeeld, één op hoe lang geleden —
+  // en tellen per vraag de twee plaatsen op. Zo kan een vraag die vaak aan bod kwam maar
+  // al een jaar niet meer, vóór een vraag staan die pas één keer gespeeld is maar vorige
+  // week nog. Zou je enkel op aantal sorteren en de tijd als scheidsrechter gebruiken,
+  // dan telde die tijd alleen mee bij een exact gelijk aantal.
+  // Gelijke waarden krijgen dezelfde plaats, zodat niemand onterecht strafpunten krijgt.
+  function _plaatsen(lijst,sleutel){
+    const op=lijst.slice().sort((a,b)=>((a[sleutel]||0)-(b[sleutel]||0)));
+    const m={}; let i=0, vorige=null, plaats=0;
+    op.forEach(v=>{
+      const w=v[sleutel]||0;
+      if(vorige===null || w!==vorige){ plaats=i; vorige=w; }
+      m[v.id]=plaats; i++;
+    });
+    return m;
   }
+  function gesorteerdeFinalevragen(){
+    const lijst=getFinalevragen();
+    if(lijst.length<2) return lijst;
+    const pKeer=_plaatsen(lijst,'keer'), pTijd=_plaatsen(lijst,'laatst');
+    const score=v=>(pKeer[v.id]||0)+(pTijd[v.id]||0);
+    return lijst.sort((a,b)=>
+      (score(a)-score(b))
+      // Gelijke score = de twee criteria houden elkaar in evenwicht. Dan geeft de tijd de
+      // doorslag, want daar gaat het om: je wil geen vraag die de gasten net gehoord hebben.
+      || ((a.laatst||0)-(b.laatst||0))
+      || ((a.keer||0)-(b.keer||0))
+      || (a.vraag||'').localeCompare(b.vraag||''));
+  }
+  // 'vert' is optioneel: {en:{v,a},fr:{v,a},de:{v,a}}. Wat je hier zelf invult krijgt
+  // voorrang op de automatische vertaling; laat je het leeg, dan vertaalt de app zelf.
   function addFinalevraag(v){
     const lijst=_vragenLijst()||[];
-    const rec={id:uid(),vraag:(v&&v.vraag)||'',antwoord:(v&&v.antwoord)||'',keer:0,laatst:0};
+    const rec={id:uid(),vraag:(v&&v.vraag)||'',antwoord:(v&&v.antwoord)||'',
+      vert:(v&&v.vert)||{},keer:0,laatst:0};
     lijst.push(rec); _bewaarVragen(lijst);
     logAct('Finalevraag toegevoegd: '+rec.vraag.slice(0,60));
     return rec;
@@ -1339,6 +1370,48 @@
     const lijst=_vragenLijst()||[]; const r=lijst.find(x=>x.id===id);
     _bewaarVragen(lijst.filter(x=>x.id!==id));
     logAct('Finalevraag verwijderd'+(r?': '+String(r.vraag||'').slice(0,60):''));
+  }
+  // Eenmalig: de tellers bijwerken met wat er in de al ingezonden formulieren staat.
+  // Anders begint elke vraag op nul terwijl sommige net gespeeld zijn, en stelt de app
+  // meteen iets voor wat de gasten vorige week nog hoorden. Vragen die in een formulier
+  // staan maar nog niet in de lijst, komen er meteen bij.
+  // De vlag zit in het GEDEELDE document: doen we dit per toestel, dan telt elk toestel
+  // hetzelfde formulier nog eens mee.
+  function _normVraag(s){
+    return String(s||'').toLowerCase().replace(/\s+/g,' ').replace(/[.,;:!?…]+$/,'').trim();
+  }
+  // De vraagtekst uit een ingezonden formulier halen (eigen kolom of het merkteken).
+  function _vraagUitFormulier(f){
+    if(f&&f.finalevraag) return f.finalevraag;
+    const fin=(f&&f.finale)||'';
+    const i=fin.indexOf(VRAAG_MARKER);
+    return i>=0 ? fin.slice(i+VRAAG_MARKER.length) : '';
+  }
+  function leerUitFormulieren(){
+    const c=cache.appconfig;
+    if(!c || c.finalevragenGeleerd) return 0;
+    const lijst=_vragenLijst(); if(!lijst) return 0;
+    const opNaam={}; lijst.forEach(v=>{ opNaam[_normVraag(v.vraag)]=v; });
+    let raak=0;
+    (cache.formulieren||[]).forEach(f=>{
+      const tekst=_vraagUitFormulier(f); if(!tekst) return;
+      String(tekst).split('\n').forEach(regel=>{
+        const kaal=String(regel).replace(/^\s*V\d+\s*:\s*/,'').trim(); if(!kaal) return;
+        const d=kaal.split('→');
+        const v=(d[0]||'').trim(); if(!v) return;
+        const a=d.length>1?d.slice(1).join('→').trim():'';
+        const sleutel=_normVraag(v);
+        let rec=opNaam[sleutel];
+        if(!rec){ rec={id:uid(),vraag:v,antwoord:a,keer:0,laatst:0}; lijst.push(rec); opNaam[sleutel]=rec; }
+        else if(!rec.antwoord && a) rec.antwoord=a;
+        rec.keer=(rec.keer||0)+1;
+        if((f.ts||0)>(rec.laatst||0)) rec.laatst=f.ts||0;
+        raak++;
+      });
+    });
+    saveConfig({finalevragen:lijst,finalevragenGeleerd:true});
+    if(raak) console.log('Finalevragen: '+raak+' uit eerdere formulieren meegeteld.');
+    return raak;
   }
   // Aanvinken dat een vraag gespeeld is — dit stuurt de volgorde voor de volgende keer.
   function markeerFinalevraagGebruikt(ids){
@@ -1717,7 +1790,7 @@
     haalFotosBij,   // foto's van collega's alsnog ophalen (het Database-overzicht gebruikt dit)
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getFinalevragen,gesorteerdeFinalevragen,addFinalevraag,updateFinalevraag,
-    removeFinalevraag,markeerFinalevraagGebruikt,zaaiFinalevragen,
+    removeFinalevraag,markeerFinalevraagGebruikt,zaaiFinalevragen,leerUitFormulieren,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,

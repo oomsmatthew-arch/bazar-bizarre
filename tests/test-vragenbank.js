@@ -67,23 +67,21 @@ function namen(lijst){ return lijst.map(function(v){return v.vraag;}); }
   ok(BBInv.getFinalevragen().length===3,'een tweede start zaait niet opnieuw');
   ok(BBInv.getFinalevragen()[0].id===eersteId,'en de bestaande vragen blijven dezelfde');
 
-  print('\n— Minst gespeeld bovenaan, dan het langst geleden —');
+  print('\n— Nooit gespeeld staat altijd bovenaan —');
   Object.keys(store).forEach(function(k){ delete store[k]; });
   db=basisDB();
   await sessie(db);
   var alle=BBInv.getFinalevragen();
   ok(namen(BBInv.gesorteerdeFinalevragen()).length===3,'alles komt in de volgorde terug');
-  // Vraag 1 twee keer gespeeld, vraag 2 één keer, vraag 3 nooit.
-  BBInv.markeerFinalevraagGebruikt([alle[0].id]);
-  BBInv.markeerFinalevraagGebruikt([alle[0].id]);
-  BBInv.markeerFinalevraagGebruikt([alle[1].id]);
+  BBInv.updateFinalevraag(alle[0].id,{keer:2,laatst:9000});
+  BBInv.updateFinalevraag(alle[1].id,{keer:1,laatst:8000});
+  BBInv.updateFinalevraag(alle[2].id,{keer:0,laatst:0});
   var volg=BBInv.gesorteerdeFinalevragen();
   ok(volg[0].id===alle[2].id,'de nooit gespeelde staat bovenaan');
   ok(volg[1].id===alle[1].id,'daarna die één keer gespeeld is');
   ok(volg[2].id===alle[0].id,'en de vaakst gespeelde staat onderaan');
 
-  print('\n— Bij gelijke stand telt hoe lang geleden —');
-  // Beide één keer, maar met een verschillend tijdstip.
+  print('\n— Bij een gelijk aantal telt hoe lang geleden —');
   BBInv.updateFinalevraag(alle[0].id,{keer:1,laatst:1000});
   BBInv.updateFinalevraag(alle[1].id,{keer:1,laatst:5000});
   BBInv.updateFinalevraag(alle[2].id,{keer:1,laatst:3000});
@@ -91,6 +89,26 @@ function namen(lijst){ return lijst.map(function(v){return v.vraag;}); }
   ok(volg2[0].id===alle[0].id,'de oudste eerst (1000)');
   ok(volg2[1].id===alle[2].id,'dan 3000');
   ok(volg2[2].id===alle[1].id,'en de recentste laatst (5000)');
+
+  print('\n— Dubbel criterium: hoe lang geleden telt echt mee, niet enkel als scheidsrechter —');
+  // Dit is waar het om draait. Zou de app enkel op aantal sorteren met de tijd als
+  // scheidsrechter, dan telde de tijd alléén mee bij een exact gelijk aantal — en stond
+  // een vraag die de gasten vorige week nog hoorden bovenaan.
+  //   A: 3× gespeeld, heel lang geleden
+  //   D: 2× gespeeld, gisteren
+  // A is vaker gespeeld, maar D hoorden ze net. A hoort dus vóór D te staan.
+  var D=BBInv.addFinalevraag({vraag:'Vierde vraag',antwoord:'x'});
+  BBInv.updateFinalevraag(alle[0].id,{keer:3,laatst:1000});   // A — vaakst, maar oudst
+  BBInv.updateFinalevraag(alle[1].id,{keer:2,laatst:9000});   // B
+  BBInv.updateFinalevraag(alle[2].id,{keer:3,laatst:9500});   // C — vaakst én recent
+  BBInv.updateFinalevraag(D.id,      {keer:2,laatst:9800});   // D — minder vaak, maar recentst
+  var volg3=BBInv.gesorteerdeFinalevragen();
+  var pos=function(id){ return volg3.findIndex(function(v){return v.id===id;}); };
+  ok(pos(alle[0].id)<pos(D.id),
+     '3× van heel lang geleden gaat vóór 2× van gisteren (A op '+pos(alle[0].id)+', D op '+pos(D.id)+')');
+  ok(pos(alle[2].id)===3,'vaakst gespeeld én recent staat helemaal onderaan');
+  ok(pos(alle[1].id)===0,'en het beste van beide werelden staat bovenaan');
+  BBInv.removeFinalevraag(D.id);
 
   print('\n— Toevoegen, aanpassen en verwijderen —');
   var nieuw=BBInv.addFinalevraag({vraag:'Hoeveel ballonnen?',antwoord:'42'});

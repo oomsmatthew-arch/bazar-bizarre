@@ -8,16 +8,22 @@
 // dat in de browsergeschiedenis: één stap per open ding. Terug sluit dan telkens
 // het bovenste, en verlaat de pagina pas als er niets meer openstaat.
 //
-// Twee dingen die een pagina kan meegeven:
+// Drie dingen die een pagina kan meegeven:
 //
 //   window.bbVensterSluiters = { taakModal: sluitTaak }
 //     Een eigen sluitfunctie per venster, voor als er meer moet gebeuren dan de
 //     klasse 'open' weghalen (een camera stoppen, een video pauzeren, een
 //     wachtende vraag beantwoorden). Zonder opgave halen we gewoon 'open' weg.
 //
+//   window.bbVensterExtra = '.pmodal.open, .present.open'
+//     Een pagina met eigen vensterklassen zet die er hier bij. Het spel gebruikt
+//     bv. .pmodal en .present in plaats van .modal en .cammodal.
+//
 //   bbStap.open('project', naarLijst)  /  bbStap.dicht('project')
-//     Voor een detailweergave die géén venster is, zoals de projectpagina die
-//     de projectlijst verbergt. Terug roept dan jouw sluitfunctie aan.
+//     Voor een weergave die géén venster is, zoals de projectpagina die de
+//     projectlijst verbergt of een ronde in het spel. Terug roept dan jouw
+//     sluitfunctie aan. Meerdere stappen mogen op elkaar staan, zolang ze een
+//     eigen naam hebben; terug werkt ze één voor één af, bovenste eerst.
 (function(){
   const VENSTERS='.cammodal.open, .modal.open';
   // Onderste eerst. Een venster staat als {el}, een eigen stap als {naam,sluit}.
@@ -26,7 +32,10 @@
 
   history.replaceState({bbv:0},'');
 
-  function openVensters(){ return Array.from(document.querySelectorAll(VENSTERS)); }
+  function openVensters(){
+    const sel=VENSTERS+(window.bbVensterExtra?(', '+window.bbVensterExtra):'');
+    return Array.from(document.querySelectorAll(sel));
+  }
 
   // Eén venster sluiten, het liefst via de sluitfunctie van de pagina zelf.
   function sluitVenster(el){

@@ -33,7 +33,11 @@ De inventaris zit volledig in de app zelf — geen Google of server nodig. `inve
 daardoor dezelfde opslag** op het toestel.
 
 - **Vragenlijst finalespel** (in Bazar Bizarre → Finalespel): rechts staat de gedeelde lijst
-  met alle finalevragen, **bovenaan wat het minst en het langst geleden gespeeld is**. Vraag 1
+  met alle finalevragen. De volgorde weegt **twee dingen even zwaar**: hoe vaak een vraag al
+  gespeeld is én hoe lang geleden dat was. Een vraag die vaker aan bod kwam maar al heel lang
+  niet meer, komt dus vóór eentje die pas één keer gespeeld is maar vorige week nog. (Zou de
+  app enkel op aantal sorteren met de tijd als scheidsrechter, dan telde die tijd alleen mee
+  bij een exact gelijk aantal.) Nooit gespeelde vragen staan altijd bovenaan. Vraag 1
   en 2 (backup) worden daar automatisch uit gevuld. Tik een andere vraag aan om ze in vak 1 te
   zetten; lang indrukken (of rechtsklikken) zet ze in vak 2. **↻ Opnieuw voorstellen** kiest
   twee verse vragen. Sluit je het spel af, dan worden de gebruikte vragen afgevinkt en zakken

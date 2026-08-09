@@ -297,18 +297,23 @@
   .qawrap{display:grid;gap:14px;max-width:640px;}
 
   /* finale: vragenlijst rechts naast de twee vraagvelden */
-  .finalelayout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start;}
-  @media(max-width:980px){ .finalelayout{grid-template-columns:1fr;} }
-  .vragenlijst{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;
-    display:flex;flex-direction:column;max-height:640px;}
-  .vl-kop{background:linear-gradient(120deg,#1b3360,#13294a);padding:12px 14px;border-bottom:1px solid var(--line);}
-  .vl-kop .t{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--gold);}
-  .vl-kop .s{font-size:12px;color:var(--muted);margin-top:2px;}
-  .vl-body{overflow-y:auto;padding:0 12px 12px;display:grid;gap:8px;}
-  .vl-voet{border-top:1px solid var(--line);padding:10px 12px;}
+  /* De lijst is de tweede kolom: breed genoeg om een vraag op één of twee regels te tonen,
+     en even hoog als het scherm zodat ze mooi aansluit i.p.v. onderaan af te kappen. */
+  .finalelayout{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,440px);gap:22px;align-items:start;}
+  @media(max-width:1060px){ .finalelayout{grid-template-columns:1fr;} }
+  .vragenlijst{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    display:flex;flex-direction:column;position:sticky;top:14px;max-height:calc(100vh - 108px);
+    box-shadow:0 10px 30px rgba(0,0,0,.28);}
+  @media(max-width:1060px){ .vragenlijst{position:static;max-height:none;} }
+  .vl-kop{background:linear-gradient(120deg,#1b3360,#13294a);padding:14px 16px;border-bottom:1px solid var(--line);}
+  .vl-kop .t{font-family:var(--serif);font-size:19px;font-weight:700;color:var(--gold);}
+  .vl-kop .s{font-size:12px;color:var(--muted);margin-top:3px;}
+  .vl-body{overflow-y:auto;padding:12px;display:grid;gap:9px;-webkit-overflow-scrolling:touch;}
+  .vl-voet{border-top:1px solid var(--line);padding:11px 12px;background:var(--bg);}
   .vl-voet .btn{width:100%;}
-  .vq{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;
-    cursor:pointer;text-align:left;color:var(--text);font:inherit;display:block;width:100%;}
+  .vq{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    cursor:pointer;text-align:left;color:var(--text);font:inherit;display:block;width:100%;
+    transition:border-color .12s,background .12s;}
   .vq:hover{border-color:var(--gold);}
   .vq:active{transform:translateY(1px);}
   .vq .v{font-size:14px;line-height:1.4;font-weight:600;}
@@ -331,6 +336,29 @@
   .vbrij button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;
     padding:6px 11px;font-weight:700;font-size:13px;cursor:pointer;}
   .vbrij button.del{border-color:var(--red);color:#f0a3ad;background:transparent;}
+  .vbrij .vert{font-size:12px;color:var(--muted);margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;}
+  .vbrij .vert span{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;}
+  .vbrij .vert span.eigen{color:var(--ok);border-color:var(--ok);}
+  /* venster om een vraag toe te voegen of te bewerken */
+  .vqbox,.bvbox{max-width:640px;}
+  .vq-head{padding:14px 18px;border-bottom:1px solid var(--line);font-family:var(--serif);
+    font-size:19px;font-weight:700;color:var(--gold);}
+  .vq-body{overflow-y:auto;padding:16px 18px;display:grid;gap:8px;-webkit-overflow-scrolling:touch;}
+  .vq-lbl{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);
+    font-weight:800;margin-top:6px;}
+  .vq-lbl .vq-taal{color:var(--gold);margin-left:6px;letter-spacing:0;text-transform:none;font-weight:700;}
+  .vq-scheiding{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .vq-scheiding span{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:800;}
+  .vq-scheiding em{font-size:12px;color:var(--muted);font-style:normal;}
+  .vq-taalrij{display:grid;grid-template-columns:34px 1fr 1fr;gap:8px;align-items:center;}
+  @media(max-width:620px){ .vq-taalrij{grid-template-columns:34px 1fr;} .vq-taalrij .finp:last-child{grid-column:2;} }
+  .vq-vlag{font-size:20px;text-align:center;}
+  .vq-melding{font-size:13px;color:var(--muted);min-height:18px;}
+  .vq-melding.bezig{color:var(--gold);}
+  .vq-melding.err{color:#f0a3ad;}
+  .vq-voet{display:flex;gap:10px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);}
+  .bv-tekst{font-size:15px;line-height:1.5;color:var(--text);}
   .qa{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:9px;}
   .qa-q{display:flex;align-items:center;gap:10px;}
   .qa-q .pn{flex:0 0 30px;height:30px;border-radius:7px;display:grid;place-items:center;
@@ -507,7 +535,7 @@
 
   <!-- FINALE -->
   <div class="view" id="finale">
-    <p class="hint">Vraag 1 en 2 (backup) zijn automatisch gekozen uit de vragenlijst rechts: bovenaan staat wat het minst en het langst geleden gespeeld is. Tik een andere vraag in de lijst aan om te wisselen. Klik op <b>▶ Toon</b> bij de vraag om ze groot te tonen — automatisch vertaald in Engels, Frans en Duits. Klik op <b>▶ Toon</b> bij het antwoord voor een aftel-onthulling.</p>
+    <p class="hint">Vraag 1 en 2 (backup) zijn automatisch gekozen uit de vragenlijst rechts. De volgorde kijkt naar <b>twee dingen tegelijk</b>, allebei even zwaar: hoe <b>vaak</b> een vraag al gespeeld is én hoe <b>lang geleden</b>. Een vraag die vaker aan bod kwam maar al heel lang niet meer, komt dus vóór eentje die pas één keer gespeeld is maar vorige week nog. Tik een andere vraag in de lijst aan om te wisselen. Klik op <b>▶ Toon</b> bij de vraag om ze groot te tonen — automatisch vertaald in Engels, Frans en Duits. Klik op <b>▶ Toon</b> bij het antwoord voor een aftel-onthulling.</p>
     <div class="finalelayout">
       <div>
         <div class="qawrap" data-grid="qa" id="finaleQA"></div>
@@ -537,20 +565,68 @@
   <!-- VRAGEN BEHEREN (achter het beheer-wachtwoord) -->
   <div class="view" id="vragenbeheer">
     <p class="hint">Voeg finalevragen toe of pas ze aan. De lijst is gedeeld met alle toestellen. Enkel het Nederlands invullen volstaat — de app vertaalt zelf naar Engels, Frans en Duits.</p>
-    <div class="formblok">
-      <label class="flbl" for="vbVraag">Nieuwe vraag</label>
-      <input type="text" id="vbVraag" class="finp" placeholder="bv. Volgens Wikipedia: wat is het gemiddelde gewicht van 1 banaan?">
-      <label class="flbl" for="vbAntwoord" style="margin-top:10px;">Antwoord</label>
-      <input type="text" id="vbAntwoord" class="finp" placeholder="bv. 150 gram">
-      <div class="bar" style="margin-top:10px;gap:10px;">
-        <button class="finishbtn" id="vbAdd">＋ Vraag toevoegen</button>
-        <button class="btn clear" id="vbTerug">‹ Terug naar het finalespel</button>
-      </div>
+    <div class="bar" style="margin:0 2px 16px;gap:10px;">
+      <button class="finishbtn" id="vbNieuw">＋ Vraag toevoegen</button>
+      <button class="btn clear" id="vbTerug">‹ Terug naar het finalespel</button>
     </div>
     <div class="formblok">
       <div class="flbl">Alle vragen <span id="vbTel" class="telpil">0</span></div>
       <input type="text" id="vbZoek" class="finp zoek" placeholder="Zoek in de vragen…">
       <div id="vbLijst"></div>
+    </div>
+  </div>
+
+  <!-- Vraag toevoegen / bewerken — een eigen venster in de pagina, geen browserdialoog:
+       met acht velden is een prompt() onwerkbaar. -->
+  <div class="pmodal" id="vqModal">
+    <div class="pmodal-box vqbox">
+      <div class="vq-head" id="vqKop">Nieuwe vraag</div>
+      <div class="vq-body">
+        <label class="vq-lbl" for="vqVraag">Vraag <span class="vq-taal">Nederlands</span></label>
+        <input type="text" id="vqVraag" class="finp" placeholder="bv. Volgens Wikipedia: wat is het gemiddelde gewicht van 1 banaan?">
+        <label class="vq-lbl" for="vqAntwoord">Antwoord <span class="vq-taal">Nederlands</span></label>
+        <input type="text" id="vqAntwoord" class="finp" placeholder="bv. 150 gram">
+
+        <div class="vq-scheiding">
+          <span>Vertalingen</span>
+          <em>Leeg laten mag — dan vertaalt de app zelf.</em>
+        </div>
+        <div class="vq-taalrij">
+          <div class="vq-vlag">🇬🇧</div>
+          <input type="text" id="vqEnV" class="finp" placeholder="Vraag in het Engels">
+          <input type="text" id="vqEnA" class="finp" placeholder="Antwoord in het Engels">
+        </div>
+        <div class="vq-taalrij">
+          <div class="vq-vlag">🇫🇷</div>
+          <input type="text" id="vqFrV" class="finp" placeholder="Vraag in het Frans">
+          <input type="text" id="vqFrA" class="finp" placeholder="Antwoord in het Frans">
+        </div>
+        <div class="vq-taalrij">
+          <div class="vq-vlag">🇩🇪</div>
+          <input type="text" id="vqDeV" class="finp" placeholder="Vraag in het Duits">
+          <input type="text" id="vqDeA" class="finp" placeholder="Antwoord in het Duits">
+        </div>
+        <div class="bar" style="margin-top:4px;">
+          <button type="button" class="btn" id="vqVertaalNu">✨ Automatisch invullen</button>
+        </div>
+        <div class="vq-melding" id="vqMelding"></div>
+      </div>
+      <div class="vq-voet">
+        <button class="btn clear" id="vqAnnuleer">Annuleren</button>
+        <button class="finishbtn" id="vqBewaar">Bewaren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bevestigen (verwijderen e.d.) — ook in de pagina zelf. -->
+  <div class="pmodal" id="bvModal">
+    <div class="pmodal-box bvbox">
+      <div class="vq-head" id="bvKop">Bevestigen</div>
+      <div class="vq-body"><div class="bv-tekst" id="bvTekst"></div></div>
+      <div class="vq-voet">
+        <button class="btn clear" id="bvNee">Annuleren</button>
+        <button class="finishbtn" id="bvJa">Ja, doorgaan</button>
+      </div>
     </div>
   </div>
 
@@ -600,7 +676,7 @@
          Het veld 'finale' blijft wel bestaan in de gegevens, zodat oudere formulieren
          hun ingevulde reeks houden en blijven tonen in het inventarisoverzicht. -->
     <div class="formblok">
-      <label class="flbl" for="fFinaleVraag">Finalevraag &amp; antwoord</label>
+      <label class="flbl" for="fFinaleVraag">Finalevraag &amp; antwoord <span style="color:var(--pink);">· verplicht</span></label>
       <div class="hint" style="margin:0 0 8px;">Automatisch overgenomen uit het Finalespel — pas aan waar nodig.</div>
       <textarea id="fFinaleVraag" class="finp" placeholder="Nog geen vraag ingevuld bij het Finalespel"></textarea>
       <div class="bar" style="margin-top:8px;gap:10px;">
@@ -673,6 +749,7 @@
 </div>
 
 <script src="js/supabase.min.js"></script>
+<script src="js/terug.js"></script>
 <script src="js/inventaris-data.js"></script>
 <script src="js/inventaris.js"></script>
 <script>
@@ -912,8 +989,11 @@ function renderFinale(){
     card.appendChild(qr); card.appendChild(ar); q.appendChild(card);
   }
   renderVragenlijst();
+  neemHandmatigeVertalingenOver();   // eigen vertalingen krijgen voorrang op de automatische
   updateTrStatus();
   if(navigator.onLine && !finaleAllCached()) schedulePrewarm();
+  // De hele lijst alvast vertalen, zodat er tijdens het spel nooit gewacht moet worden.
+  if(navigator.onLine) prewarmBank();
 }
 
 // ---------------- VRAGENLIJST (gedeelde bank, minst gespeeld bovenaan) ----------------
@@ -955,7 +1035,7 @@ function renderVragenlijst(){
   const box=document.getElementById('vlBody'); if(!box) return;
   let bank=vragenBank();
   const tel=document.getElementById('vlAantal');
-  if(tel) tel.textContent = bank.length ? (bank.length+' vragen · minst gespeeld bovenaan') : 'nog geen vragen';
+  if(tel) tel.textContent = bank.length ? (bank.length+' vragen · minst gespeeld én langst geleden bovenaan') : 'nog geen vragen';
   if(vlQuery){
     const q=vlQuery.toLowerCase();
     bank=bank.filter(v=>((v.vraag||'')+' '+(v.antwoord||'')).toLowerCase().indexOf(q)>=0);
@@ -1004,14 +1084,83 @@ document.getElementById('vlBeheer').onclick=()=>{
 };
 document.getElementById('vbTerug').onclick=()=>{ renderFinale(); show('finale'); };
 document.getElementById('vbZoek').oninput=e=>{ vbQuery=e.target.value.trim(); renderVragenBeheer(); };
-document.getElementById('vbAdd').onclick=()=>{
-  const v=document.getElementById('vbVraag').value.trim();
-  const a=document.getElementById('vbAntwoord').value.trim();
-  if(!v){ alert('Vul eerst een vraag in.'); return; }
+document.getElementById('vbNieuw').onclick=()=>openVraagVenster(null);
+
+// ---- Bevestigen in de pagina zelf (geen browserdialoog) ----
+let _bvKlaar=null;
+function bevestig(kop,tekst,jaTekst){
+  return new Promise(res=>{
+    _bvKlaar=res;
+    document.getElementById('bvKop').textContent=kop||'Bevestigen';
+    document.getElementById('bvTekst').textContent=tekst||'';
+    document.getElementById('bvJa').textContent=jaTekst||'Ja, doorgaan';
+    document.getElementById('bvModal').classList.add('open');
+  });
+}
+function bvSluit(v){
+  document.getElementById('bvModal').classList.remove('open');
+  const f=_bvKlaar; _bvKlaar=null; if(f) f(v);
+}
+document.getElementById('bvJa').onclick=()=>bvSluit(true);
+document.getElementById('bvNee').onclick=()=>bvSluit(false);
+document.getElementById('bvModal').addEventListener('click',e=>{ if(e.target.id==='bvModal') bvSluit(false); });
+
+// ---- Vraag toevoegen of bewerken (eigen venster, met de vertaalvelden erbij) ----
+let vqBewerktId=null;
+const VQ={en:['vqEnV','vqEnA'],fr:['vqFrV','vqFrA'],de:['vqDeV','vqDeA']};
+function vqZet(id,w){ document.getElementById(id).value=w||''; }
+function vqLees(id){ return document.getElementById(id).value.trim(); }
+function openVraagVenster(v){
+  vqBewerktId=v?v.id:null;
+  document.getElementById('vqKop').textContent=v?'Vraag bewerken':'Nieuwe vraag';
+  document.getElementById('vqBewaar').textContent=v?'Bewaren':'Toevoegen';
+  vqZet('vqVraag',v?v.vraag:''); vqZet('vqAntwoord',v?v.antwoord:'');
+  const vert=(v&&v.vert)||{};
+  Object.keys(VQ).forEach(code=>{
+    const t=vert[code]||{};
+    vqZet(VQ[code][0],t.v); vqZet(VQ[code][1],t.a);
+  });
+  vqMeld('');
+  document.getElementById('vqModal').classList.add('open');
+  setTimeout(()=>document.getElementById('vqVraag').focus(),60);
+}
+function sluitVraagVenster(){ document.getElementById('vqModal').classList.remove('open'); vqBewerktId=null; }
+function vqMeld(tekst,soort){
+  const el=document.getElementById('vqMelding');
+  el.textContent=tekst||''; el.className='vq-melding'+(soort?(' '+soort):'');
+}
+document.getElementById('vqAnnuleer').onclick=sluitVraagVenster;
+document.getElementById('vqModal').addEventListener('click',e=>{ if(e.target.id==='vqModal') sluitVraagVenster(); });
+// De lege vertaalvelden alvast invullen met wat de app ervan maakt — je kan ze daarna
+// nog bijschaven. Wat je zelf typt, blijft staan.
+document.getElementById('vqVertaalNu').onclick=async()=>{
+  const v=vqLees('vqVraag'), a=vqLees('vqAntwoord');
+  if(!v && !a){ vqMeld('Vul eerst de Nederlandse vraag in.','err'); return; }
+  if(!navigator.onLine){ vqMeld('Daar is internet voor nodig.','err'); return; }
+  vqMeld('Bezig met vertalen…','bezig');
+  try{
+    await Promise.all(Object.keys(VQ).map(async code=>{
+      if(v && !vqLees(VQ[code][0])) vqZet(VQ[code][0], await translate(v,code));
+      if(a && !vqLees(VQ[code][1])) vqZet(VQ[code][1], await translate(a,code));
+    }));
+    vqMeld('Ingevuld — pas gerust nog aan.');
+  }catch(e){ vqMeld('Vertalen is niet gelukt. Probeer opnieuw.','err'); }
+};
+document.getElementById('vqBewaar').onclick=()=>{
+  const v=vqLees('vqVraag'), a=vqLees('vqAntwoord');
+  if(!v){ vqMeld('Vul eerst een vraag in.','err'); document.getElementById('vqVraag').focus(); return; }
+  const vert={};
+  Object.keys(VQ).forEach(code=>{
+    const qv=vqLees(VQ[code][0]), qa=vqLees(VQ[code][1]);
+    if(qv||qa) vert[code]={v:qv,a:qa};
+  });
   bbSetActor();
-  BBInv.addFinalevraag({vraag:v,antwoord:a});
-  document.getElementById('vbVraag').value=''; document.getElementById('vbAntwoord').value='';
+  if(vqBewerktId) BBInv.updateFinalevraag(vqBewerktId,{vraag:v,antwoord:a,vert:vert});
+  else BBInv.addFinalevraag({vraag:v,antwoord:a,vert:vert});
+  sluitVraagVenster();
+  neemHandmatigeVertalingenOver();
   renderVragenBeheer();
+  if(navigator.onLine) prewarmBank();
 };
 function renderVragenBeheer(){
   const box=document.getElementById('vbLijst'); if(!box) return;
@@ -1033,20 +1182,21 @@ function renderVragenBeheer(){
       (v.antwoord?'<div class="a">'+esc(v.antwoord)+'</div>':'')+
       '<div class="m">'+((v.keer||0)?(v.keer+'× gespeeld'):'nog nooit gespeeld')+
         (v.laatst?(' · laatst '+esc(fmtTs(v.laatst))):'')+'</div>'+
+      '<div class="vert">'+['en','fr','de'].map(function(c){
+        const t=(v.vert||{})[c]||{}; const eigen=!!(t.v||t.a);
+        const vlag={en:'🇬🇧',fr:'🇫🇷',de:'🇩🇪'}[c];
+        return '<span class="'+(eigen?'eigen':'')+'">'+vlag+' '+(eigen?'zelf ingevuld':'automatisch')+'</span>';
+      }).join('')+'</div>'+
       '<div class="acts"><button class="bew">Bewerken</button>'+
         '<button class="nul">Teller op nul</button>'+
         '<button class="del">Verwijderen</button></div>';
-    d.querySelector('.bew').onclick=()=>{
-      const nv=prompt('Vraag:',v.vraag||''); if(nv===null) return;
-      const na=prompt('Antwoord:',v.antwoord||''); if(na===null) return;
-      bbSetActor(); BBInv.updateFinalevraag(v.id,{vraag:nv.trim(),antwoord:na.trim()});
-      renderVragenBeheer();
-    };
-    d.querySelector('.nul').onclick=()=>{
+    d.querySelector('.bew').onclick=()=>openVraagVenster(v);
+    d.querySelector('.nul').onclick=async()=>{
+      if(!(await bevestig('Teller op nul','De teller van deze vraag terugzetten naar nul? Ze komt dan weer bovenaan de lijst.','Op nul zetten'))) return;
       bbSetActor(); BBInv.updateFinalevraag(v.id,{keer:0,laatst:0}); renderVragenBeheer();
     };
-    d.querySelector('.del').onclick=()=>{
-      if(!confirm('Deze vraag verwijderen?\n\n'+(v.vraag||''))) return;
+    d.querySelector('.del').onclick=async()=>{
+      if(!(await bevestig('Vraag verwijderen',(v.vraag||'')+'\n\nDeze vraag definitief verwijderen?','Verwijderen'))) return;
       bbSetActor(); BBInv.removeFinalevraag(v.id); renderVragenBeheer();
     };
     box.appendChild(d);
@@ -1114,11 +1264,65 @@ function fillTransGrid(scope,text){
 // ---- Offline klaarzetten: finalevragen/antwoorden vooraf vertalen + status ----
 function finaleTexts(){ return [].concat(state.vragen||[],state.antwoorden||[]).map(s=>(s||'').trim()).filter(Boolean); }
 function finaleAllCached(){ return finaleTexts().every(t=>TR_LANGS.every(l=>_trCache[l.code+'::'+t]!=null)); }
+
+// Vertalingen die iemand zelf invulde bij "Vragen beheren" zetten we in dezelfde cache
+// als de automatische. Zo gebruikt álles wat vertaalt (het grote scherm, de prewarm, de
+// statusregel) vanzelf de eigen tekst, zonder dat daar verder iets van hoeft te weten.
+function neemHandmatigeVertalingenOver(){
+  const bank=(window.BBInv&&BBInv.getFinalevragen)?BBInv.getFinalevragen():[];
+  let raak=0;
+  bank.forEach(v=>{
+    const vert=v.vert||{};
+    Object.keys(vert).forEach(code=>{
+      const t=vert[code]||{};
+      if(t.v && (v.vraag||'').trim()){ _trCache[code+'::'+(v.vraag||'').trim()]=t.v; raak++; }
+      if(t.a && (v.antwoord||'').trim()){ _trCache[code+'::'+(v.antwoord||'').trim()]=t.a; raak++; }
+    });
+  });
+  if(raak) _saveTrCache();
+  return raak;
+}
+// Alle vragen uit de lijst (niet enkel de twee die nu ingevuld staan).
+function bankTexts(){
+  const bank=(window.BBInv&&BBInv.getFinalevragen)?BBInv.getFinalevragen():[];
+  const uit=[];
+  bank.forEach(v=>[v.vraag,v.antwoord].forEach(t=>{
+    t=(t||'').trim(); if(t && uit.indexOf(t)<0) uit.push(t);
+  }));
+  return uit;
+}
+function bankOntbreekt(){ return bankTexts().filter(t=>TR_LANGS.some(l=>_trCache[l.code+'::'+t]==null)); }
+// De hele lijst op de achtergrond vertalen, in kleine hapjes: zo hoef je op het moment
+// zelf nooit meer te wachten, en belasten we de gratis vertaaldienst niet te hard.
+let _bankBezig=false;
+async function prewarmBank(){
+  if(_bankBezig || !navigator.onLine) return;
+  _bankBezig=true;
+  try{
+    let todo=bankOntbreekt();
+    for(let i=0;i<todo.length;i+=3){
+      if(!navigator.onLine) break;
+      await Promise.all(todo.slice(i,i+3).map(t=>
+        Promise.all(TR_LANGS.map(l=>translate(t,l.code).catch(()=>{})))));
+      updateTrStatus();
+    }
+  } finally { _bankBezig=false; updateTrStatus(); }
+}
 function updateTrStatus(){
   const st=document.getElementById('trStatus'); if(!st) return;
   const texts=finaleTexts();
-  if(!texts.length){ st.textContent='Typ eerst een vraag of antwoord.'; st.className='trstatus'; return; }
-  if(finaleAllCached()){ st.textContent='✓ Alle vertalingen staan klaar — werkt ook offline.'; st.className='trstatus ok'; }
+  if(!texts.length){ st.textContent='Typ eerst een vraag of antwoord, of kies er een uit de lijst.'; st.className='trstatus'; return; }
+  const rest=bankOntbreekt().length;
+  if(finaleAllCached()){
+    // De twee vakken zijn klaar; melden hoe het met de rest van de lijst staat.
+    if(_bankBezig || rest){
+      st.textContent='✓ Vraag 1 en 2 staan klaar — de rest van de lijst wordt op de achtergrond vertaald ('+rest+' te gaan).';
+      st.className='trstatus ok';
+    } else {
+      st.textContent='✓ Alle vragen uit de lijst zijn vertaald — werkt ook offline.';
+      st.className='trstatus ok';
+    }
+  }
   else if(!navigator.onLine){ st.textContent='Nog niet alles vertaald en geen internet. Ga online en klik op "Vertalingen offline klaarzetten".'; st.className='trstatus warn'; }
   else { st.textContent='Nog niet alles vertaald. Klik op "Vertalingen offline klaarzetten".'; st.className='trstatus warn'; }
 }
@@ -1135,6 +1339,7 @@ async function prewarmFinale(report){
   texts.forEach(t=>TR_LANGS.forEach(l=>{ if(_trCache[l.code+'::'+t]==null) jobs.push(translate(t,l.code).catch(()=>{})); }));
   await Promise.all(jobs);
   updateTrStatus();
+  prewarmBank();   // en meteen de rest van de lijst, op de achtergrond
 }
 let _prewarmTimer=null;
 function schedulePrewarm(){ clearTimeout(_prewarmTimer); _prewarmTimer=setTimeout(()=>prewarmFinale(false),900); }
@@ -1216,6 +1421,7 @@ const titles={menu:"Bazar Bizarre",controle:"Controle lijst",superdeals:"Ronde 1
   formulier:"Spel afsluiten · Formulier",formulierKlaar:"Doorgestuurd",
   vragenbeheer:"Finalevragen beheren"};
 function show(view){
+  navMelden(view);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(view).classList.add('active');
   document.getElementById('title').textContent=titles[view]||"Bazar Bizarre";
@@ -1228,6 +1434,54 @@ document.querySelectorAll('.card').forEach(c=>{
 });
 document.getElementById('homeBtn').onclick=()=>show('menu');
 document.getElementById('logoBtn').onclick=()=>show('menu'); // logo brengt je altijd naar het overzicht
+
+// ---------------- TERUG-KNOP (zie js/terug.js) ----------------
+// Het spel is één pagina: rondes en vensters wisselen zonder dat de browser dat
+// merkt. We melden elke ronde aan als een eigen stap, zodat de terugpijl van de
+// browser naar het rondeoverzicht gaat in plaats van het spel uit te springen.
+// Vensters (prijskeuze, sessielijst, het grote presentatiescherm) gebruiken hier
+// andere klassen dan de rest van de app, dus die zetten we er apart bij.
+window.bbVensterExtra='.pmodal.open, .present.open';
+window.bbVensterSluiters={ present:closePresent }; // ook aria-hidden + scrollen herstellen
+
+// Welke schermen openstaan, onderste eerst. 'toont' is wat er te zien is; dat
+// kan afwijken van de naam waarmee de stap geregistreerd is (zie NAV_VERVANGT).
+let navSchermen=[];
+let navBezig=false;      // terug.js laat ons zelf een ander scherm tonen
+let navAfwikkelen=false; // wij werken de stapel al bij, terug.js hoeft niet te poppen
+// Deze schermen vervangen het scherm waar je vandaan komt in plaats van erop te
+// stapelen: terug vanaf "Doorgestuurd" hoort naar het overzicht te gaan, niet
+// naar een formulier dat al verstuurd is.
+const NAV_VERVANGT={formulierKlaar:true};
+
+// Roept terug.js aan als de terugpijl één stap wegneemt.
+function navSluitBovenste(){
+  if(navAfwikkelen) return;
+  navBezig=true;
+  try{
+    navSchermen.pop();
+    show(navSchermen.length?navSchermen[navSchermen.length-1].toont:'menu');
+  } finally { navBezig=false; }
+}
+function navMelden(view){
+  if(navBezig || !window.bbStap) return;
+  const i=(view==='menu')?-1:navSchermen.findIndex(s=>s.toont===view);
+  if(view!=='menu' && i<0){
+    // een scherm dieper
+    const boven=navSchermen[navSchermen.length-1];
+    if(boven && NAV_VERVANGT[view]){ boven.toont=view; return; }
+    const naam='scherm:'+view;
+    navSchermen.push({naam:naam,toont:view});
+    bbStap.open(naam,navSluitBovenste);
+    return;
+  }
+  if(i===navSchermen.length-1) return; // staat al bovenaan (of we zijn al op het overzicht)
+  // terug naar het overzicht of naar een scherm dat er al onder staat
+  const vanaf=navSchermen[i+1].naam;
+  navSchermen.length=i+1;
+  navAfwikkelen=true;
+  try{ bbStap.dicht(vanaf); } finally { navAfwikkelen=false; }
+}
 
 // wis de volledige sessie + herstel van de laatst gewiste sessie
 const KEYBACKUP='bazarbizarre_backup';
@@ -1449,20 +1703,35 @@ document.getElementById('fFinaleOver').onclick=()=>{
   document.getElementById('fFinaleVraag').value=t;
 };
 document.getElementById('fAnnuleer').onclick=()=>show('menu');
-document.getElementById('fDoorsturen').onclick=()=>{
+document.getElementById('fDoorsturen').onclick=async()=>{
   const kleine=Object.keys(fSel.klein).map(id=>({id,n:fSel.klein[id]}));
   const groot=Object.keys(fSel.groot).map(id=>({id,n:fSel.groot[id]}));
   const namen=document.getElementById('fNamen').value.trim();
   const bk={gereserveerd:+document.getElementById('fBkRes').value||0,
     extra:+document.getElementById('fBkExtra').value||0,
     gratis:+document.getElementById('fBkGratis').value||0};
+  // De finalevraag is verplicht. Ze wordt normaal automatisch overgenomen; staat er toch
+  // niets, dan is er iets misgegaan of is het finalespel overgeslagen — en dan weten we
+  // achteraf niet meer welke vraag gesteld is. Eerst nog eens proberen over te nemen.
+  const fvEl=document.getElementById('fFinaleVraag');
+  if(!fvEl.value.trim()){
+    const t=finaleVraagTekst();
+    if(t) fvEl.value=t;
+  }
+  if(!fvEl.value.trim()){
+    await bevestig('Finalevraag ontbreekt',
+      'Vul eerst in welke finalevraag gesteld is. Ze wordt normaal automatisch overgenomen uit het Finalespel — vul ze daar in, of typ ze hier zelf.',
+      'Oké');
+    fvEl.focus(); fvEl.scrollIntoView({block:'center',behavior:'smooth'});
+    return;
+  }
   if(!kleine.length&&!groot.length&&!(bk.gereserveerd+bk.extra+bk.gratis)){
-    if(!confirm('Je hebt niets ingevuld. Toch het spel afsluiten?'))return;
+    if(!(await bevestig('Niets ingevuld','Je hebt geen prijzen en geen boekjes ingevuld. Toch het spel afsluiten?','Toch afsluiten'))) return;
   }
   // 'finale' (de oude finalereeks) wordt niet meer gevraagd; het veld blijft leeg zodat
   // oudere formulieren hun ingevulde reeks houden.
   const f={namen,kleine,groot,boekjes:bk,finale:'',
-    finalevraag:document.getElementById('fFinaleVraag').value.trim(),
+    finalevraag:fvEl.value.trim(),
     opmerking:document.getElementById('fOpm').value.trim()};
   bbSetActor(); // zorg dat de juiste naam in het activiteitenlog komt
   // Aanvinken welke vragen gespeeld zijn: daardoor zakken ze in de lijst en krijg je de
@@ -1696,7 +1965,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v2.9';
+const APP_VERSION='v3.1';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;
