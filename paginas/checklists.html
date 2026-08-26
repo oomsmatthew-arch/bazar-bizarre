@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body>
+<body data-toegang="checklisten">
 
 <div class="wrap">
   <div class="topbar">
@@ -281,7 +281,7 @@ function renderChecklisten(){
 }
 document.getElementById('chkBeheerBtn').onclick=()=>{
   if(chkBeheer){ chkBeheer=false; renderChecklisten(); return; }
-  if(!magBeheren()) return;
+  if(!eisToegang('checklisten','beheren','de checklists te beheren')) return;
   chkBeheer=true; renderChecklisten();
 };
 document.getElementById('chkAdd').onclick=()=>{

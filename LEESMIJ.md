@@ -134,7 +134,34 @@ tegelijk hebben, of geen van beide.
 
 - **Vaste mdw** — komt zonder wachtwoord in alle beheerschermen (inventaris, bestellingen,
   het financieel overzicht, projecten aanmaken…).
-- **Admin** — ziet op de homepagina de kaarten **Systeem** en **Activiteit**.
+- **Admin** — ziet de kaarten **Systeem** en **Activiteit**, en beheert de **Toegangen**.
+
+## Toegangen: wie mag wat
+
+⚙ Instellingen → **🔑 Toegangen** (enkel zichtbaar voor admins). Daar staat per onderdeel
+wie het mag **bekijken**, **gebruiken** en **beheren**. De instelling geldt op alle toestellen.
+
+| Niveau | Wat het betekent |
+|---|---|
+| **Bekijken** | De kaart op de homepagina zien en de pagina openen |
+| **Gebruiken** | Het gewone werk: toevoegen, invullen, afvinken |
+| **Beheren** | Het slotje: verwijderen, lijsten aanpassen, en bij Bestellingen ook de bedragen |
+
+Per niveau kies je uit vier mogelijkheden: **Iedereen** · **Vaste mdw + admin** ·
+**Enkel admin** · **Met wachtwoord** (vaste medewerkers en admins hoeven het niet te typen).
+
+Staat een onderdeel op *Met wachtwoord*, dan blijft de kaart gewoon staan — je krijgt de
+vraag pas als je ze opent. Mag je iets niet bekijken, dan verdwijnt de kaart helemaal.
+
+**Wat hierheen verhuisd is:** de twee losse instellingen van Projecten (*wie mag aanmaken*
+en *wie mag werken*) zijn opgegaan in de rij Projecten — jouw bestaande keuze is automatisch
+overgenomen. Ook het financieel overzicht en de bedragen bij Bestellingen, en de
+zichtbaarheid van Systeem en Activiteit lopen nu via deze tabel in plaats van via de code.
+
+Twee dingen blijven bewust vast: **Instellingen** blijft altijd bereikbaar en de
+Toegangen-tabel zelf is enkel voor admins — anders kan iemand zichzelf rechten geven.
+Wie niets aanpast, merkt geen verschil: de standaardwaarden zijn precies het gedrag van
+vóór deze functie.
 
 ## Database (alle foto's op één plek)
 

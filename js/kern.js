@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v5.8';
+const APP_VERSION='v5.9';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -143,8 +143,115 @@ if(localStorage.getItem('bb_drempel_v2')!=='1'){
 }
 function getBestelMail(){return localStorage.getItem(K_BESTELMAIL)||'';}
 // Rechten voor Projecten (projecten.html leest dezelfde waarden).
-function getProjMaken(){return localStorage.getItem(K_PROJ_MAKEN)||'vast';}
-function getProjBewerken(){return localStorage.getItem(K_PROJ_BEWERKEN)||'iedereen';}
+function getProjMaken(){return toegangRegel('projecten','beheren');}
+function getProjBewerken(){return toegangRegel('projecten','gebruiken');}
+
+// ---------------- TOEGANGEN ----------------
+// Eén plek waar per categorie staat wie wat mag. Vroeger zat dit verspreid in de code
+// (isVasteMdw hier, magBeheren daar) en was het enkel te wijzigen door de code aan te
+// passen. Nu staat het in de gedeelde instellingen en beheer je het in de app.
+//
+// Drie niveaus per categorie:
+//   bekijken  — de kaart op de home zien en de pagina openen
+//   gebruiken — gewone dingen doen: toevoegen, invullen, afvinken
+//   beheren   — het slotje: verwijderen, lijsten aanpassen, bedragen zien
+//
+// Vier keuzes per niveau:
+//   iedereen — iedereen die ingelogd is
+//   vast     — vaste medewerkers en admins
+//   admin    — enkel admins
+//   beheer   — met het beheer-wachtwoord (vaste mdw en admins hoeven het niet te typen)
+const K_TOEGANGEN='bb_toegangen';
+const TOEGANG_NIVEAUS=['bekijken','gebruiken','beheren'];
+const TOEGANG_KEUZES=[
+  {waarde:'iedereen', naam:'Iedereen'},
+  {waarde:'vast',     naam:'Vaste mdw + admin'},
+  {waarde:'admin',    naam:'Enkel admin'},
+  {waarde:'beheer',   naam:'Met wachtwoord'}
+];
+// De standaardwaarden zijn zo gekozen dat de app zich precies gedraagt zoals vóór deze
+// instelling bestond. Wie niets aanpast, merkt er niets van.
+const TOEGANG_CATEGORIEEN=[
+  {key:'spel',        naam:'Bazar Bizarre',  uitleg:'Het spel leiden en afsluiten.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'inventaris',  naam:'Inventaris',     uitleg:'Voorraad, leveringen en ingezonden formulieren.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'bestellingen',naam:'Besteloverzicht',uitleg:'Beheren omvat ook de bedragen en het financieel overzicht.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'vast'}},
+  {key:'projecten',   naam:'Projecten',      uitleg:'Gebruiken = in een project werken. Beheren = projecten aanmaken en verwijderen.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'vast'}},
+  {key:'ratings',     naam:'Ratings',        uitleg:'Beoordelingen bekijken en invullen.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'checklisten', naam:'Checklists',     uitleg:'Afvinklijsten.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'contacten',   naam:'Contacten',      uitleg:'Telefoonnummers en e-mails.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'logboek',     naam:'Logboek',        uitleg:'Overdracht tussen shifts.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'manuals',     naam:'Online manuals', uitleg:'Handleidingen en video\'s.',
+   std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'activiteit',  naam:'Activiteit',     uitleg:'Wie heeft wat aangepast.',
+   std:{bekijken:'vast',gebruiken:'vast',beheren:'admin'}},
+  {key:'systeem',     naam:'Systeem',        uitleg:'Verbinding, synchronisatie en opslag.',
+   std:{bekijken:'admin',gebruiken:'admin',beheren:'admin'}}
+];
+function _toegangStd(cat){
+  const c=TOEGANG_CATEGORIEEN.find(x=>x.key===cat);
+  return c?c.std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'};
+}
+function getToegangen(){
+  let opgeslagen={};
+  try{ opgeslagen=JSON.parse(localStorage.getItem(K_TOEGANGEN))||{}; }catch(e){ opgeslagen={}; }
+  const uit={};
+  TOEGANG_CATEGORIEEN.forEach(c=>{
+    const eigen=opgeslagen[c.key]||{};
+    uit[c.key]={};
+    TOEGANG_NIVEAUS.forEach(n=>{
+      const w=eigen[n];
+      uit[c.key][n]=TOEGANG_KEUZES.some(k=>k.waarde===w) ? w : c.std[n];
+    });
+  });
+  return uit;
+}
+function setToegangen(obj){
+  try{ localStorage.setItem(K_TOEGANGEN,JSON.stringify(obj||{})); }catch(e){}
+  if(!cfgApplying) pushConfig();
+}
+function toegangRegel(cat,niveau){
+  const t=getToegangen()[cat];
+  return (t&&t[niveau])||_toegangStd(cat)[niveau];
+}
+// Mag ik dit, zonder iets te vragen? 'beheer' geldt als toegestaan zodra het wachtwoord
+// deze sessie al is ingetikt (of je vaste mdw / admin bent).
+function magToegang(cat,niveau){
+  const r=toegangRegel(cat,niveau);
+  if(r==='iedereen') return true;
+  if(r==='vast')     return isVasteMdw()||isAdmin();
+  if(r==='admin')    return isAdmin();
+  if(r==='beheer')   return isVasteMdw()||isAdmin()||isOntgrendeld();
+  return true;
+}
+// Mag ik dit, en zo niet: vraag het wachtwoord of zeg waarom niet.
+function eisToegang(cat,niveau,actie){
+  const r=toegangRegel(cat,niveau);
+  if(r==='beheer') return eisBeheer(actie);
+  if(magToegang(cat,niveau)) return true;
+  alert('Daar heb je geen toegang toe.\n\nDit is ingesteld op "'+
+    (TOEGANG_KEUZES.find(k=>k.waarde===r)||{}).naam+'". Een admin kan dat wijzigen via Instellingen → Toegangen.');
+  return false;
+}
+// Eenmalig: de twee losse projectinstellingen van vóór deze versie overnemen.
+(function migreerProjectRechten(){
+  try{
+    if(localStorage.getItem(K_TOEGANGEN)) return;
+    const maken=localStorage.getItem(K_PROJ_MAKEN), werken=localStorage.getItem(K_PROJ_BEWERKEN);
+    if(!maken && !werken) return;
+    const t={projecten:{}};
+    if(maken)  t.projecten.beheren=maken;
+    if(werken) t.projecten.gebruiken=werken;
+    localStorage.setItem(K_TOEGANGEN,JSON.stringify(t));
+  }catch(e){}
+})();
 
 // ---- Keuzelijsten van het besteloverzicht (op dit toestel bewaard) ----
 // Ze staan hier in de kern omdat élke pagina de gedeelde instellingen kan
@@ -163,6 +270,8 @@ function pushConfig(){
     drempel: getDrempel(), drempel2: getDrempel2(), drempelBk: getDrempelBoekjes(),
     pin: localStorage.getItem(K_PIN)||DEFAULT_PIN,
     links: getLinks(), bestelmail: localStorage.getItem(K_BESTELMAIL)||'',
+    toegangen: getToegangen(),
+    // Blijven meesturen voor toestellen die nog een oudere versie draaien.
     projMaken: getProjMaken(), projBewerken: getProjBewerken(),
     bestelCats: lsArr('bb_bestel_cats',[]),
     bestelLevs: lsArr('bb_bestel_levs',[]),
@@ -183,6 +292,7 @@ function pullConfig(){
     if(c.pin) localStorage.setItem(K_PIN,c.pin);
     if(c.links) localStorage.setItem(K_LINKS,JSON.stringify(c.links));
     if(c.bestelmail!=null) localStorage.setItem(K_BESTELMAIL,c.bestelmail);
+    if(c.toegangen && typeof c.toegangen==='object') localStorage.setItem(K_TOEGANGEN,JSON.stringify(c.toegangen));
     if(c.projMaken) localStorage.setItem(K_PROJ_MAKEN,c.projMaken);
     if(c.projBewerken) localStorage.setItem(K_PROJ_BEWERKEN,c.projBewerken);
     if(Array.isArray(c.bestelCats)) lsSave('bb_bestel_cats',c.bestelCats);
@@ -659,12 +769,22 @@ function bootAuth(){
 // Sommige pagina's zijn enkel voor bepaalde rollen (Systeem = admin, Activiteit =
 // admin of vaste mdw). Wie er via de webadresbalk toch op belandt, sturen we terug.
 function bewaakPagina(){
-  const nodig=document.body.getAttribute('data-rol'); if(!nodig) return;
+  // data-toegang = de categorie uit Instellingen → Toegangen. data-rol is de oude manier
+  // en blijft werken voor pagina's die nog niet omgezet zijn.
+  const cat=document.body.getAttribute('data-toegang');
+  const nodig=document.body.getAttribute('data-rol');
+  if(!cat && !nodig) return;
   if(!currentUser()) return;                                   // nog niet ingelogd: eerst het inlogscherm
   if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;   // rollen nog niet geladen
-  const ok = nodig==='admin' ? isAdmin() : (isAdmin()||isVasteMdw());
-  if(ok) return;
-  alert('Deze pagina is enkel voor '+(nodig==='admin'?'beheerders (admin)':'admins en vaste medewerkers')+'.');
+  if(cat){
+    if(magToegang(cat,'bekijken')) return;
+    const r=toegangRegel(cat,'bekijken');
+    if(r==='beheer' && eisBeheer('deze pagina te openen')) return;
+    alert('Je hebt geen toegang tot deze pagina.\n\nEen admin kan dat wijzigen via Instellingen → Toegangen.');
+  }else{
+    if(nodig==='admin' ? isAdmin() : (isAdmin()||isVasteMdw())) return;
+    alert('Deze pagina is enkel voor '+(nodig==='admin'?'beheerders (admin)':'admins en vaste medewerkers')+'.');
+  }
   location.replace(bbUrl('entertainment.html'));
 }
 function refreshAuth(){

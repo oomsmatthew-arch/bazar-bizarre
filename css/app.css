@@ -206,7 +206,10 @@
   .field label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px;}
   .field input,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
     font-size:16px;padding:11px 12px;border-radius:12px;outline:none;font-family:inherit;}
-  .field input:focus,.field textarea:focus{border-color:var(--leaf);background:#fff;}
+  /* Bij focus lichtte het veld op met een hardgecodeerd wit. In donker thema bleef de
+     tekstkleur var(--text) (bijna wit) staan: je zag dan niet meer wat je typte.
+     var(--panel) is in licht thema exact #ffffff en in donker thema het paneelgroen. */
+  .field input:focus,.field textarea:focus{border-color:var(--leaf);background:var(--panel);}
   .field textarea{min-height:96px;resize:vertical;line-height:1.5;}
   .btn{border:none;border-radius:12px;padding:11px 16px;font-weight:700;font-size:14px;
     cursor:pointer;background:var(--panel2);color:var(--forest);border:1px solid var(--line);}
@@ -745,3 +748,14 @@
   .fotokaart .beeld .dl:active{transform:translateY(1px);}
   [data-theme="dark"] .fotokaart .beeld .dl{background:rgba(24,39,31,.92);}
   .dbbalk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;}
+
+  /* ---- Toegangen: wie mag wat, per onderdeel ---- */
+  .toegwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .toegtab{width:100%;border-collapse:collapse;min-width:620px;}
+  .toegtab th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--muted);font-weight:800;padding:0 10px 8px 0;}
+  .toegtab td{padding:7px 10px 7px 0;border-top:1px solid var(--line);vertical-align:middle;}
+  .toegtab td.naam{min-width:230px;}
+  .toegtab td.naam b{display:block;font-size:14px;color:var(--forest);}
+  .toegtab td.naam span{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:2px;}
+  .toegtab select{width:100%;min-width:150px;font-size:14px;padding:8px 10px;}

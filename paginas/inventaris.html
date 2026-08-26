@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body>
+<body data-toegang="inventaris">
 
 <div class="wrap">
   <div class="topbar">
@@ -188,7 +188,7 @@ let invCat='all';
 document.querySelectorAll('.invtab').forEach(b=>{
   b.onclick=()=>{
     const t=b.dataset.tab;
-    if(t==='beheer' && !eisBeheer('de inventaris te beheren')) return;
+    if(t==='beheer' && !eisToegang('inventaris','beheren','de inventaris te beheren')) return;
     document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
@@ -450,7 +450,7 @@ function renderLeveringen(){
     d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
       '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
     if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
-    d.querySelector('.rm').onclick=()=>{if(!eisBeheer('de levering te verwijderen'))return;if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
+    d.querySelector('.rm').onclick=()=>{if(!eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
     wrap.appendChild(d);
   });
 }
@@ -537,7 +537,7 @@ function renderFormulieren(){
       (vraag?('<div class="blk"><span class="bl">Finalevraag</span><span style="white-space:pre-line">'+esc(vraag)+'</span></div>'):'')+
       (f.opmerking?('<div class="blk"><span class="bl">Opmerking</span><span>'+esc(f.opmerking)+'</span></div>'):'')+
       '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
-    d.querySelector('.rm').onclick=()=>{if(!eisBeheer('het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
+    d.querySelector('.rm').onclick=()=>{if(!eisToegang('inventaris','beheren','het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
     wrap.appendChild(d);
   });
 }

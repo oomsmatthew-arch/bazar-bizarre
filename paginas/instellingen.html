@@ -32,7 +32,24 @@
   <div class="view paginainhoud" id="instellingen" style="display:none">
     <div class="invtabs">
       <button class="invtab active" data-stab="algemeen">⚙ Instellingen</button>
+      <button class="invtab" data-stab="toegangen" id="stabToegangen" style="display:none">🔑 Toegangen</button>
       <button class="invtab" data-stab="database">🗄️ Database</button>
+    </div>
+
+    <!-- TOEGANGEN: wie mag wat, per categorie (enkel voor admins) -->
+    <div class="invpane" id="spane-toegangen">
+      <p class="hint">Per onderdeel instellen wie het mag <b>bekijken</b>, <b>gebruiken</b> en <b>beheren</b>.
+        Dit geldt voor alle toestellen. <b>Bekijken</b> bepaalt of de kaart op de homepagina verschijnt en of
+        de pagina opengaat; <b>gebruiken</b> is het gewone werk (toevoegen, invullen, afvinken);
+        <b>beheren</b> is het slotje: verwijderen, lijsten aanpassen en bedragen zien.</p>
+      <div class="toegwrap" id="toegWrap"></div>
+      <div class="bar" style="margin-top:16px;gap:10px;flex-wrap:wrap;">
+        <button class="btn primary" id="toegBewaar">Toegangen opslaan</button>
+        <button class="btn" id="toegStandaard">↺ Terug naar de standaard</button>
+        <span class="sysupd" id="toegMelding"></span>
+      </div>
+      <p class="hint" style="margin-top:14px;">Het beheer-wachtwoord wijzigen en dit scherm zelf blijven altijd
+        voorbehouden aan admins — anders zou iemand zichzelf rechten kunnen geven.</p>
     </div>
 
     <!-- DATABASE: alle foto's en bestanden die in de gedeelde database staan -->
@@ -64,21 +81,12 @@
         </div>
       </div>
 
-      <div class="field">
-        <div class="h">Projecten — wie mag wat?</div>
-        <label for="setProjMaken">Een project aanmaken, bewerken, archiveren of verwijderen</label>
-        <select id="setProjMaken" class="finp" style="max-width:320px">
-          <option value="vast">Enkel vaste medewerkers</option>
-          <option value="iedereen">Iedereen die ingelogd is</option>
-          <option value="beheer">Enkel met het beheer-wachtwoord</option>
-        </select>
-        <label for="setProjBewerken" style="margin-top:12px">In een project werken: taken maken, verslepen en afvinken</label>
-        <select id="setProjBewerken" class="finp" style="max-width:320px">
-          <option value="iedereen">Iedereen die ingelogd is</option>
-          <option value="vast">Enkel vaste medewerkers</option>
-        </select>
+      <div class="field" id="veldToegangen" style="display:none">
+        <div class="h">Wie mag wat?</div>
+        <label>De rechten van Projecten staan nu samen met die van alle andere onderdelen
+          onder <b>🔑 Toegangen</b>. Daar stel je per categorie in wie mag bekijken, gebruiken en beheren.</label>
         <div class="row">
-          <button class="btn primary" id="saveProjRechten">Opslaan</button>
+          <button class="btn" id="naarToegangen">🔑 Naar Toegangen</button>
         </div>
       </div>
 
@@ -136,8 +144,7 @@
 let toegangGevraagd=false, toegangTimer=null;
 function vulVelden(){
   document.getElementById('setMededeling').value=getMededeling();
-  document.getElementById('setProjMaken').value=getProjMaken();
-  document.getElementById('setProjBewerken').value=getProjBewerken();
+  toonToegangen();
   // "Ingelogd blijven" enkel tonen voor het gedeelde ENT-account
   const u=currentUser(), isEnt=!!(u&&u.id==='entalg'), fld=document.getElementById('entRememberField');
   if(fld){
@@ -185,12 +192,58 @@ document.getElementById('saveMededeling').onclick=()=>{
   if(window.BBInv&&BBInv.logAct) BBInv.logAct('Mededeling aangepast');
   alert('Mededeling opgeslagen.');
 };
-document.getElementById('saveProjRechten').onclick=()=>{
-  localStorage.setItem(K_PROJ_MAKEN,document.getElementById('setProjMaken').value);
-  localStorage.setItem(K_PROJ_BEWERKEN,document.getElementById('setProjBewerken').value);
-  pushConfig();
-  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Rechten voor Projecten aangepast');
-  alert('Opgeslagen. De rechten voor Projecten gelden op alle toestellen.');
+// ---------------- TOEGANGEN (enkel admin) ----------------
+// Het tabblad en de verwijzing ernaar verschijnen alleen voor admins. Zo kan iemand
+// zonder die rol zichzelf geen rechten geven.
+function toonToegangen(){
+  const mag=isAdmin();
+  const tab=document.getElementById('stabToegangen');
+  if(tab) tab.style.display=mag?'':'none';
+  const veld=document.getElementById('veldToegangen');
+  if(veld) veld.style.display=mag?'':'none';
+  if(mag) tekenToegangen();
+}
+function tekenToegangen(){
+  const wrap=document.getElementById('toegWrap'); if(!wrap) return;
+  const huidig=getToegangen();
+  let h='<table class="toegtab"><tr><th>Onderdeel</th>'+
+    TOEGANG_NIVEAUS.map(n=>'<th>'+n.charAt(0).toUpperCase()+n.slice(1)+'</th>').join('')+'</tr>';
+  TOEGANG_CATEGORIEEN.forEach(c=>{
+    h+='<tr><td class="naam"><b>'+esc(c.naam)+'</b><span>'+esc(c.uitleg)+'</span></td>';
+    TOEGANG_NIVEAUS.forEach(n=>{
+      const w=(huidig[c.key]||{})[n];
+      h+='<td><select class="finp toegsel" data-cat="'+c.key+'" data-niv="'+n+'">'+
+        TOEGANG_KEUZES.map(k=>'<option value="'+k.waarde+'"'+(k.waarde===w?' selected':'')+'>'+esc(k.naam)+'</option>').join('')+
+        '</select></td>';
+    });
+    h+='</tr>';
+  });
+  wrap.innerHTML=h+'</table>';
+}
+function toegMeld(tekst){
+  const el=document.getElementById('toegMelding'); if(!el) return;
+  el.textContent=tekst||'';
+  clearTimeout(toegMeld._t); toegMeld._t=setTimeout(()=>{ el.textContent=''; },4000);
+}
+document.getElementById('toegBewaar').onclick=()=>{
+  const nieuw={};
+  document.querySelectorAll('.toegsel').forEach(s=>{
+    const c=s.getAttribute('data-cat'), n=s.getAttribute('data-niv');
+    (nieuw[c]||(nieuw[c]={}))[n]=s.value;
+  });
+  setToegangen(nieuw);
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Toegangen aangepast');
+  toegMeld('✓ Opgeslagen — geldt op alle toestellen.');
+};
+document.getElementById('toegStandaard').onclick=()=>{
+  if(!confirm('Alle toegangen terugzetten naar de standaardinstelling?')) return;
+  setToegangen({});
+  tekenToegangen();
+  if(window.BBInv&&BBInv.logAct) BBInv.logAct('Toegangen teruggezet naar de standaard');
+  toegMeld('✓ Teruggezet naar de standaard.');
+};
+document.getElementById('naarToegangen').onclick=()=>{
+  const tab=document.getElementById('stabToegangen'); if(tab) tab.click();
 };
 document.getElementById('clearMededeling').onclick=()=>{
   if(!confirm('De mededeling wissen?'))return;

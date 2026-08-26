@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body>
+<body data-toegang="contacten">
 
 <div class="wrap">
   <div class="topbar">
@@ -96,7 +96,7 @@ function setContBeheer(on){
 }
 document.getElementById('contBeheerBtn').onclick=()=>{
   if(contBeheer){ setContBeheer(false); return; }
-  if(!magBeheren('voor beheer')) return;
+  if(!eisToegang('contacten','beheren','de contacten te beheren')) return;
   setContBeheer(true);
 };
 document.getElementById('contZoek').addEventListener('input',renderContacten);

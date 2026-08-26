@@ -152,9 +152,18 @@ function magBeheren(actie){
   if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
   return true;
 }
-// De twee regels zijn instelbaar via Instellingen op de homepagina (gedeeld via appconfig).
+// De regels staan in Instellingen → Toegangen (gedeeld via appconfig).
+//   projMaken    → projecten/beheren     projBewerken → projecten/gebruiken
+// De oude sleutels blijven als terugval, voor het geval een toestel nog niet bijgewerkt is.
 function regel(sleutel,standaard){
+  const niveau = sleutel==='projMaken' ? 'beheren' : 'gebruiken';
   const cfg=(window.BBInv&&BBInv.getConfig)?BBInv.getConfig():null;
+  const t=cfg&&cfg.toegangen&&cfg.toegangen.projecten;
+  if(t&&t[niveau]) return t[niveau];
+  let lokaal=null;
+  try{ const o=JSON.parse(localStorage.getItem('bb_toegangen')||'{}');
+       lokaal=o&&o.projecten&&o.projecten[niveau]; }catch(e){}
+  if(lokaal) return lokaal;
   if(cfg&&cfg[sleutel]) return cfg[sleutel];
   return localStorage.getItem(sleutel==='projMaken'?K_PROJ_MAKEN:K_PROJ_BEWERKEN)||standaard;
 }
@@ -163,8 +172,9 @@ function regel(sleutel,standaard){
 function magProjectMaken(vraag){
   const r=regel('projMaken','vast');
   if(r==='iedereen') return true;
-  if(r==='beheer') return vraag?magBeheren('voor projectbeheer'):isVasteMdw();
-  if(isVasteMdw()) return true;
+  if(r==='beheer') return vraag?magBeheren('voor projectbeheer'):(isVasteMdw()||heeftRol('admin'));
+  if(r==='admin') return heeftRol('admin');
+  if(isVasteMdw()||heeftRol('admin')) return true;
   if(vraag) meld('Enkel vaste medewerkers',
     'Projecten aanmaken of aanpassen kan enkel door een vaste medewerker. '+wieBenIk()+
     ' Klopt dat niet? Tik dan rechtsboven op je naam om te wisselen, of laat je rol goedzetten '+
@@ -189,7 +199,9 @@ function wieBenIk(){
 // Mag ik in een project werken (taken maken, verplaatsen, afvinken)? (standaard: iedereen)
 function magWerken(){
   const r=regel('projBewerken','iedereen');
-  if(r==='vast') return isVasteMdw();
+  if(r==='vast')   return isVasteMdw()||heeftRol('admin');
+  if(r==='admin')  return heeftRol('admin');
+  if(r==='beheer') return isVasteMdw()||heeftRol('admin');
   return true;
 }
 function eisWerken(){

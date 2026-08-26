@@ -212,13 +212,18 @@ function computeLowstock(){
   }
 }
 
-// ---------------- KAARTEN VOLGENS ROL ----------------
-// Activiteit is voor admins en vaste medewerkers, Systeem enkel voor admins.
+// ---------------- KAARTEN VOLGENS TOEGANG ----------------
+// Elke kaart hoort bij een categorie uit Instellingen → Toegangen. Mag je ze niet
+// bekijken, dan verdwijnt ze hier. Staat een categorie op "met wachtwoord", dan blijft de
+// kaart wél staan: je kan ze openen en krijgt dan de vraag om het wachtwoord.
 function updateKaarten(){
-  const act=document.getElementById('kaartActiviteit');
-  if(act) act.style.display = (isVasteMdw()||isAdmin()) ? '' : 'none';
-  const sys=document.getElementById('kaartSysteem');
-  if(sys) sys.style.display = isAdmin() ? '' : 'none';
+  document.querySelectorAll('.menu .card[data-key]').forEach(kaart=>{
+    const cat=kaart.getAttribute('data-key');
+    // Instellingen blijft altijd bereikbaar: anders kan niemand de toegangen nog wijzigen.
+    if(cat==='instellingen'){ kaart.style.display=''; return; }
+    const mag = magToegang(cat,'bekijken') || toegangRegel(cat,'bekijken')==='beheer';
+    kaart.style.display = mag ? '' : 'none';
+  });
 }
 
 // ---- opstarten ----

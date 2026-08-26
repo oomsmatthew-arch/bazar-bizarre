@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body>
+<body data-toegang="manuals">
 
 <div class="wrap">
   <div class="topbar">
@@ -379,7 +379,7 @@ function setManualsBeheer(on){
 document.getElementById('manualsBeheerBtn').onclick=()=>{
   if(manualsBeheer){ setManualsBeheer(false); renderManuals(); return; }
   if(MANUALS&&MANUALS.__error){ alert('De manuals konden niet geladen worden, beheren kan nu niet.'); return; }
-  if(!magBeheren('voor beheer')) return;
+  if(!eisToegang('manuals','beheren','de manuals te beheren')) return;
   setManualsBeheer(true); renderManuals();
 };
 // ---- opstarten ----

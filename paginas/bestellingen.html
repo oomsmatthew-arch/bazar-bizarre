@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body>
+<body data-toegang="bestellingen">
 
 <div class="wrap">
   <div class="topbar">
@@ -208,7 +208,7 @@ function renderBestelSum(){
   list.forEach(b=>{ counts[b.status]=(counts[b.status]||0)+1; ent+=+b.ent||0; bay+=+b.bay||0; hsb+=+b.hsb||0; });
   let html='<span class="pill"><b>'+list.length+'</b> totaal</span>';
   mgStats.forEach(s=>{ if(counts[s]) html+='<span class="pill"><b>'+counts[s]+'</b> '+esc(s.toLowerCase())+'</span>'; });
-  if(isVasteMdw()){ // financiële totalen enkel voor vaste medewerkers
+  if(magToegang('bestellingen','beheren')){ // financiële totalen volgen de toegang 'beheren'
     if(ent) html+='<span class="pill ent">ENT <b>'+eur(ent)+'</b></span>';
     if(bay) html+='<span class="pill bay">BAY <b>'+eur(bay)+'</b></span>';
     if(hsb) html+='<span class="pill hsb">HSB <b>'+eur(hsb)+'</b></span>';
@@ -223,7 +223,7 @@ function renderBestelFilter(){
 }
 function bestelRowHtml(b){
   let amt='';
-  if(isVasteMdw()){ // bedragen per bestelling enkel voor vaste medewerkers
+  if(magToegang('bestellingen','beheren')){ // bedragen volgen de toegang 'beheren'
     if(+b.ent) amt+='<span class="br-amt ent">ENT '+eur(b.ent)+'</span>';
     if(+b.bay) amt+='<span class="br-amt bay">BAY '+eur(b.bay)+'</span>';
     if(+b.hsb) amt+='<span class="br-amt hsb">HSB '+eur(b.hsb)+'</span>';
@@ -315,8 +315,8 @@ function renderFinancieel(){
 
 // ---- tabbladen (Beheer met wachtwoord, net als de inventaris) ----
 function showBestelTab(t){
-  if(t==='financieel' && !isVasteMdw()){ return; } // financieel overzicht enkel voor vaste medewerkers
-  if(t==='beheer' && !eisBeheer('de lijsten te beheren')) return;
+  if(t==='financieel' && !magToegang('bestellingen','beheren')){ return; }
+  if(t==='beheer' && !eisToegang('bestellingen','beheren','de lijsten te beheren')) return;
   bestelTab=t;
   document.querySelectorAll('.btab').forEach(x=>x.classList.toggle('active',x.dataset.btab===t));
   document.querySelectorAll('.bpane').forEach(p=>p.classList.remove('active'));
@@ -329,7 +329,7 @@ function showBestelTab(t){
 // terugvallen op het gewone overzicht.
 function updateBestelTabs(){
   const btn=document.querySelector('.btab[data-btab="financieel"]');
-  const mag=isVasteMdw();
+  const mag=magToegang('bestellingen','beheren');
   if(btn) btn.style.display = mag ? '' : 'none';
   if(!mag && bestelTab==='financieel') showBestelTab('overzicht');
 }
