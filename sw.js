@@ -12,7 +12,7 @@ const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel
   './paginas/projecten.html','./paginas/ratings.html','./paginas/ratings-vergelijk.html',
   './css/app.css','./js/kern.js','./js/terug.js','./js/zoek.js',
   './js/inventaris-data.js','./js/inventaris.js','./js/projecten.js','./js/ratings.js','./js/ratings-vergelijk.js','./js/supabase.min.js',
-  './assets/icon-192.png','./assets/icon-512.png','./assets/Logo_kleine_tekst.png']
+  './assets/icon-192.png','./assets/icon-512.png','./assets/Logo_kleine_tekst.jpg']
   .concat(DEALS);
 
 // Bij installatie: alles vers ophalen (geen browser-cache) en bewaren.

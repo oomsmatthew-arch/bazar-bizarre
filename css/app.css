@@ -270,7 +270,9 @@
   /* ---- inventaris ---- */
   .finp{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:16px;
     padding:11px 12px;border-radius:12px;outline:none;font-family:inherit;}
-  .finp:focus{border-color:var(--leaf);background:#fff;color:#1d2e22;}
+  /* Zelfde verhaal als bij .field input:focus — een hardgecodeerd wit vak dat in donker
+     thema fel oplichtte. Met de variabelen volgt het veld gewoon het thema. */
+  .finp:focus{border-color:var(--leaf);background:var(--panel);color:var(--text);}
   .finp:focus::placeholder{color:#8aa192;}
   .finp.zoek{margin:0 0 10px;}
   /* datum-velden: waarde links uitlijnen (iOS duwt ze anders naar rechts) */
