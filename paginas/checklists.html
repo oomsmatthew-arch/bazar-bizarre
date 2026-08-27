@@ -32,6 +32,7 @@
       <span class="chkprog"><i id="chkFill"></i></span>
       <button class="btn clear" id="chkReset">Afvinken wissen</button>
     </div>
+    <input type="text" id="chkZoek" class="finp zoek" placeholder="Zoek een item in deze lijst…">
     <div class="chklist" id="chkGrid"></div>
     <div class="chkadd">
       <input type="text" id="chkNew" class="finp" placeholder="Nieuw item toevoegen…">
@@ -122,8 +123,9 @@ function renderChkTabs(){
   });
   if(chkBeheer){
     const add=document.createElement('button'); add.className='chktab add'; add.textContent='+ Nieuwe lijst';
-    add.onclick=()=>{
-      const n=prompt('Naam van de nieuwe checklist:'); if(n===null)return; const naam=n.trim(); if(!naam)return;
+    add.onclick=async()=>{
+      const n=await bbVraagTekst({titel:'Nieuwe checklist', plaatshouder:'bv. Opening zwembad', okTekst:'Aanmaken'});
+      if(n===null)return; const naam=n.trim(); if(!naam)return;
       const rec=BBInv.addChecklist(naam); chkActief=rec.id; renderChecklisten();
     };
     t.appendChild(add);
@@ -179,12 +181,20 @@ function renderChecklisten(){
     document.querySelector('.chkacties').style.display='none';
     return;
   }
+  // Zoeken filtert alleen wát je ziet: we lopen nog altijd over de héle lijst, zodat de
+  // index i (en dus bewerken, verwijderen en de voortgang) blijft kloppen.
+  const zoekEl=document.getElementById('chkZoek');
+  const q=((zoekEl&&zoekEl.value)||'').toLowerCase().trim();
+  let getoond=0;
   lijst.items.forEach((it,i)=>{
+    if(q && (it.text||'').toLowerCase().indexOf(q)<0) return;
+    getoond++;
     const row=document.createElement('div'); row.className='chk'+(it.done?' done':'')+(chkBeheer?' beheer':'');
     row.dataset.idx=i;
     const media=chkMedia(it);
     let html='<div class="chkbox">'+(it.done?'✓':'')+'</div>';
-    if(chkBeheer) html+='<div class="chkdrag" title="Sleep om te verplaatsen">⇅</div>';
+    // Slepen kan niet terwijl je zoekt: je zou tussen verborgen items neerzetten.
+    if(chkBeheer && !q) html+='<div class="chkdrag" title="Sleep om te verplaatsen">⇅</div>';
     // media-strook (foto's/video's)
     if(chkBeheer || media.length){
       html+='<div class="chkmedia">';
@@ -222,14 +232,14 @@ function renderChecklisten(){
       }
     });
     if(chkBeheer){
-      const bewerk=()=>{ const n=prompt('Item bewerken:',it.text); if(n===null)return; const t=n.trim(); if(!t)return; it.text=t; BBInv.saveChecklist(lijst); renderChecklisten(); };
+      const bewerk=async()=>{ const n=await bbVraagTekst({titel:'Item bewerken', waarde:it.text}); if(n===null)return; const t=n.trim(); if(!t)return; it.text=t; BBInv.saveChecklist(lijst); renderChecklisten(); };
       row.querySelector('.chktxt').onclick=bewerk;
       row.querySelector('.chkedit').onclick=e=>{ e.stopPropagation(); bewerk(); };
       row.querySelector('.chkdel').onclick=e=>{ e.stopPropagation(); lijst.items.splice(i,1); BBInv.saveChecklist(lijst); renderChecklisten(); };
-      chkDragInit(row.querySelector('.chkdrag'), row, g, lijst);
+      if(!q) chkDragInit(row.querySelector('.chkdrag'), row, g, lijst);
       // media verwijderen
       row.querySelectorAll('.thumbx[data-rm]').forEach(btn=>{
-        btn.onclick=e=>{ e.stopPropagation(); if(!confirm('Deze media verwijderen?'))return;
+        btn.onclick=async e=>{ e.stopPropagation(); if(!await bbBevestig({titel:'Media verwijderen?', okTekst:'Ja, verwijderen', gevaar:true}))return;
           const arr=chkMedia(it).slice(); const removed=arr.splice(+btn.dataset.rm,1)[0];
           if(removed && removed.type==='video' && removed.id && BBInv.delChkMedia) BBInv.delChkMedia(removed.id).catch(()=>{});
           chkSetMedia(it,arr);
@@ -239,12 +249,12 @@ function renderChecklisten(){
       const addFoto=m=>{ if(!m)return; const prev=chkMedia(it).slice(); if(prev.length>=2)return;
         chkSetMedia(it,prev.concat([m]));
         try{ BBInv.saveChecklist(lijst); }
-        catch(err){ chkSetMedia(it,prev); alert('Onvoldoende opslagruimte voor deze foto.'); return; }
+        catch(err){ chkSetMedia(it,prev); bbToon('Onvoldoende opslagruimte voor deze foto.'); return; }
         renderChecklisten(); };
       row.querySelectorAll('.chkaddmedia').forEach(btn=>{
         btn.onclick=e=>{ e.stopPropagation();
           if(btn.dataset.add==='video'){
-            if(!BBInv.setChkMedia){ alert('Video-opslag is niet beschikbaar op dit toestel.'); return; }
+            if(!BBInv.setChkMedia){ bbToon('Video-opslag is niet beschikbaar op dit toestel.'); return; }
             pickVideo(file=>{
               if(!file) return;
               const prev=chkMedia(it).slice(); if(prev.length>=2) return;
@@ -253,7 +263,7 @@ function renderChecklisten(){
                 chkSetMedia(it, prev.concat([{type:'video',id,name:file.name||'video'}]));
                 BBInv.saveChecklist(lijst);
                 renderChecklisten();
-              }).catch(()=>{ alert('Kon de video niet op dit toestel opslaan (opslag vol?).'); });
+              }).catch(()=>{ bbToon('Kon de video niet op dit toestel opslaan (opslag vol?).'); });
             });
           } else {
             chooseFoto(url=>{ if(url) addFoto({type:'foto',src:url}); });
@@ -266,6 +276,7 @@ function renderChecklisten(){
     g.appendChild(row);
   });
   if(!lijst.items.length) g.innerHTML='<div class="chkempty">'+(chkBeheer?'Nog geen items. Voeg er hieronder een toe.':'Nog geen items in deze lijst.')+'</div>';
+  else if(!getoond) g.innerHTML='<div class="chkempty">Geen item gevonden voor “'+esc(q)+'”.</div>';
   const done=lijst.items.filter(x=>x.done).length, tot=lijst.items.length;
   document.getElementById('chkDone').textContent=done; document.getElementById('chkTot').textContent=tot;
   document.getElementById('chkFill').style.width=(tot?done/tot*100:0)+'%';
@@ -273,9 +284,10 @@ function renderChecklisten(){
   document.getElementById('chkAdd').parentElement.style.display=chkBeheer?'':'none';
   document.querySelector('.chkacties').style.display=chkBeheer?'':'none';
 }
-document.getElementById('chkBeheerBtn').onclick=()=>{
+document.getElementById('chkZoek').addEventListener('input',renderChecklisten);
+document.getElementById('chkBeheerBtn').onclick=async()=>{
   if(chkBeheer){ chkBeheer=false; renderChecklisten(); return; }
-  if(!eisToegang('checklisten','beheren','de checklists te beheren')) return;
+  if(!await eisToegang('checklisten','beheren','de checklists te beheren')) return;
   chkBeheer=true; renderChecklisten();
 };
 document.getElementById('chkAdd').onclick=()=>{
@@ -288,14 +300,15 @@ document.getElementById('chkReset').onclick=()=>{
   const lijst=chkActieveLijst(); if(!lijst)return;
   lijst.items.forEach(x=>x.done=false); BBInv.saveChecklist(lijst); renderChecklisten();
 };
-document.getElementById('chkRename').onclick=()=>{
+document.getElementById('chkRename').onclick=async()=>{
   const lijst=chkActieveLijst(); if(!lijst)return;
-  const n=prompt('Nieuwe naam voor deze lijst:',lijst.naam); if(n===null)return; const naam=n.trim(); if(!naam)return;
+  const n=await bbVraagTekst({titel:'Lijst hernoemen', waarde:lijst.naam}); if(n===null)return; const naam=n.trim(); if(!naam)return;
   lijst.naam=naam; BBInv.saveChecklist(lijst); renderChecklisten();
 };
-document.getElementById('chkDelList').onclick=()=>{
+document.getElementById('chkDelList').onclick=async()=>{
   const lijst=chkActieveLijst(); if(!lijst)return;
-  if(!confirm('De checklist "'+lijst.naam+'" volledig verwijderen?'))return;
+  if(!await bbBevestig({titel:'Checklist verwijderen?', okTekst:'Ja, verwijderen', gevaar:true,
+    tekst:'De checklist "'+lijst.naam+'" wordt volledig verwijderd.'}))return;
   BBInv.removeChecklist(lijst.id); chkActief=null; renderChecklisten();
 };
 

@@ -230,9 +230,9 @@ let invCat='all';
 // eisBeheer() staat in kern.js: het onthoudt de toegang voor dit tabblad, dus je
 // hoeft het wachtwoord niet opnieuw in te tikken als je van pagina wisselt.
 document.querySelectorAll('.invtab').forEach(b=>{
-  b.onclick=()=>{
+  b.onclick=async()=>{
     const t=b.dataset.tab;
-    if(t==='beheer' && !eisToegang('inventaris','beheren','de inventaris te beheren')) return;
+    if(t==='beheer' && !await eisToegang('inventaris','beheren','de inventaris te beheren')) return;
     document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
@@ -281,7 +281,7 @@ function prijsRow(p){
     BBInv.setFoto(p.id,url);
     renderBeheerList();
   });
-  if(p.foto) tw.querySelector('.thumbx').onclick=e=>{e.stopPropagation();if(confirm('Foto verwijderen?')){BBInv.setFoto(p.id,'');renderBeheerList();}};
+  if(p.foto) tw.querySelector('.thumbx').onclick=async e=>{e.stopPropagation();if(await bbBevestig({titel:'Foto verwijderen?', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setFoto(p.id,'');renderBeheerList();}};
   row.prepend(tw);
   const inp=row.querySelector('.stk input');
   const commit=v=>{v=Math.round(v||0);const pr=BBInv.getPrijzen();const t=pr.find(x=>x.id===p.id);
@@ -301,7 +301,7 @@ function prijsRow(p){
     if(beheerOnlyUse) renderBeheerList();
     renderStats();
   };
-  row.querySelector('.del').onclick=()=>{if(confirm('"'+p.naam+'" verwijderen uit de inventaris?')){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();renderStats();}};
+  row.querySelector('.del').onclick=async()=>{if(await bbBevestig({titel:'Uit de inventaris verwijderen?', tekst:'"'+p.naam+'" wordt verwijderd.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();renderStats();}};
   return row;
 }
 function boekjesRow(){
@@ -435,14 +435,22 @@ let beheerCat='all';
 function renderBeheerList(){
   const list=document.getElementById('beheerList'); list.innerHTML='';
   const q=(document.getElementById('beheerZoek').value||'').toLowerCase().trim();
-  if(!q&&!beheerOnlyUse&&beheerCat==='all') list.appendChild(boekjesRow());
+  // De Boekjes-rij blijft ALTIJD bovenaan staan — net als de samenvatting op het
+  // Stock-tabblad. Boekjes zijn geen prijs, dus geen enkel filter slaat erop; ze lieten
+  // verdwijnen betekende alleen dat je de telling niet meer kon bijwerken tijdens filteren.
+  list.appendChild(boekjesRow());
   let pr=BBInv.getPrijzen();
   if(beheerCat!=='all') pr=pr.filter(p=>p.cat===beheerCat);
   if(beheerOnlyUse) pr=pr.filter(p=>p.inGebruik);
   if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
   pr.sort((a,b)=>a.naam.localeCompare(b.naam));
   pr.forEach(p=>list.appendChild(prijsRow(p)));
-  if(!pr.length&&(q||beheerOnlyUse||beheerCat!=='all')) list.innerHTML='<div class="empty-note">'+(beheerOnlyUse?'Nog geen prijzen als ‘in gebruik’ aangeduid. Tik bij een prijs op “In gebruik”.':'Geen prijzen gevonden.')+'</div>';
+  // Melding ONDER de Boekjes-rij hangen, niet de hele lijst overschrijven.
+  if(!pr.length&&(q||beheerOnlyUse||beheerCat!=='all')){
+    const note=document.createElement('div'); note.className='empty-note';
+    note.textContent=beheerOnlyUse?'Nog geen prijzen als ‘in gebruik’ aangeduid. Tik bij een prijs op “In gebruik”.':'Geen prijzen gevonden.';
+    list.appendChild(note);
+  }
 }
 document.getElementById('beheerUseFilter').onclick=function(){
   beheerOnlyUse=!beheerOnlyUse;
@@ -463,9 +471,9 @@ document.getElementById('invAdd').onclick=()=>{
   const naam=document.getElementById('invNewNaam').value.trim();
   const cat=document.getElementById('invNewCat').value;
   const stock=+document.getElementById('invNewStock').value||0;
-  if(!naam){alert('Geef eerst een naam in.');return;}
+  if(!naam){bbToon('Geef eerst een naam in.');return;}
   const rec=BBInv.addPrijs(cat,naam,stock,invAddFoto);
-  if(rec===null){alert('Onvoldoende opslagruimte om (de foto van) deze prijs te bewaren. Gebruik kleinere of minder foto’s.');return;}
+  if(rec===null){bbToon('Onvoldoende opslagruimte om (de foto van) deze prijs te bewaren. Gebruik kleinere of minder foto’s.');return;}
   document.getElementById('invNewNaam').value=''; document.getElementById('invNewStock').value='0';
   invAddFoto=''; const prev=document.getElementById('invAddFotoPrev'); prev.src=''; prev.style.display='none';
   renderBeheerList(); renderInvSum(); renderStats();
@@ -478,13 +486,13 @@ document.getElementById('levAdd').onclick=()=>{
   const datum=document.getElementById('levDatum').value;
   const boekjes=+document.getElementById('levBoekjes').value||0;
   const tekst=document.getElementById('levTekst').value.trim();
-  if(!boekjes&&!tekst&&!levFoto){alert('Vul minstens boekjes, een notitie of een foto in.');return;}
+  if(!boekjes&&!tekst&&!levFoto){bbToon('Vul minstens boekjes, een notitie of een foto in.');return;}
   BBInv.addLevering({datum,boekjes,tekst,foto:levFoto});
   document.getElementById('levBoekjes').value='0';
   document.getElementById('levTekst').value='';
   levFoto=''; const p=document.getElementById('levFotoPrev'); if(p){p.src='';p.style.display='none';}
   renderInvSum();renderStats();renderLeveringen();
-  alert('Levering geregistreerd.');
+  bbToon('Levering geregistreerd.');
 };
 function renderLeveringen(){
   const wrap=document.getElementById('levList'); if(!wrap) return; // lijst niet meer zichtbaar in Beheer
@@ -501,7 +509,7 @@ function renderLeveringen(){
     d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
       '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
     if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
-    d.querySelector('.rm').onclick=()=>{if(!eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(confirm('Deze levering verwijderen? (de stock wordt niet automatisch teruggedraaid)')){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
+    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(await bbBevestig({titel:'Levering verwijderen?', tekst:'De stock wordt niet automatisch teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
     wrap.appendChild(d);
   });
 }
@@ -591,8 +599,8 @@ function renderFormulieren(){
         '<button class="ed" data-id="'+f.id+'">Aanpassen</button>'+
         '<button class="rm" data-id="'+f.id+'">Verwijderen</button>'+
       '</div>';
-    d.querySelector('.ed').onclick=()=>{if(!eisToegang('inventaris','beheren','het formulier aan te passen'))return;feOpen(f);};
-    d.querySelector('.rm').onclick=()=>{if(!eisToegang('inventaris','beheren','het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
+    d.querySelector('.ed').onclick=async()=>{if(!await eisToegang('inventaris','beheren','het formulier aan te passen'))return;feOpen(f);};
+    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','het formulier te verwijderen'))return;if(await bbBevestig({titel:'Formulier verwijderen?', tekst:'De afgeboekte stock wordt niet teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
     wrap.appendChild(d);
   });
 }
@@ -736,8 +744,8 @@ function levRows(){
 }
 document.getElementById('expStockCsv').onclick=()=>dl('inventaris-stock.csv',rowsToCSV(stockRows()));
 document.getElementById('copyStock').onclick=()=>copyText(rowsToTSV(stockRows()));
-document.getElementById('expFormCsv').onclick=()=>{if(BBInv.getFormulieren().length)dl('formulieren.csv',rowsToCSV(formRows()));else alert('Nog geen formulieren.');};
-document.getElementById('expLevCsv').onclick=()=>{if(BBInv.getLeveringen().length)dl('leveringen.csv',rowsToCSV(levRows()));else alert('Nog geen leveringen.');};
+document.getElementById('expFormCsv').onclick=()=>{if(BBInv.getFormulieren().length)dl('formulieren.csv',rowsToCSV(formRows()));else bbToon('Nog geen formulieren.');};
+document.getElementById('expLevCsv').onclick=()=>{if(BBInv.getLeveringen().length)dl('leveringen.csv',rowsToCSV(levRows()));else bbToon('Nog geen leveringen.');};
 
 // ---- Afdrukken (#8) — staat in inventaris.js (extern, parse-veilig) ----
 document.getElementById('printInv').onclick=()=>BBInv.printInventaris();
@@ -762,10 +770,10 @@ document.getElementById('impFile').onchange=e=>{
   reader.onload=()=>{
     try{
       const rows=parseCSV(String(reader.result)).filter(r=>r.some(c=>String(c).trim()!==''));
-      if(rows.length<2){alert('Geen rijen gevonden in het bestand.');return;}
+      if(rows.length<2){bbToon('Geen rijen gevonden in het bestand.');return;}
       const head=rows[0].map(h=>h.toLowerCase().trim());
       const iCat=head.findIndex(h=>h.startsWith('categ')), iNaam=head.findIndex(h=>h.startsWith('naam')), iStock=head.findIndex(h=>h.startsWith('stock'));
-      if(iNaam<0||iStock<0){alert('Kolommen "Naam" en "Stock" niet gevonden in de eerste rij.');return;}
+      if(iNaam<0||iStock<0){bbToon('Kolommen "Naam" en "Stock" niet gevonden in de eerste rij.');return;}
       const pr=BBInv.getPrijzen(); const byNaam={}; pr.forEach(p=>byNaam[p.naam.toLowerCase()]=p);
       let upd=0,add=0,bk=0;
       rows.slice(1).forEach(r=>{
@@ -779,15 +787,16 @@ document.getElementById('impFile').onchange=e=>{
       });
       BBInv.setPrijzen(pr);
       renderInventaris();
-      alert('Import klaar: '+upd+' bijgewerkt, '+add+' toegevoegd'+(bk?', boekjes bijgewerkt':'')+'.');
-    }catch(err){alert('Kon het bestand niet inlezen: '+err.message);}
+      bbToon('Import klaar: '+upd+' bijgewerkt, '+add+' toegevoegd'+(bk?', boekjes bijgewerkt':'')+'.');
+    }catch(err){bbToon('Kon het bestand niet inlezen: '+err.message);}
     document.getElementById('impFile').value='';
   };
   reader.readAsText(file);
 };
-document.getElementById('invReset').onclick=()=>{
-  if(!confirm('De volledige inventaris terugzetten naar de oorspronkelijke Excel-lijst?\nAlle stock-aanpassingen en eigen toevoegingen gaan verloren. (Formulieren en leveringen blijven staan.)'))return;
-  BBInv.resetInventaris().then(()=>{ renderInventaris(); alert('Inventaris hersteld naar de startlijst.'); });
+document.getElementById('invReset').onclick=async()=>{
+  if(!await bbBevestig({titel:'Terug naar de startlijst?', okTekst:'Ja, terugzetten', gevaar:true,
+    tekst:'De volledige inventaris gaat terug naar de Excel-lijst. Alle stock-aanpassingen en eigen toevoegingen gaan verloren. (Formulieren en leveringen blijven staan.)'}))return;
+  BBInv.resetInventaris().then(()=>{ renderInventaris(); bbToon('Inventaris hersteld naar de startlijst.'); });
 };
 
 // ---- Voorraad-waarschuwingen (drempels) ----
@@ -801,7 +810,7 @@ document.getElementById('saveLowstock').onclick=()=>{
   localStorage.setItem(K_DREMPEL2,isNaN(d2)||d2<0?DEFAULT_DREMPEL2:d2);
   localStorage.setItem(K_DREMPEL_BK,isNaN(dbk)||dbk<0?DEFAULT_DREMPEL_BK:dbk);
   pushConfig(); renderStats();
-  alert('Opgeslagen. De waarschuwingen op de homepagina zijn bijgewerkt.');
+  bbToon('Opgeslagen. De waarschuwingen op de homepagina zijn bijgewerkt.');
 };
 
 // ---- opstarten ----

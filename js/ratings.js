@@ -486,14 +486,14 @@ function vulPrintOpties(){
   const pm=$('pMaand'); if(pm) pm.innerHTML='<option value="">Alle maanden</option>'+mnd.map(k=>'<option value="'+k+'">'+maandLabel(k)+'</option>').join('');
   const pc=$('pCat'); if(pc) pc.innerHTML='<option value="">Alle categorieën</option>'+ACT_CATS.map(c=>'<option value="'+c.key+'">'+c.label+'</option>').join('');
 }
-function openPrintDialog(){ if(!_data){ alert('Nog geen gegevens om af te drukken.'); return; } vulPrintOpties(); $('printModal').classList.add('open'); }
+function openPrintDialog(){ if(!_data){ bbToon('Nog geen gegevens om af te drukken.'); return; } vulPrintOpties(); $('printModal').classList.add('open'); }
 function sluitPrint(){ const m=$('printModal'); if(m) m.classList.remove('open'); }
 window.bbVensterSluiters={ printModal:sluitPrint }; // terugknop sluit het printvenster (zie js/terug.js)
 function doePrint(){
   const o={ boekjaar:$('pBoekjaar').value, maand:$('pMaand').value, categorie:$('pCat').value,
     samenv:$('pSamenv').checked, mnd:$('pMnd').checked, act:$('pAct').checked, taal:$('pTaal').checked, reacties:$('pReacties').checked };
   sluitPrint();
-  const w=window.open('','_blank'); if(!w){ alert('Kon het afdrukvenster niet openen (sta pop-ups toe voor deze site).'); return; }
+  const w=window.open('','_blank'); if(!w){ bbToon('Kon het afdrukvenster niet openen (sta pop-ups toe voor deze site).'); return; }
   const css='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:26px;}'+
     'h1{font-size:21px;margin:0 0 2px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}'+
     'h2{font-size:15px;margin:18px 0 6px;color:#2f6450;border-bottom:2px solid #cfe0c8;padding-bottom:3px;}'+
@@ -577,18 +577,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   const inp=$('fileInput');
   if(inp) inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) importFile(f); inp.value=''; };
   // De knoppen staan er ALTIJD, maar werken enkel voor vaste medewerkers; anders een melding.
-  function magBewerken(){
+  // LET OP: sinds het codevenster (js/topbar.js) is dit ASYNCHROON. Elke aanroep hoort
+  // 'await' te krijgen — zonder await krijg je een belofte terug, en die is altijd waar,
+  // waardoor de wachtwoordvraag stilletjes overgeslagen zou worden.
+  async function magBewerken(){
     if(isVaste()) return true;
-    const p=prompt('Beheer-wachtwoord om de ratings te uploaden of wissen:');
-    if(p===null) return false;
-    if(p===beheerPin()) return true;
-    alert('Onjuist wachtwoord. Enkel vaste medewerkers — of iemand met het beheer-wachtwoord — kunnen de ratings uploaden of wissen.');
-    return false;
+    const p=await bbVraagCode({titel:'Beheer-wachtwoord',
+      uitleg:'Nodig om de ratings te uploaden of te wissen. Vaste medewerkers hoeven dit niet.',
+      plaatshouder:'Wachtwoord', controle:v=>v===beheerPin()?'':'Onjuist wachtwoord.'});
+    return p!==null;
   }
   const importBtn=$('importBtn'), wisBtn=$('wisBtn'), leegImport=$('leegImport');
-  if(importBtn){ importBtn.style.display=''; importBtn.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
-  if(wisBtn){ wisBtn.style.display=''; wisBtn.onclick=()=>{ if(!magBewerken()) return; if(confirm('De ingelezen ratings van dit toestel wissen?')){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
-  if(leegImport){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings uploaden</button>'; const b=$('leegImportBtn'); if(b) b.onclick=()=>{ if(magBewerken()) inp&&inp.click(); }; }
+  if(importBtn){ importBtn.style.display=''; importBtn.onclick=async()=>{ if(await magBewerken()) inp&&inp.click(); }; }
+  if(wisBtn){ wisBtn.style.display=''; wisBtn.onclick=async()=>{ if(!await magBewerken()) return;
+    if(await bbBevestig({titel:'Ratings wissen?', okTekst:'Ja, wissen', gevaar:true,
+      tekst:'De ingelezen ratings van dit toestel worden gewist.'})){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
+  if(leegImport){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings uploaden</button>'; const b=$('leegImportBtn'); if(b) b.onclick=async()=>{ if(await magBewerken()) inp&&inp.click(); }; }
   const pb=$('printBtn'); if(pb) pb.onclick=openPrintDialog;
   const pa=$('pAfdruk'); if(pa) pa.onclick=doePrint;
   const pan=$('pAnnuleer'); if(pan) pan.onclick=sluitPrint;

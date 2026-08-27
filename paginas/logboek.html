@@ -32,6 +32,7 @@
         <button class="btn primary" id="logAdd">Plaatsen</button>
       </div>
     </div>
+    <input type="text" id="logZoek" class="finp zoek" placeholder="Zoek in de berichten…">
     <div class="loglist" id="loglist"></div>
   </div>
 
@@ -51,21 +52,28 @@ const K_LOGNAAM='bb_logboek_naam';
 function fmtLogTs(ts){ if(!ts)return ''; const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 function renderLogboek(){
   const box=document.getElementById('loglist'); if(!box)return; box.innerHTML='';
-  const lijst=BBInv.getLogboek();
-  if(!lijst.length){ box.innerHTML='<div class="logempty">Nog geen berichten. Schrijf het eerste hierboven.</div>'; return; }
+  const zoek=document.getElementById('logZoek');
+  const q=((zoek&&zoek.value)||'').toLowerCase().trim();
+  const alles=BBInv.getLogboek();
+  const lijst=q?alles.filter(l=>((l.tekst||'')+' '+(l.auteur||'')).toLowerCase().indexOf(q)>=0):alles;
+  if(!lijst.length){
+    box.innerHTML='<div class="logempty">'+(q?'Geen bericht gevonden voor "'+esc(q)+'".':'Nog geen berichten. Schrijf het eerste hierboven.')+'</div>';
+    return;
+  }
   lijst.forEach(l=>{
     const card=document.createElement('div'); card.className='logcard'+(l.klaar?' klaar':'');
     card.innerHTML='<div class="logmeta"><b>'+(l.auteur?esc(l.auteur):'Onbekend')+'</b><span>'+esc(fmtLogTs(l.ts))+'</span></div>'+
       '<div class="logtxt">'+esc(l.tekst)+'</div>'+
       '<div class="logacties"><button class="done">'+(l.klaar?'↩ Heropenen':'✓ Afgehandeld')+'</button><button class="del">🗑 Verwijderen</button></div>';
     card.querySelector('.done').onclick=()=>{ BBInv.updateLog(l.id,{klaar:!l.klaar}); renderLogboek(); };
-    card.querySelector('.del').onclick=()=>{ if(!confirm('Dit bericht verwijderen?'))return; BBInv.removeLog(l.id); renderLogboek(); };
+    card.querySelector('.del').onclick=async()=>{ if(!await bbBevestig({titel:'Bericht verwijderen?', okTekst:'Ja, verwijderen', gevaar:true}))return; BBInv.removeLog(l.id); renderLogboek(); };
     box.appendChild(card);
   });
 }
+document.getElementById('logZoek').addEventListener('input',renderLogboek);
 document.getElementById('logAdd').onclick=()=>{
   const tekst=document.getElementById('logTekst').value.trim();
-  if(!tekst){ alert('Schrijf eerst een bericht.'); return; }
+  if(!tekst){ bbToon('Schrijf eerst een bericht.'); return; }
   const auteur=currentUserName();
   BBInv.addLog({tekst,auteur});
   document.getElementById('logTekst').value='';

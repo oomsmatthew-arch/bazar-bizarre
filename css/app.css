@@ -216,6 +216,10 @@
   .btn:active{transform:translateY(1px);}
   .btn.primary{background:linear-gradient(120deg,var(--leaf),var(--forest2));border:1px solid var(--forest2);color:#fff;}
   .btn.clear{background:transparent;color:var(--muted);}
+  /* Voor knoppen die iets weggooien. Stond enkel in projecten.html; het gedeelde
+     bevestigingsvenster gebruikt hem op elke pagina, dus hoort hij hier thuis. */
+  .btn.gevaar{color:#c0392b;border-color:#e5b4ad;}
+  [data-theme="dark"] .btn.gevaar{color:#ff9c8f;border-color:#5a3530;}
   .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
 
   /* ---- online manuals (mappenstructuur) ---- */
@@ -319,6 +323,30 @@
     max-width:560px;width:100%;box-shadow:var(--shadow);}
   .cammodal-box.choose{max-width:340px;display:flex;flex-direction:column;gap:10px;}
   .cammodal-title{font-family:var(--serif);color:var(--forest);font-size:18px;margin-bottom:4px;}
+  /* codevenster (wachtwoord/pincode) — boven het inlogscherm (z-index 9000), want
+     'Namen beheren' vraagt het wachtwoord terwijl dat scherm openstaat. */
+  .codevenster{z-index:9500;}
+  .codevenster .code-uitleg{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+  .codevenster .code-inp{font-size:20px;text-align:center;letter-spacing:6px;}
+  .codevenster .code-fout{background:#fdecea;border:1px solid #e2b6b0;color:#a23b30;
+    border-radius:10px;padding:9px 11px;font-size:13px;font-weight:700;}
+  [data-theme="dark"] .codevenster .code-fout{background:#3a2020;color:#f0a0a0;border-color:#5c2c2c;}
+  /* bevestigingsvenster (in plaats van confirm) — zelfde vorm als het codevenster */
+  .bevestigvenster{z-index:9500;}
+  .bevestigvenster .bev-tekst{margin:0;font-size:14px;color:var(--text);line-height:1.55;white-space:pre-line;}
+  /* meldingen (in plaats van alert) — onderaan, verdwijnen vanzelf. Ze blokkeren niets,
+     dus je kunt gewoon doorwerken; in de geïnstalleerde app op een iPad zag alert() eruit
+     alsof er iets crashte. */
+  .bbmeldingen{position:fixed;left:0;right:0;bottom:0;z-index:9800;display:flex;
+    flex-direction:column;align-items:center;gap:8px;padding:0 14px 16px;pointer-events:none;}
+  .bbmelding{pointer-events:auto;max-width:520px;width:100%;background:var(--panel);
+    border:1px solid var(--line);border-left:5px solid var(--forest);border-radius:12px;
+    padding:11px 14px;box-shadow:var(--shadow);font-size:14px;line-height:1.5;color:var(--text);
+    white-space:pre-line;cursor:pointer;animation:bbmeldIn .18s ease-out;}
+  .bbmelding.fout{border-left-color:#c0483a;}
+  .bbmelding.weg{opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;}
+  @keyframes bbmeldIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){.bbmelding{animation:none;}}
   #camVideo{width:100%;border-radius:12px;background:#000;display:block;max-height:68vh;}
   .cammodal-bar{display:flex;gap:10px;margin-top:12px;}
   .cammodal-bar .btn{flex:1;}

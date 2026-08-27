@@ -358,7 +358,19 @@
   // ---- Outbox: wijzigingen die nog naar de database moeten (overleven offline) ----
   let outbox=[]; try{const r=localStorage.getItem(K_OUTBOX); outbox=r?(JSON.parse(r)||[]):[];}catch(e){outbox=[];}
   let flushing=false, retryT=null;
-  function saveOutbox(){ try{localStorage.setItem(K_OUTBOX,JSON.stringify(outbox));}catch(e){} }
+  // Wie wil weten hoeveel er nog wacht (de ⏳-melding in de balk), krijgt een seintje
+  // zodra dat getal verandert. Vroeger keek die melding elke 3 seconden zélf, de hele
+  // dag door, aan iets dat zelden wijzigt — op een tablet die van 's ochtends tot
+  // 's avonds openstaat is dat gewoon batterij. saveOutbox() is het enige punt waar de
+  // wachtrij verandert, dus hier hoeft het maar één keer te staan.
+  let onWachtrij=null, gemeld=null;
+  function meldWachtrij(){
+    const n=outbox.length;
+    if(n===gemeld) return;                 // niets veranderd → niemand lastigvallen
+    gemeld=n;
+    if(onWachtrij) try{ onWachtrij(n); }catch(e){ console.error(e); }
+  }
+  function saveOutbox(){ try{localStorage.setItem(K_OUTBOX,JSON.stringify(outbox));}catch(e){} meldWachtrij(); }
   function pendingCount(){ return outbox.length; }
   function enqueue(op){ outbox.push(op); saveOutbox(); persistCache(); flushOutbox(); }
   function dbInsert(table,payload){ enqueue({op:'insert',table,payload}); }
@@ -1910,7 +1922,7 @@
   function fmtNowNL(){const d=new Date();const p=n=>String(n).padStart(2,'0');return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();}
   function printHTML(title,bodyHtml){
     const w=window.open('','_blank');
-    if(!w){alert('Kon het afdrukvenster niet openen (popup geblokkeerd?). Sta pop-ups toe voor deze site.');return;}
+    if(!w){bbToon('Kon het afdrukvenster niet openen (popup geblokkeerd?). Sta pop-ups toe voor deze site.');return;}
     const css='body{font-family:Arial,Helvetica,sans-serif;color:#1d2e22;margin:24px;}h1{font-size:20px;margin:0 0 4px;}.sub{color:#666;font-size:12px;margin-bottom:16px;}table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:8px;}th,td{border:1px solid #ccc;padding:6px 9px;text-align:left;}td.n,th.n{text-align:right;width:90px;}h2{font-size:15px;margin:18px 0 6px;}';
     w.document.open();
     w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>'+escHtml(title)+'</title><style>'+css+'</style></head><body>'+bodyHtml+'</body></html>');
@@ -1928,8 +1940,14 @@
       '<h2>Kleine prijzen ('+klein.length+')</h2><table><tr><th>Naam</th><th class="n">Voorraad</th></tr>'+rows(klein)+'</table>';
     printHTML('Inventaris',body);
   }
-  function printBestellijst(){
-    const raw=prompt('Toon prijzen met voorraad t/m welk aantal?','5');
+  async function printBestellijst(){
+    // bbVraagTekst komt uit js/topbar.js (dat elke pagina laadt); zonder die vraag zou de
+    // lijst zomaar op 5 staan, dus als het venster er onverhoopt niet is vragen we niets
+    // en drukken we de standaarddrempel af.
+    const raw=window.bbVraagTekst
+      ? await bbVraagTekst({titel:'Bestellijst afdrukken', soort:'getal', waarde:'5', okTekst:'Afdrukken',
+          tekst:'Toon prijzen met voorraad t/m welk aantal?'})
+      : '5';
     if(raw===null) return;
     const drempel=Math.round(+raw||0);
     const pr=getPrijzen().filter(p=>(p.stock||0)<=drempel).sort((a,b)=>(a.stock||0)-(b.stock||0)||a.naam.localeCompare(b.naam));
@@ -1967,6 +1985,8 @@
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,
+    // Seintje zodra het aantal wachtende wijzigingen verandert (zie meldWachtrij).
+    setOnWachtrij:fn=>{ onWachtrij=fn; gemeld=null; meldWachtrij(); },
     rolTags,heeftRol,zetRol,
     getSysteem,pingDB,getOpslag,wisWachtrij,opruimen,
     submitFormulier,updateFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,

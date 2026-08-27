@@ -5,8 +5,12 @@
 > Wil je maar één taak laten doen, knip de rest weg — maar laat *Werkafspraken* en
 > *Niet doen zonder overleg* altijd staan.
 >
-> Laatst bijgewerkt bij **v6.0**. Kloppen de getallen hieronder niet meer, meet ze
+> Laatst bijgewerkt bij **v6.2**. Kloppen de getallen hieronder niet meer, meet ze
 > dan opnieuw met de commando's die erbij staan.
+>
+> **Taken 1 tot en met 5 zijn uitgevoerd in v6.2.** Wat er nog ligt staat onderaan,
+> onder *Wat er nog open staat*. De uitgevoerde taken blijven hieronder staan met hun
+> uitkomst erbij, zodat je ziet wat er veranderd is en waaróm.
 
 ---
 
@@ -72,16 +76,28 @@ en niet als regelnummer, om dezelfde reden.
 
 ---
 
-## Taak 1 — Topbar centraliseren
+## Taak 1 — Topbar centraliseren ✅ *gedaan in v6.2*
+
+**Uitkomst.** De balk staat nu één keer in **`js/topbar.js`**. Elke pagina heeft op die
+plek nog één regel — `<script src="../js/topbar.js"></script>`, bovenaan in `.wrap` —
+en zegt met attributen op `<body>` wat er anders is: `data-titel`, `data-rechts`
+(`home` · `instellingen` · `terug`) en `data-extra` voor een extra link. Dertien pagina's
+om, alleen `bazar-bizarre-spel.html` houdt zijn eigen balk.
+
+Waarom dat script *binnen* `.wrap` staat en niet onderaan bij de rest: zo schuift de balk
+op zijn eigen plek naar binnen nog vóór de browser tekent. Onderaan zou je eerst even een
+pagina zonder balk zien.
+
+```bash
+grep -l '<div class="topbar">' *.html paginas/*.html | wc -l   # → 1 (enkel het spel)
+```
+
+<details><summary>De oorspronkelijke opdracht</summary>
 
 *Grootste onderhoudswinst.*
 
 De balk met logo, titel, synchronisatie-badge, gebruikersknop, themaknop en Home staat
 **veertien keer gekopieerd** in de HTML.
-
-```bash
-grep -l '<div class="topbar">' *.html paginas/*.html | wc -l   # → 14
-```
 
 Eén tekstwijziging betekent nu veertien bestanden bijwerken, en dat gaat vroeg of laat
 mis. `js/kern.js` bouwt de gedeelde vensters (inlogscherm, profiel, camera) al één keer
@@ -96,15 +112,43 @@ niet met veertien uitzonderingen:
 - `js/zoek.js` schuift zelf een zoekknop in de balk (`zetZoekKnop`) en verwacht
   `.topbar` en `#themeBtn` — die moeten dus bestaan vóór dat script draait
 - `bazar-bizarre-spel.html` heeft een **eigen** topbar met een ander thema; laat die met rust
+</details>
 
-## Taak 2 — De native vensters vervangen
+## Taak 2 — De native vensters vervangen ✅ *gedaan in v6.2 (behalve het spel)*
 
-*Grootste winst in hoe de app aanvoelt.*
+**Uitkomst.** Er staan drie vervangers onderaan **`js/topbar.js`** — dus beschikbaar op
+élke pagina, ook die zonder `kern.js`:
+
+| Vervanger | In plaats van | Vorm |
+|---|---|---|
+| `bbToon(tekst[,'fout'])` | `alert()` | melding onderaan, verdwijnt vanzelf, blokkeert niets |
+| `await bbBevestig({titel,tekst,okTekst,gevaar})` | `confirm()` | venster met Ja/Annuleren |
+| `await bbVraagTekst({titel,waarde,plaatshouder,soort})` | `prompt()` | invoerveld, `null` bij annuleren |
+| `await bbVraagCode({titel,uitleg,controle})` | `prompt()` voor wachtwoorden | bolletjes i.p.v. klare tekst; foute code probeer je meteen opnieuw in hetzelfde venster |
+
+Alle zes de wachtwoord-prompts uit de tabel hieronder zijn om. **Let op bij verder werk:**
+`magBeheren`, `eisBeheer`, `eisToegang` (kern.js), `magBeheren`/`magProjectMaken`
+(projecten.js) en `magBewerken` (ratings.js) zijn daardoor **asynchroon** geworden. Elke
+aanroep hoort `await` te krijgen — zonder await krijg je een belofte terug, en die is
+altijd waar, waardoor de wachtwoordvraag stilzwijgend overgeslagen wordt. Controleer dat zo:
 
 ```bash
-grep -rho 'alert(\|confirm(\|prompt(' *.html paginas/*.html js/*.js | wc -l   # → ruim 140
-grep -rho 'prompt(' *.html paginas/*.html js/*.js | wc -l                     # → 28
+grep -rn "eisBeheer(\|magBeheren(\|eisToegang(\|magProjectMaken(" *.html paginas/*.html js/*.js \
+  | grep -v "await\|async function\|^\S*:[0-9]*: *//"     # → leeg
 ```
+
+**Nog te doen:** `bazar-bizarre-spel.html` heeft nog 24 systeemvensters. Die pagina laadt
+`topbar.js` niet en heeft een eigen donker thema, dus daar hoort eerst een beslissing bij
+— zie *Wat er nog open staat*.
+
+```bash
+grep -rho 'alert(\|confirm(\|prompt(' *.html paginas/*.html js/*.js | wc -l   # → 32
+grep -rho 'alert(\|confirm(\|prompt(' bazar-bizarre-spel.html | wc -l         # → 24 (de rest is uitleg in topbar.js)
+```
+
+<details><summary>De oorspronkelijke opdracht</summary>
+
+*Grootste winst in hoe de app aanvoelt.*
 
 In een geïnstalleerde PWA op iOS zien `alert()` en `confirm()` eruit als een systeemfout
 — alsof de app crasht — en ze blokkeren alles tot je ze wegklikt.
@@ -131,8 +175,25 @@ Hergebruik de bestaande `.cammodal` / `.cammodal-box` stijl uit `css/app.css`, d
 het meteen aan bij de rest. `prompt()` en `confirm()` zijn synchroon en de aanroepende
 code verwacht dat ook — je vervangers worden asynchroon, dus de aanroepplekken moeten mee
 omgebouwd worden. Doe dat in kleine stappen en draai de tests ertussen.
+</details>
 
-## Taak 3 — Thema-code samenvoegen
+## Taak 3 — Thema-code samenvoegen ✅ *gedaan in v6.2*
+
+**Uitkomst.** Nog één implementatie, in `js/topbar.js` (bij de balk waar het maantje in
+staat), bereikbaar als `bbThema.zet()` / `bbThema.wissel()` / `bbThema.keuze()`. `kern.js`
+verwijst er enkel nog naar; de kopieën in `projecten.js`, `ratings.js` en
+`ratings-vergelijk.js` zijn weg. Die pagina's hoefden `kern.js` daarvoor niet te laden —
+`topbar.js` staat er los van, net als `zoek.js` en `terug.js`.
+
+Twee echte verschillen zijn daarmee ook opgelost: `projecten.js` volgde de instelling van
+het toestel helemaal niet, en de ratings-pagina's bewaarden de stand van het toestel meteen
+als "jouw keuze", waardoor ze daarna niet meer meegingen.
+
+```bash
+grep -rn "setAttribute('data-theme'" js/*.js   # → alleen js/topbar.js
+```
+
+<details><summary>De oorspronkelijke opdracht</summary>
 
 Er zijn **vier** plekken die het thema zetten. Vind ze met
 `grep -n "setAttribute('data-theme'" js/*.js`:
@@ -149,33 +210,53 @@ identiek — daardoor liep het thema in het verleden uit de pas. Eén implementa
 `kern.js`, de rest laten verwijzen. Let op: `projecten.html`, `ratings.html` en
 `ratings-vergelijk.html` laden `kern.js` op dit moment **niet**. Volgt dus logisch ná
 taak 1, of vraagt dat je die pagina's `kern.js` laat laden.
+</details>
 
-## Taak 4 — Sync-badge gebeurtenisgestuurd maken
+## Taak 4 — Sync-badge gebeurtenisgestuurd maken ✅ *gedaan in v6.2*
 
-`js/kern.js` draait `setInterval(updateSyncBadge,3000)` permanent — onderaan, in de
-`DOMContentLoaded`-blok. Op een tablet die de hele dag openstaat kost dat batterij voor
-iets dat zelden verandert. Laat de gegevenslaag melden wanneer de wachtrij verandert
-(`BBInv` heeft al een `setOnChange`-mechanisme) in plaats van elke drie seconden te kijken.
+**Uitkomst.** `js/inventaris.js` heeft er `BBInv.setOnWachtrij(fn)` bij: één seintje zodra
+het aantal wachtende wijzigingen verandert. Het staat in `saveOutbox()` — het enige punt
+waar de wachtrij verandert — en meldt niets als het getal gelijk blijft, dus een mislukte
+poging maakt geen ruis. `kern.js` hangt de ⏳-melding daaraan; de `setInterval` van 3
+seconden is weg. Er staat nog één terugval-`setInterval` voor het geval een toestel nog
+een oude, opgeslagen `inventaris.js` gebruikt die `setOnWachtrij` niet kent.
 
-## Taak 5 — Kleine restjes
+Bewaakt door **`tests/test-wachtrij.js`**.
 
-**Laatste oude rechten-aanroepen.** De app is grotendeels over op `eisToegang` /
-`magToegang` (het Toegangen-systeem in `js/kern.js`), maar twee plekken gebruiken nog de
-oude `eisBeheer` / `magBeheren` / `isVasteMdw`:
+## Taak 5 — Kleine restjes ✅ *gedaan in v6.2*
 
-```bash
-grep -c "eisBeheer\|magBeheren\|isVasteMdw" paginas/instellingen.html paginas/inventaris.html
-# → 2 en 1
-```
+**Zoeken werkt nu overal.** `paginas/checklists.html` kreeg `#chkZoek` en
+`paginas/logboek.html` kreeg `#logZoek`; beide staan in `ZOEK_PREFILL` in `js/zoek.js`.
+Bij Checklists filtert het zoekveld alleen wát je ziet — de code loopt nog over de hele
+lijst, zodat bewerken, verwijderen en de voortgangsbalk blijven kloppen. Slepen is uit
+terwijl je zoekt, want je zou tussen verborgen items neerzetten.
 
-**Zoeken werkt half op twee pagina's.** `js/zoek.js` doorzoekt óók Checklists en Logboek,
-maar de tabel `ZOEK_PREFILL` bovenaan dat bestand kent die pagina's niet, omdat ze geen
-zoekveld hebben. Klik
-je zo'n resultaat, dan land je op de pagina zonder je zoekterm — een doodlopend spoor.
-Voeg een filterveld toe aan `paginas/checklists.html` en `paginas/logboek.html` en zet ze
-in `ZOEK_PREFILL`.
+**De oude rechten-aanroepen: bewust laten staan.** De twee in `paginas/instellingen.html`
+zijn geen restje maar opzet, en er staat nu een commentaar bij zodat ze niet per ongeluk
+"opgeruimd" worden:
+
+- Het `magBeheren()` dat de pagina zelf bewaakt: hier stel je de Toegangen *in*. Zou de
+  pagina zichzelf via die regels bewaken, dan kun je jezelf buitensluiten zonder weg terug.
+  Er ís ook geen categorie `instellingen` in `TOEGANG_CATEGORIEEN` om naar over te stappen.
+- Het `magBeheren('om het systeem te bekijken')` bij de 🩺-knop: dat is met opzet een
+  noodroute (zie `zetNoodSysteem`), zodat je bij Systeem kunt ook als er nog niemand admin
+  is. `systeem` staat standaard op "enkel admin", en die regel kent geen wachtwoord-uitweg
+  — omzetten naar `eisToegang` zou die noodroute juist dichtgooien.
+
+De derde treffer, in `paginas/inventaris.html`, was een vermelding in een commentaarregel.
 
 ---
+
+## Wat er nog open staat
+
+**De systeemvensters in het spel.** `bazar-bizarre-spel.html` heeft nog 24 `alert()` /
+`confirm()` / `prompt()`. Die pagina laadt `topbar.js` niet en heeft een eigen donker
+thema (navy/roze/goud), dus het is geen kwestie van omzetten alleen: ofwel laat je het
+spel `topbar.js` laden en geef je de vensters daar een eigen kleurstelling, ofwel bouw je
+er een kleine eigen variant. Dat is een smaakbeslissing — vraag het eerst.
+
+**De database staat open.** Zie hieronder; dat blijft het belangrijkste punt en het wordt
+in de Supabase-console opgelost, niet in deze code.
 
 ## Niet doen zonder overleg
 

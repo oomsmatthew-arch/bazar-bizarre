@@ -134,6 +134,213 @@
   // de startpagina, waar je wél kunt wisselen.
   if(userBtn) userBtn.onclick=()=>{ location.href=start; };
 
-  // Voor kern.js en de pagina's: één plek om het thema te zetten.
+  // =========================================================================
+  //  DE DRIE VERVANGERS VAN DE SYSTEEMVENSTERS
+  //
+  //  alert(), confirm() en prompt() zien er in de geïnstalleerde app op een iPad uit
+  //  als een systeemfout — alsof de app crasht — en ze blokkeren alles tot je ze
+  //  wegklikt. prompt() toont bovendien wat je typt in KLARE TEKST, wat bij een
+  //  wachtwoord betekent dat wie naast je staat gewoon meeleest.
+  //
+  //  LET OP bij het omzetten: confirm() en prompt() waren synchroon, deze vervangers
+  //  zijn dat niet. Elke aanroep hoort dus 'await' te krijgen. Zonder await krijg je
+  //  een belofte terug, en die is áltijd waar — dan zou "weet je het zeker?" stilzwijgend
+  //  altijd ja betekenen, en een wachtwoordvraag stilletjes overgeslagen worden.
+  //
+  //  Ze staan hier en niet in kern.js omdat projecten.html en de ratings-pagina's de
+  //  kern niet laden, maar wél om bevestiging en om een wachtwoord vragen. Dit bestand
+  //  laadt élke pagina.
+  // =========================================================================
+
+  // ---------------- MELDING (in plaats van alert) ----------------
+  //     bbToon('Bewaard.')                 gewone melding
+  //     bbToon('Dat lukte niet.','fout')   met een rood streepje ervoor
+  // Schuift onderaan in beeld en verdwijnt vanzelf; tik erop om hem meteen weg te halen.
+  // Fouten blijven wat langer staan dan bevestigingen. Blokkeert niets — je kunt gewoon
+  // doorwerken, wat op een tablet ter plaatse het hele verschil maakt.
+  function bbToon(tekst,soort){
+    let bak=document.getElementById('bbMeldingen');
+    if(!bak){
+      bak=document.createElement('div');
+      bak.id='bbMeldingen'; bak.className='bbmeldingen';
+      bak.setAttribute('role','status'); bak.setAttribute('aria-live','polite');
+      document.body.appendChild(bak);
+    }
+    const el=document.createElement('div');
+    el.className='bbmelding'+(soort==='fout'?' fout':'');
+    el.textContent=String(tekst==null?'':tekst);
+    bak.appendChild(el);
+    let weg=null;
+    const sluit=()=>{
+      if(!el.isConnected) return;
+      clearTimeout(weg);
+      el.classList.add('weg');
+      setTimeout(()=>el.remove(),260);
+    };
+    el.onclick=sluit;
+    weg=setTimeout(sluit, soort==='fout'?6000:3500);
+    return el;
+  }
+
+  // ---------------- BEVESTIGING (in plaats van confirm) ----------------
+  //     if(!await bbBevestig({titel:'Verwijderen?', tekst:'…', gevaar:true})) return;
+  function bbBevestig(opties){
+    const o=(typeof opties==='string')?{tekst:opties}:(opties||{});
+    return new Promise(klaar=>{
+      const venster=document.createElement('div');
+      venster.className='cammodal open bevestigvenster';
+      venster.innerHTML=
+        '<div class="cammodal-box choose">'+
+          '<div class="cammodal-title">'+esc(o.titel||'Even bevestigen')+'</div>'+
+          (o.tekst?('<p class="bev-tekst">'+esc(o.tekst)+'</p>'):'')+
+          '<button type="button" class="btn '+(o.gevaar?'gevaar':'primary')+' bev-ja">'+esc(o.okTekst||'Ja, doorgaan')+'</button>'+
+          '<button type="button" class="btn clear bev-nee">'+esc(o.neeTekst||'Annuleren')+'</button>'+
+        '</div>';
+      document.body.appendChild(venster);
+      function sluit(waarde){
+        document.removeEventListener('keydown',toets,true);
+        venster.remove();
+        klaar(waarde);
+      }
+      // In de opvangfase (true): het inlogscherm luistert zelf ook naar Escape en naar
+      // cijfers voor het pincodeklavier. Zonder dit zou één druk op Escape hier én daar
+      // aankomen.
+      function toets(e){
+        if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(false); return; }
+        if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); sluit(true); return; }
+        e.stopPropagation();
+      }
+      document.addEventListener('keydown',toets,true);
+      venster.querySelector('.bev-ja').onclick=()=>sluit(true);
+      venster.querySelector('.bev-nee').onclick=()=>sluit(false);
+      venster.addEventListener('click',e=>{ if(e.target===venster) sluit(false); });
+      setTimeout(()=>{ try{ venster.querySelector('.bev-ja').focus(); }catch(e){} },30);
+    });
+  }
+
+  // ---------------- IETS LATEN INTYPEN (in plaats van prompt) ----------------
+  //     const naam = await bbVraagTekst({titel:'Nieuwe categorie', plaatshouder:'bv. CGT'});
+  // Geeft null terug als je annuleert, net zoals prompt() deed.
+  function bbVraagTekst(opties){
+    const o=(typeof opties==='string')?{titel:opties}:(opties||{});
+    return new Promise(klaar=>{
+      const venster=document.createElement('div');
+      venster.className='cammodal open bevestigvenster';
+      venster.innerHTML=
+        '<div class="cammodal-box choose">'+
+          '<div class="cammodal-title">'+esc(o.titel||'Invullen')+'</div>'+
+          (o.tekst?('<p class="bev-tekst">'+esc(o.tekst)+'</p>'):'')+
+          '<input type="'+(o.soort==='getal'?'number':'text')+'" class="finp bev-inp" '+
+            (o.soort==='getal'?'inputmode="numeric" ':'')+
+            (o.maxlengte?('maxlength="'+(+o.maxlengte)+'" '):'')+
+            'placeholder="'+esc(o.plaatshouder||'')+'">'+
+          '<div class="code-fout" style="display:none"></div>'+
+          '<button type="button" class="btn primary bev-ja">'+esc(o.okTekst||'Bewaren')+'</button>'+
+          '<button type="button" class="btn clear bev-nee">Annuleren</button>'+
+        '</div>';
+      document.body.appendChild(venster);
+      const inp=venster.querySelector('.bev-inp');
+      const fout=venster.querySelector('.code-fout');
+      inp.value=(o.waarde==null?'':String(o.waarde));
+      function sluit(waarde){
+        document.removeEventListener('keydown',toets,true);
+        venster.remove();
+        klaar(waarde);
+      }
+      async function probeer(){
+        const waarde=inp.value;
+        if(o.controle){
+          let melding='';
+          try{ melding=await o.controle(waarde); }
+          catch(err){ melding='Er ging iets mis. Probeer opnieuw.'; }
+          if(melding){ fout.textContent=melding; fout.style.display=''; inp.focus(); inp.select(); return; }
+        }
+        sluit(waarde);
+      }
+      function toets(e){
+        if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(null); return; }
+        if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); probeer(); return; }
+        e.stopPropagation();
+      }
+      document.addEventListener('keydown',toets,true);
+      venster.querySelector('.bev-ja').onclick=probeer;
+      venster.querySelector('.bev-nee').onclick=()=>sluit(null);
+      venster.addEventListener('click',e=>{ if(e.target===venster) sluit(null); });
+      setTimeout(()=>{ try{ inp.focus(); inp.select(); }catch(e){} },30);
+    });
+  }
+
+  // ---------------- CODEVENSTER (wachtwoord/pincode) ----------------
+  //     const code = await bbVraagCode({titel:'Wachtwoord beheer', controle:v=>...});
+  //     code === null   →   geannuleerd (net zoals prompt() null gaf)
+  //
+  // 'controle' krijgt wat er getypt is en geeft een FOUTMELDING terug, of een lege tekst
+  // als het klopt. Mag ook een belofte teruggeven — de pincodes zijn versleuteld opgeslagen
+  // en die vergelijking is asynchroon. Een foute code probeer je meteen opnieuw in hetzelfde
+  // venster, in plaats van dat er een tweede melding overheen springt.
+  function bbVraagCode(opties){
+    const o=opties||{};
+    return new Promise(klaar=>{
+      const venster=document.createElement('div');
+      venster.className='cammodal open codevenster';
+      venster.innerHTML=
+        '<div class="cammodal-box choose">'+
+          '<div class="cammodal-title">'+esc(o.titel||'Code')+'</div>'+
+          (o.uitleg?('<p class="code-uitleg">'+esc(o.uitleg)+'</p>'):'')+
+          '<input type="password" class="finp code-inp" autocomplete="off" '+
+            (o.cijfers===false?'':'inputmode="numeric" ')+
+            (o.maxlengte?('maxlength="'+(+o.maxlengte)+'" '):'')+
+            'placeholder="'+esc(o.plaatshouder||'••••')+'">'+
+          '<div class="code-fout" style="display:none"></div>'+
+          '<button type="button" class="btn primary code-ok">Doorgaan</button>'+
+          '<button type="button" class="btn clear code-nee">Annuleren</button>'+
+        '</div>';
+      document.body.appendChild(venster);
+      const inp=venster.querySelector('.code-inp');
+      const fout=venster.querySelector('.code-fout');
+      const ok=venster.querySelector('.code-ok');
+      let bezig=false;
+
+      function sluit(waarde){
+        document.removeEventListener('keydown',toets,true);
+        venster.remove();
+        klaar(waarde);
+      }
+      function toets(e){
+        if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(null); return; }
+        if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); probeer(); return; }
+        e.stopPropagation();
+      }
+      async function probeer(){
+        if(bezig) return;
+        const waarde=inp.value;
+        if(o.controle){
+          bezig=true; ok.disabled=true;
+          let melding='';
+          try{ melding=await o.controle(waarde); }
+          catch(err){ melding='Er ging iets mis. Probeer opnieuw.'; }
+          bezig=false; ok.disabled=false;
+          if(melding){
+            fout.textContent=melding; fout.style.display='';
+            inp.value=''; inp.focus();
+            return;                       // venster blijft open: meteen opnieuw proberen
+          }
+        }
+        sluit(waarde);
+      }
+
+      document.addEventListener('keydown',toets,true);
+      ok.onclick=probeer;
+      venster.querySelector('.code-nee').onclick=()=>sluit(null);
+      venster.addEventListener('click',e=>{ if(e.target===venster) sluit(null); });
+      setTimeout(()=>{ try{ inp.focus(); }catch(e){} },30);
+    });
+  }
+
+  // Voor kern.js en de pagina's: het thema, en de vervangers van de systeemvensters.
   window.bbThema={ zet:zetThema, wissel:wisselThema, keuze:themaKeuze };
+  window.bbVraagCode=bbVraagCode;
+  window.bbVraagTekst=bbVraagTekst;
+  window.bbBevestig=bbBevestig;
+  window.bbToon=bbToon;
 })();

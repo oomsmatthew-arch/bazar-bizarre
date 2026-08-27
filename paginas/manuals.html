@@ -227,26 +227,22 @@ function manualsRow(cls,innerHTML,onTap,onEdit,onDel){
 }
 
 // ---- beheer-acties voor manuals ----
-function manualsTypeKies(huidig){
-  const a=prompt('Wat voor bestand is dit?\n1 = PDF\n2 = Video\n3 = Link (webadres)',
-    huidig==='video'?'2':huidig==='link'?'3':'1');
-  if(a===null) return null;
-  const t=a.trim();
-  return t==='2'?'video':t==='3'?'link':t==='1'?'pdf':null;
-}
-function manualsAddFolder(node){
-  const v=prompt('Naam van de nieuwe map:'); if(v===null) return;
+// (Hier stond manualsTypeKies(): een prompt die vroeg "1 = PDF, 2 = Video, 3 = Link".
+//  Niets riep die functie nog aan — het soort kies je in het venster van de manual zelf —
+//  dus ze is weg in plaats van omgezet.)
+async function manualsAddFolder(node){
+  const v=await bbVraagTekst({titel:'Nieuwe map', plaatshouder:'bv. Techniek', okTekst:'Aanmaken'}); if(v===null) return;
   const naam=v.trim(); if(!naam) return;
   if(!node.folders) node.folders=[];
-  if(node.folders.some(f=>f.name.toLowerCase()===naam.toLowerCase())){alert('Er is al een map met die naam.');return;}
+  if(node.folders.some(f=>f.name.toLowerCase()===naam.toLowerCase())){bbToon('Er is al een map met die naam.');return;}
   node.folders.push({name:naam,folders:[],items:[]});
   saveManuals(); renderManuals();
 }
-function manualsEditFolder(node,i){
+async function manualsEditFolder(node,i){
   const f=node.folders[i];
-  const v=prompt('Nieuwe naam voor de map:',f.name); if(v===null) return;
+  const v=await bbVraagTekst({titel:'Map hernoemen', waarde:f.name}); if(v===null) return;
   const naam=v.trim(); if(!naam||naam===f.name) return;
-  if(node.folders.some((x,j)=>j!==i&&x.name.toLowerCase()===naam.toLowerCase())){alert('Er is al een map met die naam.');return;}
+  if(node.folders.some((x,j)=>j!==i&&x.name.toLowerCase()===naam.toLowerCase())){bbToon('Er is al een map met die naam.');return;}
   f.name=naam; saveManuals(); renderManuals();
 }
 // Kleine bezig-melding tijdens het uploaden
@@ -260,13 +256,13 @@ function uploadBusy(on,txt){
 }
 // Bestand kiezen + uploaden naar Supabase Storage, daarna de publieke URL teruggeven.
 function manualsUpload(accept,cb){
-  if(!(window.BBInv&&BBInv.uploadFile)){ alert('Uploaden is nu niet beschikbaar.'); return; }
+  if(!(window.BBInv&&BBInv.uploadFile)){ bbToon('Uploaden is nu niet beschikbaar.'); return; }
   const inp=document.createElement('input'); inp.type='file'; inp.accept=accept;
   inp.onchange=async()=>{
     const file=inp.files&&inp.files[0]; if(!file) return;
     uploadBusy(true,'Bezig met uploaden…\n'+(file.name||''));
     try{ const url=await BBInv.uploadFile(file); uploadBusy(false); cb(url,file); }
-    catch(e){ uploadBusy(false); alert('Uploaden mislukt: '+(e&&e.message?e.message:e)+'\n\nControleer of de opslag-bucket "manuals" in Supabase bestaat en of je internet hebt.'); }
+    catch(e){ uploadBusy(false); bbToon('Uploaden mislukt: '+(e&&e.message?e.message:e)+'\n\nControleer of de opslag-bucket "manuals" in Supabase bestaat en of je internet hebt.'); }
   };
   inp.click();
 }
@@ -303,19 +299,19 @@ document.getElementById('manualKies').onclick=()=>{
 };
 document.getElementById('manualOpslaan').onclick=async()=>{
   const ti=document.getElementById('manualTitel').value.trim();
-  if(!ti){ alert('Geef een titel in.'); return; }
+  if(!ti){ bbToon('Geef een titel in.'); return; }
   const desc=document.getElementById('manualDesc').value.trim();
   let src=mmExistingSrc;
   if(mmType==='link'){
     src=document.getElementById('manualUrl').value.trim();
-    if(!src){ alert('Geef een webadres in.'); return; }
+    if(!src){ bbToon('Geef een webadres in.'); return; }
   }else if(mmFile){
     uploadBusy(true,'Bezig met uploaden…\n'+(mmFile.name||''));
     try{ src=await BBInv.uploadFile(mmFile); }
-    catch(e){ uploadBusy(false); alert('Uploaden mislukt: '+(e&&e.message?e.message:e)+'\n\nControleer of de bucket "manuals" bestaat en of je internet hebt.'); return; }
+    catch(e){ uploadBusy(false); bbToon('Uploaden mislukt: '+(e&&e.message?e.message:e)+'\n\nControleer of de bucket "manuals" bestaat en of je internet hebt.'); return; }
     uploadBusy(false);
   }
-  if(!src){ alert(mmType==='link'?'Geef een webadres in.':'Kies eerst een bestand.'); return; }
+  if(!src){ bbToon(mmType==='link'?'Geef een webadres in.':'Kies eerst een bestand.'); return; }
   if(mmIndex>=0){
     const it=mmNode.items[mmIndex]; it.title=ti; it.type=mmType; it.src=src; if(desc) it.desc=desc; else delete it.desc;
   }else{
@@ -327,8 +323,9 @@ document.getElementById('manualOpslaan').onclick=async()=>{
 };
 function manualsAddItem(node){ openManualModal(node,-1); }
 function manualsEditItem(node,i){ openManualModal(node,i); }
-function manualsDelete(node,key,i,wat){
-  if(!confirm('Weet je zeker dat je '+wat+' wilt verwijderen?')) return;
+async function manualsDelete(node,key,i,wat){
+  if(!await bbBevestig({titel:'Verwijderen?', tekst:'Weet je zeker dat je '+wat+' wilt verwijderen?',
+    okTekst:'Ja, verwijderen', gevaar:true})) return;
   node[key].splice(i,1); saveManuals(); renderManuals();
 }
 
@@ -370,10 +367,10 @@ function setManualsBeheer(on){
   document.getElementById('manualsZoek').style.display=on?'none':'';
   if(on) document.getElementById('manualsZoek').value='';
 }
-document.getElementById('manualsBeheerBtn').onclick=()=>{
+document.getElementById('manualsBeheerBtn').onclick=async()=>{
   if(manualsBeheer){ setManualsBeheer(false); renderManuals(); return; }
-  if(MANUALS&&MANUALS.__error){ alert('De manuals konden niet geladen worden, beheren kan nu niet.'); return; }
-  if(!eisToegang('manuals','beheren','de manuals te beheren')) return;
+  if(MANUALS&&MANUALS.__error){ bbToon('De manuals konden niet geladen worden, beheren kan nu niet.'); return; }
+  if(!await eisToegang('manuals','beheren','de manuals te beheren')) return;
   setManualsBeheer(true); renderManuals();
 };
 // ---- opstarten ----

@@ -308,9 +308,9 @@ function renderFinancieel(){
 }
 
 // ---- tabbladen (Beheer met wachtwoord, net als de inventaris) ----
-function showBestelTab(t){
+async function showBestelTab(t){
   if(t==='financieel' && !magToegang('bestellingen','beheren')){ return; }
-  if(t==='beheer' && !eisToegang('bestellingen','beheren','de lijsten te beheren')) return;
+  if(t==='beheer' && !await eisToegang('bestellingen','beheren','de lijsten te beheren')) return;
   bestelTab=t;
   document.querySelectorAll('.btab').forEach(x=>x.classList.toggle('active',x.dataset.btab===t));
   document.querySelectorAll('.bpane').forEach(p=>p.classList.remove('active'));
@@ -358,7 +358,7 @@ function mgRenameInOrders(veld,oud,nieuw){
   BBInv.getBestellingen().filter(b=>b[veld]===oud).forEach(b=>{ const p={}; p[veld]=nieuw; BBInv.updateBestelling(b.id,p); });
 }
 function mgGebruik(veld,naam){ return BBInv.getBestellingen().filter(b=>b[veld]===naam).length; }
-function mgActie(act,type,naam){
+async function mgActie(act,type,naam){
   if(type==='bj'){ // boekjaar: enkel zelf-toegevoegde kunnen weg
     if(act==='delete'){ mgBjExtra=mgBjExtra.filter(x=>x!==naam); lsSave('bb_bestel_bj_extra',mgBjExtra); renderBeheerLijsten(); renderBestellingen(); }
     return;
@@ -368,7 +368,8 @@ function mgActie(act,type,naam){
              stat:{veld:'status',arr:()=>mgStats,set:a=>{mgStats=a;},key:'bb_bestel_stats',wat:'status'}}[type];
   if(!cfg) return;
   if(act==='rename'){
-    const v=prompt('Nieuwe naam voor '+cfg.wat+' "'+naam+'":',naam); if(v===null) return;
+    const v=await bbVraagTekst({titel:'Naam wijzigen', tekst:cfg.wat.charAt(0).toUpperCase()+cfg.wat.slice(1)+' "'+naam+'" hernoemen naar:', waarde:naam});
+    if(v===null) return;
     const t=v.trim(); if(!t||t===naam) return;
     mgRenameInOrders(cfg.veld,naam,t);
     let arr=cfg.arr().map(x=>x===naam?t:x); if(arr.indexOf(t)<0) arr.push(t); arr=arr.filter((x,i)=>arr.indexOf(x)===i);
@@ -378,26 +379,30 @@ function mgActie(act,type,naam){
   } else if(act==='delete'){
     const used=mgGebruik(cfg.veld,naam);
     if(type==='stat'){
-      if(mgStats.length<=1){ alert('Er moet minstens één status zijn.'); return; }
+      if(mgStats.length<=1){ bbToon('Er moet minstens één status zijn.'); return; }
       const fallback=mgStats.filter(s=>s!==naam)[0];
-      if(!confirm('Status "'+naam+'" verwijderen?'+(used?'\n'+used+' bestelling(en) krijgen status "'+fallback+'".':''))) return;
+      if(!await bbBevestig({titel:'Status verwijderen?', okTekst:'Ja, verwijderen', gevaar:true,
+        tekst:'Status "'+naam+'" wordt verwijderd.'+(used?'\n'+used+' bestelling(en) krijgen status "'+fallback+'".':'')})) return;
       if(used) BBInv.getBestellingen().filter(b=>b.status===naam).forEach(b=>BBInv.updateBestelling(b.id,{status:fallback}));
       mgStats=mgStats.filter(s=>s!==naam); lsSave('bb_bestel_stats',mgStats);
       ontvangenStats=ontvangenStats.filter(s=>s!==naam); lsSave('bb_bestel_ontvangen',ontvangenStats);
     } else {
-      if(!confirm(cfg.wat.charAt(0).toUpperCase()+cfg.wat.slice(1)+' "'+naam+'" verwijderen?'+(used?'\n'+used+' bestelling(en) gebruiken deze; het veld wordt daar leeggemaakt.':''))) return;
+      if(!await bbBevestig({titel:cfg.wat.charAt(0).toUpperCase()+cfg.wat.slice(1)+' verwijderen?', okTekst:'Ja, verwijderen', gevaar:true,
+        tekst:'"'+naam+'" wordt uit de lijst gehaald.'+(used?'\n'+used+' bestelling(en) gebruiken deze; het veld wordt daar leeggemaakt.':'')})) return;
       if(used){ const p={}; p[cfg.veld]=''; BBInv.getBestellingen().filter(b=>b[cfg.veld]===naam).forEach(b=>BBInv.updateBestelling(b.id,p)); }
       const arr=cfg.arr().filter(x=>x!==naam); cfg.set(arr); lsSave(cfg.key,arr);
     }
     renderBeheerLijsten(); renderBestellingen();
   }
 }
-function mgToevoegen(type){
-  if(type==='cat'){ const v=prompt('Nieuwe categorie:'); if(!v)return; const t=v.trim(); if(!t)return; if(catList().indexOf(t)>=0){alert('Bestaat al.');return;} mgCats.push(t); lsSave('bb_bestel_cats',mgCats); }
-  else if(type==='lev'){ const v=prompt('Nieuwe leverancier:'); if(!v)return; const t=v.trim(); if(!t)return; if(levList().indexOf(t)>=0){alert('Bestaat al.');return;} mgLevs.push(t); lsSave('bb_bestel_levs',mgLevs); }
-  else if(type==='stat'){ const v=prompt('Nieuwe status:'); if(!v)return; const t=v.trim(); if(!t)return; if(mgStats.indexOf(t)>=0){alert('Bestaat al.');return;} mgStats.push(t); lsSave('bb_bestel_stats',mgStats);
-    if(confirm('Telt deze status als "ontvangen" voor het financieel overzicht?\n(OK = ja, Annuleren = nee)')){ ontvangenStats.push(t); lsSave('bb_bestel_ontvangen',ontvangenStats); } }
-  else if(type==='bj'){ const v=prompt('Startjaar van het boekjaar (bv. 2026 voor boekjaar 2026-2027):'); if(v===null)return; const y=parseInt(v,10); if(isNaN(y)||y<2000||y>2100){alert('Geef een geldig jaartal, bv. 2026.');return;} const label=y+'-'+(y+1); if(boekjaarList().indexOf(label)>=0){alert('Bestaat al.');return;} mgBjExtra.push(label); lsSave('bb_bestel_bj_extra',mgBjExtra); }
+async function mgToevoegen(type){
+  if(type==='cat'){ const v=await bbVraagTekst({titel:'Nieuwe categorie', plaatshouder:'bv. CGT', okTekst:'Toevoegen'}); if(!v)return; const t=v.trim(); if(!t)return; if(catList().indexOf(t)>=0){bbToon('Bestaat al.');return;} mgCats.push(t); lsSave('bb_bestel_cats',mgCats); }
+  else if(type==='lev'){ const v=await bbVraagTekst({titel:'Nieuwe leverancier', plaatshouder:'bv. Ready4Bingo', okTekst:'Toevoegen'}); if(!v)return; const t=v.trim(); if(!t)return; if(levList().indexOf(t)>=0){bbToon('Bestaat al.');return;} mgLevs.push(t); lsSave('bb_bestel_levs',mgLevs); }
+  else if(type==='stat'){ const v=await bbVraagTekst({titel:'Nieuwe status', plaatshouder:'bv. Onderweg', okTekst:'Toevoegen'}); if(!v)return; const t=v.trim(); if(!t)return; if(mgStats.indexOf(t)>=0){bbToon('Bestaat al.');return;} mgStats.push(t); lsSave('bb_bestel_stats',mgStats);
+    if(await bbBevestig({titel:'Telt als ontvangen?', okTekst:'Ja, telt als ontvangen', neeTekst:'Nee',
+      tekst:'Telt de status "'+t+'" mee als "ontvangen" in het financieel overzicht?'})){ ontvangenStats.push(t); lsSave('bb_bestel_ontvangen',ontvangenStats); } }
+  else if(type==='bj'){ const v=await bbVraagTekst({titel:'Nieuw boekjaar', soort:'getal', plaatshouder:'2026', okTekst:'Toevoegen',
+      tekst:'Startjaar van het boekjaar (bv. 2026 voor boekjaar 2026-2027):'}); if(v===null)return; const y=parseInt(v,10); if(isNaN(y)||y<2000||y>2100){bbToon('Geef een geldig jaartal, bv. 2026.');return;} const label=y+'-'+(y+1); if(boekjaarList().indexOf(label)>=0){bbToon('Bestaat al.');return;} mgBjExtra.push(label); lsSave('bb_bestel_bj_extra',mgBjExtra); }
   renderBeheerLijsten(); renderBestellingen();
 }
 function openBestelModal(id){
@@ -436,13 +441,13 @@ document.getElementById('bestelOpslaan').onclick=()=>{
     ent:parseFloat(g('bfEnt'))||0, bay:parseFloat(g('bfBay'))||0, hsb:parseFloat(g('bfHsb'))||0,
     leverancier:g('bfLeverancier').trim(), leverdatum:g('bfLeverdatum'), door:g('bfDoor').trim(), opm:g('bfOpm').trim()
   };
-  if(!data.info && !data.cat){ alert('Vul minstens een omschrijving of categorie in.'); return; }
+  if(!data.info && !data.cat){ bbToon('Vul minstens een omschrijving of categorie in.'); return; }
   if(bestelEditId) BBInv.updateBestelling(bestelEditId,data); else BBInv.addBestelling(data);
   closeBestelModal(); renderBestellingen();
 };
-document.getElementById('bestelVerwijder').onclick=()=>{
+document.getElementById('bestelVerwijder').onclick=async()=>{
   if(!bestelEditId) return;
-  if(!confirm('Deze bestelling verwijderen?')) return;
+  if(!await bbBevestig({titel:'Bestelling verwijderen?', okTekst:'Ja, verwijderen', gevaar:true})) return;
   BBInv.removeBestelling(bestelEditId); closeBestelModal(); renderBestellingen();
 };
 document.getElementById('bestelExport').onclick=()=>{
@@ -455,9 +460,10 @@ document.getElementById('bestelExport').onclick=()=>{
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bestellingen.csv'; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
-document.getElementById('bestelReset').onclick=()=>{
-  if(!confirm('De bestellingen terugzetten naar de oorspronkelijke Excel-lijst?\nEigen toevoegingen en wijzigingen gaan verloren.')) return;
-  BBInv.resetBestellingen().then(()=>{ renderBestelActief(); alert('Bestellingen hersteld naar de startlijst.'); });
+document.getElementById('bestelReset').onclick=async()=>{
+  if(!await bbBevestig({titel:'Terug naar de startlijst?', okTekst:'Ja, terugzetten', gevaar:true,
+    tekst:'De bestellingen gaan terug naar de Excel-lijst. Eigen toevoegingen en wijzigingen gaan verloren.'})) return;
+  BBInv.resetBestellingen().then(()=>{ renderBestelActief(); bbToon('Bestellingen hersteld naar de startlijst.'); });
 };
 document.getElementById('bestelPrint').onclick=()=>{
   const list=BBInv.getBestellingen().slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
@@ -466,7 +472,7 @@ document.getElementById('bestelPrint').onclick=()=>{
     '<table><tr><th>Datum</th><th>Categorie</th><th>Bestelling</th><th>Status</th><th>Aantal</th><th class="n">ENT</th><th class="n">BAY</th><th class="n">HSB</th><th>Leverancier</th><th>Geleverd</th><th>Besteld door</th><th>Opmerkingen</th></tr>'+rows+'</table>';
   const css='body{font-family:Arial,Helvetica,sans-serif;color:#1d2e22;margin:20px;}h1{font-size:19px;margin:0 0 4px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}table{border-collapse:collapse;width:100%;font-size:12px;}th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;vertical-align:top;}td.n,th.n{text-align:right;white-space:nowrap;}';
   const w=window.open('','_blank');
-  if(!w){ alert('Kon het afdrukvenster niet openen (popup geblokkeerd?).'); return; }
+  if(!w){ bbToon('Kon het afdrukvenster niet openen (popup geblokkeerd?).'); return; }
   w.document.open(); w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Besteloverzicht</title><style>'+css+'</style></head><body>'+body+'</body></html>'); w.document.close(); w.focus();
   setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
 };

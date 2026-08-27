@@ -76,7 +76,7 @@ function renderContacten(){
       '<div class="cnaam">'+esc(c.naam)+'</div>'+
       (c.rol?'<div class="crol" style="color:'+kleur+'">'+esc(c.rol)+'</div>':'')+
       (links.length?'<div class="clinks">'+links.join('')+'</div>':'');
-    if(contBeheer) card.querySelector('.cdel').onclick=()=>{ if(!confirm('Contact "'+(c.naam||'')+'" verwijderen?'))return; BBInv.removeContact(c.id); renderContacten(); };
+    if(contBeheer) card.querySelector('.cdel').onclick=async()=>{ if(!await bbBevestig({titel:'Contact verwijderen?', tekst:'"'+(c.naam||'')+'" wordt uit de lijst gehaald.', okTekst:'Ja, verwijderen', gevaar:true}))return; BBInv.removeContact(c.id); renderContacten(); };
     box.appendChild(card);
   });
 }
@@ -88,15 +88,15 @@ function setContBeheer(on){
   document.getElementById('contAddBox').style.display=on?'':'none';
   renderContacten();
 }
-document.getElementById('contBeheerBtn').onclick=()=>{
+document.getElementById('contBeheerBtn').onclick=async()=>{
   if(contBeheer){ setContBeheer(false); return; }
-  if(!eisToegang('contacten','beheren','de contacten te beheren')) return;
+  if(!await eisToegang('contacten','beheren','de contacten te beheren')) return;
   setContBeheer(true);
 };
 document.getElementById('contZoek').addEventListener('input',renderContacten);
 document.getElementById('contAdd').onclick=()=>{
   const naam=document.getElementById('contNaam').value.trim();
-  if(!naam){alert('Geef minstens een naam.');return;}
+  if(!naam){bbToon('Geef minstens een naam.');return;}
   BBInv.addContact({naam,rol:document.getElementById('contRol').value.trim(),
     tel:document.getElementById('contTel').value.trim(),mail:document.getElementById('contMail').value.trim()});
   ['contNaam','contRol','contTel','contMail'].forEach(id=>document.getElementById(id).value='');

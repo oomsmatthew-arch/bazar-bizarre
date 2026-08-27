@@ -12,9 +12,13 @@
   // Eigen kleine html-ontsmetter zodat dit bestand nergens van afhangt.
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+  // Welk zoekveld op de doelpagina we invullen als je op een resultaat tikt. Staat een
+  // pagina hier NIET in, dan land je er zonder je zoekterm — een doodlopend spoor. Elke
+  // pagina die deze zoekfunctie doorzoekt hoort hier dus te staan.
   const ZOEK_PREFILL={'inventaris.html':'invZoek','bestellingen.html':'bestelZoek',
     'contacten.html':'contZoek','manuals.html':'manualsZoek','projecten.html':'projZoek',
-    'activiteit.html':'actZoek','ratings.html':'fZoek'};
+    'activiteit.html':'actZoek','ratings.html':'fZoek',
+    'checklists.html':'chkZoek','logboek.html':'logZoek'};
 
   // De pagina's staan in paginas/. Vanaf de startpagina moet er dus 'paginas/' voor,
   // vanaf een pagina uit die map niet. We leiden de hoofdmap af uit het adres van dit

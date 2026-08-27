@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v6.1';
+const APP_VERSION='v6.2';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -231,11 +231,11 @@ function magToegang(cat,niveau){
   return true;
 }
 // Mag ik dit, en zo niet: vraag het wachtwoord of zeg waarom niet.
-function eisToegang(cat,niveau,actie){
+async function eisToegang(cat,niveau,actie){
   const r=toegangRegel(cat,niveau);
-  if(r==='beheer') return eisBeheer(actie);
+  if(r==='beheer') return await eisBeheer(actie);
   if(magToegang(cat,niveau)) return true;
-  alert('Daar heb je geen toegang toe.\n\nDit is ingesteld op "'+
+  bbToon('Daar heb je geen toegang toe.\n\nDit is ingesteld op "'+
     (TOEGANG_KEUZES.find(k=>k.waarde===r)||{}).naam+'". Een admin kan dat wijzigen via Instellingen → Toegangen.');
   return false;
 }
@@ -352,12 +352,12 @@ document.getElementById('kiesAnnuleer').onclick=()=>document.getElementById('fot
 let camStream=null;
 function openCamera(cb){
   const m=document.getElementById('camModal'), v=document.getElementById('camVideo');
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('Camera niet beschikbaar op dit toestel — kies een foto uit bestanden.');return;}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){bbToon('Camera niet beschikbaar op dit toestel — kies een foto uit bestanden.');return;}
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}},audio:false}).then(s=>{
     camStream=s; v.srcObject=s; if(v.play)v.play().catch(()=>{}); m.classList.add('open');
     // Beeldbron (echte foto of videoframe) verkleinen en als JPEG bewaren.
     const bewaar=(src,natW,natH)=>{
-      let w=natW,h=natH; if(!w||!h){alert('Camera nog niet klaar, probeer opnieuw.');bezig=false;return;}
+      let w=natW,h=natH; if(!w||!h){bbToon('Camera nog niet klaar, probeer opnieuw.');bezig=false;return;}
       const max=1000; if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
       const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(src,0,0,w,h);
       let url=null; try{url=c.toDataURL('image/jpeg',0.8);}catch(e){}
@@ -381,7 +381,7 @@ function openCamera(cb){
       }
       videoFrame();
     };
-  }).catch(e=>{alert('Kan de camera niet openen ('+((e&&e.name)||e)+'). Geef toestemming voor de camera, of kies een foto uit bestanden.');});
+  }).catch(e=>{bbToon('Kan de camera niet openen ('+((e&&e.name)||e)+'). Geef toestemming voor de camera, of kies een foto uit bestanden.');});
 }
 function closeCamera(){ const m=document.getElementById('camModal'); m.classList.remove('open');
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;} const v=document.getElementById('camVideo'); if(v)v.srcObject=null; }
@@ -431,10 +431,10 @@ function rowsToTSV(rows){return rows.map(r=>r.map(v=>String(v==null?'':v).replac
 function dl(name,text){const blob=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;
   document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1500);}
-function copyText(t){const done=()=>alert('Gekopieerd! Plak het in Google Sheets of Excel (Ctrl+V).');
+function copyText(t){const done=()=>bbToon('Gekopieerd! Plak het in Google Sheets of Excel (Ctrl+V).');
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>fb());}else fb();
   function fb(){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
-    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){alert('Kopiëren niet gelukt.');}document.body.removeChild(ta);}}
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){bbToon('Kopiëren niet gelukt.');}document.body.removeChild(ta);}}
 
 // Sync-indicator: toont hoeveel wijzigingen nog op internet wachten
 function updateSyncBadge(){
@@ -490,11 +490,15 @@ function isAdmin(){ return heeftRol('admin'); }
 // Toegang tot een beheerdeel: waar voor een vaste mdw of admin, anders het wachtwoord
 // vragen. Admins horen er ook zonder wachtwoord in — ze beheren toch de Toegangen zelf,
 // dus hen dat laten typen is schijnbeveiliging. Dit sluit ook aan bij magToegang().
-function magBeheren(actie){
+// LET OP: sinds het codevenster (zie bbVraagCode in js/topbar.js) is dit ASYNCHROON.
+// Elke aanroep hoort dus 'await' te krijgen — zonder await krijg je een belofte terug,
+// en die is altijd waar, waardoor de vraag om het wachtwoord stilletjes overgeslagen zou
+// worden. Dat geldt ook voor eisBeheer() en eisToegang() hieronder.
+async function magBeheren(actie){
   if(isVasteMdw()||isAdmin()) return true;
-  const p=prompt('Wachtwoord'+(actie?' '+actie:'')+':'); if(p===null) return false;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
-  return true;
+  const p=await bbVraagCode({titel:'Wachtwoord', uitleg:actie?('Nodig '+actie+'.'):'',
+    plaatshouder:'Wachtwoord', controle:v=>v===getPin()?'':'Onjuist wachtwoord.'});
+  return p!==null;
 }
 // Beheer-toegang geldt voor dit tabblad, niet per pagina: anders zou je het
 // wachtwoord opnieuw moeten intikken telkens je van pagina wisselt.
@@ -515,12 +519,12 @@ const K_NOOD_SYSTEEM='bb_nood_systeem';
 function zetNoodSysteem(){ try{ sessionStorage.setItem(K_NOOD_SYSTEEM,'1'); }catch(e){} }
 function heeftNoodSysteem(){ try{ return sessionStorage.getItem(K_NOOD_SYSTEEM)==='1'; }catch(e){ return false; } }
 // Beheer-toegang vragen en onthouden (gebruikt door de tabbladen 🔒 Beheer).
-function eisBeheer(actie){
+async function eisBeheer(actie){
   if(isOntgrendeld()) return true;
   if(isVasteMdw()||isAdmin()){ zetOntgrendeld(); return true; }
-  const p=prompt('Wachtwoord beheer'+(actie?' om '+actie:'')+':');
+  const p=await bbVraagCode({titel:'Wachtwoord beheer', uitleg:actie?('Nodig om '+actie+'.'):'',
+    plaatshouder:'Wachtwoord', controle:v=>v===getPin()?'':'Onjuist wachtwoord.'});
   if(p===null) return false;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
   zetOntgrendeld();
   return true;
 }
@@ -642,16 +646,18 @@ document.addEventListener('keydown',e=>{
 });
 document.getElementById('userBtn').onclick=()=>{ if(currentUser()) openProfiel(); else showLogin(); };
 document.getElementById('loginCancel').onclick=()=>{ if(currentUser()) hideLogin(); };
-document.getElementById('loginBeheer').onclick=()=>{
-  const p=prompt('Beheerderswachtwoord:'); if(p===null) return;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+document.getElementById('loginBeheer').onclick=async()=>{
+  const p=await bbVraagCode({titel:'Beheerderswachtwoord',
+    uitleg:'Nodig om de namen en pincodes te beheren.', plaatshouder:'Wachtwoord',
+    controle:v=>v===getPin()?'':'Onjuist wachtwoord.'});
+  if(p===null) return;
   toBeheer();  // beheer binnen het inlogscherm → app blijft vergrendeld
 };
 document.getElementById('beheerKlaar').onclick=beheerKlaar;
 
 // ---- Gebruikersbeheer (achter het beheer-wachtwoord) ----
-function openGebruikers(){
-  if(!magBeheren()) return;
+async function openGebruikers(){
+  if(!await magBeheren()) return;
   openBeheerPanel();
 }
 // ROL ADMIN UITDELEN — enkel door een admin.
@@ -673,7 +679,7 @@ function magAdminUitdelen(){ return isAdmin() || !erIsEenAdmin(); }
 // door een admin — anders is het een omweg naar punt 3 hierboven.
 function magAanAdminRaken(u){ return isAdmin() || !BBInv.heeftRol(u,'admin'); }
 function meldGeenAdmin(){
-  alert('Alleen een admin kan de rol Admin toekennen of afnemen.\n\n'+
+  bbToon('Alleen een admin kan de rol Admin toekennen of afnemen.\n\n'+
     'Dat is met opzet: wie dat zou kunnen, kan zichzelf admin maken en daarna via '+
     'Instellingen → Toegangen alles openzetten.');
 }
@@ -709,22 +715,25 @@ function renderGebrList(){
         // De code van een admin resetten = als die admin kunnen inloggen. Dus enkel een
         // admin mag dat; anders is het een omweg naar de rol.
         if(!magAanAdminRaken(u)){
-          alert('Alleen een admin kan de pincode van een andere admin resetten.\n\n'+
+          bbToon('Alleen een admin kan de pincode van een andere admin resetten.\n\n'+
                 'Anders zou je met die code als admin kunnen inloggen.');
           return;
         }
-        const np=prompt('Nieuwe pincode voor '+u.naam+' (4 cijfers):'); if(np===null) return;
-        if(!/^\d{4}$/.test(np.trim())){ alert('De pincode moet precies 4 cijfers zijn.'); return; }
-        BBInv.updateGebruiker(u.id,{pin: await sha256(np.trim())}); alert('Pincode aangepast.');
+        const np=await bbVraagCode({titel:'Nieuwe pincode voor '+u.naam,
+          uitleg:'Precies 4 cijfers.', plaatshouder:'••••', maxlengte:4,
+          controle:v=>/^\d{4}$/.test((v||'').trim())?'':'De pincode moet precies 4 cijfers zijn.'});
+        if(np===null) return;
+        BBInv.updateGebruiker(u.id,{pin: await sha256(np.trim())}); bbToon('Pincode aangepast.');
       };
-      row.querySelector('.del').onclick=()=>{
+      row.querySelector('.del').onclick=async()=>{
         // Alle admins verwijderen zou de noodregel weer openzetten, en dan kan wie in
         // deze lijst kan zichzelf alsnog tot admin maken.
         if(!magAanAdminRaken(u)){
-          alert('Alleen een admin kan een andere admin verwijderen.');
+          bbToon('Alleen een admin kan een andere admin verwijderen.');
           return;
         }
-        if(!confirm(u.naam+' verwijderen? Deze persoon kan dan niet meer inloggen.')) return;
+        if(!await bbBevestig({titel:'Collega verwijderen?', okTekst:'Ja, verwijderen', gevaar:true,
+          tekst:u.naam+' kan daarna niet meer inloggen.'})) return;
         BBInv.removeGebruiker(u.id);
         const cu=currentUser(); if(cu&&cu.id===u.id) setCurrentUser(null,false);
         renderGebrList();
@@ -737,10 +746,11 @@ function renderGebrList(){
 document.getElementById('gebrAdd').onclick=async()=>{
   const naam=document.getElementById('gebrNaam').value.trim();
   const pin=document.getElementById('gebrPin').value.trim();
-  if(!naam){ alert('Vul een naam in.'); return; }
-  if(!/^\d{4}$/.test(pin)){ alert('De pincode moet precies 4 cijfers zijn.'); return; }
+  if(!naam){ bbToon('Vul een naam in.'); return; }
+  if(!/^\d{4}$/.test(pin)){ bbToon('De pincode moet precies 4 cijfers zijn.'); return; }
   if(BBInv.getGebruikers().some(u=>(u.naam||'').toLowerCase()===naam.toLowerCase())
-     && !confirm('Er bestaat al iemand met de naam "'+naam+'". Toch toevoegen?')) return;
+     && !await bbBevestig({titel:'Naam bestaat al', okTekst:'Toch toevoegen',
+          tekst:'Er staat al iemand met de naam "'+naam+'" in de lijst.'})) return;
   BBInv.addGebruiker({naam, pin: await sha256(pin)});
   document.getElementById('gebrNaam').value=''; document.getElementById('gebrPin').value='';
   renderGebrList();
@@ -788,8 +798,10 @@ function closeProfiel(){ document.getElementById('profielModal').classList.remov
 document.getElementById('profFoto').onclick=async()=>{
   const u=fullCurrentUser(); if(!u) return;
   if(u.pin){ // eerst de eigen pincode bevestigen (pinloze accounts overslaan)
-    const entered=prompt('Je pincode om door te gaan:'); if(entered===null) return;
-    if(!(await pinMatch(u.pin,(entered||'').trim()))){ alert('Onjuiste pincode.'); return; }
+    const entered=await bbVraagCode({titel:'Je pincode', uitleg:'Even bevestigen dat jij het bent.',
+      plaatshouder:'••••', maxlengte:4,
+      controle:async v=>(await pinMatch(u.pin,(v||'').trim()))?'':'Onjuiste pincode.'});
+    if(entered===null) return;
   }
   chooseProfilePhoto(url=>{ if(!url) return; BBInv.updateGebruiker(u.id,{foto:url}); renderProfiel(); updateUserBtn(); });
 };
@@ -813,7 +825,16 @@ function bootAuth(){
 }
 // Sommige pagina's zijn enkel voor bepaalde rollen (Systeem = admin, Activiteit =
 // admin of vaste mdw). Wie er via de webadresbalk toch op belandt, sturen we terug.
-function bewaakPagina(){
+// refreshAuth() roept dit bij élke wijziging opnieuw aan. Sinds het wachtwoord in een
+// eigen venster gevraagd wordt, duurt deze controle even — zonder deze vlag stapelden de
+// vensters zich op terwijl je nog aan het typen was.
+let bewaakBezig=false;
+async function bewaakPagina(){
+  if(bewaakBezig) return;
+  bewaakBezig=true;
+  try{ await bewaakPaginaDoe(); } finally{ bewaakBezig=false; }
+}
+async function bewaakPaginaDoe(){
   // data-toegang = de categorie uit Instellingen → Toegangen. data-rol is de oude manier
   // en blijft werken voor pagina's die nog niet omgezet zijn.
   const cat=document.body.getAttribute('data-toegang');
@@ -825,11 +846,11 @@ function bewaakPagina(){
     if(magToegang(cat,'bekijken')) return;
     if(cat==='systeem' && heeftNoodSysteem()) return;   // via de noodingang binnengekomen
     const r=toegangRegel(cat,'bekijken');
-    if(r==='beheer' && eisBeheer('deze pagina te openen')) return;
-    alert('Je hebt geen toegang tot deze pagina.\n\nEen admin kan dat wijzigen via Instellingen → Toegangen.');
+    if(r==='beheer' && await eisBeheer('deze pagina te openen')) return;
+    bbToon('Je hebt geen toegang tot deze pagina.\n\nEen admin kan dat wijzigen via Instellingen → Toegangen.');
   }else{
     if(nodig==='admin' ? isAdmin() : (isAdmin()||isVasteMdw())) return;
-    alert('Deze pagina is enkel voor '+(nodig==='admin'?'beheerders (admin)':'admins en vaste medewerkers')+'.');
+    bbToon('Deze pagina is enkel voor '+(nodig==='admin'?'beheerders (admin)':'admins en vaste medewerkers')+'.');
   }
   location.replace(bbUrl('entertainment.html'));
 }
@@ -912,8 +933,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   if(typeof window.bbStart==='function') window.bbStart();
   BBInv.init();
-  updateSyncBadge();
-  setInterval(updateSyncBadge,3000);
+  // De ⏳-melding volgt de wachtrij: de gegevenslaag geeft een seintje zodra dat aantal
+  // verandert. Vroeger stond hier een setInterval van 3 seconden dat de hele dag door
+  // bleef kijken naar iets dat zelden wijzigt. (Kent een toestel die nieuwe functie nog
+  // niet — bv. een oude, opgeslagen kopie van inventaris.js — dan valt het terug op de
+  // oude manier, zodat de melding hoe dan ook blijft werken.)
+  if(BBInv.setOnWachtrij) BBInv.setOnWachtrij(updateSyncBadge);
+  else { updateSyncBadge(); setInterval(updateSyncBadge,3000); }
   // Automatisch vernieuwen: eerste check na 1 min, daarna elk kwartier; en elke 30s
   // kijken of het een geschikt moment is om (stil) te herladen bij een nieuwe versie.
   setTimeout(checkForUpdate,60000);

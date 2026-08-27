@@ -150,12 +150,14 @@ function renderSysteem(){
   box.innerHTML='<div class="sysgrid">'+vb+sy+gd+op+vs+'</div>';
 
   const wis=document.getElementById('sysWisWachtrij');
-  if(wis) wis.onclick=()=>{
-    const p=prompt('Beheer-wachtwoord om de wachtrij te wissen:'); if(p===null) return;
-    if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
-    if(!confirm('De wachtende wijzigingen definitief weggooien? Ze bereiken de database dan nooit.')) return;
+  if(wis) wis.onclick=async()=>{
+    const p=await bbVraagCode({titel:'Beheer-wachtwoord', uitleg:'Nodig om de wachtrij te wissen.',
+      plaatshouder:'Wachtwoord', controle:v=>v===getPin()?'':'Onjuist wachtwoord.'});
+    if(p===null) return;
+    if(!await bbBevestig({titel:'Wachtrij weggooien?', okTekst:'Ja, weggooien', gevaar:true,
+      tekst:'De wachtende wijzigingen worden definitief weggegooid. Ze bereiken de database dan nooit.'})) return;
     const n=BBInv.wisWachtrij();
-    alert(n+' wijziging(en) gewist.');
+    bbToon(n+' wijziging(en) gewist.');
     renderSysteem();
   };
 
@@ -203,8 +205,8 @@ function renderSysOpslag(o){
   const op=document.getElementById('sysOpruimen');
   if(op) op.onclick=()=>{
     const vrij=BBInv.opruimen();
-    if(!vrij){ alert('Er kon niets opgeruimd worden. Zit de opslag vol, dan lukt het pas weer met internet (de gegevens moeten eerst veilig in de database staan).'); }
-    else alert(sysBytes(vrij)+' vrijgemaakt.');
+    if(!vrij){ bbToon('Er kon niets opgeruimd worden. Zit de opslag vol, dan lukt het pas weer met internet (de gegevens moeten eerst veilig in de database staan).'); }
+    else bbToon(sysBytes(vrij)+' vrijgemaakt.');
     renderSysteem();
   };
 }
@@ -216,8 +218,9 @@ document.getElementById('sysTest').onclick=async()=>{
 };
 document.getElementById('sysFlush').onclick=()=>{ BBInv.flushOutbox(); setTimeout(renderSysteem,400); };
 document.getElementById('sysHerlaad').onclick=async()=>{
-  if(!navigator.onLine){ alert('Daar is internet voor nodig — anders blijft de app zonder opgeslagen kopie achter.'); return; }
-  if(!confirm('De app opnieuw ophalen van het internet?\n\nJe gegevens blijven staan; enkel de opgeslagen kopie van de pagina wordt vernieuwd.')) return;
+  if(!navigator.onLine){ bbToon('Daar is internet voor nodig — anders blijft de app zonder opgeslagen kopie achter.'); return; }
+  if(!await bbBevestig({titel:'App opnieuw ophalen?', okTekst:'Ja, ophalen',
+    tekst:'Je gegevens blijven staan; enkel de opgeslagen kopie van de pagina wordt vernieuwd.'})) return;
   try{ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){}
   location.reload();
 };

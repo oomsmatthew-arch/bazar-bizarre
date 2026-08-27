@@ -120,11 +120,15 @@ function renderActiviteit(){
   });
   box.innerHTML=html;
 }
-document.getElementById('actWis').onclick=()=>{
+document.getElementById('actWis').onclick=async()=>{
   // Wissen enkel met het beheer-wachtwoord (dus niet via de Vaste-mdw-bypass): enkel Matthew.
-  const p=prompt('Beheer-wachtwoord om het activiteitenlogboek te wissen:'); if(p===null) return;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
-  if(!confirm('Alle geregistreerde activiteit wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+  const p=await bbVraagCode({titel:'Beheer-wachtwoord',
+    uitleg:'Nodig om het activiteitenlogboek te wissen.', plaatshouder:'Wachtwoord',
+    controle:v=>v===getPin()?'':'Onjuist wachtwoord.'});
+  if(p===null) return;
+  if(!await bbBevestig({titel:'Activiteit wissen?',
+    tekst:'Alle geregistreerde activiteit wordt gewist. Dit kan niet ongedaan gemaakt worden.',
+    okTekst:'Ja, wissen', gevaar:true})) return;
   BBInv.clearActiviteit(); renderActiviteit();
 };
 document.getElementById('actZoek').oninput=e=>{ actQ=e.target.value.trim(); renderActiviteit(); };

@@ -145,11 +145,15 @@ function avatarVoorNaam(naam){ const u=gebruikers().find(x=>x.naam===naam); retu
 // 'rol' kan meerdere etiketten bevatten ('vast', 'admin', of beide) — zie BBInv.heeftRol.
 function heeftRol(tag){ const u=fullCurrentUser(); return !!(window.BBInv&&BBInv.heeftRol&&BBInv.heeftRol(u,tag)); }
 function isVasteMdw(){ return heeftRol('vast'); }
-function magBeheren(actie){
+// ASYNCHROON sinds het codevenster (bbVraagCode in js/topbar.js) — elke aanroep hoort
+// 'await' te krijgen. Zonder await krijg je een belofte terug, en die is altijd waar:
+// dan zou de vraag om het wachtwoord stilletjes overgeslagen worden. Geldt ook voor
+// magProjectMaken() hieronder.
+async function magBeheren(actie){
   if(isVasteMdw()) return true;
-  const p=prompt('Wachtwoord'+(actie?' '+actie:'')+':'); if(p===null) return false;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
-  return true;
+  const p=await bbVraagCode({titel:'Wachtwoord', uitleg:actie?('Nodig '+actie+'.'):'',
+    plaatshouder:'Wachtwoord', controle:v=>v===getPin()?'':'Onjuist wachtwoord.'});
+  return p!==null;
 }
 // De regels staan in Instellingen → Toegangen (gedeeld via appconfig).
 //   projMaken    → projecten/beheren     projBewerken → projecten/gebruiken
@@ -168,10 +172,10 @@ function regel(sleutel,standaard){
 }
 // Mag ik een project aanmaken/bewerken? (standaard: enkel vaste medewerkers)
 // 'vast' = enkel vaste medewerkers · 'beheer' = vast óf het beheer-wachtwoord · 'iedereen' = elke login.
-function magProjectMaken(vraag){
+async function magProjectMaken(vraag){
   const r=regel('projMaken','vast');
   if(r==='iedereen') return true;
-  if(r==='beheer') return vraag?magBeheren('voor projectbeheer'):(isVasteMdw()||heeftRol('admin'));
+  if(r==='beheer') return vraag?await magBeheren('voor projectbeheer'):(isVasteMdw()||heeftRol('admin'));
   if(r==='admin') return heeftRol('admin');
   if(isVasteMdw()||heeftRol('admin')) return true;
   if(vraag) meld('Enkel vaste medewerkers',
@@ -457,14 +461,14 @@ function renderOverzicht(){
 
   const acties=$('ovActies'); acties.innerHTML='';
   const knop=(tekst,klasse,fn)=>{ const b=document.createElement('button'); b.className='btn'+(klasse?' '+klasse:''); b.textContent=tekst; b.onclick=fn; acties.appendChild(b); };
-  knop('✎ Project bewerken','',()=>{ if(magProjectMaken(true)) openProjectVenster(p.id); });
-  knop(p.archief?'↩ Uit archief halen':'📦 Archiveren','',()=>{
-    if(!magProjectMaken(true)) return;
+  knop('✎ Project bewerken','',async()=>{ if(await magProjectMaken(true)) openProjectVenster(p.id); });
+  knop(p.archief?'↩ Uit archief halen':'📦 Archiveren','',async()=>{
+    if(!await magProjectMaken(true)) return;
     BBInv.updateProject(p.id,{archief:!p.archief});
     if(!p.archief){ naarLijst(); } else renderProject();
   });
   knop('🗑 Verwijderen','gevaar',async()=>{
-    if(!magBeheren('om een project te verwijderen')) return;
+    if(!await magBeheren('om een project te verwijderen')) return;
     const ja=await vraagBevestiging({titel:'Project "'+(p.naam||'')+'" verwijderen?',
       tekst:'Alle taken en berichten van dit project verdwijnen mee. Dit kan niet ongedaan gemaakt worden.',
       okTekst:'Definitief verwijderen',gevaar:true});
@@ -803,7 +807,7 @@ function renderTmBijlagen(){
     const [open,del]=r.querySelectorAll('button');
     open.onclick=()=>{ if(d.url) window.open(d.url,'_blank','noopener'); };
     del.onclick=async()=>{
-      if(d.door!==mij && !magBeheren('om een bijlage van iemand anders te verwijderen')) return;
+      if(d.door!==mij && !await magBeheren('om een bijlage van iemand anders te verwijderen')) return;
       const ja=await vraagBevestiging({titel:'Bijlage weghalen?',tekst:d.naam||'',okTekst:'Weghalen',gevaar:true});
       if(!ja) return;
       BBInv.removeDoc(d.id); renderTmBijlagen();
@@ -825,7 +829,7 @@ function renderTmReacties(){
       '<div class="sub" style="font-size:12px;color:var(--muted)">'+esc(b.auteur||'?')+' · '+tijdKort(b.ts)+'</div></div>'+
       '<button class="btn mini clear">✕</button>';
     r.querySelector('button').onclick=async()=>{
-      if(b.auteur!==mij && !magBeheren('om een reactie van iemand anders te verwijderen')) return;
+      if(b.auteur!==mij && !await magBeheren('om een reactie van iemand anders te verwijderen')) return;
       const ja=await vraagBevestiging({titel:'Reactie verwijderen?',tekst:b.tekst||'',okTekst:'Verwijderen',gevaar:true});
       if(!ja) return;
       BBInv.removeBericht(b.id); renderTmReacties();
@@ -1087,7 +1091,7 @@ function renderDocumenten(){
     };
     openBtn.onclick=()=>{ if(d.url) window.open(d.url,'_blank','noopener'); };
     delBtn.onclick=async()=>{
-      if(d.door!==mij && !magBeheren('om een document van iemand anders te verwijderen')) return;
+      if(d.door!==mij && !await magBeheren('om een document van iemand anders te verwijderen')) return;
       const ja=await vraagBevestiging({titel:'Document verwijderen?',
         tekst:'"'+(d.naam||'')+'" verdwijnt uit de lijst.'+(d.bron==='bestand'?' Het bestand zelf blijft in de opslag staan.':''),
         okTekst:'Verwijderen',gevaar:true});
@@ -1163,7 +1167,7 @@ function renderVerslagen(){
     const [bewerkBtn,delBtn]=el.querySelectorAll('.vkop button');
     bewerkBtn.onclick=()=>openVerslagVenster(v.id);
     delBtn.onclick=async()=>{
-      if(v.auteur!==mij && !magBeheren('om een verslag van iemand anders te verwijderen')) return;
+      if(v.auteur!==mij && !await magBeheren('om een verslag van iemand anders te verwijderen')) return;
       const ja=await vraagBevestiging({titel:'Verslag verwijderen?',tekst:esc(v.tekst||''),okTekst:'Verwijderen',gevaar:true});
       if(!ja) return;
       BBInv.removeBericht(v.id); renderVerslagen();
@@ -1292,7 +1296,7 @@ function renderIdeeen(){
       renderIdeeen();
     };
     del.onclick=async()=>{
-      if(b.auteur!==mij && !magBeheren('om een idee van iemand anders te verwijderen')) return;
+      if(b.auteur!==mij && !await magBeheren('om een idee van iemand anders te verwijderen')) return;
       const ja=await vraagBevestiging({titel:'Idee verwijderen?',tekst:'"'+(b.tekst||'').slice(0,90)+'"',okTekst:'Verwijderen',gevaar:true});
       if(!ja) return;
       BBInv.removeBericht(b.id); renderIdeeen();
@@ -1597,7 +1601,7 @@ function bewaarEvaluatie(){
 // materiaallijst en draaiboek — maar schoon, zonder afgevinkte taken of oude datums.
 async function kopieerProject(){
   const p=project(); if(!p) return;
-  if(!magProjectMaken(true)) return;
+  if(!await magProjectMaken(true)) return;
   const naam=await vraagTekst({titel:'Project kopiëren',label:'Naam van het nieuwe project',
     waarde:volgendeNaam(p.naam||''),okTekst:'Kopiëren'});
   if(naam===null) return;
@@ -1662,7 +1666,7 @@ function renderBespreking(){
       '<div class="btekst">'+esc(b.tekst)+'</div>';
     el.querySelector('.bdel').onclick=async()=>{
       // je eigen bericht mag je zelf weghalen; dat van een ander enkel met beheer
-      if(b.auteur!==mij && !magBeheren('om een bericht van iemand anders te verwijderen')) return;
+      if(b.auteur!==mij && !await magBeheren('om een bericht van iemand anders te verwijderen')) return;
       const ja=await vraagBevestiging({titel:'Bericht verwijderen?',
         tekst:'"'+(b.tekst||'').slice(0,90)+((b.tekst||'').length>90?'…':'')+'"',
         okTekst:'Verwijderen',gevaar:true});
@@ -1798,7 +1802,7 @@ $('projFilter').onclick=e=>{
   document.querySelectorAll('#projFilter .chip').forEach(x=>x.classList.toggle('active',x===b));
   renderLijst();
 };
-$('projNieuw').onclick=()=>{ if(magProjectMaken(true)) openProjectVenster(null); };
+$('projNieuw').onclick=async()=>{ if(await magProjectMaken(true)) openProjectVenster(null); };
 $('pTabs').onclick=e=>{ const b=e.target.closest('.ptab'); if(b) toonTab(b.dataset.p); };
 $('fMijn').onclick=()=>{ alleenMijn=!alleenMijn; renderBord(); };
 $('fKlaar').onclick=()=>{ verbergKlaar=!verbergKlaar; renderBord(); };
@@ -1893,7 +1897,7 @@ $('vsDel').onclick=async()=>{
   // Zelfde regel als in de lijst: je eigen verslag mag je zelf wissen, dat van een
   // ander enkel met het beheer-wachtwoord.
   const v=verslagen().find(x=>x.id===vsOpen);
-  if(v && v.auteur!==currentUserName() && !magBeheren('om een verslag van iemand anders te verwijderen')) return;
+  if(v && v.auteur!==currentUserName() && !await magBeheren('om een verslag van iemand anders te verwijderen')) return;
   const ja=await vraagBevestiging({titel:'Verslag verwijderen?',tekst:$('vsTitel').value,okTekst:'Verwijderen',gevaar:true});
   if(!ja) return;
   BBInv.removeBericht(vsOpen); sluitVerslagVenster(); renderVerslagen();
