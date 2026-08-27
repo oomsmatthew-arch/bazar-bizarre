@@ -377,6 +377,44 @@
     text-transform:uppercase;font-size:11px;letter-spacing:.5px;}
   .subrec .rm{margin-top:10px;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:700;border-radius:10px;
     padding:7px 11px;cursor:pointer;font-size:13px;}
+  /* Knoppenrij onder een ingezonden formulier (Aanpassen + Verwijderen naast elkaar). */
+  .subrec .subacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .subrec .subacts .rm{margin-top:0;}
+  .subrec .ed{border:1px solid var(--line);background:var(--panel2);color:var(--forest);font-weight:700;
+    border-radius:10px;padding:7px 11px;cursor:pointer;font-size:13px;}
+  .subrec .ed:active{transform:translateY(1px);}
+
+  /* ---- venster: een ingezonden formulier aanpassen ---- */
+  .cammodal-box.formbox{max-width:560px;width:100%;max-height:92vh;overflow:auto;text-align:left;}
+  .fe-lijst{display:flex;flex-direction:column;gap:7px;}
+  .fe-rij{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:6px 10px;}
+  .fe-rij .fe-nm{flex:1;min-width:0;font-weight:700;font-size:14px;color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fe-rij .stk{display:flex;align-items:center;flex:0 0 auto;}
+  .fe-rij .stk button{width:30px;height:30px;border:1px solid var(--line);background:var(--panel);
+    color:var(--forest);font-size:17px;font-weight:800;cursor:pointer;line-height:1;}
+  .fe-rij .stk .min{border-radius:8px 0 0 8px;} .fe-rij .stk .pl{border-radius:0 8px 8px 0;}
+  .fe-rij .stk input{width:46px;height:30px;text-align:center;border:1px solid var(--line);
+    border-left:0;border-right:0;background:var(--panel);color:var(--text);font-size:15px;
+    font-weight:800;outline:none;font-family:inherit;}
+  .fe-rij .fe-x{flex:0 0 auto;border:1px solid #e2b6b0;background:transparent;color:#a23b30;
+    font-weight:800;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:12px;}
+  .fe-leeg{color:var(--muted);font-style:italic;font-size:13px;padding:4px 2px;}
+  .fe-add{display:flex;gap:8px;margin-top:8px;}
+  .fe-add .bsel{flex:1;min-width:0;}
+  .fe-bk{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+  .fe-bk > div{display:flex;flex-direction:column;}
+  .fe-bl{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--muted);margin-bottom:4px;}
+  @media(max-width:420px){ .fe-bk{grid-template-columns:1fr;} }
+  /* Wat de bewerking met de voorraad doet — vóór je opslaat, niet erna. */
+  .fe-corr{margin-top:14px;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.6;
+    background:#eaf7ee;color:#2b6b45;border:1px solid #bfe4cc;}
+  .fe-corr .fek{display:block;}
+  .fe-corr.leeg{background:var(--panel2);color:var(--muted);border-color:var(--line);}
+  [data-theme="dark"] .fe-corr{background:#16301f;color:#9fdcb5;border-color:#2c5c3c;}
+  [data-theme="dark"] .fe-corr.leeg{background:var(--panel2);color:var(--muted);border-color:var(--line);}
 
   /* ---- formulieren: lijst links, de laatste finalevraag in een kader rechts ---- */
   .formlayout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start;}
@@ -761,3 +799,58 @@
   .toegtab td.naam b{display:block;font-size:14px;color:var(--forest);}
   .toegtab td.naam span{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:2px;}
   .toegtab select{width:100%;min-width:150px;font-size:14px;padding:8px 10px;}
+
+  /* ================================================================
+     DONKER THEMA — de laatste licht-getinte vlakjes
+     ================================================================
+     Deze badges en knoppen hadden hun kleur hardgecodeerd. Leesbaar bleven ze wel, maar
+     in een donker scherm sprongen ze er fel wit/pastel uit. Hier krijgen ze dezelfde
+     kleurfamilie, maar dan donker getint met lichte tekst — dezelfde tinten die .sysnote
+     hierboven al gebruikt, zodat het één geheel blijft. */
+  /* :not(.on) — de "in gebruik"-knop houdt in aan-stand haar groene verloop. */
+  [data-theme="dark"] .invrow .use:not(.on),
+  [data-theme="dark"] .invrow .del,
+  [data-theme="dark"] .subrec .rm,
+  [data-theme="dark"] .mgbtn.del{background:#3a2020;color:#f0a0a0;border-color:#5c2c2c;}
+  [data-theme="dark"] .fe-rij .fe-x{color:#f0a0a0;border-color:#5c2c2c;}
+  [data-theme="dark"] .subrec .fc.bk{background:#33280f;color:#f0cd8a;border-color:#5c4820;}
+  [data-theme="dark"] .br-amt.ent{background:#16301f;color:#9fdcb5;border-color:#2c5c3c;}
+  [data-theme="dark"] .br-amt.bay{background:#152a34;color:#9ac8e8;border-color:#2b4a5c;}
+  [data-theme="dark"] .br-amt.hsb{background:#33280f;color:#e2c68a;border-color:#5c4820;}
+  [data-theme="dark"] .stbadge.s-besteld{background:#33280f;color:#f0cd8a;border-color:#5c4820;}
+  [data-theme="dark"] .stbadge.s-onderweg{background:#152a34;color:#9ac8e8;border-color:#2b4a5c;}
+  [data-theme="dark"] .stbadge.s-inloods{background:#2e2517;color:#dcc08a;border-color:#544527;}
+  [data-theme="dark"] .stbadge.s-uitgepakt{background:#16301f;color:#9fdcb5;border-color:#2c5c3c;}
+  [data-theme="dark"] .stbadge.s-geannuleerd{background:#3a2020;color:#f0a0a0;border-color:#5c2c2c;}
+
+  /* ================================================================
+     TOETSENBORD-FOCUS
+     ================================================================
+     Wie met Tab door de app loopt, zag tot nu toe niets: overal stond outline:none.
+     :focus-visible verschijnt alleen bij toetsenbord- of hulpmiddelgebruik, dus een
+     muisklik krijgt géén rand. Dit blok staat bewust onderaan: verschillende regels
+     hierboven zetten outline:none met dezelfde gewichtsklasse, en dan wint de laatste. */
+  :focus-visible{outline:3px solid var(--leaf);outline-offset:2px;}
+  .card:focus-visible,.item:focus-visible{outline:3px solid var(--leaf);outline-offset:3px;}
+  /* In de groene balk valt groen-op-groen weg; daar een witte rand. */
+  .topbar :focus-visible,.modal .mbar :focus-visible{outline-color:#fff;}
+
+  /* ================================================================
+     MINDER BEWEGING
+     ================================================================
+     Respecteert de systeeminstelling "beperk beweging". De overgangen zijn versiering;
+     wie er last van heeft (draaierigheid, migraine) zet dit op het toestel aan en krijgt
+     dan een stilstaande app. De roterende meldingen op de startpagina stoppen ook — dat
+     regelt entertainment.html zelf, want dat is een timer en geen animatie. */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.01ms !important;
+      scroll-behavior:auto !important;
+    }
+    .card:hover,.item:hover{transform:none;}
+  }
+
+  /* Rol Admin die je niet mag wijzigen: zichtbaar, maar duidelijk buiten bereik. */
+  .gebr-row .admin.uit{opacity:.45;cursor:not-allowed;}

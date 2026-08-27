@@ -858,9 +858,15 @@
   async function migrateIfEmpty(){
     if(cache.prijzen.length) return;
     if(localStorage.getItem('bb_migrated_v1')==='1') return; // voorkomt dubbele migratie (home+index delen opslag)
-    localStorage.setItem('bb_migrated_v1','1');
     let seed=[];
     try{const raw=localStorage.getItem('bb_inv_prijzen'); if(raw) seed=JSON.parse(raw)||[];}catch(e){}
+    // Niets om te zaaien? Dan hier stoppen — en vooral de vlag NIET zetten. Niet elke
+    // pagina laadt inventaris-data.js; deden we dit toch, dan schreven we een lege
+    // inventaris én 0 boekjes naar de gedeelde database, en kwam het op dit toestel
+    // nooit meer goed (de vlag houdt een tweede poging tegen). Laat het over aan een
+    // pagina die de standaardlijst wél bij zich heeft.
+    if(!seed.length && !window.INVENTARIS_DEFAULT) return;
+    localStorage.setItem('bb_migrated_v1','1');
     if(!seed.length && window.INVENTARIS_DEFAULT){
       const d=window.INVENTARIS_DEFAULT;
       (d.klein||[]).forEach(x=>seed.push({id:uid(),cat:'klein',naam:x.naam,stock:x.stock||0,inGebruik:false,foto:''}));
@@ -1633,6 +1639,108 @@
     dbDelete('formulieren','id',rec.id);
     return rec;
   }
+
+  // ---- Een ingezonden formulier achteraf aanpassen ----
+  // Let op: een formulier heeft de voorraad AL afgeboekt (zie submitFormulier). Wie hier
+  // een aantal wijzigt, wijzigt dus ook wat er ooit is afgeboekt. Daarom rekenen we het
+  // verschil met de vorige waarden terug op de voorraad. Zonder die correctie vertellen
+  // de stock en de formulieren na één bewerking een ander verhaal, en is er achteraf geen
+  // enkele manier meer om te zien waar het verschil vandaan komt.
+  //
+  // 'velden' mag bevatten: namen, kleine, groot, boekjes, finale, finalevraag, opmerking.
+  // Wat je niet meestuurt blijft ongewijzigd.
+  function updateFormulier(id,velden){
+    const rec=cache.formulieren.find(f=>f.id===id); if(!rec) return null;
+    const v=velden||{};
+    const byId={}; cache.prijzen.forEach(p=>byId[p.id]=p);
+    const changed=new Set();
+
+    // De vraag die er vóór de bewerking in stond — nodig om de vragenbank recht te zetten.
+    const oudeVraag=_eersteVraagVan(rec);
+
+    // Per prijs-id optellen hoeveel stuks er stonden, zodat twee regels van dezelfde prijs
+    // niet elk apart worden verrekend.
+    const tel=arr=>{ const m={}; (arr||[]).forEach(it=>{ m[it.id]=(m[it.id]||0)+Math.max(1,+it.n||1); }); return m; };
+    // Verschil terug op de voorraad zetten. Positief = er gingen minder prijzen weg dan
+    // eerst geboekt, dus er komt voorraad bij.
+    const corrigeer=(oud,nieuw)=>{
+      const ids={}; Object.keys(oud).forEach(k=>ids[k]=1); Object.keys(nieuw).forEach(k=>ids[k]=1);
+      Object.keys(ids).forEach(pid=>{
+        const verschil=(oud[pid]||0)-(nieuw[pid]||0);
+        if(!verschil) return;
+        const p=byId[pid]; if(!p) return;   // prijs bestaat niet meer: niets te corrigeren
+        const was=p.stock||0;
+        p.stock=was+verschil;
+        // Dezelfde regels als bij inzenden en terugdraaien: op nul valt een prijs uit
+        // gebruik, komt er weer voorraad bij dan doet ze weer mee.
+        if(p.stock<=0) p.inGebruik=false;
+        else if(was<=0) p.inGebruik=true;
+        changed.add(p.id);
+      });
+    };
+    // De naam opnieuw afleiden uit de inventaris, net als bij inzenden — zo blijft een
+    // hernoemde prijs ook op een bewerkt formulier kloppen.
+    const netjes=arr=>(arr||[]).map(it=>{
+      const p=byId[it.id];
+      return {id:it.id,naam:p?p.naam:(it.naam||'(verwijderd)'),n:Math.max(1,+it.n||1)};
+    });
+
+    if(v.kleine!=null){ const nieuw=netjes(v.kleine); corrigeer(tel(rec.kleine),tel(nieuw)); rec.kleine=nieuw; }
+    if(v.groot!=null){ const nieuw=netjes(v.groot);  corrigeer(tel(rec.groot), tel(nieuw)); rec.groot=nieuw; }
+
+    if(v.boekjes!=null){
+      const gebruikt=b=>(+((b||{}).gereserveerd)||0)+(+((b||{}).extra)||0)+(+((b||{}).gratis)||0);
+      const verschil=gebruikt(rec.boekjes)-gebruikt(v.boekjes);
+      if(verschil) cache.boekjes.stock=(cache.boekjes.stock||0)+verschil;
+      rec.boekjes={gereserveerd:+v.boekjes.gereserveerd||0,extra:+v.boekjes.extra||0,gratis:+v.boekjes.gratis||0};
+      if(verschil) dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
+    }
+
+    if(v.namen!=null)       rec.namen=v.namen||'';
+    if(v.finale!=null)      rec.finale=v.finale||'';
+    if(v.finalevraag!=null) rec.finalevraag=(v.finalevraag||'').trim();
+    if(v.opmerking!=null)   rec.opmerking=v.opmerking||'';
+
+    const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRowKaal);
+    if(rows.length) dbUpsert('prijzen',rows);
+
+    // Naar de database. Dezelfde terugval als bij inzenden: bestaat de kolom 'finalevraag'
+    // nog niet, dan gaat de vraag achter de finalereeks in het bestaande veld.
+    const rij={namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,
+      opmerking:rec.opmerking,finale:rec.finale};
+    if(finalevraagOK) rij.finalevraag=rec.finalevraag;
+    else if(rec.finalevraag) rij.finale=[rec.finale,VRAAG_MARKER+rec.finalevraag].filter(Boolean).join(' — ');
+    dbUpdate('formulieren','id',rec.id,rij);
+
+    // Is de gestelde vraag veranderd, dan verhuist deze speelbeurt in de vragenbank van de
+    // oude naar de nieuwe vraag. Anders blijft de oude vraag onterecht als "pas gespeeld"
+    // staan en komt ze veel te laat opnieuw aan bod.
+    _verplaatsVraagTelling(oudeVraag,_eersteVraagVan(rec),rec.ts||Date.now());
+
+    persistCache();
+    logAct('Formulier aangepast'+(rec.namen?': '+rec.namen:''));
+    return rec;
+  }
+  // Eén speelbeurt van de ene vraag naar de andere verplaatsen in de gedeelde vragenbank.
+  function _verplaatsVraagTelling(oud,nieuw,ts){
+    const lijst=_vragenLijst(); if(!lijst) return;
+    const sOud=_normVraag(oud), sNieuw=_normVraag(nieuw);
+    if(sOud===sNieuw) return;
+    let raak=false;
+    if(sOud){
+      const r=lijst.find(x=>_normVraag(x.vraag)===sOud);
+      if(r){ r.keer=Math.max(0,(r.keer||0)-1); if(!r.keer) r.laatst=0; raak=true; }
+    }
+    if(sNieuw){
+      let r=lijst.find(x=>_normVraag(x.vraag)===sNieuw);
+      // Staat de nieuwe vraag nog niet in de bank? Dan hoort ze er vanaf nu wél in.
+      if(!r){ r={id:uid(),vraag:String(nieuw||'').trim(),antwoord:'',keer:0,laatst:0}; lijst.push(r); }
+      r.keer=(r.keer||0)+1;
+      if((ts||0)>(r.laatst||0)) r.laatst=ts||Date.now();
+      raak=true;
+    }
+    if(raak) _bewaarVragen(lijst);
+  }
   // verwijderen via "set(filter(...))"-patroon: bepaal welke rij wegviel en wis die in de DB
   function setFormulieren(arr){
     const keep={}; arr.forEach(f=>keep[f.id]=1);
@@ -1861,6 +1969,6 @@
     pendingCount,flushOutbox,
     rolTags,heeftRol,zetRol,
     getSysteem,pingDB,getOpslag,wisWachtrij,opruimen,
-    submitFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
+    submitFormulier,updateFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
 })();

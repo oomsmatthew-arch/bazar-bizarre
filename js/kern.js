@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v5.9';
+const APP_VERSION='v6.0';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -315,8 +315,18 @@ function syncConfig(){
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ---------------- THEMA (donker/licht) ----------------
+// Welk thema hoort er nu te staan? Heb je zelf al eens op het maantje getikt, dan wint
+// die keuze altijd. Zo niet, dan volgen we de instelling van het toestel — wie z'n gsm
+// op donker heeft staan, krijgt de app meteen donker. (js/ratings.js deed dit al; hier
+// ontbrak het, waardoor die ene pagina donker was en de rest licht.)
+function themaKeuze(){
+  const opgeslagen=localStorage.getItem(K_THEME);
+  if(opgeslagen==='dark'||opgeslagen==='light') return opgeslagen;
+  try{ return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+  catch(e){ return 'light'; }
+}
 function applyTheme(){
-  const dark=localStorage.getItem(K_THEME)==='dark';
+  const dark=themaKeuze()==='dark';
   document.documentElement.setAttribute('data-theme',dark?'dark':'light');
   const b=document.getElementById('themeBtn');
   if(b) b.textContent=dark?'☀️':'🌙';
@@ -325,12 +335,20 @@ function applyTheme(){
 }
 applyTheme(); // meteen, nog voor de pagina getekend is (geen witte flits)
 { const tb=document.getElementById('themeBtn');
+  // Uitgaan van het thema dat NU op het scherm staat, niet van wat er bewaard is: anders
+  // doet de eerste tik niets wanneer het toestel op donker staat en jij nog niets koos.
   if(tb) tb.onclick=()=>{
-    const dark=localStorage.getItem(K_THEME)==='dark';
-    localStorage.setItem(K_THEME,dark?'light':'dark');
+    localStorage.setItem(K_THEME, themaKeuze()==='dark' ? 'light' : 'dark');
     applyTheme();
   };
 }
+// Wisselt het toestel van thema (bv. automatisch 's avonds) en heb je zelf nog niets
+// gekozen, dan gaat de app mee.
+try{
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+    if(!localStorage.getItem(K_THEME)) applyTheme();
+  });
+}catch(e){}
 
 function bbFmtTs(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,'0');
   return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}
@@ -499,9 +517,11 @@ function heeftRol(tag){ const u=fullCurrentUser(); return !!(window.BBInv&&BBInv
 function isVasteMdw(){ return heeftRol('vast'); }
 // Admin = mag het Systeem-scherm en de Activiteit bekijken.
 function isAdmin(){ return heeftRol('admin'); }
-// Toegang tot een beheerdeel: waar voor een vaste mdw, anders het wachtwoord vragen.
+// Toegang tot een beheerdeel: waar voor een vaste mdw of admin, anders het wachtwoord
+// vragen. Admins horen er ook zonder wachtwoord in — ze beheren toch de Toegangen zelf,
+// dus hen dat laten typen is schijnbeveiliging. Dit sluit ook aan bij magToegang().
 function magBeheren(actie){
-  if(isVasteMdw()) return true;
+  if(isVasteMdw()||isAdmin()) return true;
   const p=prompt('Wachtwoord'+(actie?' '+actie:'')+':'); if(p===null) return false;
   if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
   return true;
@@ -512,11 +532,22 @@ function isOntgrendeld(){ try{ return sessionStorage.getItem('bb_beheer_open')==
 function zetOntgrendeld(){ try{ sessionStorage.setItem('bb_beheer_open','1'); }catch(e){} }
 // Bij het wisselen/uitloggen de 'ontgrendeld'-vlag wissen, zodat de volgende
 // persoon niet de beheer-toegang van de vorige erft.
-function resetBeheerLocks(){ try{ sessionStorage.removeItem('bb_beheer_open'); }catch(e){} }
+function resetBeheerLocks(){
+  try{ sessionStorage.removeItem('bb_beheer_open'); }catch(e){}
+  try{ sessionStorage.removeItem(K_NOOD_SYSTEEM); }catch(e){}
+}
+// Noodingang naar Systeem: met het beheer-wachtwoord kan je het diagnosescherm openen,
+// ook zonder de rol Admin. Dat moet kunnen — als er iets stuk is, is Systeem net het
+// scherm waar je moet zijn, en dan is "vraag het aan een admin" geen antwoord.
+// Bewust apart en enkel voor Systeem: het beheer-wachtwoord mag niet zomaar élke
+// admin-pagina openzetten.
+const K_NOOD_SYSTEEM='bb_nood_systeem';
+function zetNoodSysteem(){ try{ sessionStorage.setItem(K_NOOD_SYSTEEM,'1'); }catch(e){} }
+function heeftNoodSysteem(){ try{ return sessionStorage.getItem(K_NOOD_SYSTEEM)==='1'; }catch(e){ return false; } }
 // Beheer-toegang vragen en onthouden (gebruikt door de tabbladen 🔒 Beheer).
 function eisBeheer(actie){
   if(isOntgrendeld()) return true;
-  if(isVasteMdw()){ zetOntgrendeld(); return true; }
+  if(isVasteMdw()||isAdmin()){ zetOntgrendeld(); return true; }
   const p=prompt('Wachtwoord beheer'+(actie?' om '+actie:'')+':');
   if(p===null) return false;
   if(p!==getPin()){ alert('Onjuist wachtwoord.'); return false; }
@@ -653,6 +684,29 @@ function openGebruikers(){
   if(!magBeheren()) return;
   openBeheerPanel();
 }
+// ROL ADMIN UITDELEN — enkel door een admin.
+// Zonder deze grens kon een vaste medewerker zichzelf in twee tikken tot admin maken en
+// daarna via 🔑 Toegangen alles openzetten. Er zijn drie wegen die hetzelfde opleveren en
+// die dus alle drie dicht moeten:
+//   1. de knop Admin aanzetten bij jezelf
+//   2. de pincode van een admin resetten en als die persoon inloggen
+//   3. alle admins verwijderen, waarna de noodregel hieronder weer opengaat
+//
+// NOODREGEL: zolang er nog GEEN enkele admin is, mag wie in de namenlijst kan de eerste
+// aanduiden. Anders is die rol na een verse installatie nooit meer toe te kennen.
+function erIsEenAdmin(){
+  const users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
+  return users.some(u=>BBInv.heeftRol(u,'admin'));
+}
+function magAdminUitdelen(){ return isAdmin() || !erIsEenAdmin(); }
+// Iets doen mét een bestaande admin (rol afnemen, code resetten, verwijderen) mag enkel
+// door een admin — anders is het een omweg naar punt 3 hierboven.
+function magAanAdminRaken(u){ return isAdmin() || !BBInv.heeftRol(u,'admin'); }
+function meldGeenAdmin(){
+  alert('Alleen een admin kan de rol Admin toekennen of afnemen.\n\n'+
+    'Dat is met opzet: wie dat zou kunnen, kan zichzelf admin maken en daarna via '+
+    'Instellingen → Toegangen alles openzetten.');
+}
 function renderGebrList(){
   const box=document.getElementById('gebrlist'); if(!box) return;
   const users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[]; box.innerHTML='';
@@ -667,18 +721,39 @@ function renderGebrList(){
       (locked
         ? '<span class="rol">🔒 vast account · geen code</span>'
         : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'✓ Vaste mdw':'Vaste mdw')+'</button>'+
-          '<button class="admin'+(admin?' on':'')+'" title="Mag het Systeem-scherm en de Activiteit bekijken">'+(admin?'✓ Admin':'Admin')+'</button>'+
+          '<button class="admin'+(admin?' on':'')+(magAdminUitdelen()?'':' uit')+'" title="'+
+            (magAdminUitdelen()?'Mag Systeem en Activiteit bekijken en de Toegangen beheren'
+                               :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
+            (admin?'✓ Admin':'Admin')+'</button>'+
           '<button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
     if(!locked){
       row.querySelector('.vast').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'vast',!vast)}); renderGebrList(); refreshAuth(); };
-      row.querySelector('.admin').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'admin',!admin)}); renderGebrList(); refreshAuth(); };
+      row.querySelector('.admin').onclick=()=>{
+        // Opnieuw nakijken bij de klik: de lijst kan intussen veranderd zijn, en een
+        // uitgeschakelde knop is geen beveiliging.
+        if(!magAdminUitdelen()){ meldGeenAdmin(); return; }
+        BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'admin',!admin)}); renderGebrList(); refreshAuth();
+      };
       row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
       row.querySelector('.rst').onclick=async()=>{
+        // De code van een admin resetten = als die admin kunnen inloggen. Dus enkel een
+        // admin mag dat; anders is het een omweg naar de rol.
+        if(!magAanAdminRaken(u)){
+          alert('Alleen een admin kan de pincode van een andere admin resetten.\n\n'+
+                'Anders zou je met die code als admin kunnen inloggen.');
+          return;
+        }
         const np=prompt('Nieuwe pincode voor '+u.naam+' (4 cijfers):'); if(np===null) return;
         if(!/^\d{4}$/.test(np.trim())){ alert('De pincode moet precies 4 cijfers zijn.'); return; }
         BBInv.updateGebruiker(u.id,{pin: await sha256(np.trim())}); alert('Pincode aangepast.');
       };
       row.querySelector('.del').onclick=()=>{
+        // Alle admins verwijderen zou de noodregel weer openzetten, en dan kan wie in
+        // deze lijst kan zichzelf alsnog tot admin maken.
+        if(!magAanAdminRaken(u)){
+          alert('Alleen een admin kan een andere admin verwijderen.');
+          return;
+        }
         if(!confirm(u.naam+' verwijderen? Deze persoon kan dan niet meer inloggen.')) return;
         BBInv.removeGebruiker(u.id);
         const cu=currentUser(); if(cu&&cu.id===u.id) setCurrentUser(null,false);
@@ -778,6 +853,7 @@ function bewaakPagina(){
   if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;   // rollen nog niet geladen
   if(cat){
     if(magToegang(cat,'bekijken')) return;
+    if(cat==='systeem' && heeftNoodSysteem()) return;   // via de noodingang binnengekomen
     const r=toegangRegel(cat,'bekijken');
     if(r==='beheer' && eisBeheer('deze pagina te openen')) return;
     alert('Je hebt geen toegang tot deze pagina.\n\nEen admin kan dat wijzigen via Instellingen → Toegangen.');

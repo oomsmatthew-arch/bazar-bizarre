@@ -124,7 +124,7 @@
   function zetZoekKnop(){
     const bar=document.querySelector('.topbar'); if(!bar||document.getElementById('gzoekBtn')) return;
     const btn=document.createElement('button');
-    btn.id='gzoekBtn'; btn.className='navbtn gzoek-btn'; btn.title='Zoeken in alles'; btn.setAttribute('aria-label','Zoeken');
+    btn.id='gzoekBtn'; btn.className='navbtn gzoek-btn'; btn.title='Zoeken in alles (Ctrl+K)'; btn.setAttribute('aria-label','Zoeken');
     btn.textContent='🔍';
     btn.onclick=openZoek;
     const thema=document.getElementById('themeBtn');
@@ -144,6 +144,22 @@
     };
     probeer(0);
   }
+
+  // Sneltoets Ctrl+K / Cmd+K — op een laptop scheelt dat elke keer grijpen naar de muis.
+  // We laten hem met rust zodra je al in een invoerveld staat: daar kan Cmd+K iets anders
+  // betekenen, en onderbreken terwijl iemand typt is erger dan de sneltoets missen.
+  function inInvoerveld(){
+    const a=document.activeElement; if(!a) return false;
+    const t=(a.tagName||'').toLowerCase();
+    return t==='input' || t==='textarea' || t==='select' || a.isContentEditable;
+  }
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='k'&&e.key!=='K') return;
+    if(!(e.ctrlKey||e.metaKey) || e.altKey || e.shiftKey) return;
+    if(inInvoerveld()) return;
+    e.preventDefault();
+    openZoek();
+  });
 
   document.addEventListener('DOMContentLoaded',()=>{
     // BBInv veilig opstarten (no-op als de pagina of kern dat al deed).

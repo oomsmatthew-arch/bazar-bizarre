@@ -136,6 +136,13 @@ tegelijk hebben, of geen van beide.
   het financieel overzicht, projecten aanmaken…).
 - **Admin** — ziet de kaarten **Systeem** en **Activiteit**, en beheert de **Toegangen**.
 
+De rol **Admin** kan alleen door een admin toegekend of afgenomen worden. Een vaste
+medewerker kon zichzelf anders in twee tikken tot admin maken en daarna via Toegangen
+alles openzetten. Om dezelfde reden kan enkel een admin de pincode van een andere admin
+resetten of een admin verwijderen. Uitzondering: zolang er nog **geen enkele** admin is,
+mag wie in de namenlijst kan de eerste aanduiden — anders is die rol na een verse
+installatie nooit meer toe te kennen.
+
 ## Toegangen: wie mag wat
 
 ⚙ Instellingen → **🔑 Toegangen** (enkel zichtbaar voor admins). Daar staat per onderdeel

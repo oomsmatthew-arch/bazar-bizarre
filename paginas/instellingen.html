@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Instellingen · Entertainment</title>
+<meta name="description" content="Mededelingen, drempelwaarden, toegangen en koppelingen beheren.">
 <link rel="manifest" href="../manifest.json">
 <!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
 <link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
@@ -20,7 +21,7 @@
 
 <div class="wrap">
   <div class="topbar">
-    <a class="logolink" href="../entertainment.html" title="Naar de startpagina"><img class="logo" src="../assets/logo-cp.png" alt="Center Parcs"></a>
+    <a class="logolink" href="../entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="../assets/logo-cp.png" alt="Center Parcs"></a>
     <h1>Instellingen</h1>
     <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
     <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
@@ -133,7 +134,6 @@
 </div>
 <script src="../js/supabase.min.js"></script>
 <script src="../js/terug.js"></script>
-<script src="../js/inventaris-data.js"></script>
 <script src="../js/inventaris.js"></script>
 <script src="../js/kern.js"></script>
 <script src="../js/zoek.js"></script>
@@ -175,7 +175,12 @@ function openInstellingen(){
 }
 // 🩺 Systeem bekijken — via het wachtwoord, ook als er (nog) niemand admin is.
 document.getElementById('openSysteemBtn').onclick=()=>{
-  if(!isAdmin() && !magBeheren('om het systeem te bekijken')) return;
+  if(!isAdmin()){
+    if(!magBeheren('om het systeem te bekijken')) return;
+    // Zonder dit stuurt bewaakPagina() je meteen terug: Systeem staat standaard op
+    // "enkel admin", en die regel kent geen wachtwoord-uitweg.
+    zetNoodSysteem();
+  }
   location.href='systeem.html';
 };
 document.getElementById('entRemember').onchange=function(){

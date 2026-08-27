@@ -19,6 +19,8 @@ $JSC tests/test-bestellingen.js
 $JSC tests/test-finalevraag.js
 $JSC tests/test-vragenbank.js
 $JSC tests/test-toegangen.js
+$JSC tests/test-formulier-aanpassen.js
+$JSC tests/test-zaaien.js
 ```
 
 Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
@@ -37,6 +39,8 @@ Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
 | `test-toegangen.js` | Wie mag wat, per onderdeel: dat de standaardwaarden de app precies laten zoals ze was, dat een eigen instelling voorrang krijgt, en dat de oude projectrechten mee overgenomen worden |
 | `test-vragenbank.js` | De gedeelde vragenlijst voor het finalespel: de volgorde (minst gespeeld eerst, dan het langst geleden), toevoegen/aanpassen/verwijderen, en dat een ander scherm dat instellingen bewaart de vragen niet wegvaagt |
 | `test-finalevraag.js` | De finalevraag bij een ingezonden formulier — en vooral: dat een inzending óók aankomt zolang de kolom `finalevraag` nog niet in Supabase staat (een onbekende kolom laat anders het hele formulier mislukken) |
+| `test-formulier-aanpassen.js` | Een ingezonden formulier achteraf bewerken: het formulier heeft de voorraad al afgeboekt, dus elke wijziging aan de prijzen of boekjes moet als verschil terug op de stock. Sluit af met de kroontest — aanpassen moet exact hetzelfde opleveren als meteen het juiste formulier insturen |
+| `test-zaaien.js` | Het zaaien van een lege database: een pagina die de standaardlijst niet inlaadt mag de migratievlag niet zetten, want dan komt die lijst op dat toestel nooit meer aan |
 | `test-opslag.js` | De opslag én het opstarten: één momentopname i.p.v. een kopie per tabel, de verhuizing naar IndexedDB (met een nagemaakte IndexedDB), het geval waarin de opslag al vol zit, "invullen en meteen wegklikken", dat je rol al bekend is vóór de database antwoordt, en dat het laden de offline kopie niet per tabel herschrijft |
 
 `nep-supabase.js` is een nagemaakte database, zodat `test-sync.js` het echte online-gedrag

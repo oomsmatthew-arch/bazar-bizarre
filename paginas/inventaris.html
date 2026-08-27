@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inventaris · Entertainment</title>
+<meta name="description" content="Voorraadbeheer: stock, boekjes, leveringen en de doorgestuurde formulieren uit Bazar Bizarre.">
 <link rel="manifest" href="../manifest.json">
 <!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
 <link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
@@ -20,7 +21,7 @@
 
 <div class="wrap">
   <div class="topbar">
-    <a class="logolink" href="../entertainment.html" title="Naar de startpagina"><img class="logo" src="../assets/logo-cp.png" alt="Center Parcs"></a>
+    <a class="logolink" href="../entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="../assets/logo-cp.png" alt="Center Parcs"></a>
     <h1>Inventaris</h1>
     <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
     <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
@@ -172,6 +173,55 @@
     <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
   </footer>
 </div>
+
+<!-- Een ingezonden formulier aanpassen. Alles is bewerkbaar; de voorraad wordt bij het
+     opslaan bijgesteld met het verschil, en je ziet dat verschil vooraf onderaan staan. -->
+<div class="cammodal" id="formEditModal">
+  <div class="cammodal-box formbox">
+    <div class="cammodal-title">Formulier aanpassen</div>
+
+    <label class="mlbl">Namen</label>
+    <input type="text" id="feNamen" class="finp" placeholder="Namen van de spelers">
+
+    <label class="mlbl">Kleine prijzen</label>
+    <div class="fe-lijst" id="feKleineLijst"></div>
+    <div class="fe-add">
+      <select class="bsel" id="feKleineKies"></select>
+      <button class="btn" id="feKleineAdd">+ Toevoegen</button>
+    </div>
+
+    <label class="mlbl">Grote prijzen</label>
+    <div class="fe-lijst" id="feGrootLijst"></div>
+    <div class="fe-add">
+      <select class="bsel" id="feGrootKies"></select>
+      <button class="btn" id="feGrootAdd">+ Toevoegen</button>
+    </div>
+
+    <label class="mlbl">Boekjes</label>
+    <div class="fe-bk">
+      <div><span class="fe-bl">gereserveerd</span><input type="tel" inputmode="numeric" id="feBkRes" class="finp"></div>
+      <div><span class="fe-bl">extra</span><input type="tel" inputmode="numeric" id="feBkExtra" class="finp"></div>
+      <div><span class="fe-bl">gratis (3+1)</span><input type="tel" inputmode="numeric" id="feBkGratis" class="finp"></div>
+    </div>
+
+    <label class="mlbl">Finalereeks</label>
+    <input type="text" id="feFinale" class="finp" placeholder="De reeks van de finale">
+
+    <label class="mlbl">Finalevraag</label>
+    <textarea id="feVraag" class="finp" rows="3" placeholder="V1: vraag → antwoord"></textarea>
+
+    <label class="mlbl">Opmerking</label>
+    <input type="text" id="feOpm" class="finp" placeholder="Vrije notitie">
+
+    <div class="fe-corr leeg" id="feCorr"></div>
+
+    <div class="cammodal-bar">
+      <button class="btn clear" id="feAnnuleer">Annuleren</button>
+      <button class="btn primary" id="feOpslaan">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <script src="../js/supabase.min.js"></script>
 <script src="../js/terug.js"></script>
 <script src="../js/inventaris-data.js"></script>
@@ -536,11 +586,129 @@ function renderFormulieren(){
       // De vraag kan meerdere regels bevatten (V1/V2) — die houden we ook zo op het scherm.
       (vraag?('<div class="blk"><span class="bl">Finalevraag</span><span style="white-space:pre-line">'+esc(vraag)+'</span></div>'):'')+
       (f.opmerking?('<div class="blk"><span class="bl">Opmerking</span><span>'+esc(f.opmerking)+'</span></div>'):'')+
-      '<button class="rm" data-id="'+f.id+'">Verwijderen</button>';
+      '<div class="subacts">'+
+        '<button class="ed" data-id="'+f.id+'">Aanpassen</button>'+
+        '<button class="rm" data-id="'+f.id+'">Verwijderen</button>'+
+      '</div>';
+    d.querySelector('.ed').onclick=()=>{if(!eisToegang('inventaris','beheren','het formulier aan te passen'))return;feOpen(f);};
     d.querySelector('.rm').onclick=()=>{if(!eisToegang('inventaris','beheren','het formulier te verwijderen'))return;if(confirm('Dit formulier verwijderen? (de afgeboekte stock wordt niet teruggedraaid)')){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
     wrap.appendChild(d);
   });
 }
+
+// ---- Een ingezonden formulier aanpassen ----
+// We bewerken een KOPIE van de prijzenlijsten; pas bij Opslaan gaat alles in één keer naar
+// BBInv.updateFormulier(), dat zelf het verschil op de voorraad bijstelt. Zo kan je in het
+// venster rustig heen en weer klikken zonder dat de voorraad al meebeweegt.
+let feId=null, feKleine=[], feGroot=[];
+const feEl=id=>document.getElementById(id);
+
+function feOpen(f){
+  feId=f.id;
+  feKleine=(f.kleine||[]).map(x=>({id:x.id,naam:x.naam,n:Math.max(1,+x.n||1)}));
+  feGroot =(f.groot ||[]).map(x=>({id:x.id,naam:x.naam,n:Math.max(1,+x.n||1)}));
+  const b=f.boekjes||{};
+  feEl('feNamen').value=f.namen||'';
+  feEl('feBkRes').value=+b.gereserveerd||0;
+  feEl('feBkExtra').value=+b.extra||0;
+  feEl('feBkGratis').value=+b.gratis||0;
+  // De vraag kan in 'finale' zijn beland zolang die kolom nog niet bestaat; reeksVan() en
+  // vraagVan() halen ze weer uit elkaar, zodat je hier twee schone velden ziet.
+  feEl('feFinale').value=reeksVan(f);
+  feEl('feVraag').value=vraagVan(f);
+  feEl('feOpm').value=f.opmerking||'';
+  feVulKiezers(); feTeken();
+  feEl('formEditModal').classList.add('open');
+}
+function feSluit(){ feEl('formEditModal').classList.remove('open'); feId=null; }
+
+// De keuzelijsten met alle prijzen uit de inventaris, per soort.
+function feVulKiezers(){
+  const vul=(elId,cat)=>{
+    const lijst=BBInv.getPrijzen().filter(p=>p.cat===cat)
+      .slice().sort((a,b)=>(a.naam||'').localeCompare(b.naam||''));
+    feEl(elId).innerHTML=lijst.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.naam)+' ('+(p.stock||0)+' op voorraad)</option>').join('')
+      || '<option value="">— geen prijzen in de inventaris —</option>';
+  };
+  vul('feKleineKies','klein'); vul('feGrootKies','groot');
+}
+function feVoegToe(arr,selId){
+  const id=feEl(selId).value; if(!id) return;
+  const p=BBInv.getPrijzen().find(x=>x.id===id); if(!p) return;
+  const bestaand=arr.find(x=>x.id===id);
+  if(bestaand) bestaand.n++; else arr.push({id:p.id,naam:p.naam,n:1});
+  feTeken();
+}
+function feRenderLijst(elId,arr){
+  const box=feEl(elId); box.innerHTML='';
+  if(!arr.length){ box.innerHTML='<div class="fe-leeg">Geen prijzen.</div>'; return; }
+  arr.forEach((it,i)=>{
+    const r=document.createElement('div'); r.className='fe-rij';
+    r.innerHTML='<span class="fe-nm">'+esc(it.naam||'(verwijderd)')+'</span>'+
+      '<span class="stk"><button class="min" title="Eén minder">−</button>'+
+      '<input type="tel" inputmode="numeric" value="'+it.n+'">'+
+      '<button class="pl" title="Eén meer">+</button></span>'+
+      '<button class="fe-x" title="Van het formulier halen">✕</button>';
+    r.querySelector('.min').onclick=()=>{ it.n=Math.max(1,it.n-1); feTeken(); };
+    r.querySelector('.pl').onclick =()=>{ it.n=it.n+1; feTeken(); };
+    r.querySelector('input').onchange=e=>{ it.n=Math.max(1,parseInt(e.target.value,10)||1); feTeken(); };
+    r.querySelector('.fe-x').onclick=()=>{ arr.splice(i,1); feTeken(); };
+    box.appendChild(r);
+  });
+}
+function feBoekjes(){
+  const g=id=>Math.max(0,parseInt(feEl(id).value,10)||0);
+  return {gereserveerd:g('feBkRes'),extra:g('feBkExtra'),gratis:g('feBkGratis')};
+}
+// Wat de bewerking met de voorraad gaat doen — het verschil met het formulier zoals het
+// nu bewaard is. Dit is louter een voorbeschouwing; het rekenwerk zelf gebeurt in
+// BBInv.updateFormulier(), zodat er maar één plek is die de voorraad echt aanpast.
+function feCorrectie(){
+  const f=BBInv.getFormulieren().find(x=>x.id===feId); if(!f) return [];
+  const tel=arr=>{const m={};(arr||[]).forEach(it=>{m[it.id]=(m[it.id]||0)+Math.max(1,+it.n||1);});return m;};
+  const prijzen={}; BBInv.getPrijzen().forEach(p=>prijzen[p.id]=p);
+  const uit=[];
+  [[tel(f.kleine),tel(feKleine)],[tel(f.groot),tel(feGroot)]].forEach(paar=>{
+    const oud=paar[0], nieuw=paar[1], ids={};
+    Object.keys(oud).forEach(k=>ids[k]=1); Object.keys(nieuw).forEach(k=>ids[k]=1);
+    Object.keys(ids).forEach(pid=>{
+      const d=(oud[pid]||0)-(nieuw[pid]||0); if(!d) return;
+      const p=prijzen[pid]; if(!p) return;
+      uit.push({naam:p.naam,van:p.stock||0,naar:(p.stock||0)+d});
+    });
+  });
+  const gebruikt=b=>(+((b||{}).gereserveerd)||0)+(+((b||{}).extra)||0)+(+((b||{}).gratis)||0);
+  const dB=gebruikt(f.boekjes)-gebruikt(feBoekjes());
+  if(dB){ const s=BBInv.getBoekjes().stock||0; uit.push({naam:'Boekjes',van:s,naar:s+dB}); }
+  return uit;
+}
+function feTeken(){
+  feRenderLijst('feKleineLijst',feKleine);
+  feRenderLijst('feGrootLijst',feGroot);
+  const lijst=feCorrectie(), box=feEl('feCorr');
+  if(!lijst.length){ box.className='fe-corr leeg'; box.textContent='De voorraad blijft ongewijzigd.'; return; }
+  box.className='fe-corr';
+  box.innerHTML='<b>Voorraadcorrectie bij opslaan</b>'+lijst.map(r=>
+    '<span class="fek">'+esc(r.naam)+': '+r.van+' → <b>'+r.naar+'</b></span>').join('');
+}
+feEl('feKleineAdd').onclick=()=>feVoegToe(feKleine,'feKleineKies');
+feEl('feGrootAdd').onclick =()=>feVoegToe(feGroot,'feGrootKies');
+['feBkRes','feBkExtra','feBkGratis'].forEach(id=>feEl(id).addEventListener('input',feTeken));
+feEl('feAnnuleer').onclick=feSluit;
+feEl('formEditModal').addEventListener('click',e=>{ if(e.target.id==='formEditModal') feSluit(); });
+feEl('feOpslaan').onclick=()=>{
+  if(!feId) return;
+  BBInv.updateFormulier(feId,{
+    namen:feEl('feNamen').value.trim(),
+    kleine:feKleine, groot:feGroot,
+    boekjes:feBoekjes(),
+    finale:feEl('feFinale').value.trim(),
+    finalevraag:feEl('feVraag').value,
+    opmerking:feEl('feOpm').value.trim()
+  });
+  feSluit();
+  renderInventaris(); renderBoekjes();   // voorraad, boekjes, samenvatting én de lijst
+};
 
 function stockRows(){
   const rows=[['Categorie','Naam','Stock']];

@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EntertainmentVM</title>
+<meta name="description" content="Startpagina van het entertainmentteam: voorraad, bestellingen, projecten, checklists, manuals en het spel Bazar Bizarre.">
+<!-- Deel je de link in WhatsApp of Teams, dan toonde die tot nu toe enkel een kaal adres.
+     Met deze regels komt er een titel, een omschrijving en het icoon bij. De adressen
+     moeten volledig zijn (https://…): een relatief pad werkt niet buiten de site. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="EntertainmentVM">
+<meta property="og:locale" content="nl_BE">
+<meta property="og:title" content="EntertainmentVM">
+<meta property="og:description" content="Startpagina van het entertainmentteam: voorraad, bestellingen, projecten, checklists, manuals en het spel Bazar Bizarre.">
+<meta property="og:url" content="https://entertainmentvm.be/entertainment.html">
+<meta property="og:image" content="https://entertainmentvm.be/assets/icon-512.png">
+<meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.json">
 <!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk), zodat de
      eerste zoekopdracht daar niet meer op hoeft te wachten. -->
@@ -21,7 +33,7 @@
 
 <div class="wrap">
   <div class="topbar">
-    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" src="assets/logo-cp.png" alt="Center Parcs"></a>
+    <a class="logolink" href="entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="assets/logo-cp.png" alt="Center Parcs"></a>
     <h1>EntertainmentVM</h1>
     <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
     <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
@@ -148,18 +160,29 @@ const ROT_MS=4000;
 
 function activeBannerKeys(){const a=[]; if(bannerActive.red)a.push('red'); if(bannerActive.org)a.push('org'); return a;}
 
+// Heeft dit toestel "beperk beweging" aanstaan? Dan draaien we niets: alles komt
+// tegelijk in beeld. Wegdraaiende tekst is voor wie daar last van heeft niet alleen
+// vervelend maar ook onleesbaar — en verbergen is geen optie, want dan mist die
+// persoon de helft van de mededelingen.
+function stilZetten(){
+  try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; }
+}
+
 function applyRotation(i){
+  const stil=stilZetten();
   // banners
   const keys=activeBannerKeys();
   let showKey=null;
   if(keys.length===1) showKey=keys[0];
   else if(keys.length>1) showKey=keys[i%keys.length];
-  document.getElementById('lowstockBanner').classList.toggle('show',showKey==='red');
-  document.getElementById('attentionBanner').classList.toggle('show',showKey==='org');
+  // Stil? Dan tonen we elke actieve banner gewoon tegelijk.
+  document.getElementById('lowstockBanner').classList.toggle('show', stil?bannerActive.red:(showKey==='red'));
+  document.getElementById('attentionBanner').classList.toggle('show', stil?bannerActive.org:(showKey==='org'));
   // mededelingen
   const txt=document.getElementById('mededelingTxt');
   if(medList.length){
-    txt.textContent=medList[i%medList.length];
+    // Stil? Dan alle mededelingen onder elkaar in plaats van één per keer.
+    txt.textContent = stil ? medList.join('\n') : medList[i%medList.length];
     txt.classList.remove('empty');
   } else {
     txt.textContent='Nog geen mededeling. Voeg er een toe via Instellingen.';
@@ -170,6 +193,7 @@ function startRotation(){
   if(rotTimer){clearInterval(rotTimer);rotTimer=null;}
   rotIndex=0;
   applyRotation(0);
+  if(stilZetten()) return;   // niets laten draaien
   if(activeBannerKeys().length>1 || medList.length>1){
     rotTimer=setInterval(()=>{rotIndex++;applyRotation(rotIndex);},ROT_MS);
   }

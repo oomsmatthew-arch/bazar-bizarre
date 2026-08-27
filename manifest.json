@@ -1,14 +1,44 @@
 {
+  "id": "/",
   "name": "EntertainmentVM",
   "short_name": "EntVM",
   "description": "Startpagina van het entertainmentteam: inventaris, projecten, online manuals en het Bazar Bizarre spel",
+  "lang": "nl-BE",
+  "dir": "ltr",
   "start_url": "./entertainment.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#eef4ea",
   "theme_color": "#2f6450",
+  "categories": ["productivity", "utilities"],
   "icons": [
-    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Bazar Bizarre",
+      "short_name": "Het spel",
+      "description": "Het spel leiden: vier rondes en de finale",
+      "url": "./bazar-bizarre-spel.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Inventaris",
+      "short_name": "Voorraad",
+      "description": "Voorraad, boekjes, leveringen en formulieren",
+      "url": "./paginas/inventaris.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Projecten",
+      "short_name": "Projecten",
+      "description": "Borden met taken, deadlines en bespreking",
+      "url": "./paginas/projecten.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
   ]
 }

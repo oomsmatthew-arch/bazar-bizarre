@@ -123,6 +123,58 @@ function verse(){ Object.keys(store).forEach(function(k){ delete store[k]; }); }
   ok(toegangRegel('projecten','gebruiken')==='vast','"wie mag werken" werd "gebruiken"');
   ok(toegangRegel('projecten','bekijken')==='iedereen','en bekijken staat op de standaard');
 
+  print('\n— magBeheren/eisBeheer sluiten aan bij magToegang —');
+  // Vroeger lieten magBeheren() en eisBeheer() enkel vaste medewerkers door, terwijl
+  // magToegang('…','beheren') admins wél doorliet. Een admin kreeg dan op de ene plek
+  // het wachtwoord gevraagd en op de andere niet.
+  verse();
+  var src=readFile('./js/kern.js');
+  var mb=src.slice(src.indexOf('function magBeheren('), src.indexOf('function isOntgrendeld('));
+  var eb=src.slice(src.indexOf('function eisBeheer('), src.indexOf('function eisBeheer(')+400);
+  ok(/isVasteMdw\(\)\|\|isAdmin\(\)/.test(mb),'magBeheren laat ook admins door');
+  ok(/isVasteMdw\(\)\|\|isAdmin\(\)/.test(eb),'eisBeheer ook');
+  IK={vast:false,admin:true,ontgrendeld:false};
+  ok(magToegang('contacten','beheren')===true,'en magToegang zegt hetzelfde');
+
+  print('\n— De noodingang naar Systeem werkt echt —');
+  // De knop "🩺 Systeem bekijken" in Instellingen belooft toegang met het beheer-
+  // wachtwoord, ook zonder de rol Admin. Maar bewaakPagina() stuurde je meteen terug:
+  // Systeem staat op "enkel admin", en die regel kent geen wachtwoord-uitweg. Het
+  // etiket loog dus. Nu zet de knop een sessie-vlag die bewaakPagina() herkent.
+  var k=readFile('./js/kern.js');
+  ok(/function zetNoodSysteem\(/.test(k),'kern.js kent zetNoodSysteem()');
+  ok(/cat==='systeem' && heeftNoodSysteem\(\)/.test(k),'bewaakPagina laat de noodingang door');
+  ok(/removeItem\(K_NOOD_SYSTEEM\)/.test(k),'en wist ze bij het wisselen van gebruiker');
+  var inst=readFile('./paginas/instellingen.html');
+  ok(/zetNoodSysteem\(\);/.test(inst),'de knop in Instellingen zet de vlag');
+  // De vlag mag enkel voor Systeem gelden, niet voor elke admin-pagina.
+  ok(!/heeftNoodSysteem\(\)\s*\)\s*return;\s*$/m.test(k.replace(/cat==='systeem' && /,'')),
+     'de vlag opent enkel Systeem, geen andere pagina');
+
+  print('\n— De weg van "vaste mdw" naar "admin" is dicht —');
+  // Een vaste medewerker kon zichzelf in twee tikken tot admin maken en daarna via
+  // Toegangen alles openzetten. Er waren DRIE wegen die hetzelfde opleverden; ze moeten
+  // alle drie dicht, anders is het dichten van één ervan zinloos.
+  var kk=readFile('./js/kern.js');
+  ok(/function magAdminUitdelen\(\)\{ return isAdmin\(\) \|\| !erIsEenAdmin\(\); \}/.test(kk),
+     'de rol Admin toekennen mag enkel een admin');
+  ok(/if\(!magAdminUitdelen\(\)\)\{ meldGeenAdmin\(\); return; \}/.test(kk),
+     '1. de knop Admin wordt bij de klik opnieuw nagekeken');
+  var rst=kk.slice(kk.indexOf(".querySelector('.rst')"), kk.indexOf(".querySelector('.del')"));
+  ok(/magAanAdminRaken\(u\)/.test(rst),'2. de pincode van een admin resetten mag niet');
+  var del=kk.slice(kk.indexOf(".querySelector('.del')"), kk.indexOf(".querySelector('.del')")+600);
+  ok(/magAanAdminRaken\(u\)/.test(del),'3. een admin verwijderen mag niet');
+  ok(/function magAanAdminRaken\(u\)\{ return isAdmin\(\) \|\| !BBInv\.heeftRol\(u,'admin'\); \}/.test(kk),
+     'en dat geldt enkel voor mensen die écht admin zijn');
+
+  print('\n— Maar de eerste admin moet aan te duiden blijven —');
+  // Zonder deze noodregel kan de rol na een verse installatie nooit meer toegekend
+  // worden: niemand is admin, dus niemand mag iemand admin maken.
+  ok(/zolang er nog GEEN enkele admin is/i.test(kk),'de noodregel is beschreven');
+  ok(/function erIsEenAdmin\(\)/.test(kk),'en kijkt of er al een admin bestaat');
+  // Bestaande admins mogen door deze wijziging niets verliezen.
+  ok(!/zetRol\([^)]*'admin',\s*false\s*\)/.test(kk),'niemand wordt automatisch zijn rol afgenomen');
+
   print('\n— Alle categorieën hebben alle drie de niveaus —');
   verse();
   var t=getToegangen();
