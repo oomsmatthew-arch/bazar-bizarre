@@ -117,7 +117,6 @@ const K_DREMPEL='bb_home_drempel';       // rood: voorraad bijna op
 const K_DREMPEL2='bb_home_drempel2';     // oranje: aandacht gevraagd
 const K_DREMPEL_BK='bb_home_drempel_boekjes'; // boekjes-voorraad melding
 const K_BESTELMAIL='bb_home_bestelmail';
-const K_THEME='bb_home_theme';
 const K_CONTACTEN='bb_contacten';
 const K_CHECKLISTEN='bb_checklisten';
 const K_PROJ_MAKEN='bb_proj_maken';        // wie mag projecten aanmaken/bewerken
