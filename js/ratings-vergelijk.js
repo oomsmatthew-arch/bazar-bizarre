@@ -6,12 +6,7 @@ const $=id=>document.getElementById(id);
 const R=window.Ratings||{};
 let _rev=[];
 
-function initThema(){
-  const b=$('themeBtn'); if(!b) return;
-  const toe=t=>{ document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem('bb_home_theme',t);}catch(e){} b.textContent=t==='dark'?'☀️':'🌙'; };
-  let t='light'; try{ t=localStorage.getItem('bb_home_theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'); }catch(e){}
-  toe(t); b.onclick=()=>toe(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
-}
+// Het thema zit sinds v6.1 in js/topbar.js — zie de uitleg daar.
 
 function maanden(){ return Array.from(new Set(_rev.map(r=>R.maandKey(r.datum)).filter(Boolean))).sort(); }
 function inPeriode(r,van,tot){ const k=R.maandKey(r.datum); if(!k) return false; if(van&&k<van) return false; if(tot&&k>tot) return false; return true; }
@@ -78,7 +73,6 @@ function bouwOp(){
   vergelijk();
 }
 async function init(){
-  initThema();
   // Meteen tonen met wat er lokaal staat; op de achtergrond bijwerken.
   _rev=(R&&R.laadReviews?R.laadReviews():[])||[];
   bouwOp();

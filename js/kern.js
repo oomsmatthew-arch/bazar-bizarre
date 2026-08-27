@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v6.0';
+const APP_VERSION='v6.1';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -315,40 +315,11 @@ function syncConfig(){
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ---------------- THEMA (donker/licht) ----------------
-// Welk thema hoort er nu te staan? Heb je zelf al eens op het maantje getikt, dan wint
-// die keuze altijd. Zo niet, dan volgen we de instelling van het toestel — wie z'n gsm
-// op donker heeft staan, krijgt de app meteen donker. (js/ratings.js deed dit al; hier
-// ontbrak het, waardoor die ene pagina donker was en de rest licht.)
-function themaKeuze(){
-  const opgeslagen=localStorage.getItem(K_THEME);
-  if(opgeslagen==='dark'||opgeslagen==='light') return opgeslagen;
-  try{ return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
-  catch(e){ return 'light'; }
-}
-function applyTheme(){
-  const dark=themaKeuze()==='dark';
-  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
-  const b=document.getElementById('themeBtn');
-  if(b) b.textContent=dark?'☀️':'🌙';
-  const tc=document.querySelector('meta[name="theme-color"]');
-  if(tc) tc.setAttribute('content',dark?'#0f1a14':'#2f6450');
-}
-applyTheme(); // meteen, nog voor de pagina getekend is (geen witte flits)
-{ const tb=document.getElementById('themeBtn');
-  // Uitgaan van het thema dat NU op het scherm staat, niet van wat er bewaard is: anders
-  // doet de eerste tik niets wanneer het toestel op donker staat en jij nog niets koos.
-  if(tb) tb.onclick=()=>{
-    localStorage.setItem(K_THEME, themaKeuze()==='dark' ? 'light' : 'dark');
-    applyTheme();
-  };
-}
-// Wisselt het toestel van thema (bv. automatisch 's avonds) en heb je zelf nog niets
-// gekozen, dan gaat de app mee.
-try{
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-    if(!localStorage.getItem(K_THEME)) applyTheme();
-  });
-}catch(e){}
+// Het thema hoort bij de balk bovenaan (daar staat het maantje), dus het staat samen
+// met die balk in js/topbar.js — dat bestand laadt óók op de pagina's die deze kern
+// niet laden. Hier alleen nog de doorverwijzing, zodat oudere aanroepen blijven werken.
+function themaKeuze(){ return window.bbThema ? bbThema.keuze() : 'light'; }
+function applyTheme(){ if(window.bbThema) bbThema.zet(); }
 
 function bbFmtTs(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,'0');
   return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}

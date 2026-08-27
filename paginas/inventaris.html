@@ -17,17 +17,11 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body data-toegang="inventaris">
+<body data-toegang="inventaris" data-titel="Inventaris">
 
 <div class="wrap">
-  <div class="topbar">
-    <a class="logolink" href="../entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="../assets/logo-cp.png" alt="Center Parcs"></a>
-    <h1>Inventaris</h1>
-    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
-    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
-    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
-    <a class="navbtn" href="../entertainment.html">Home</a>
-  </div>
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
 
   <div class="view paginainhoud" id="inventaris">
     <p class="hint">Beheer hier je voorraad. Het formulier in Bazar Bizarre boekt automatisch af; hier registreer je leveringen, voeg je artikelen toe en bekijk je de inzendingen.</p>
@@ -355,17 +349,24 @@ function renderInvStock(){
   if(invCat!=='all') pr=pr.filter(p=>p.cat===invCat);
   if(invOnlyUse) pr=pr.filter(p=>p.inGebruik);
   if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
-  if(invCat==='all'&&!q&&!invOnlyUse){
-    const kl=all.filter(p=>p.cat==='klein'), gr=all.filter(p=>p.cat==='groot');
-    const sum=a=>a.reduce((s,p)=>s+(p.stock||0),0);
-    list.appendChild(summaryRow('Boekjes','voorraad',BBInv.getBoekjes().stock||0,'📕'));
-    list.appendChild(summaryRow('Kleine prijzen',kl.length+' soorten',sum(kl),'🎁'));
-    list.appendChild(summaryRow('Grote prijzen',gr.length+' soorten',sum(gr),'🏆'));
-    const div=document.createElement('div'); div.className='invdiv'; list.appendChild(div);
-  }
+  // De samenvatting (boekjes + beide prijssoorten) blijft ALTIJD bovenaan staan — ook bij
+  // een filter, de ster 'in gebruik' of een zoekterm. De getallen zijn bewust de TOTALEN
+  // van heel de voorraad, zodat je vaste ijkpunten houdt terwijl je eronder filtert.
+  const kl=all.filter(p=>p.cat==='klein'), gr=all.filter(p=>p.cat==='groot');
+  const sum=a=>a.reduce((s,p)=>s+(p.stock||0),0);
+  list.appendChild(summaryRow('Boekjes','voorraad',BBInv.getBoekjes().stock||0,'📕'));
+  list.appendChild(summaryRow('Kleine prijzen',kl.length+' soorten',sum(kl),'🎁'));
+  list.appendChild(summaryRow('Grote prijzen',gr.length+' soorten',sum(gr),'🏆'));
+  const div=document.createElement('div'); div.className='invdiv'; list.appendChild(div);
   pr.sort((a,b)=>a.naam.localeCompare(b.naam));
   pr.forEach(p=>list.appendChild(stockRow(p)));
-  if(!pr.length&&!(invCat==='all'&&!q&&!invOnlyUse)) list.innerHTML='<div class="empty-note">'+(invOnlyUse?'Geen prijzen "in gebruik" gevonden.':'Geen prijzen gevonden.')+'</div>';
+  // Niets gevonden: de melding ONDER de samenvatting hangen (niet de lijst overschrijven,
+  // anders verdwijnt de samenvatting alsnog).
+  if(!pr.length&&(q||invOnlyUse||invCat!=='all')){
+    const note=document.createElement('div'); note.className='empty-note';
+    note.textContent=invOnlyUse?'Geen prijzen "in gebruik" gevonden.':'Geen prijzen gevonden.';
+    list.appendChild(note);
+  }
 }
 // BOEKJES (saldo + historiek)
 function renderBoekjes(){

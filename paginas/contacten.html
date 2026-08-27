@@ -17,17 +17,11 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body data-toegang="contacten">
+<body data-toegang="contacten" data-titel="Contacten">
 
 <div class="wrap">
-  <div class="topbar">
-    <a class="logolink" href="../entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="../assets/logo-cp.png" alt="Center Parcs"></a>
-    <h1>Contacten</h1>
-    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
-    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
-    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
-    <a class="navbtn" href="../entertainment.html">Home</a>
-  </div>
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
 
   <div class="view paginainhoud" id="contacten">
     <p class="hint">Telefoonnummers en e-mails van het team en de leveranciers. Tik een nummer om te bellen, of een e-mail om te mailen. Wordt op dit toestel bewaard.</p>

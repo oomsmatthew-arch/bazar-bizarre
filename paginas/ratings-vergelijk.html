@@ -64,15 +64,10 @@
   footer{margin-top:26px;text-align:center;color:var(--muted);font-size:12px;}
 </style>
 </head>
-<body data-toegang="ratings">
+<body data-toegang="ratings" data-titel="Ratings vergelijken" data-extra="ratings.html|‹ Ratings">
 <div class="wrap">
-  <div class="topbar">
-    <a href="../entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="../assets/logo-cp.png" alt="Home"></a>
-    <h1>Ratings vergelijken</h1>
-    <button class="navbtn" id="themeBtn" title="Donker/licht">🌙</button>
-    <a class="navbtn" href="ratings.html">‹ Ratings</a>
-    <a class="navbtn" href="../entertainment.html">Home</a>
-  </div>
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
 
   <div class="card">
     <p class="hint" style="margin-top:0;">Kies twee periodes en vergelijk ze. Bv. <b>december 2025</b> tegenover <b>december 2024</b>, of een hele reeks maanden. Kies bij <b>van</b> en <b>tot</b> dezelfde maand voor één maand.</p>

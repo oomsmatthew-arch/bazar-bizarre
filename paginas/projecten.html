@@ -395,16 +395,10 @@
   footer{margin-top:34px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;}
 </style>
 </head>
-<body data-toegang="projecten">
+<body data-toegang="projecten" data-titel="Projecten" data-rechts="terug">
 <div class="wrap">
-  <div class="topbar">
-    <img class="logo" id="homeLogo" width="251" height="256" src="../assets/logo-cp.png" alt="Center Parcs" title="Naar de startpagina">
-    <h1 id="title">Projecten</h1>
-    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
-    <button class="userbtn" id="userBtn" title="Ingelogd als"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
-    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
-    <button class="navbtn" id="terugBtn">Home</button>
-  </div>
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
 
   <!-- LIJST VAN PROJECTEN -->
   <div class="view" id="lijstView">

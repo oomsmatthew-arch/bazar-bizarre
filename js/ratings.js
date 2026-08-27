@@ -543,13 +543,9 @@ function bouwPrintHtml(o){
 }
 
 // ---------------------------------------------------------------- thema
-function initThema(){
-  const b=$('themeBtn'); if(!b) return;
-  const toe=t=>{ document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem('bb_home_theme',t);}catch(e){} b.textContent=t==='dark'?'☀️':'🌙'; };
-  let t='light'; try{ t=localStorage.getItem('bb_home_theme')|| (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'); }catch(e){}
-  toe(t);
-  b.onclick=()=>toe(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
-}
+// Zit sinds v6.1 in js/topbar.js, bij de balk waar het maantje in staat. De kopie die
+// hier stond bewaarde meteen de stand van het toestel als "jouw keuze", waardoor deze
+// pagina daarna niet meer meeging als je gsm 's avonds op donker sprong.
 
 // Is de op dit toestel ingelogde persoon een vaste medewerker? (rol staat in de gedeelde
 // gebruikerslijst die entertainment.html lokaal bewaart — geen extra verbinding nodig.)
@@ -578,7 +574,6 @@ function beheerPin(){
 // ---------------------------------------------------------------- wiring
 document.addEventListener('DOMContentLoaded',()=>{
   if(!document.getElementById('resultaat')) return; // andere pagina (bv. vergelijk) — enkel de gedeelde API is nodig
-  initThema();
   const inp=$('fileInput');
   if(inp) inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) importFile(f); inp.value=''; };
   // De knoppen staan er ALTIJD, maar werken enkel voor vaste medewerkers; anders een melding.

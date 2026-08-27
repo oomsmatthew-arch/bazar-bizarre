@@ -151,15 +151,11 @@
   footer{margin-top:26px;text-align:center;color:var(--muted);font-size:12px;}
 </style>
 </head>
-<body data-toegang="ratings">
+<body data-toegang="ratings" data-titel="Ratings">
 <div class="laadoverlay" id="laadOverlay"><div class="laadbox"><span class="spin"></span>Ratings laden…<div class="laadsub">even geduld — de gedeelde gegevens worden opgehaald</div></div></div>
 <div class="wrap">
-  <div class="topbar">
-    <a href="../entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="../assets/logo-cp.png" alt="Home"></a>
-    <h1>Ratings</h1>
-    <button class="navbtn" id="themeBtn" title="Donker/licht">🌙</button>
-    <a class="navbtn" href="../entertainment.html">Home</a>
-  </div>
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
 
   <div class="status" id="status"></div>
 

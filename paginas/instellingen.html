@@ -17,17 +17,11 @@
 <link rel="apple-touch-icon" href="../assets/logo-cp.png">
 <link rel="stylesheet" href="../css/app.css">
 </head>
-<body>
+<body data-titel="Instellingen">
 
 <div class="wrap">
-  <div class="topbar">
-    <a class="logolink" href="../entertainment.html" title="Naar de startpagina"><img class="logo" width="251" height="256" src="../assets/logo-cp.png" alt="Center Parcs"></a>
-    <h1>Instellingen</h1>
-    <span id="syncBadge" class="syncbadge" style="display:none" title="Wijzigingen worden verstuurd zodra er internet is"></span>
-    <button class="userbtn" id="userBtn" title="Wissel gebruiker"><span class="av" id="userAv">?</span><span class="nm" id="userNm">—</span></button>
-    <button class="navbtn" id="themeBtn" title="Donker/licht thema">🌙</button>
-    <a class="navbtn" href="../entertainment.html">Home</a>
-  </div>
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
 
   <p class="hint" id="wachtNote">Even geduld — deze pagina is beveiligd met het beheer-wachtwoord.</p>
   <div class="view paginainhoud" id="instellingen" style="display:none">

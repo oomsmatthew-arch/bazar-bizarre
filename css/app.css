@@ -542,6 +542,8 @@
   .attention .row{margin-top:14px;}
   [data-theme="dark"] .attention{background:linear-gradient(120deg,#2a261a,#18271f);border-color:#5a4a30;}
   .invdiv{grid-column:1/-1;height:1px;background:var(--line);margin:8px 2px;}
+  /* 'niets gevonden' staat in de rasterlijst onder de samenvatting → volle breedte */
+  .invlist .empty-note{grid-column:1/-1;}
 
   /* ---- statistiek ---- */
   .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px;}

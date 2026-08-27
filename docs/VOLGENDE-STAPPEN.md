@@ -59,7 +59,7 @@ faalt op `xcode-select`. Probeer niet te committen. Noem aan het eind welke best
 gewijzigd, toegevoegd of verwijderd zijn; de eigenaar pusht zelf via GitHub Desktop.
 
 **Versienummers.** `APP_VERSION` in `js/kern.js` en `CACHE` in `sw.js` moeten identiek
-blijven (nu allebei `v6.0`). Verhoog ze allebei bij een wijziging die de tablets moeten
+blijven (nu allebei `v6.1`). Verhoog ze allebei bij een wijziging die de tablets moeten
 oppikken — anders blijft een tablet op de oude versie hangen.
 
 **De eigenaar werkt soms tegelijk in dezelfde bestanden.** Lees een bestand opnieuw vlak

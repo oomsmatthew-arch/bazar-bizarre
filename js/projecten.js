@@ -10,7 +10,6 @@
 // Versie van de Projecten-module. Verhoog dit bij elke aanpassing die je uitrolt,
 // zodat je op de tablet meteen ziet of de nieuwste versie geladen is.
 const APP_VERSION='v1.2';
-const K_THEME='bb_home_theme';
 const K_PIN='bb_home_pin';
 const DEFAULT_PIN='3920';
 const K_USER='bb_current_user';
@@ -211,14 +210,9 @@ function eisWerken(){
 }
 
 // ---------------- THEMA ----------------
-function applyTheme(){
-  const dark=localStorage.getItem(K_THEME)==='dark';
-  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
-  const b=$('themeBtn'); if(b) b.textContent=dark?'☀️':'🌙';
-  const tc=document.querySelector('meta[name="theme-color"]');
-  if(tc) tc.setAttribute('content',dark?'#0f1a14':'#2f6450');
-}
-applyTheme();
+// Staat sinds v6.1 één keer in js/topbar.js, samen met de balk waar het maantje in zit.
+// Deze pagina had een eigen kopie die de instelling van het toestel níét volgde, waardoor
+// ze licht bleef terwijl de rest van de app donker stond.
 
 // ---------------- STATE ----------------
 let huidigProject=null;   // id van het geopende project (null = lijst)
@@ -1793,14 +1787,9 @@ window.bbVensterSluiters={
 };
 
 // ---------------- KOPPELINGEN ----------------
-$('homeLogo').onclick=()=>{ location.href='../entertainment.html'; };
+// Logo, gebruikersknop en maantje zitten in js/topbar.js en werken daar al; hier enkel
+// de terugknop, want die moet eerst het geopende project sluiten voor ze de pagina verlaat.
 $('terugBtn').onclick=()=>{ if(huidigProject) naarLijst(); else location.href='../entertainment.html'; };
-$('userBtn').onclick=()=>{ location.href='../entertainment.html'; };
-$('themeBtn').onclick=()=>{
-  const dark=localStorage.getItem(K_THEME)==='dark';
-  localStorage.setItem(K_THEME,dark?'light':'dark');
-  applyTheme();
-};
 $('naarLijst').onclick=naarLijst;
 $('projZoek').oninput=e=>{ zoekTekst=e.target.value; renderLijst(); };
 $('projFilter').onclick=e=>{
