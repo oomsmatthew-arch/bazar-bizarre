@@ -1,5 +1,13 @@
 # Beveiliging — de database op slot zetten
 
+> ✅ **Uitgevoerd op 28 augustus 2026.** Alle vijf de stappen hieronder zijn gedaan en
+> nagemeten: alle 18 tabellen geven 0 rijen aan wie enkel de sleutel uit de broncode heeft,
+> toevoegen wordt geweigerd (`42501`), de bucket `manuals` geeft een lege lijst, en de app
+> toont op een vers toestel netjes het scherm "Toegangscode". Zelfregistratie staat uit.
+>
+> Dit blad blijft staan als naslag: zo weet je wat er precies is ingesteld, en hoe je het
+> terugdraait ([beveiliging-terugdraaien.sql](beveiliging-terugdraaien.sql)).
+
 ## Het probleem in één alinea
 
 De app praat met Supabase via een sleutel die leesbaar in de broncode staat

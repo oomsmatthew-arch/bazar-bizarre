@@ -198,13 +198,48 @@
     return el;
   }
 
+  // ---------------- EEN VENSTER TONEN EN WEER OPRUIMEN ----------------
+  // Alle drie de vensters hieronder gaan hier doorheen, om één reden: de TERUGKNOP.
+  //
+  // js/terug.js zorgt dat terug een open venster sluit in plaats van de hele pagina te
+  // verlaten. Het merkt een venster op via een MutationObserver die naar KLASSE-wijzigingen
+  // kijkt. Een element dat we mét de klasse 'open' erop in de pagina hangen, ziet het dus
+  // NIET — dat is een childList-wijziging, geen attribuutwijziging. Gevolg: stond er een
+  // venster open en drukte je op terug, dan verliet je de hele pagina. Op een tablet is
+  // terug een veegbeweging vanaf de rand, dus dat gebeurde zo — midden in "Ronde wissen?".
+  //
+  // Daarom: eerst invoegen zónder 'open', en die klasse pas een frame later zetten. Dan is
+  // het wél een attribuutwijziging en zet terug.js er een stap voor klaar. Bij het sluiten
+  // halen we 'open' er eerst weer af (weer een attribuutwijziging, zodat terug.js zijn stap
+  // netjes opruimt) en pas daarna het element zelf.
+  //
+  // En we melden een eigen sluiter aan onder een uniek id: drukt de gebruiker op terug, dan
+  // roept terug.js díe aan, en beantwoorden we de wachtende vraag met de annuleer-waarde.
+  // Zonder dat zou "await bbBevestig(...)" eeuwig blijven wachten en bleef er een onzichtbaar
+  // element in de pagina achter.
+  let vensterNr=0;
+  function toonVenster(el,sluitMet){
+    el.id='bbvenster'+(++vensterNr);
+    if(!window.bbVensterSluiters) window.bbVensterSluiters={};
+    window.bbVensterSluiters[el.id]=sluitMet;
+    document.body.appendChild(el);
+    // requestAnimationFrame kan ontbreken in een heel oude webview; dan een gewone tik.
+    if(window.requestAnimationFrame) requestAnimationFrame(()=>el.classList.add('open'));
+    else setTimeout(()=>el.classList.add('open'),0);
+  }
+  function ruimVensterOp(el){
+    if(window.bbVensterSluiters) delete window.bbVensterSluiters[el.id];
+    el.classList.remove('open');   // eerst: terug.js ziet dit en haalt zijn stap weg
+    el.remove();
+  }
+
   // ---------------- BEVESTIGING (in plaats van confirm) ----------------
   //     if(!await bbBevestig({titel:'Verwijderen?', tekst:'…', gevaar:true})) return;
   function bbBevestig(opties){
     const o=(typeof opties==='string')?{tekst:opties}:(opties||{});
     return new Promise(klaar=>{
       const venster=document.createElement('div');
-      venster.className='cammodal open bevestigvenster';
+      venster.className='cammodal bevestigvenster';
       venster.innerHTML=
         '<div class="cammodal-box choose">'+
           '<div class="cammodal-title">'+esc(o.titel||'Even bevestigen')+'</div>'+
@@ -212,12 +247,15 @@
           '<button type="button" class="btn '+(o.gevaar?'gevaar':'primary')+' bev-ja">'+esc(o.okTekst||'Ja, doorgaan')+'</button>'+
           '<button type="button" class="btn clear bev-nee">'+esc(o.neeTekst||'Annuleren')+'</button>'+
         '</div>';
-      document.body.appendChild(venster);
+      let af=false;
       function sluit(waarde){
+        if(af) return;               // terug.js én de knop kunnen allebei sluiten
+        af=true;
         document.removeEventListener('keydown',toets,true);
-        venster.remove();
+        ruimVensterOp(venster);
         klaar(waarde);
       }
+      toonVenster(venster,()=>sluit(false));  // terug = annuleren
       // In de opvangfase (true): het inlogscherm luistert zelf ook naar Escape en naar
       // cijfers voor het pincodeklavier. Zonder dit zou één druk op Escape hier én daar
       // aankomen.

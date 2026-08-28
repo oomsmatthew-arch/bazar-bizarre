@@ -261,8 +261,10 @@ De derde treffer, in `paginas/inventaris.html`, was een vermelding in een commen
 
 ## Wat er nog open staat
 
-**De database staat open.** Zie hieronder; dat blijft het belangrijkste punt en het wordt
-in de Supabase-console opgelost, niet in deze code.
+**Niets groots meer.** Het laatste zware punt — de open database — is op 28 augustus 2026
+opgelost; zie *De database staat op slot* hieronder. Wat daarna nog blijft staat daar ook
+beschreven: iedereen deelt één toegangscode, en manuals blijven bereikbaar via hun directe
+link. Allebei bewuste keuzes, geen losse eindjes.
 
 ## Niet doen zonder overleg
 
@@ -280,23 +282,33 @@ Signaleer ze gerust, maar voer ze niet uit zonder te vragen:
   is dat flink scrollen. Groeperen onder de bestaande labels (Beheer / Team / Naslag /
   Handig) zou rust geven, maar verandert wel hoe iedereen de app kent.
 
-## Buiten scope: de database staat open
+## De database staat op slot ✅ *gedaan op 28 augustus 2026*
 
-De Supabase-database geeft nog steeds gegevens vrij aan iedereen met de link. Met de
-`anon`-sleutel die gewoon in de broncode staat:
+Dit wás het belangrijkste openstaande punt van het project. Het is opgelost in de
+Supabase-console, niet in code — volgens `docs/BEVEILIGING.md`.
+
+Wat er nu staat:
+- Eén gedeeld account `team@entertainment.app`. De toegangscode typ je één keer per
+  toestel; daarna onthoudt de browser de aanmelding.
+- Alle 18 tabellen hebben RLS aan met één regel `enkel dit team`, die op de rol
+  `authenticated` **én** op het e-mailadres test. De bucket `manuals` idem.
+- Zelfregistratie staat uit (`disable_signup: true`), anonieme aanmeldingen ook.
+
+Nagemeten met enkel de `anon`-sleutel uit de broncode, ná het op slot zetten:
 
 ```
-gebruikers   HTTP 200   ← namen én pincodes
-prijzen      HTTP 200
-projecten    HTTP 200
+alle 18 tabellen   0 rijen leesbaar   (vóór: 224 prijzen, 12 gebruikers, 309 activiteit)
+toevoegen          42501 new row violates row-level security policy
+bucket manuals     lege lijst
 ```
 
-Dat is het belangrijkste openstaande punt van het hele project, maar het wordt **in de
-Supabase-console** opgelost, niet in deze code — zie `docs/STAPPENPLAN.md` fase A en
-`docs/BEVEILIGING.md`. De code die om een toegangscode vraagt staat al klaar in
-`js/inventaris.js` (zoek op `TEAM_EMAIL`) en werkt in beide toestanden, open én op slot.
+**Let op bij zelf natesten:** een geblokkeerde tabel geeft **`HTTP 200` met een lege
+lijst**, geen foutmelding. Kijk dus naar het aantal rijen, niet naar de statuscode —
+anders concludeer je ten onrechte dat alles nog openstaat.
 
-Begin hier niet aan in code. Signaleer hooguit dat het nog niet gebeurd is.
+Loopt er iets mis, dan zet `docs/beveiliging-terugdraaien.sql` alles binnen de seconde
+terug open. Ziet een pagina plots lege lijsten, kijk dan eerst of het toestel nog
+aangemeld is (Systeem-scherm, veld *aangemeld*) — niet of er een fout in de code zit.
 
 Wat er daarna nog blijft, ook mét dat slot: iedereen deelt één code, er is geen verschil
 tussen lezen en schrijven, en de pincodes zijn gehasht met SHA-256 zonder salt — over vier
