@@ -1254,11 +1254,16 @@
     if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(rec)); else persistCache();
     logAct('Gebruiker toegevoegd: '+(rec.naam||'')); return rec;
   }
-  function updateGebruiker(id,patch){
+  // 'watTekst' overschrijft wat er in het activiteitenlogboek komt. Nodig omdat een
+  // pincode-wijziging twee heel verschillende dingen kan zijn: een admin die iemands code
+  // reset, of iemand die bij de eerste keer inloggen zelf een code kiest. In het logboek
+  // moet je die twee uit elkaar kunnen houden.
+  function updateGebruiker(id,patch,watTekst){
     const r=cache.gebruikers.find(x=>x.id===id); if(!r) return null; Object.assign(r,patch); saveGebrBackup();
     // De foto enkel meesturen als ze het onderwerp van de wijziging is (zie toRowKaal).
     const rij=(patch&&('foto' in patch)) ? gebrToRow(r) : gebrToRowKaal(r);
     if(gebruikersOK) dbUpsert('gebruikers',rij); else persistCache();
+    if(watTekst){ logAct('Gebruiker '+(r.naam||'')+' — '+watTekst); return r; }
     let wat='aangepast';
     if(patch&&('rol' in patch)){
       const t=rolTags({rol:patch.rol});

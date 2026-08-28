@@ -667,6 +667,9 @@
   .pin-dots i.on{background:var(--forest);}
   .pin-msg{min-height:20px;color:#b23b3b;font-size:14px;font-weight:700;margin:2px 0 6px;}
   .pin-msg.ok{color:var(--leaf);}
+  /* Uitleg is geen fout. In hetzelfde rood als "Onjuiste pincode" leest een medewerker
+     "Kies je eigen pincode" als een foutmelding en blijft ze opnieuw proberen. */
+  .pin-msg.uitleg{color:var(--text);font-weight:600;line-height:1.45;min-height:38px;}
   .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:8px auto 4px;}
   .keypad button{font-size:22px;font-weight:700;padding:16px 0;border-radius:14px;border:1px solid var(--line);
     background:var(--panel2);color:var(--text);cursor:pointer;}

@@ -55,11 +55,11 @@ document.body.insertAdjacentHTML('afterbegin',`
       <label class="pin-remember"><input type="checkbox" id="pinRemember"> Onthoud mij op dit toestel <span class="pin-hint">(alleen je eigen gsm)</span></label>
     </div>
     <div id="loginBeheerPanel" style="display:none">
-      <p class="login-sub" style="margin:0 0 14px">Voeg collega's toe met een pincode van 4 cijfers. Vergeten code? Tik <b>Reset</b>. Deze lijst is gedeeld met alle toestellen.</p>
+      <p class="login-sub" style="margin:0 0 14px">Voeg collega's toe en laat de code op <b>0000</b> staan — bij de eerste keer inloggen kiest de collega zelf een eigen code. Vergeten code? Tik <b>Reset</b> en zet ze terug op 0000. Deze lijst is gedeeld met alle toestellen.</p>
       <div class="gebradd">
         <div class="h">Nieuwe collega</div>
         <input type="text" id="gebrNaam" class="finp" placeholder="Naam (bv. Jan)">
-        <input type="tel" id="gebrPin" class="finp" inputmode="numeric" maxlength="4" placeholder="Pincode (4 cijfers)">
+        <input type="tel" id="gebrPin" class="finp" inputmode="numeric" maxlength="4" value="0000" placeholder="Pincode (4 cijfers)">
         <button class="btn primary" id="gebrAdd">Collega toevoegen</button>
       </div>
       <div class="gebrlist" id="gebrlist" style="margin-top:14px"></div>
@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v6.3';
+const APP_VERSION='v6.4';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -554,13 +554,49 @@ function showLogin(){ document.getElementById('loginOverlay').classList.add('sho
 function hideLogin(){ document.getElementById('loginOverlay').classList.remove('show'); }
 
 let loginSel=null, pinBuf='', pinBusy=false;
+
+// ---------------- EERSTE KEER INLOGGEN: ZELF EEN CODE KIEZEN ----------------
+// Iedereen krijgt de standaardcode 0000. Wie daarmee binnenkomt, moet eerst een eigen code
+// kiezen voor hij in de app is.
+//
+// Er is BEWUST geen extra kolom in de database om bij te houden of iemand dat al gedaan
+// heeft. "Nog met 0000 binnenkomen" ís die vlag: zodra je een eigen code kiest, is 0000
+// niet meer je code en wordt de vraag nooit meer gesteld. Eén keer dus, vanzelf, zonder dat
+// er iets kan scheeflopen tussen toestellen.
+//
+// Mooi neveneffect: reset een admin later iemands code naar 0000, dan krijgt die persoon
+// bij de volgende keer inloggen weer de vraag om een eigen code. Precies wat je wil.
+const STANDAARD_PIN='0000';
+// Deze mensen houden hun eigen code en krijgen de vraag niet. Op naam, kleine letters.
+// Staat hun code toevallig al niet meer op 0000, dan doet deze lijst sowieso niets.
+const GEEN_CODEVRAAG=['matthew','laura'];
+function moetEigenCodeKiezen(u,getypteCode){
+  if(!u || getypteCode!==STANDAARD_PIN) return false;
+  if(u.id==='entalg') return false;   // gedeeld account: iedereen gebruikt het, geen eigen code
+  // ALLEEN vragen als de gedeelde namenlijst écht uit de database komt.
+  //
+  // Waarom dit moet: staat de tablet zonder wifi, of is hij nog niet aangemeld, dan draait
+  // de app op de lokale momentopname. Een pincode die je dán kiest, blijft op dat ene
+  // toestel staan — en zodra de lijst later wél binnenkomt, overschrijft die je keuze met
+  // de oude 0000. Je zou dus "✓ Code bewaard" zien voor een code die morgen niet werkt,
+  // terwijl je op de andere tablets nog steeds op 0000 staat.
+  // Beter dan een halve belofte: laat de collega gewoon binnen met 0000 en stel de vraag
+  // de volgende keer, wanneer er wél verbinding is.
+  if(!(window.BBInv && BBInv.isReady && BBInv.isReady())) return false;
+  if(!(BBInv.isGebruikersGedeeld && BBInv.isGebruikersGedeeld())) return false;
+  return GEEN_CODEVRAAG.indexOf(String(u.naam||'').trim().toLowerCase())<0;
+}
+// null = gewoon inloggen · 'nieuw' = eerste keer typen · 'herhaal' = ter bevestiging
+let kiesFase=null, kiesEerste='';
 // Toon precies één paneel binnen het inlogscherm (namen / pincode / beheer).
 function loginPanel(which){
   document.getElementById('loginNames').style.display = which==='names'?'':'none';
   document.getElementById('loginPin').style.display   = which==='pin'?'':'none';
   document.getElementById('loginBeheerPanel').style.display = which==='beheer'?'':'none';
 }
-function toNames(){ loginSel=null; pinBuf=''; loginPanel('names'); renderLoginNames(); }
+// Ook de code-keuze afbreken: wie hier weggaat is NIET ingelogd en moet opnieuw beginnen.
+// Zo kan je de vraag niet omzeilen door op ↩ te tikken.
+function toNames(){ loginSel=null; pinBuf=''; kiesFase=null; kiesEerste=''; loginPanel('names'); renderLoginNames(); }
 function toBeheer(){ loginPanel('beheer'); document.getElementById('loginSub').textContent='Namen beheren'; renderGebrList(); }
 function openBeheerPanel(){ document.getElementById('loginOverlay').classList.add('show'); toBeheer(); }
 function beheerKlaar(){ if(currentUser()) hideLogin(); else toNames(); }
@@ -609,7 +645,7 @@ function renderLoginNames(){
   if(rest.length) grid.appendChild(groep(rest));
 }
 function toPin(u){
-  loginSel=u; pinBuf='';
+  loginSel=u; pinBuf=''; kiesFase=null; kiesEerste='';   // altijd schoon beginnen
   document.getElementById('pinWho').textContent='Hallo '+u.naam;
   const msg=document.getElementById('pinMsg'); msg.textContent=''; msg.className='pin-msg';
   document.getElementById('pinRemember').checked = localStorage.getItem(K_REMEMBER)==='1';
@@ -618,10 +654,15 @@ function toPin(u){
 }
 function renderPinDots(){ document.querySelectorAll('#loginPin .pin-dots i').forEach((el,i)=>el.classList.toggle('on', i<pinBuf.length)); }
 async function tryPin(){
-  if(!loginSel||pinBusy) return; pinBusy=true;
+  if(!loginSel||pinBusy) return;
+  // Zitten we in de code-keuze, dan is wat je typt geen controle maar een nieuwe code.
+  if(kiesFase){ verwerkCodeKeuze(); return; }
+  pinBusy=true;
   const ok=await pinMatch(loginSel.pin, pinBuf); pinBusy=false;
   const msg=document.getElementById('pinMsg');
   if(ok){
+    // Juiste code, maar het is nog de standaardcode: eerst een eigen code kiezen.
+    if(moetEigenCodeKiezen(loginSel,pinBuf)){ startCodeKeuze(); return; }
     msg.className='pin-msg ok'; msg.textContent='✓ Welkom!';
     setCurrentUser(loginSel, document.getElementById('pinRemember').checked);
     setTimeout(()=>{ hideLogin(); toNames(); naLogin(); }, 250);
@@ -629,6 +670,63 @@ async function tryPin(){
     msg.className='pin-msg'; msg.textContent='Onjuiste pincode, probeer opnieuw.';
     pinBuf=''; renderPinDots();
   }
+}
+// Het pincodescherm wordt hergebruikt: zelfde klavier, zelfde bolletjes, andere vraag.
+// De NAAM blijft bewust staan. Op een gedeelde tablet met twaalf tegels naast elkaar tik
+// je zo de verkeerde aan; verdween de naam hier, dan stelde je ongemerkt de code van een
+// collega in en werkte je de rest van je shift onder diens naam.
+function startCodeKeuze(){
+  kiesFase='nieuw'; kiesEerste=''; pinBuf=''; renderPinDots();
+  document.getElementById('pinWho').textContent=loginSel.naam+' — kies je eigen pincode';
+  zetPinUitleg('Je logt in met de standaardcode '+STANDAARD_PIN+'. Kies nu één keer 4 cijfers '+
+    'die alleen jij kent — daarna log je altijd met die code in.');
+}
+// Uitleg is GEEN foutmelding. Zonder eigen stijl kreeg je dit in hetzelfde rood als
+// "Onjuiste pincode", en dan denk je dat je je vergist hebt en blijf je opnieuw proberen.
+function zetPinUitleg(tekst){
+  const msg=document.getElementById('pinMsg');
+  msg.className='pin-msg uitleg'; msg.textContent=tekst;
+}
+function zetPinFout(tekst){
+  const msg=document.getElementById('pinMsg');
+  msg.className='pin-msg'; msg.textContent=tekst;
+}
+async function verwerkCodeKeuze(){
+  const code=pinBuf; pinBuf=''; renderPinDots();
+
+  if(kiesFase==='nieuw'){
+    // De standaardcode opnieuw kiezen mag niet — dan sta je hier morgen weer.
+    if(code===STANDAARD_PIN){ zetPinFout('Kies een andere code dan '+STANDAARD_PIN+'.'); return; }
+    kiesEerste=code; kiesFase='herhaal';
+    zetPinUitleg(loginSel.naam+' — typ je nieuwe code nog een keer.');
+    return;
+  }
+
+  if(code!==kiesEerste){
+    kiesFase='nieuw'; kiesEerste='';
+    zetPinFout('De twee codes waren niet gelijk. Begin opnieuw.');
+    return;
+  }
+
+  // Pas hier wordt er iets bewaard — en pas daarna ben je ingelogd.
+  pinBusy=true;
+  try{
+    // Wie de wijziging veroorzaakt, staat nog op de vórige gebruiker (de collega die de
+    // tablet doorgaf). Zonder dit komt er "Laura — Gebruiker Jan — eigen pincode ingesteld"
+    // in het activiteitenlogboek te staan.
+    if(window.BBInv&&BBInv.setActor) BBInv.setActor(loginSel.naam);
+    BBInv.updateGebruiker(loginSel.id,{pin: await sha256(code)},'eigen pincode ingesteld (eerste keer inloggen)');
+  }catch(e){
+    pinBusy=false; kiesFase='nieuw'; kiesEerste='';
+    zetPinFout('Bewaren lukte niet. Probeer het opnieuw.');
+    return;
+  }
+  pinBusy=false;
+  kiesFase=null; kiesEerste='';
+  const msg=document.getElementById('pinMsg');
+  msg.className='pin-msg ok'; msg.textContent='✓ Code bewaard. Welkom!';
+  setCurrentUser(loginSel, document.getElementById('pinRemember').checked);
+  setTimeout(()=>{ hideLogin(); toNames(); naLogin(); }, 600);
 }
 function pinKey(k){
   if(k==='cancel'){ toNames(); return; }
@@ -720,10 +818,14 @@ function renderGebrList(){
           return;
         }
         const np=await bbVraagCode({titel:'Nieuwe pincode voor '+u.naam,
-          uitleg:'Precies 4 cijfers.', plaatshouder:'••••', maxlengte:4,
+          uitleg:'Precies 4 cijfers. Zet ze op 0000, dan kiest '+u.naam+' bij de volgende keer inloggen zelf een eigen code.',
+          plaatshouder:'0000', maxlengte:4,
           controle:v=>/^\d{4}$/.test((v||'').trim())?'':'De pincode moet precies 4 cijfers zijn.'});
         if(np===null) return;
-        BBInv.updateGebruiker(u.id,{pin: await sha256(np.trim())}); bbToon('Pincode aangepast.');
+        BBInv.updateGebruiker(u.id,{pin: await sha256(np.trim())},'pincode gereset door een beheerder');
+        bbToon(np.trim()===STANDAARD_PIN
+          ? 'Code op 0000 gezet. '+u.naam+' kiest bij de volgende keer inloggen een eigen code.'
+          : 'Pincode aangepast.');
       };
       row.querySelector('.del').onclick=async()=>{
         // Alle admins verwijderen zou de noodregel weer openzetten, en dan kan wie in
@@ -752,7 +854,9 @@ document.getElementById('gebrAdd').onclick=async()=>{
      && !await bbBevestig({titel:'Naam bestaat al', okTekst:'Toch toevoegen',
           tekst:'Er staat al iemand met de naam "'+naam+'" in de lijst.'})) return;
   BBInv.addGebruiker({naam, pin: await sha256(pin)});
-  document.getElementById('gebrNaam').value=''; document.getElementById('gebrPin').value='';
+  // Het codeveld terug op de standaardcode, niet leeg: de volgende collega hoort er ook
+  // met 0000 bij te komen, zodat hij zelf een eigen code kiest.
+  document.getElementById('gebrNaam').value=''; document.getElementById('gebrPin').value=STANDAARD_PIN;
   renderGebrList();
 };
 
@@ -865,7 +969,33 @@ function refreshAuth(){
   if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;
   const u=currentUser(), users=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
   if(u && users.length && !users.some(x=>x.id===u.id)){ setCurrentUser(null,false); showLogin(); return; }
+  controleerStandaardcode(u,users);
   bewaakPagina();
+}
+// Wie ingelogd BLIJFT — 'Onthoud mij op dit toestel', of een tablet die de hele dag
+// openstaat — komt nooit langs het inlogscherm en zou de codekeuze dus voor altijd
+// ontlopen. Zijn account blijft dan op 0000 staan, en iedereen die weet dat dat de
+// standaardcode is, kan als hem inloggen en onder zijn naam werken.
+// Daarom hier ook controleren. We loggen hem uit en tonen het inlogscherm: dan loopt hij
+// door precies dezelfde weg als iedereen (0000 typen → code kiezen), en is er geen tweede
+// route die apart stuk kan gaan.
+let codeCheckBezig=false;
+async function controleerStandaardcode(u,users){
+  if(codeCheckBezig || !u) return;
+  if(document.getElementById('loginOverlay').classList.contains('show')) return; // al aan het inloggen
+  const rec=(users||[]).find(x=>x.id===u.id);
+  if(!rec || !rec.pin) return;
+  if(!moetEigenCodeKiezen(rec,STANDAARD_PIN)) return;   // uitgezonderd, of lijst niet gedeeld
+  codeCheckBezig=true;
+  let nogStandaard=false;
+  try{ nogStandaard=await pinMatch(rec.pin,STANDAARD_PIN); }catch(e){}
+  codeCheckBezig=false;
+  if(!nogStandaard) return;
+  setCurrentUser(null,false);
+  showLogin();
+  toPin(rec);
+  zetPinUitleg(rec.naam+' — je account staat nog op de standaardcode '+STANDAARD_PIN+'. '+
+    'Log even in, dan kies je meteen een eigen code.');
 }
 
 // ---------------- OFFLINE-STATUS + VERSIE ----------------

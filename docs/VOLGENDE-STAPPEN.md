@@ -5,7 +5,7 @@
 > Wil je maar één taak laten doen, knip de rest weg — maar laat *Werkafspraken* en
 > *Niet doen zonder overleg* altijd staan.
 >
-> Laatst bijgewerkt bij **v6.3**. Kloppen de getallen hieronder niet meer, meet ze
+> Laatst bijgewerkt bij **v6.4**. Kloppen de getallen hieronder niet meer, meet ze
 > dan opnieuw met de commando's die erbij staan.
 >
 > **Taken 1 tot en met 5 zijn uitgevoerd** (1, 3, 4 en 5 in v6.2; taak 2 afgerond in v6.3 met de spelpagina). Wat er nog ligt staat onderaan,
@@ -65,7 +65,7 @@ faalt op `xcode-select`. Probeer niet te committen. Noem aan het eind welke best
 gewijzigd, toegevoegd of verwijderd zijn; de eigenaar pusht zelf via GitHub Desktop.
 
 **Versienummers.** `APP_VERSION` in `js/kern.js` en `CACHE` in `sw.js` moeten identiek
-blijven (nu allebei `v6.3`). Verhoog ze allebei bij een wijziging die de tablets moeten
+blijven (nu allebei `v6.4`). Verhoog ze allebei bij een wijziging die de tablets moeten
 oppikken — anders blijft een tablet op de oude versie hangen.
 
 **De eigenaar werkt soms tegelijk in dezelfde bestanden.** Lees een bestand opnieuw vlak
@@ -281,6 +281,41 @@ Signaleer ze gerust, maar voer ze niet uit zonder te vragen:
 - **De startpagina hergroeperen.** Twaalf kaarten met lange beschrijvingen; op een telefoon
   is dat flink scrollen. Groeperen onder de bestaande labels (Beheer / Team / Naslag /
   Handig) zou rust geven, maar verandert wel hoe iedereen de app kent.
+
+## Eerste keer inloggen: zelf een pincode kiezen ✅ *v6.4*
+
+Iedereen krijgt de standaardcode **0000**. Wie daarmee inlogt, moet eerst een eigen code
+kiezen voor hij in de app is. Uitgezonderd: **Matthew** en **Laura** (de lijst
+`GEEN_CODEVRAAG` bovenaan het pincode-gedeelte van `js/kern.js`) en het gedeelde account
+**ENT algemeen**.
+
+**Er is bewust GEEN extra kolom** in de database om bij te houden wie het al gedaan heeft.
+"Nog met 0000 binnenkomen" ís de vlag: kies je een eigen code, dan is 0000 niet meer je
+code en wordt de vraag nooit meer gesteld. Eén keer dus, vanzelf, en niets kan scheeflopen
+tussen toestellen. Reset een admin later iemands code naar 0000, dan krijgt die persoon
+vanzelf opnieuw de vraag — precies de bedoeling.
+
+Drie dingen die bij het bouwen fout gingen en waar je bij wijzigingen op moet letten:
+
+- **De naam moet in beeld blijven** tijdens de keuze (`startCodeKeuze`). Op een tablet met
+  twaalf tegels naast elkaar tik je zo de verkeerde aan; zonder naam stel je ongemerkt de
+  code van een collega in en werk je de rest van je shift onder diens naam.
+- **Alleen vragen als de gedeelde lijst écht geladen is** — `moetEigenCodeKiezen` test op
+  `BBInv.isReady()` én `BBInv.isGebruikersGedeeld()`. Zonder die test kiest iemand offline
+  een code die alleen op dát toestel bestaat, en overschrijft `loadShared` die later met de
+  oude 0000. Hij zou "✓ Code bewaard" zien voor een code die morgen niet werkt.
+- **Wie ingelogd blijft** ("Onthoud mij op dit toestel") komt nooit langs het inlogscherm.
+  Daarom controleert `controleerStandaardcode()` in `refreshAuth()` het ook bij het
+  opstarten, en logt die persoon uit zodat hij door dezelfde weg gaat als iedereen.
+
+**Onderliggende zwakte, nog niet opgelost.** `updateGebruiker` in `js/inventaris.js` doet
+`if(gebruikersOK) dbUpsert(...) else persistCache()`. Is de tabel deze sessie niet geladen,
+dan gaat een wijziging **niet** naar de wachtrij en blijft ze op één toestel staan. Dat gold
+al vóór v6.4 — ook voor 'Reset code' en voor het toevoegen van een collega. De codekeuze
+omzeilt het nu door in die toestand niets te vragen, maar de zwakte zelf staat er nog.
+Wil je ze echt oplossen, dan moet `dbUpsert` onvoorwaardelijk aangeroepen worden en moet
+`loadShared` (zoals `reloadTable` al doet) de cache niet overschrijven zolang er nog eigen
+wijzigingen in de wachtrij staan.
 
 ## De database staat op slot ✅ *gedaan op 28 augustus 2026*
 
