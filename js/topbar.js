@@ -217,11 +217,60 @@
   // roept terug.js díe aan, en beantwoorden we de wachtende vraag met de annuleer-waarde.
   // Zonder dat zou "await bbBevestig(...)" eeuwig blijven wachten en bleef er een onzichtbaar
   // element in de pagina achter.
+  // Op een tablet schuift het schermtoetsenbord over de onderkant van het scherm. Een venster
+  // met 'position:fixed' merkt daar niets van: het blijft even hoog, en de knoppen onderaan
+  // zitten dan onbereikbaar achter dat toetsenbord — precies bij het codevenster, waar je nét
+  // moet typen én daarna op Doorgaan moet kunnen tikken. De browser vertelt via visualViewport
+  // hoe hoog het zíchtbare deel nog is; dat zetten we hier in een CSS-variabele zodat de
+  // vensters meekrimpen (zie --bb-zicht in css/app.css).
+  function meetZichtbaarDeel(){
+    const vv=window.visualViewport;
+    const h=(vv&&vv.height)||window.innerHeight||0;
+    if(h) document.documentElement.style.setProperty('--bb-zicht',h+'px');
+  }
+  if(window.visualViewport){
+    visualViewport.addEventListener('resize',meetZichtbaarDeel);
+    visualViewport.addEventListener('scroll',meetZichtbaarDeel);
+  }
+  meetZichtbaarDeel();
+
+  // Welke vensters er openstaan, onderste eerst. Alleen het bovenste mag op toetsen
+  // reageren: zonder dit beantwoordde één druk op Escape of Enter ze allemáál tegelijk
+  // (stopPropagation houdt geen andere opvangers op dezelfde plek tegen).
+  const vensterStapel=[];
+  function isBovenste(el){ return vensterStapel[vensterStapel.length-1]===el; }
+
+  // Tab binnen het venster houden. Anders wandel je met Tab zó het venster uit, naar de
+  // knoppen eronder: die zie je niet, maar je kunt ze wel bedienen.
+  const TABBAAR='button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+  function houdTabBinnen(e,el){
+    const kan=el.querySelectorAll(TABBAAR);
+    if(!kan.length) return;
+    const eerste=kan[0], laatste=kan[kan.length-1];
+    if(!el.contains(document.activeElement)){ e.preventDefault(); eerste.focus(); return; }
+    if(e.shiftKey && document.activeElement===eerste){ e.preventDefault(); laatste.focus(); }
+    else if(!e.shiftKey && document.activeElement===laatste){ e.preventDefault(); eerste.focus(); }
+  }
+
+  // Een tik die het venster opent, mag het niet meteen weer wegtikken. Op een tablet komt de
+  // knop van het nieuwe venster precies onder je vinger terecht, en een natikkende of dubbele
+  // tik landt daar dan op. De eerste tienden van een seconde negeren we daarom.
+  const TIKPAUZE=400;
+  function magTikken(el){ return (Date.now()-(+el.dataset.vanaf||0))>TIKPAUZE; }
+
   let vensterNr=0;
   function toonVenster(el,sluitMet){
     el.id='bbvenster'+(++vensterNr);
+    el.dataset.vanaf=String(Date.now());
+    // Voor schermlezers: dit is een venster dat de rest afdekt, en zo heet het.
+    el.setAttribute('role','dialog');
+    el.setAttribute('aria-modal','true');
+    const kop=el.querySelector('.cammodal-title');
+    if(kop){ kop.id=el.id+'-kop'; el.setAttribute('aria-labelledby',kop.id); }
+    el._vorigeFocus=document.activeElement;   // waar de aandacht straks weer heen moet
     if(!window.bbVensterSluiters) window.bbVensterSluiters={};
     window.bbVensterSluiters[el.id]=sluitMet;
+    vensterStapel.push(el);
     document.body.appendChild(el);
     // requestAnimationFrame kan ontbreken in een heel oude webview; dan een gewone tik.
     if(window.requestAnimationFrame) requestAnimationFrame(()=>el.classList.add('open'));
@@ -229,8 +278,13 @@
   }
   function ruimVensterOp(el){
     if(window.bbVensterSluiters) delete window.bbVensterSluiters[el.id];
+    const i=vensterStapel.indexOf(el); if(i>=0) vensterStapel.splice(i,1);
     el.classList.remove('open');   // eerst: terug.js ziet dit en haalt zijn stap weg
     el.remove();
+    // De aandacht terug naar waar je vandaan kwam, anders staat een schermlezer of het
+    // toetsenbord na het sluiten helemaal bovenaan de pagina.
+    const t=el._vorigeFocus;
+    if(t && t.focus && document.contains(t)) { try{ t.focus(); }catch(e){} }
   }
 
   // ---------------- BEVESTIGING (in plaats van confirm) ----------------
@@ -260,14 +314,16 @@
       // cijfers voor het pincodeklavier. Zonder dit zou één druk op Escape hier én daar
       // aankomen.
       function toets(e){
+        if(!isBovenste(venster)) return;     // enkel het bovenste venster reageert
+        if(e.key==='Tab'){ houdTabBinnen(e,venster); e.stopPropagation(); return; }
         if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(false); return; }
         if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); sluit(true); return; }
         e.stopPropagation();
       }
       document.addEventListener('keydown',toets,true);
-      venster.querySelector('.bev-ja').onclick=()=>sluit(true);
-      venster.querySelector('.bev-nee').onclick=()=>sluit(false);
-      venster.addEventListener('click',e=>{ if(e.target===venster) sluit(false); });
+      venster.querySelector('.bev-ja').onclick=()=>{ if(magTikken(venster)) sluit(true); };
+      venster.querySelector('.bev-nee').onclick=()=>{ if(magTikken(venster)) sluit(false); };
+      venster.addEventListener('click',e=>{ if(e.target===venster && magTikken(venster)) sluit(false); });
       setTimeout(()=>{ try{ venster.querySelector('.bev-ja').focus(); }catch(e){} },30);
     });
   }
@@ -315,14 +371,18 @@
         sluit(waarde);
       }
       function toets(e){
+        if(!isBovenste(venster)) return;     // enkel het bovenste venster reageert
+        if(e.key==='Tab'){ houdTabBinnen(e,venster); e.stopPropagation(); return; }
         if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(null); return; }
         if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); probeer(); return; }
         e.stopPropagation();
       }
       document.addEventListener('keydown',toets,true);
-      venster.querySelector('.bev-ja').onclick=probeer;
-      venster.querySelector('.bev-nee').onclick=()=>sluit(null);
-      venster.addEventListener('click',e=>{ if(e.target===venster) sluit(null); });
+      venster.querySelector('.bev-ja').onclick=()=>{ if(magTikken(venster)) probeer(); };
+      venster.querySelector('.bev-nee').onclick=()=>{ if(magTikken(venster)) sluit(null); };
+      venster.addEventListener('click',e=>{ if(e.target===venster && magTikken(venster)) sluit(null); });
+      // Het veld in beeld halen zodra het schermtoetsenbord opengaat.
+      inp.addEventListener('focus',()=>{ setTimeout(()=>{ try{ inp.scrollIntoView({block:'center'}); }catch(e){} },250); });
       setTimeout(()=>{ try{ inp.focus(); inp.select(); }catch(e){} },30);
     });
   }
@@ -366,6 +426,8 @@
       }
       toonVenster(venster,()=>sluit(null));   // terug = annuleren
       function toets(e){
+        if(!isBovenste(venster)) return;     // enkel het bovenste venster reageert
+        if(e.key==='Tab'){ houdTabBinnen(e,venster); e.stopPropagation(); return; }
         if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(null); return; }
         if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); probeer(); return; }
         e.stopPropagation();
@@ -389,9 +451,11 @@
       }
 
       document.addEventListener('keydown',toets,true);
-      ok.onclick=probeer;
-      venster.querySelector('.code-nee').onclick=()=>sluit(null);
-      venster.addEventListener('click',e=>{ if(e.target===venster) sluit(null); });
+      ok.onclick=()=>{ if(magTikken(venster)) probeer(); };
+      venster.querySelector('.code-nee').onclick=()=>{ if(magTikken(venster)) sluit(null); };
+      venster.addEventListener('click',e=>{ if(e.target===venster && magTikken(venster)) sluit(null); });
+      // Het veld in beeld halen zodra het schermtoetsenbord opengaat.
+      inp.addEventListener('focus',()=>{ setTimeout(()=>{ try{ inp.scrollIntoView({block:'center'}); }catch(e){} },250); });
       setTimeout(()=>{ try{ inp.focus(); }catch(e){} },30);
     });
   }

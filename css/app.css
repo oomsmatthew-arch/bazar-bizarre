@@ -214,8 +214,13 @@
   .btn{border:none;border-radius:12px;padding:11px 16px;font-weight:700;font-size:14px;
     cursor:pointer;background:var(--panel2);color:var(--forest);border:1px solid var(--line);}
   .btn:active{transform:translateY(1px);}
+  /* Een knop die staat te wachten (bv. terwijl een pincode gecontroleerd wordt) zag er
+     precies hetzelfde uit als een knop die klaarstaat — dus bleef je erop tikken. */
+  .btn:disabled{opacity:.55;cursor:default;transform:none;}
   .btn.primary{background:linear-gradient(120deg,var(--leaf),var(--forest2));border:1px solid var(--forest2);color:#fff;}
-  .btn.clear{background:transparent;color:var(--muted);}
+  /* 'Annuleren' had een rand die nauwelijks van de achtergrond te onderscheiden was; in een
+     venster met twee knoppen onder elkaar las die daardoor als tekst i.p.v. als knop. */
+  .btn.clear{background:transparent;color:var(--muted);border-color:var(--line);}
   /* Voor knoppen die iets weggooien. Stond enkel in projecten.html; het gedeelde
      bevestigingsvenster gebruikt hem op elke pagina, dus hoort hij hier thuis. */
   .btn.gevaar{color:#c0392b;border-color:#e5b4ad;}
@@ -277,6 +282,10 @@
   /* Zelfde verhaal als bij .field input:focus — een hardgecodeerd wit vak dat in donker
      thema fel oplichtte. Met de variabelen volgt het veld gewoon het thema. */
   .finp:focus{border-color:var(--leaf);background:var(--panel);color:var(--text);}
+  /* De plaatshouder stond op de browserstandaard: een lichtgrijs dat op onze panelen
+     nauwelijks leesbaar is (ruim onder de 4,5:1 die als ondergrens geldt). Met --muted
+     volgt hij het thema en blijft hij leesbaar; bij focus mag hij wat wegvallen. */
+  .finp::placeholder{color:var(--muted);opacity:1;}
   .finp:focus::placeholder{color:#8aa192;}
   .finp.zoek{margin:0 0 10px;}
   /* datum-velden: waarde links uitlijnen (iOS duwt ze anders naar rechts) */
@@ -327,13 +336,23 @@
      'Namen beheren' vraagt het wachtwoord terwijl dat scherm openstaat. */
   .codevenster{z-index:9500;}
   .codevenster .code-uitleg{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
-  .codevenster .code-inp{font-size:20px;text-align:center;letter-spacing:6px;}
+  /* De letterafstand zet ook een spatie ACHTER het laatste teken; die duwt de bolletjes
+     een half karakter naar links. Met evenveel inspringing links compenseren we dat. */
+  .codevenster .code-inp{font-size:20px;text-align:center;letter-spacing:6px;padding-left:calc(12px + 6px);}
   .codevenster .code-fout{background:#fdecea;border:1px solid #e2b6b0;color:#a23b30;
     border-radius:10px;padding:9px 11px;font-size:13px;font-weight:700;}
   [data-theme="dark"] .codevenster .code-fout{background:#3a2020;color:#f0a0a0;border-color:#5c2c2c;}
   /* bevestigingsvenster (in plaats van confirm) — zelfde vorm als het codevenster */
   .bevestigvenster{z-index:9500;}
   .bevestigvenster .bev-tekst{margin:0;font-size:14px;color:var(--text);line-height:1.55;white-space:pre-line;}
+  /* Ruimte maken voor het schermtoetsenbord. Een venster met position:fixed blijft even
+     hoog als het scherm, ook als het toetsenbord de onderste helft afdekt — dan zitten
+     'Doorgaan' en 'Annuleren' daarachter, precies wanneer je ze nodig hebt. js/topbar.js
+     meet met visualViewport hoe hoog het zichtbare deel nog is en zet dat in --bb-zicht.
+     Het venster zelf mag scrollen, en 'margin:auto' op de doos houdt hem gecentreerd
+     zolang er plaats is (align-items:center zou de bovenkant afkappen als hij te hoog wordt). */
+  .codevenster, .bevestigvenster{bottom:auto;height:var(--bb-zicht,100%);overflow:auto;align-items:flex-start;}
+  .codevenster .cammodal-box, .bevestigvenster .cammodal-box{margin:auto;max-height:100%;overflow:auto;}
   /* meldingen (in plaats van alert) — onderaan, verdwijnen vanzelf. Ze blokkeren niets,
      dus je kunt gewoon doorwerken; in de geïnstalleerde app op een iPad zag alert() eruit
      alsof er iets crashte. */
@@ -603,6 +622,10 @@
 
   /* ---- donker thema ---- */
   :root[data-theme="dark"]{
+    /* Dit vertelt de browser ook zijn éígen onderdelen donker te tekenen: de tekstcursor,
+       de selectie, de pijltjes van een getalveld en de balk van een scrollende lijst.
+       Zonder dit bleven die spierwit in het donkere thema. */
+    color-scheme:dark;
     --bg:#0f1a14; --bg2:#13231b; --panel:#18271f; --panel2:#1f3328; --line:#2c4536;
     --forest:#7fd6a3; --forest2:#5cbf86; --leaf:#5cc878; --leaf-soft:#2c4536;
     --sun:#f5b942; --bark:#c39a6b; --water:#4cc0d0;

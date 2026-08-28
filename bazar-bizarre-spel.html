@@ -17,6 +17,10 @@
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <style>
   :root{
+    /* Deze pagina is altijd donker. Dat hier zeggen laat de browser óók zijn eigen
+       onderdelen donker tekenen: de tekstcursor, de selectie, de pijltjes van een
+       getalveld en de balk van een scrollende lijst. Zonder dit bleven die spierwit. */
+    color-scheme:dark;
     --bg:#0f1f3d; --panel:#15294d; --panel2:#1b3360; --line:#2a4475;
     --gold:#ffd23f; --pink:#ff5d8f; --ok:#34d27b; --text:#eef3fb; --muted:#9fb2d4;
     --orange:#ff9f43; --purple:#9b7bd4;
@@ -262,7 +266,10 @@
   .tally-total b{color:var(--gold);font-size:22px;margin-left:4px;}
   .prijs{display:flex;align-items:center;gap:10px;background:var(--panel);
     border:1px solid var(--line);border-radius:12px;padding:8px 12px;position:relative;}
-  .pmodal{position:fixed;inset:0;background:rgba(8,16,32,.72);display:none;z-index:100;padding:12px;}
+  /* Boven het presentatiescherm (.present, z-index 1000): een venster dat je iets vraagt hoort
+     nooit áchter iets anders te verdwijnen. Stond op 100, en dan was het onzichtbaar zodra de
+     grote vraag in beeld stond. Blijft wel onder de gedeelde vensters (9500) en de meldingen. */
+  .pmodal{position:fixed;inset:0;background:rgba(8,16,32,.72);display:none;z-index:1100;padding:12px;}
   .pmodal.open{display:flex;align-items:flex-start;justify-content:center;}
   .pmodal-box{width:100%;max-width:520px;margin-top:34px;background:var(--panel);border:1px solid var(--line);
     border-radius:14px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.55);}
@@ -446,11 +453,26 @@
   .cammodal-title{font-family:var(--serif);color:var(--gold);font-size:18px;margin-bottom:4px;}
   .bev-tekst{margin:0;font-size:14px;color:var(--text);line-height:1.55;white-space:pre-line;}
   .code-uitleg{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
-  .code-inp{font-size:20px;text-align:center;letter-spacing:6px;}
+  /* De letterafstand zet ook een spatie ACHTER het laatste teken; die duwt de bolletjes
+     een half karakter naar links. Met evenveel inspringing links compenseren we dat. */
+  .code-inp{font-size:20px;text-align:center;letter-spacing:6px;padding-left:calc(11px + 6px);}
   .code-fout{background:rgba(190,60,45,.16);border:1px solid rgba(230,90,75,.5);color:#ff9d90;
     border-radius:10px;padding:9px 11px;font-size:13px;font-weight:700;line-height:1.4;}
+  /* Ruimte maken voor het schermtoetsenbord. Een venster met position:fixed blijft even hoog
+     als het scherm, ook als het toetsenbord de onderste helft afdekt — dan zitten 'Doorgaan'
+     en 'Annuleren' daarachter, precies wanneer je ze nodig hebt. js/topbar.js meet met
+     visualViewport hoe hoog het zichtbare deel nog is en zet dat in --bb-zicht. 'margin:auto'
+     op de doos houdt hem gecentreerd zolang er plaats is; align-items:center zou de bovenkant
+     afkappen zodra hij te hoog wordt. */
+  .cammodal{bottom:auto;height:var(--bb-zicht,100%);overflow:auto;align-items:flex-start;}
+  .cammodal-box{margin:auto;max-height:100%;overflow:auto;}
   .btn.primary{background:var(--gold);color:#1a1400;border-color:transparent;}
   .btn.gevaar{background:var(--pink);color:#2a0010;border-color:transparent;}
+  /* Een knop die staat te wachten zag er precies hetzelfde uit als een knop die klaarstaat. */
+  .btn:disabled{opacity:.55;cursor:default;transform:none;}
+  /* De plaatshouder stond op de browserstandaard: een lichtgrijs dat op dit donkerblauw
+     nauwelijks leesbaar is. Met --muted volgt hij de rest van de pagina. */
+  .finp::placeholder{color:var(--muted);opacity:1;}
   /* meldingen onderaan — blokkeren niets, dus het spel loopt gewoon door */
   .bbmeldingen{position:fixed;left:0;right:0;bottom:0;z-index:9800;display:flex;
     flex-direction:column;align-items:center;gap:8px;padding:0 14px 16px;pointer-events:none;}
@@ -1220,6 +1242,15 @@ function bvSluit(v){
 document.getElementById('bvJa').onclick=()=>bvSluit(true);
 document.getElementById('bvNee').onclick=()=>bvSluit(false);
 document.getElementById('bvModal').addEventListener('click',e=>{ if(e.target.id==='bvModal') bvSluit(false); });
+// Escape sluit dit venster ook. Bij de gedeelde vensters (bbBevestig) werkte dat al, hier
+// niet — twee vensters die er hetzelfde uitzien maar zich anders gedragen, is verwarrend.
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  if(!document.getElementById('bvModal').classList.contains('open')) return;
+  // Staat er een gedeeld venster bovenop (bbBevestig, bbVraagCode)? Dan is die aan de beurt.
+  if(document.querySelector('.cammodal.open')) return;
+  e.preventDefault(); e.stopPropagation(); bvSluit(false);
+},true);
 
 // ---- Vraag toevoegen of bewerken (eigen venster, met de vertaalvelden erbij) ----
 let vqBewerktId=null;
@@ -1238,6 +1269,7 @@ function veldNaarTs(w){
   return isNaN(t)?0:t;
 }
 function openVraagVenster(v){
+  vqSessie++;
   vqBewerktId=v?v.id:null;
   document.getElementById('vqKop').textContent=v?'Vraag bewerken':'Nieuwe vraag';
   document.getElementById('vqBewaar').textContent=v?'Bewaren':'Toevoegen';
@@ -1254,7 +1286,10 @@ function openVraagVenster(v){
   document.getElementById('vqModal').classList.add('open');
   setTimeout(()=>document.getElementById('vqVraag').focus(),60);
 }
-function sluitVraagVenster(){ document.getElementById('vqModal').classList.remove('open'); vqBewerktId=null; }
+// Loopt op bij élke keer dat het vraagvenster open- of dichtgaat. Het vertalen duurt een
+// paar tellen; met dit nummer kunnen we achteraf zien of we nog in hetzelfde venster staan.
+let vqSessie=0;
+function sluitVraagVenster(){ vqSessie++; document.getElementById('vqModal').classList.remove('open'); vqBewerktId=null; }
 function vqMeld(tekst,soort){
   const el=document.getElementById('vqMelding');
   el.textContent=tekst||''; el.className='vq-melding'+(soort?(' '+soort):'');
@@ -1267,14 +1302,21 @@ document.getElementById('vqVertaalNu').onclick=async()=>{
   const v=vqLees('vqVraag'), a=vqLees('vqAntwoord');
   if(!v && !a){ vqMeld('Vul eerst de Nederlandse vraag in.','err'); return; }
   if(!navigator.onLine){ vqMeld('Daar is internet voor nodig.','err'); return; }
+  // Vertalen duurt een paar tellen. In die tijd kun je het venster sluiten en een ándere
+  // vraag openen — dan mogen deze vertalingen daar niet in belanden. En je kunt zelf al
+  // iets ingetypt hebben in een veld dat bij het starten nog leeg was; dat overschrijven
+  // we ook niet. Vandaar dat we ná het wachten allebei nog eens nakijken.
+  const sessie=vqSessie;
   vqMeld('Bezig met vertalen…','bezig');
   try{
     await Promise.all(Object.keys(VQ).map(async code=>{
-      if(v && !vqLees(VQ[code][0])) vqZet(VQ[code][0], await translate(v,code));
-      if(a && !vqLees(VQ[code][1])) vqZet(VQ[code][1], await translate(a,code));
+      const veldV=VQ[code][0], veldA=VQ[code][1];
+      if(v && !vqLees(veldV)){ const t=await translate(v,code); if(sessie===vqSessie && !vqLees(veldV)) vqZet(veldV,t); }
+      if(a && !vqLees(veldA)){ const t=await translate(a,code); if(sessie===vqSessie && !vqLees(veldA)) vqZet(veldA,t); }
     }));
+    if(sessie!==vqSessie) return;      // ander venster: hier niets meer melden
     vqMeld('Ingevuld — pas gerust nog aan.');
-  }catch(e){ vqMeld('Vertalen is niet gelukt. Probeer opnieuw.','err'); }
+  }catch(e){ if(sessie===vqSessie) vqMeld('Vertalen is niet gelukt. Probeer opnieuw.','err'); }
 };
 document.getElementById('vqBewaar').onclick=()=>{
   const v=vqLees('vqVraag'), a=vqLees('vqAntwoord');
@@ -1861,6 +1903,9 @@ document.getElementById('fFinaleOver').onclick=()=>{
   document.getElementById('fFinaleVraag').value=t;
 };
 document.getElementById('fAnnuleer').onclick=()=>show('menu');
+// Het formulier dat wíj net doorstuurden. Alleen dát mag 'Ongedaan maken' terugdraaien —
+// zie de uitleg bij die knop verderop.
+let laatsteEigenFormulier=null;
 document.getElementById('fDoorsturen').onclick=async()=>{
   const kleine=Object.keys(fSel.klein).map(id=>({id,n:fSel.klein[id]}));
   const groot=Object.keys(fSel.groot).map(id=>({id,n:fSel.groot[id]}));
@@ -1896,6 +1941,7 @@ document.getElementById('fDoorsturen').onclick=async()=>{
   // meetellen, dan zakte een vraag in de lijst zonder dat ze ooit gespeeld is.
   if(BBInv.markeerFinalevraagGebruikt) BBInv.markeerFinalevraagGebruikt([(state.vraagIds||[])[0]].filter(Boolean));
   const rec=BBInv.submitFormulier(f);
+  laatsteEigenFormulier=rec?rec.id:null;   // hier hoort 'Ongedaan maken' bij, en aan niets anders
   onthoudNaam(namen);
   // archiveer ook de spel-sessie (bestaande spel-archief met turven/finale)
   const games=loadGames(); games.push(snapshotGame(namen)); saveGames(games);
@@ -1941,11 +1987,29 @@ function updateKlaarSync(){
 window.addEventListener('online',updateKlaarSync);
 window.addEventListener('offline',updateKlaarSync);
 document.getElementById('klaarMenu').onclick=()=>show('menu');
+// 'Ongedaan maken' draait het LAATSTE formulier terug. Dat is niet per se het jouwe: de lijst
+// is gedeeld, dus terwijl dit scherm openstaat kan een collega het hare doorsturen. Dan zou
+// deze knop háár voorraad terugzetten en háár formulier wissen. We kijken daarom eerst of het
+// laatste formulier nog dat van ons is, en weigeren netjes als dat niet zo is.
 document.getElementById('klaarUndo').onclick=async()=>{
+  const lijst=BBInv.getFormulieren()||[];
+  const laatste=lijst[lijst.length-1];
+  if(!laatste || !laatsteEigenFormulier || laatste.id!==laatsteEigenFormulier){
+    bbToon('Dat kan niet meer: er is intussen een ander formulier doorgestuurd. '+
+           'Pas de voorraad met de hand aan via Inventaris → Beheer.','fout');
+    return;
+  }
   if(!await bbBevestig({titel:'Doorsturen ongedaan maken?',
     tekst:'De afgeboekte voorraad wordt teruggezet en het spel hersteld.',
     okTekst:'Ja, ongedaan maken', gevaar:true})) return;
+  // Nog eens kijken: tussen de vraag en je antwoord kan er alsnog iets bijgekomen zijn.
+  const nu=BBInv.getFormulieren()||[];
+  if(!nu.length || nu[nu.length-1].id!==laatsteEigenFormulier){
+    bbToon('Dat kan niet meer: er is intussen een ander formulier doorgestuurd.','fout');
+    return;
+  }
   BBInv.undoLastFormulier();
+  laatsteEigenFormulier=null;
   const raw=localStorage.getItem(KEYBACKUP);
   if(raw){try{const o=JSON.parse(raw);state=Object.assign(freshState(),o.data);save();}catch(e){}}
   const games=loadGames(); games.pop(); saveGames(games);
@@ -2094,11 +2158,20 @@ document.getElementById('copySheets').onclick=()=>{
 document.getElementById('changePin').onclick=changePin;
 
 // reset buttons
+// Deze knoppen wissen elk iets ánders, dus zeggen we ook wát er weggaat. Vroeger stond er
+// overal "Deze ronde wissen?" — ook bij Tellingen, Prijzen en de Vragen, waar dat niet klopt.
+const RESET_NAAM={
+  finale:  {titel:'Het finalespel wissen?',      wat:'De acht ingevulde velden van het finalespel verdwijnen.'},
+  qa:      {titel:'De vragen wissen?',           wat:'Alle vragen én antwoorden van het finalespel verdwijnen.'},
+  prijzen: {titel:'De prijzen wissen?',          wat:'Alle ingevulde prijzen van deze ronde verdwijnen.'},
+  controle:{titel:'De tellingen wissen?',        wat:'Alle turven van de controlelijst gaan terug naar nul.'}
+};
 document.querySelectorAll('[data-reset]').forEach(b=>{
   b.onclick=async()=>{
     const k=b.dataset.reset;
-    if(!await bbBevestig({titel:'Deze ronde wissen?',
-      tekst:'Alles wat je in deze ronde hebt ingevuld of aangevinkt verdwijnt.',
+    const n=RESET_NAAM[k]||{titel:'Deze ronde wissen?',
+      wat:'Alles wat je in deze ronde hebt aangevinkt verdwijnt.'};
+    if(!await bbBevestig({titel:n.titel, tekst:n.wat,
       okTekst:'Ja, wissen', gevaar:true})) return;
     if(k==='finale')state.finale=new Array(8).fill("");
     else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");state.vraagIds=["",""];state.vraagHand=false;}
