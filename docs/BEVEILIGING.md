@@ -106,9 +106,12 @@ Eerlijk blijven over wat de grendel wel en niet doet:
 - **Wie de code heeft, mag alles.** Er is geen onderscheid tussen lezen en wijzigen, of tussen
   een medewerker en een beheerder. De rollen in de app (`vast` / gewoon) blijven een
   afspraak in de browser, geen harde grens.
-- **De pincodes staan onversleuteld in de tabel `gebruikers`.** Ze zijn na deze ingreep niet
-  meer publiek leesbaar, maar wel voor wie de toegangscode heeft. Behandel ze als "wie ben ik",
-  niet als geheim.
+- **De pincodes zijn versleuteld, maar zwak.** Ze staan in de tabel `gebruikers` als
+  SHA-256-hash (zie `sha256` in [js/kern.js](../js/kern.js)) — dus níét als leesbare cijfers.
+  Maar er zit geen salt op en het zijn er maar vier, dus tienduizend mogelijkheden: wie de
+  hash heeft, rekent ze in een seconde door. Na deze ingreep is de tabel niet meer publiek
+  leesbaar, maar wel voor wie de toegangscode heeft. Behandel een pincode dus als
+  "wie ben ik", niet als geheim.
 - **Manuals blijven publiek bereikbaar via hun directe link.** De app deelt ze via
   `getPublicUrl` uit een publieke bucket. Uploaden kan straks enkel nog aangemeld, maar een
   bestaande link blijft werken zonder code. Wil je dat ook dicht, dan moet de bucket op private
