@@ -488,6 +488,16 @@
     const r=await sb.from(tabel).select(kolommen);
     return r.error ? await sb.from(tabel).select('*') : r;
   }
+  // Wat nog verwijderd MOET worden, hoort niet meer op het scherm — ook al staat het nog in
+  // de database. Anders knippert een prijs terug zodra we de lijst ophalen: je verwijdert er
+  // twee vlak na elkaar, de eerste is onderweg, en het antwoord van de database (waar de
+  // tweede nog in staat) zet die tweede weer op je scherm. Klik je snel, dan lijkt het
+  // gewoon alsof verwijderen niet werkt.
+  function zonderWachtendeWissers(tabel,rijen){
+    const weg=outbox.filter(o=>o.op==='delete'&&o.table===tabel);
+    if(!weg.length || !rijen) return rijen;
+    return rijen.filter(r=>!weg.some(o=>r&&r[o.col]===o.val));
+  }
   // Een verse lijst uit de database heeft geen foto's; die staan hier al (uit IndexedDB of
   // van eerder). Deze zet ze terug op hun plaats, zodat ze niet van het scherm verdwijnen.
   function behoudFotos(oud,nieuw){
@@ -808,7 +818,7 @@
         selectSmal('leveringen',KOL_LEVERINGEN)
       ]),12000);
       if(p.error||b.error||f.error||l.error) throw (p.error||b.error||f.error||l.error);
-      if(p.data) cache.prijzen=behoudFotos(cache.prijzen,p.data.map(fromRow));
+      if(p.data) cache.prijzen=behoudFotos(cache.prijzen,zonderWachtendeWissers('prijzen',p.data).map(fromRow));
       cache.boekjes={stock: b&&b.data? (b.data.stock||0) : 0};
       if(f.data) cache.formulieren=f.data.map(mapForm);
       if(l.data) cache.leveringen=behoudFotos(cache.leveringen,l.data.slice());
@@ -881,7 +891,7 @@
     if(outbox.length || dirty.size){ return; }
     // Ook hier zonder foto's: dit vuurt bij elke wijziging van een collega (elke voorraadtik),
     // en de foto's die we al hebben blijven gewoon staan (behoudFotos).
-    if(t==='prijzen'){const r=await selectSmal('prijzen',KOL_PRIJZEN); if(r.data)cache.prijzen=behoudFotos(cache.prijzen,r.data.map(fromRow));}
+    if(t==='prijzen'){const r=await selectSmal('prijzen',KOL_PRIJZEN); if(r.data)cache.prijzen=behoudFotos(cache.prijzen,zonderWachtendeWissers('prijzen',r.data).map(fromRow));}
     else if(t==='boekjes'){const r=await sb.from('boekjes').select('*').eq('id',1).maybeSingle(); cache.boekjes={stock:r&&r.data?(r.data.stock||0):0};}
     else if(t==='formulieren'){const r=await sb.from('formulieren').select('*'); if(r.data)cache.formulieren=r.data.map(mapForm);}
     else if(t==='leveringen'){const r=await selectSmal('leveringen',KOL_LEVERINGEN); if(r.data)cache.leveringen=behoudFotos(cache.leveringen,r.data.slice());}

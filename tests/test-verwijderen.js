@@ -109,6 +109,10 @@ async function rust(){ for(var i=0;i<30;i++){ await null; if(BBInv.pendingCount(
 
   print('\n— En zodra het toestel wél aangemeld is, vertrekt ze alsnog —');
   await sessie(db);                             // opnieuw opstarten, nu mét aanmelding
+  // Meteen na het inladen: de database geeft p1 nog terug (de verwijdering is nog niet
+  // vertrokken), maar op het scherm hoort ze niet meer te staan. Anders knippert een prijs
+  // die je net verwijderd hebt terug — precies wat het gevoel geeft dat verwijderen niet werkt.
+  ok(BBInv.getPrijzen().every(function(p){return p.id!=='p1';}),'ze knippert niet terug op het scherm terwijl ze nog in de wachtrij staat');
   await leegmaken();
   await rust();                                 // de lijst wordt na een verwijdering nog eens opgehaald
   ok(!heeft(db,'p1'),'de prijs is nu echt weg uit de database');

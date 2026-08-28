@@ -319,7 +319,21 @@ function prijsRow(p){
     if(beheerOnlyUse) renderBeheerList();
     renderStats();
   };
-  row.querySelector('.del').onclick=async()=>{if(await bbBevestig({titel:'Uit de inventaris verwijderen?', tekst:'"'+p.naam+'" wordt verwijderd.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.removePrijs(p.id);renderBeheerList();renderInvSum();renderStats();}};
+  row.querySelector('.del').onclick=async()=>{
+    // Eerst vers opzoeken. Deze rij kan al even op het scherm staan: intussen is de lijst
+    // misschien vernieuwd (door je vorige verwijdering of door een collega). Zonder deze
+    // controle sturen we een verwijdering voor iets dat er al niet meer staat — dat is de
+    // regel "Prijs verwijderd" zónder naam in het logboek.
+    const nu=BBInv.getPrijzen().find(x=>x.id===p.id);
+    if(!nu){ bbToon('Die prijs staat al niet meer in de lijst.'); renderBeheerList(); return; }
+    if(!await bbBevestig({titel:'Uit de inventaris verwijderen?', tekst:'"'+nu.naam+'" wordt verwijderd.', okTekst:'Ja, verwijderen', gevaar:true})) return;
+    BBInv.removePrijs(nu.id);
+    renderBeheerList();renderInvSum();renderStats();
+    // Stond die naam dubbel in de lijst, dan blijft er nu nog één staan. Zeg dat meteen:
+    // anders lijkt het alsof de verwijdering niet gelukt is en klik je nog eens.
+    const zelfde=BBInv.getPrijzen().filter(x=>String(x.naam||'').trim().toLowerCase()===String(nu.naam||'').trim().toLowerCase()).length;
+    if(zelfde) bbToon('Verwijderd. Let op: "'+nu.naam+'" staat nog '+zelfde+'× in de lijst — zie "Dubbels opruimen".');
+  };
   return row;
 }
 function boekjesRow(){
