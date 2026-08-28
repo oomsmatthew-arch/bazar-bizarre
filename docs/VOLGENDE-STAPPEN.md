@@ -35,11 +35,13 @@ ontwikkelaar) het over een half jaar nog begrijpt.
 | `entertainment.html` | Startpagina met het kaartenmenu |
 | `index.html` | Stuurt alleen door naar `entertainment.html` |
 | `bazar-bizarre-spel.html` | De spelleiderstool — één groot bestand met een eigen donker thema |
-| `paginas/*.html` | Twaalf losse pagina's: inventaris, bestellingen, projecten, ratings, checklists, contacten, logboek, manuals, instellingen, activiteit, systeem |
-| `js/kern.js` | Gedeeld op elke pagina: inloggen, pincodes, rollen/toegangen, thema, gedeelde vensters, service worker |
+| `paginas/*.html` | Twaalf losse pagina's: inventaris, bestellingen, projecten, ratings, ratings-vergelijk, checklists, contacten, logboek, manuals, instellingen, activiteit, systeem |
+| `js/kern.js` | Gedeeld op de pagina's die hem laden: inloggen, pincodes, rollen/toegangen, inlogscherm/profiel/camera, service worker |
+| `js/topbar.js` | De balk bovenaan, het thema, en de vier vensters (`bbToon`, `bbBevestig`, `bbVraagTekst`, `bbVraagCode`). Staat los van `kern.js`, zodat óók projecten, ratings en het spel hem kunnen laden. Met `<body data-topbar="geen">` levert hij enkel de vensters — dat doet de spelpagina |
 | `js/inventaris.js` | De gegevenslaag `BBInv`: Supabase + offline wachtrij + IndexedDB-momentopname |
 | `js/inventaris-data.js` | Standaard startinventaris uit Excel — alleen geladen door de startpagina, de inventarispagina en het spel |
-| `js/projecten.js`, `js/ratings.js`, `js/ratings-vergelijk.js`, `js/zoek.js`, `js/terug.js` | Pagina-specifiek |
+| `js/projecten.js`, `js/ratings.js`, `js/ratings-vergelijk.js` | Pagina-specifiek |
+| `js/zoek.js`, `js/terug.js` | Gedeeld en zelfstandig, net als `topbar.js`: de zoekknop in de balk, en de terugknop die open vensters sluit i.p.v. de pagina te verlaten |
 | `css/app.css` | Eén stylesheet voor alles behalve het spel |
 | `sw.js` | Service worker: pagina's netwerk-eerst met 1,5 s limiet, de rest cache-eerst |
 | `tests/` | Twaalf tests op de gegevenslaag, draaien zonder browser |

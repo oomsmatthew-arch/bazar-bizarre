@@ -52,8 +52,11 @@ klaar is.
 
 ### Stap 2 — Zet zelfregistratie uit
 
-**Sla dit niet over.** Staat registratie open, dan maakt iemand gewoon zelf een account aan en
-staat hij alsnog binnen — dan heeft het hele slot geen zin.
+Doe dit, maar weet waaróm. Het slot hángt hier niet van af: de regel uit stap 4 test niet
+alleen of je aangemeld bent, maar ook of je e-mailadres `team@entertainment.app` is. Wie
+zichzelf een account aanmaakt, krijgt dus alsnog niets te zien. Zet registratie toch uit —
+anders kan een vreemde ongelimiteerd accounts (en bevestigingsmails) in jouw project laten
+aanmaken, en dat wil je niet op je naam hebben staan.
 
 1. **Authentication** → **Sign In / Providers** → **Email**.
 2. Zet **Allow new users to sign up** (of "Enable sign ups") **uit**. Opslaan.
