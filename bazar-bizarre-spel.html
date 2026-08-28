@@ -462,6 +462,37 @@
   .bbmelding.weg{opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;}
   @keyframes bbmeldIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
   @media (prefers-reduced-motion:reduce){.bbmelding{animation:none;}}
+
+  /* Het algemene zoekvenster (js/zoek.js) — het vergrootglas in de balk. Dat script laadt
+     deze pagina óók, maar de stijlen ervan staan in css/app.css, en die laden we hier niet.
+     Zonder deze regels verscheen het venster helemaal kaal midden in de pagina: geen
+     achtergrond, geen kader, en het duwde alles onder zich weg. Hier dus in onze eigen
+     kleuren, met dezelfde opbouw als in css/app.css. */
+  .gzoek-overlay{position:fixed;inset:0;z-index:9400;display:none;background:rgba(6,12,26,.8);
+    padding:70px 14px 14px;justify-content:center;}
+  .gzoek-overlay.open{display:flex;}
+  .gzoek-box{width:100%;max-width:640px;max-height:100%;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 20px 60px rgba(0,0,0,.55);overflow:hidden;}
+  .gzoek-top{display:flex;align-items:center;gap:10px;padding:12px 14px;
+    border-bottom:1px solid var(--line);background:var(--panel2);}
+  .gzoek-ic{font-size:18px;flex:0 0 auto;}
+  .gzoek-input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:inherit;
+    font-size:16px;color:var(--text);}
+  .gzoek-input::placeholder{color:var(--muted);}
+  .gzoek-sluit{flex:0 0 auto;border:none;background:none;color:var(--muted);font-size:18px;
+    cursor:pointer;padding:4px 6px;line-height:1;}
+  .gzoek-results{overflow:auto;padding:6px;}
+  .gzoek-leeg{color:var(--muted);font-style:italic;padding:22px 14px;text-align:center;}
+  .gzoek-groep{margin:6px 4px 10px;}
+  .gzoek-groeptitel{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--gold);margin:0 6px 4px;}
+  .gzoek-item{display:flex;flex-direction:column;gap:1px;text-decoration:none;padding:9px 10px;border-radius:10px;}
+  .gzoek-item:hover{background:var(--panel2);}
+  .gzoek-lbl{font-weight:700;font-size:15px;color:var(--text);}
+  .gzoek-sub{font-size:12px;color:var(--muted);}
+  .gzoek-meer{display:block;text-decoration:none;padding:7px 10px;font-size:13px;font-weight:700;color:var(--gold);}
+  .gzoek-meer:hover{text-decoration:underline;}
 </style>
 </head>
 <!-- data-topbar="geen": js/topbar.js levert hier ENKEL de vensters (bbToon, bbBevestig,
@@ -1555,7 +1586,17 @@ document.getElementById('logoBtn').onclick=()=>show('menu'); // logo brengt je a
 // Vensters (prijskeuze, sessielijst, het grote presentatiescherm) gebruiken hier
 // andere klassen dan de rest van de app, dus die zetten we er apart bij.
 window.bbVensterExtra='.pmodal.open, .present.open';
-window.bbVensterSluiters={ present:closePresent }; // ook aria-hidden + scrollen herstellen
+// Elk venster dat op een ANTWOORD staat te wachten hoort hier te staan. Sluit de terugknop
+// het namelijk zonder dat wij het merken, dan haalt terug.js enkel de klasse 'open' weg —
+// en dan blijft die wachtende vraag eeuwig hangen. Bij bvModal betekende dat: je tikt
+// "Spel afsluiten", drukt op terug in plaats van op Annuleren, en daarna doet die knop
+// gewoon niets meer tot je de pagina herlaadt.
+// (Object.assign, geen gewone toewijzing: js/topbar.js schrijft zijn eigen vensters hier
+//  ook in, en die mogen we niet wegvegen.)
+window.bbVensterSluiters=Object.assign(window.bbVensterSluiters||{},{
+  present:closePresent,       // ook aria-hidden + scrollen herstellen
+  bvModal:()=>bvSluit(false)  // terug = annuleren
+});
 
 // Welke schermen openstaan, onderste eerst. 'toont' is wat er te zien is; dat
 // kan afwijken van de naam waarmee de stap geregistreerd is (zie NAV_VERVANGT).
@@ -1931,6 +1972,12 @@ async function changePin(){
   const n=await bbVraagCode({titel:'Nieuwe pincode', uitleg:'Drie tot acht cijfers.',
     maxlengte:8, controle:v=>/^\d{3,8}$/.test(v||'')?'':'Gebruik 3 tot 8 cijfers.'});
   if(n===null) return;
+  // Twee keer laten intikken. Vroeger stond de nieuwe code in klare tekst op het scherm en
+  // kon je ze nalezen; nu zie je bolletjes. Zonder deze herhaling zou één typfout iedereen
+  // buitensluiten uit het beheerscherm, en dat merk je pas de volgende keer.
+  const n2=await bbVraagCode({titel:'Nogmaals ter controle', uitleg:'Tik dezelfde nieuwe pincode nog een keer in.',
+    maxlengte:8, controle:v=>v===n?'':'Dat is niet dezelfde code. Probeer opnieuw.'});
+  if(n2===null) return;
   localStorage.setItem(PINKEY,n);
   if(window.BBInv&&BBInv.saveConfig){ BBInv.saveConfig(Object.assign({},BBInv.getConfig()||{},{pin:n})); }
   bbToon('Pincode gewijzigd.');

@@ -117,8 +117,20 @@
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&ov.classList.contains('open')) sluitZoek(); });
     zoekEl=ov; return ov;
   }
+  // Bij de terugknop aanmelden (js/terug.js), zodat terug het zoekvenster sluit in plaats
+  // van de hele pagina te verlaten — op een tablet is terug een veegbeweging vanaf de rand.
+  // We doen dat hier, vlak voor het opengaat, en niet bij het laden: verschillende pagina's
+  // zetten window.bbVensterExtra en window.bbVensterSluiters ná dit script in één keer, en
+  // zouden onze aanmelding dan wegvegen.
+  function meldAanBijTerug(){
+    if(!window.bbVensterSluiters) window.bbVensterSluiters={};
+    window.bbVensterSluiters.gzoekOverlay=sluitZoek;
+    const extra=window.bbVensterExtra||'';
+    if(extra.indexOf('.gzoek-overlay.open')<0)
+      window.bbVensterExtra = extra ? (extra+', .gzoek-overlay.open') : '.gzoek-overlay.open';
+  }
   function openZoek(){
-    const ov=bouwZoek(); ov.classList.add('open');
+    const ov=bouwZoek(); meldAanBijTerug(); ov.classList.add('open');
     const inp=ov.querySelector('#gzoekInput'); inp.value=''; ov.querySelector('#gzoekResults').innerHTML='<div class="gzoek-leeg">Typ om te zoeken in alle categorieën.</div>';
     setTimeout(()=>inp.focus(),30);
   }

@@ -261,6 +261,14 @@ document.getElementById('changePin').onclick=async()=>{
     plaatshouder:'Nieuw wachtwoord', maxlengte:8,
     controle:v=>/^\d{3,8}$/.test(v||'')?'':'Gebruik drie tot acht cijfers.'});
   if(n===null) return;
+  // Twee keer laten intikken. Vroeger stond het nieuwe wachtwoord in klare tekst op het
+  // scherm en kon je het nalezen; nu zie je bolletjes. Zonder deze herhaling zou één typfout
+  // iedereen buitensluiten uit álle beheerschermen, en dat merk je pas de volgende keer.
+  const n2=await bbVraagCode({titel:'Nogmaals ter controle',
+    uitleg:'Tik hetzelfde nieuwe wachtwoord nog een keer in.',
+    plaatshouder:'Nieuw wachtwoord', maxlengte:8,
+    controle:v=>v===n?'':'Dat is niet hetzelfde wachtwoord. Probeer opnieuw.'});
+  if(n2===null) return;
   localStorage.setItem(K_PIN,n); pushConfig();
   if(window.BBInv&&BBInv.logAct) BBInv.logAct('Beheer-wachtwoord gewijzigd');
   bbToon('Wachtwoord gewijzigd.');
