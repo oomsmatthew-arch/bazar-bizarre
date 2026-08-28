@@ -16,6 +16,10 @@
 //     data-rechts="home"             rechtse knop: home (standaard) |
 //                                    instellingen (startpagina) | terug (projecten)
 //     data-extra="ratings.html|‹ Ratings"   een extra link vóór de rechtse knop
+//     data-topbar="geen"             GEEN balk en GEEN thema — enkel de vensters.
+//                                    Voor bazar-bizarre-spel.html, die een eigen balk en
+//                                    een eigen donkerblauw thema heeft maar wél bbToon,
+//                                    bbBevestig en bbVraagCode wil gebruiken.
 //
 //  Staat los van kern.js — net als js/zoek.js en js/terug.js — zodat pagina's
 //  die de kern niet laden (projecten, ratings) dezelfde balk en hetzelfde thema
@@ -36,6 +40,13 @@
   })();
 
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ENKEL DE VENSTERS, GEEN BALK — met data-topbar="geen" op <body>.
+  // De spelpagina heeft een eigen balk en een eigen donkerblauw thema, maar wil wél de
+  // vensters onderaan dit bestand (bbToon, bbBevestig, bbVraagTekst, bbVraagCode). Zonder
+  // deze uitweg zou ze er een groene balk bij krijgen, zou het thema van de app over het
+  // hare heen gezet worden, en zou er een tweede element met id="title" ontstaan.
+  const geenBalk = document.body && document.body.getAttribute('data-topbar')==='geen';
 
   // ---------------- THEMA ----------------
   // Heb je zelf al eens op het maantje getikt, dan wint die keuze altijd. Zo niet, dan
@@ -66,18 +77,22 @@
     try{ localStorage.setItem(K_THEME, themaKeuze()==='dark' ? 'light' : 'dark'); }catch(e){}
     zetThema();
   }
-  zetThema(); // meteen, nog voor de pagina getekend is (geen witte flits)
-  // Wisselt het toestel van thema (bv. automatisch 's avonds) en heb je zelf nog niets
-  // gekozen, dan gaat de app mee.
-  try{
-    matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
-      let gekozen=null; try{ gekozen=localStorage.getItem(K_THEME); }catch(e){}
-      if(!gekozen) zetThema();
-    });
-  }catch(e){}
+  if(!geenBalk){
+    zetThema(); // meteen, nog voor de pagina getekend is (geen witte flits)
+    // Wisselt het toestel van thema (bv. automatisch 's avonds) en heb je zelf nog niets
+    // gekozen, dan gaat de app mee.
+    try{
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+        let gekozen=null; try{ gekozen=localStorage.getItem(K_THEME); }catch(e){}
+        if(!gekozen) zetThema();
+      });
+    }catch(e){}
+  }
 
   // ---------------- DE BALK ----------------
   const body=document.body;
+  if(!geenBalk) bouwBalk();
+  function bouwBalk(){
   const titel=body.getAttribute('data-titel')||(document.title||'').split('·')[0].trim()||'EntertainmentVM';
   const rechts=body.getAttribute('data-rechts')||'home';
   const start=ROOT+'entertainment.html';
@@ -133,6 +148,7 @@
   // Zonder kern.js is er geen inlogscherm op deze pagina; dan brengt de knop je naar
   // de startpagina, waar je wél kunt wisselen.
   if(userBtn) userBtn.onclick=()=>{ location.href=start; };
+  }
 
   // =========================================================================
   //  DE DRIE VERVANGERS VAN DE SYSTEEMVENSTERS

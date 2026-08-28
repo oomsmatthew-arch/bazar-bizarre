@@ -430,9 +430,44 @@
 
   .hint{font-size:13px;color:var(--muted);margin:0 2px 14px;line-height:1.4;}
   footer{margin-top:24px;text-align:center;color:var(--muted);font-size:12px;}
+
+  /* ---- eigen vensters i.p.v. alert / confirm / prompt ----
+     De vensters zelf komen uit js/topbar.js (bbToon, bbBevestig, bbVraagCode). Die
+     verwacht dezelfde klassen als in css/app.css, maar deze pagina laadt dat bestand
+     niet — ze heeft een eigen donkerblauw thema. Daarom staan de regels hier, in de
+     kleuren van het spel. Dit is geen luxe: prompt() toonde je pincode in klare tekst
+     op een scherm waar een zaal naar kijkt. */
+  .cammodal{position:fixed;inset:0;background:rgba(6,12,26,.86);display:none;z-index:9500;
+    align-items:center;justify-content:center;padding:14px;}
+  .cammodal.open{display:flex;}
+  .cammodal-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:16px;max-width:560px;width:100%;box-shadow:0 16px 44px rgba(0,0,0,.55);}
+  .cammodal-box.choose{max-width:340px;display:flex;flex-direction:column;gap:10px;}
+  .cammodal-title{font-family:var(--serif);color:var(--gold);font-size:18px;margin-bottom:4px;}
+  .bev-tekst{margin:0;font-size:14px;color:var(--text);line-height:1.55;white-space:pre-line;}
+  .code-uitleg{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+  .code-inp{font-size:20px;text-align:center;letter-spacing:6px;}
+  .code-fout{background:rgba(190,60,45,.16);border:1px solid rgba(230,90,75,.5);color:#ff9d90;
+    border-radius:10px;padding:9px 11px;font-size:13px;font-weight:700;line-height:1.4;}
+  .btn.primary{background:var(--gold);color:#1a1400;border-color:transparent;}
+  .btn.gevaar{background:var(--pink);color:#2a0010;border-color:transparent;}
+  /* meldingen onderaan — blokkeren niets, dus het spel loopt gewoon door */
+  .bbmeldingen{position:fixed;left:0;right:0;bottom:0;z-index:9800;display:flex;
+    flex-direction:column;align-items:center;gap:8px;padding:0 14px 16px;pointer-events:none;}
+  .bbmelding{pointer-events:auto;max-width:520px;width:100%;background:var(--panel);
+    border:1px solid var(--line);border-left:5px solid var(--ok);border-radius:12px;
+    padding:11px 14px;box-shadow:0 10px 30px rgba(0,0,0,.5);font-size:14px;line-height:1.5;
+    color:var(--text);white-space:pre-line;cursor:pointer;animation:bbmeldIn .18s ease-out;}
+  .bbmelding.fout{border-left-color:var(--pink);}
+  .bbmelding.weg{opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;}
+  @keyframes bbmeldIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){.bbmelding{animation:none;}}
 </style>
 </head>
-<body data-toegang="spel">
+<!-- data-topbar="geen": js/topbar.js levert hier ENKEL de vensters (bbToon, bbBevestig,
+     bbVraagCode). De balk en het thema van de app blijven weg — deze pagina heeft haar
+     eigen balk en haar eigen donkerblauwe kleuren. -->
+<body data-toegang="spel" data-topbar="geen">
 <div class="wrap">
   <div class="topbar">
     <img class="logo" width="600" height="428" src="assets/Logo_kleine_tekst.jpg" alt="Bazar Bizarre" id="logoBtn" title="Naar het overzicht">
@@ -777,6 +812,7 @@
   <div class="present-inner" id="presentInner"></div>
 </div>
 
+<script src="js/topbar.js"></script>
 <script src="js/supabase.min.js"></script>
 <script src="js/terug.js"></script>
 <script src="js/inventaris-data.js"></script>
@@ -1118,16 +1154,17 @@ function renderVragenlijst(){
 document.getElementById('vlZoek').oninput=e=>{ vlQuery=e.target.value.trim(); renderVragenlijst(); };
 // Twee nieuwe voorstellen, ook als de vakken al gevuld waren.
 document.getElementById('vraagOpnieuw').onclick=()=>{
-  if(!vragenBank().length){ alert('Er staan nog geen vragen in de lijst.'); return; }
+  if(!vragenBank().length){ bbToon('Er staan nog geen vragen in de lijst.','fout'); return; }
   state.vraagIds=["",""]; state.vraagHand=false;
   vulVragenVoor(true); renderFinale();
 };
 
 // ---------------- VRAGEN BEHEREN ----------------
 let vbQuery='';
-document.getElementById('vlBeheer').onclick=()=>{
-  const p=prompt('Beheer-wachtwoord om de vragen te beheren:'); if(p===null) return;
-  if(p!==getPin()){ alert('Onjuist wachtwoord.'); return; }
+document.getElementById('vlBeheer').onclick=async()=>{
+  const p=await bbVraagCode({titel:'Beheer-wachtwoord', uitleg:'Nodig om de vragenlijst te beheren.',
+    plaatshouder:'Wachtwoord', controle:v=>v===getPin()?'':'Onjuist wachtwoord.'});
+  if(p===null) return;
   renderVragenBeheer(); show('vragenbeheer');
 };
 document.getElementById('vbTerug').onclick=()=>{ renderFinale(); show('finale'); };
@@ -1576,8 +1613,10 @@ function snapshotSessie(label){
     counts:{ superdeals:state.superdeals.filter(Boolean).length, trolley:state.trolley.filter(Boolean).length,
              howmuch:state.howmuch.filter(Boolean).length, coins:state.coins.filter(Boolean).length } };
 }
-document.getElementById('wisSessie').onclick=()=>{
-  if(!confirm('Weet je het zeker? Dit wist ALLES van deze sessie: alle turven, aangevinkte deals/nummers/munten, prijzen en vragen.'))return;
+document.getElementById('wisSessie').onclick=async()=>{
+  if(!await bbBevestig({titel:'Deze sessie wissen?',
+    tekst:'Alle turven, aangevinkte deals, nummers en munten, de prijzen en de vragen van deze sessie verdwijnen.',
+    okTekst:'Ja, wissen', gevaar:true})) return;
   try{localStorage.setItem(KEYBACKUP,JSON.stringify({ts:Date.now(),data:state}));}catch(e){}
   if(window.BBInv&&BBInv.pushSessie) BBInv.pushSessie(snapshotSessie('')); // ook delen zodat andere toestellen ze kunnen terughalen
   state=freshState();
@@ -1608,9 +1647,11 @@ async function openSessiePicker(){
     const it=document.createElement('div'); it.className='pmodal-it';
     it.innerHTML='<b>'+fmtTs(s.ts)+'</b>'+(s.label?(' · '+esc(s.label)):'')+(s.lokaal?' · <span style="color:var(--gold);">dit toestel</span>':'')+
       (sub.length?('<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+sub.join(' · ')+'</div>'):'');
-    it.onclick=()=>{
-      if(!s.state){ alert('Deze sessie bevat geen herstelbare gegevens.'); return; }
-      if(!confirm('Deze sessie van '+fmtTs(s.ts)+' terugzetten? De huidige gegevens op dit scherm worden vervangen.')) return;
+    it.onclick=async()=>{
+      if(!s.state){ bbToon('Deze sessie bevat geen herstelbare gegevens.','fout'); return; }
+      if(!await bbBevestig({titel:'Sessie terugzetten?',
+        tekst:'De sessie van '+fmtTs(s.ts)+' wordt teruggezet. De huidige gegevens op dit scherm worden vervangen.',
+        okTekst:'Ja, terugzetten', gevaar:true})) return;
       state=Object.assign(freshState(), s.state);
       save(); renderAll(); updateAll(); updateRestoreBtn();
       modal.classList.remove('open'); show('menu');
@@ -1775,7 +1816,7 @@ document.querySelectorAll('.formfilter').forEach(fb=>{
 // of als je hier per ongeluk iets hebt weggegooid.
 document.getElementById('fFinaleOver').onclick=()=>{
   const t=finaleVraagTekst();
-  if(!t){ alert('Er staat nog geen vraag of antwoord bij het Finalespel.'); return; }
+  if(!t){ bbToon('Er staat nog geen vraag of antwoord bij het Finalespel.','fout'); return; }
   document.getElementById('fFinaleVraag').value=t;
 };
 document.getElementById('fAnnuleer').onclick=()=>show('menu');
@@ -1859,35 +1900,40 @@ function updateKlaarSync(){
 window.addEventListener('online',updateKlaarSync);
 window.addEventListener('offline',updateKlaarSync);
 document.getElementById('klaarMenu').onclick=()=>show('menu');
-document.getElementById('klaarUndo').onclick=()=>{
-  if(!confirm('Dit doorsturen ongedaan maken? De afgeboekte voorraad wordt teruggezet en het spel hersteld.'))return;
+document.getElementById('klaarUndo').onclick=async()=>{
+  if(!await bbBevestig({titel:'Doorsturen ongedaan maken?',
+    tekst:'De afgeboekte voorraad wordt teruggezet en het spel hersteld.',
+    okTekst:'Ja, ongedaan maken', gevaar:true})) return;
   BBInv.undoLastFormulier();
   const raw=localStorage.getItem(KEYBACKUP);
   if(raw){try{const o=JSON.parse(raw);state=Object.assign(freshState(),o.data);save();}catch(e){}}
   const games=loadGames(); games.pop(); saveGames(games);
   renderAll();updateAll();updateRestoreBtn();
   show('menu');
-  alert('Doorsturen ongedaan gemaakt. De voorraad en het spel zijn hersteld.');
+  bbToon('Doorsturen ongedaan gemaakt. De voorraad en het spel zijn hersteld.');
 };
 
-// admin openen met pincode
-function openAdmin(){
-  const p=prompt('Pincode:');
+// admin openen met pincode. Bewust GEEN prompt(): dit scherm staat vaak open terwijl er
+// een zaal meekijkt, en prompt() zette je pincode leesbaar in beeld.
+async function openAdmin(){
+  const p=await bbVraagCode({titel:'Pincode', uitleg:'Nodig om het beheerscherm te openen.',
+    controle:v=>v===getPin()?'':'Onjuiste pincode.'});
   if(p===null) return;
-  if(p!==getPin()){alert('Onjuiste pincode.');return;}
   renderAdmin(); show('admin');
 }
 document.getElementById('adminBtn').onclick=openAdmin;
 document.getElementById('naarHome').onclick=()=>{ location.href='entertainment.html'; };
 
-function changePin(){
-  const cur=prompt('Huidige pincode:'); if(cur===null) return;
-  if(cur!==getPin()){alert('Onjuiste pincode.');return;}
-  const n=prompt('Nieuwe pincode (3 tot 8 cijfers):'); if(n===null) return;
-  if(!/^\d{3,8}$/.test(n)){alert('Gebruik 3 tot 8 cijfers.');return;}
+async function changePin(){
+  const cur=await bbVraagCode({titel:'Huidige pincode',
+    controle:v=>v===getPin()?'':'Onjuiste pincode.'});
+  if(cur===null) return;
+  const n=await bbVraagCode({titel:'Nieuwe pincode', uitleg:'Drie tot acht cijfers.',
+    maxlengte:8, controle:v=>/^\d{3,8}$/.test(v||'')?'':'Gebruik 3 tot 8 cijfers.'});
+  if(n===null) return;
   localStorage.setItem(PINKEY,n);
   if(window.BBInv&&BBInv.saveConfig){ BBInv.saveConfig(Object.assign({},BBInv.getConfig()||{},{pin:n})); }
-  alert('Pincode gewijzigd.');
+  bbToon('Pincode gewijzigd.');
 }
 
 function finaleText(g){
@@ -1933,8 +1979,10 @@ function renderAdmin(){
         '<button class="btn" data-copy="'+g.id+'">Kopieer deze rij</button>'+
         '<button class="btn del" data-del="'+g.id+'">Verwijderen</button>'+
       '</div>';
-    card.querySelector('[data-del]').onclick=()=>{
-      if(!confirm('Dit opgeslagen spel definitief verwijderen?'))return;
+    card.querySelector('[data-del]').onclick=async()=>{
+      if(!await bbBevestig({titel:'Opgeslagen spel verwijderen?',
+        tekst:'Dit spel verdwijnt definitief uit de lijst.',
+        okTekst:'Ja, verwijderen', gevaar:true})) return;
       saveGames(loadGames().filter(x=>x.id!==g.id)); renderAdmin();
     };
     card.querySelector('[data-copy]').onclick=()=>copyText(buildTSV([g]));
@@ -1970,7 +2018,7 @@ function buildTSV(games){
   return rows.map(r=>r.map(v=>String(v==null?'':v).replace(/\t/g,' ').replace(/\r?\n/g,' ')).join('\t')).join('\n');
 }
 function copyText(t){
-  const done=()=>alert('Gekopieerd! Plak het nu in Google Sheets (Ctrl+V).');
+  const done=()=>bbToon('Gekopieerd! Plak het nu in Google Sheets (Ctrl+V).');
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t));
   }else fallbackCopy(t);
@@ -1978,13 +2026,13 @@ function copyText(t){
 function fallbackCopy(t){
   const ta=document.createElement('textarea'); ta.value=t;
   ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
-  try{document.execCommand('copy');alert('Gekopieerd! Plak het nu in Google Sheets (Ctrl+V).');}
-  catch(e){alert('Kopiëren niet gelukt op dit toestel.');}
+  try{document.execCommand('copy');bbToon('Gekopieerd! Plak het nu in Google Sheets (Ctrl+V).');}
+  catch(e){bbToon('Kopiëren niet gelukt op dit toestel.','fout');}
   document.body.removeChild(ta);
 }
 function downloadCSV(){
   const games=loadGames();
-  if(!games.length){alert('Er zijn nog geen opgeslagen spellen om te exporteren.');return;}
+  if(!games.length){bbToon('Er zijn nog geen opgeslagen spellen om te exporteren.','fout');return;}
   const blob=new Blob(['﻿'+buildCSV()],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='bazar-bizarre-spellen.csv';
@@ -1993,16 +2041,18 @@ function downloadCSV(){
 }
 document.getElementById('expCsv').onclick=downloadCSV;
 document.getElementById('copySheets').onclick=()=>{
-  if(!loadGames().length){alert('Er zijn nog geen opgeslagen spellen om te kopiëren.');return;}
+  if(!loadGames().length){bbToon('Er zijn nog geen opgeslagen spellen om te kopiëren.','fout');return;}
   copyText(buildTSV());
 };
 document.getElementById('changePin').onclick=changePin;
 
 // reset buttons
 document.querySelectorAll('[data-reset]').forEach(b=>{
-  b.onclick=()=>{
+  b.onclick=async()=>{
     const k=b.dataset.reset;
-    if(!confirm('Weet je het zeker? Dit wist deze ronde.'))return;
+    if(!await bbBevestig({titel:'Deze ronde wissen?',
+      tekst:'Alles wat je in deze ronde hebt ingevuld of aangevinkt verdwijnt.',
+      okTekst:'Ja, wissen', gevaar:true})) return;
     if(k==='finale')state.finale=new Array(8).fill("");
     else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");state.vraagIds=["",""];state.vraagHand=false;}
     else if(k==='prijzen')state.prijzen=new Array(8).fill("");
@@ -2041,7 +2091,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.3';
+const APP_VERSION='v3.4';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

@@ -5,10 +5,10 @@
 > Wil je maar één taak laten doen, knip de rest weg — maar laat *Werkafspraken* en
 > *Niet doen zonder overleg* altijd staan.
 >
-> Laatst bijgewerkt bij **v6.2**. Kloppen de getallen hieronder niet meer, meet ze
+> Laatst bijgewerkt bij **v6.3**. Kloppen de getallen hieronder niet meer, meet ze
 > dan opnieuw met de commando's die erbij staan.
 >
-> **Taken 1 tot en met 5 zijn uitgevoerd in v6.2.** Wat er nog ligt staat onderaan,
+> **Taken 1 tot en met 5 zijn uitgevoerd** (1, 3, 4 en 5 in v6.2; taak 2 afgerond in v6.3 met de spelpagina). Wat er nog ligt staat onderaan,
 > onder *Wat er nog open staat*. De uitgevoerde taken blijven hieronder staan met hun
 > uitkomst erbij, zodat je ziet wat er veranderd is en waaróm.
 
@@ -42,11 +42,11 @@ ontwikkelaar) het over een half jaar nog begrijpt.
 | `js/projecten.js`, `js/ratings.js`, `js/ratings-vergelijk.js`, `js/zoek.js`, `js/terug.js` | Pagina-specifiek |
 | `css/app.css` | Eén stylesheet voor alles behalve het spel |
 | `sw.js` | Service worker: pagina's netwerk-eerst met 1,5 s limiet, de rest cache-eerst |
-| `tests/` | Elf tests op de gegevenslaag, draaien zonder browser |
+| `tests/` | Twaalf tests op de gegevenslaag, draaien zonder browser |
 
 ## Werkafspraken
 
-**Draai de tests vóór én na elke wijziging.** Alle elf horen groen te zijn:
+**Draai de tests vóór én na elke wijziging.** Alle twaalf horen groen te zijn:
 
 ```bash
 JSC=/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc
@@ -63,7 +63,7 @@ faalt op `xcode-select`. Probeer niet te committen. Noem aan het eind welke best
 gewijzigd, toegevoegd of verwijderd zijn; de eigenaar pusht zelf via GitHub Desktop.
 
 **Versienummers.** `APP_VERSION` in `js/kern.js` en `CACHE` in `sw.js` moeten identiek
-blijven (nu allebei `v6.1`). Verhoog ze allebei bij een wijziging die de tablets moeten
+blijven (nu allebei `v6.3`). Verhoog ze allebei bij een wijziging die de tablets moeten
 oppikken — anders blijft een tablet op de oude versie hangen.
 
 **De eigenaar werkt soms tegelijk in dezelfde bestanden.** Lees een bestand opnieuw vlak
@@ -114,9 +114,9 @@ niet met veertien uitzonderingen:
 - `bazar-bizarre-spel.html` heeft een **eigen** topbar met een ander thema; laat die met rust
 </details>
 
-## Taak 2 — De native vensters vervangen ✅ *gedaan in v6.2 (behalve het spel)*
+## Taak 2 — De native vensters vervangen ✅ *helemaal klaar in v6.3*
 
-**Uitkomst.** Er staan drie vervangers onderaan **`js/topbar.js`** — dus beschikbaar op
+**Uitkomst.** Er staan vier vervangers onderaan **`js/topbar.js`** — dus beschikbaar op
 élke pagina, ook die zonder `kern.js`:
 
 | Vervanger | In plaats van | Vorm |
@@ -126,7 +126,8 @@ niet met veertien uitzonderingen:
 | `await bbVraagTekst({titel,waarde,plaatshouder,soort})` | `prompt()` | invoerveld, `null` bij annuleren |
 | `await bbVraagCode({titel,uitleg,controle})` | `prompt()` voor wachtwoorden | bolletjes i.p.v. klare tekst; foute code probeer je meteen opnieuw in hetzelfde venster |
 
-Alle zes de wachtwoord-prompts uit de tabel hieronder zijn om. **Let op bij verder werk:**
+Alle wachtwoord- en pincodevensters zijn om: de zes uit de tabel hieronder, plus het
+wijzigen van het beheer-wachtwoord in Instellingen en de vier in het spel. **Let op bij verder werk:**
 `magBeheren`, `eisBeheer`, `eisToegang` (kern.js), `magBeheren`/`magProjectMaken`
 (projecten.js) en `magBewerken` (ratings.js) zijn daardoor **asynchroon** geworden. Elke
 aanroep hoort `await` te krijgen — zonder await krijg je een belofte terug, en die is
@@ -137,13 +138,22 @@ grep -rn "eisBeheer(\|magBeheren(\|eisToegang(\|magProjectMaken(" *.html paginas
   | grep -v "await\|async function\|^\S*:[0-9]*: *//"     # → leeg
 ```
 
-**Nog te doen:** `bazar-bizarre-spel.html` heeft nog 24 systeemvensters. Die pagina laadt
-`topbar.js` niet en heeft een eigen donker thema, dus daar hoort eerst een beslissing bij
-— zie *Wat er nog open staat*.
+**Ook het spel is nu om (v6.3).** `bazar-bizarre-spel.html` had als laatste nog 23
+systeemvensters, waaronder vier die om een pincode of wachtwoord vroegen — op een scherm
+waar een zaal naar kijkt. De aanpak:
+
+- `<body data-topbar="geen">` — nieuw in `topbar.js`. Daarmee levert dat bestand **enkel
+  de vensters**: geen balk, geen thema. Zonder die uitweg kreeg het spel een groene balk
+  bij, werd het thema van de app over het zijne heen gezet, en ontstond er een tweede
+  element met `id="title"`.
+- De vensters gebruiken `.cammodal*`, `.bev-*`, `.code-*` en `.bbmelding*` uit
+  `css/app.css`, en dat bestand laadt het spel niet. Die regels staan daarom **in het
+  `<style>`-blok van het spel zelf**, in navy/goud/roze. Pas je de vensters aan, kijk dan
+  op beide plekken.
 
 ```bash
-grep -rho 'alert(\|confirm(\|prompt(' *.html paginas/*.html js/*.js | wc -l   # → 32
-grep -rho 'alert(\|confirm(\|prompt(' bazar-bizarre-spel.html | wc -l         # → 24 (de rest is uitleg in topbar.js)
+grep -rn 'alert(\|confirm(\|prompt(' *.html paginas/*.html js/*.js \
+  | grep -vE '^\S+:[0-9]+:\s*(//|\*|<!--)'      # → leeg: nergens nog een systeemvenster
 ```
 
 <details><summary>De oorspronkelijke opdracht</summary>
@@ -248,12 +258,6 @@ De derde treffer, in `paginas/inventaris.html`, was een vermelding in een commen
 ---
 
 ## Wat er nog open staat
-
-**De systeemvensters in het spel.** `bazar-bizarre-spel.html` heeft nog 24 `alert()` /
-`confirm()` / `prompt()`. Die pagina laadt `topbar.js` niet en heeft een eigen donker
-thema (navy/roze/goud), dus het is geen kwestie van omzetten alleen: ofwel laat je het
-spel `topbar.js` laden en geef je de vensters daar een eigen kleurstelling, ofwel bouw je
-er een kleine eigen variant. Dat is een smaakbeslissing — vraag het eerst.
 
 **De database staat open.** Zie hieronder; dat blijft het belangrijkste punt en het wordt
 in de Supabase-console opgelost, niet in deze code.
