@@ -279,7 +279,7 @@
     const o=(typeof opties==='string')?{titel:opties}:(opties||{});
     return new Promise(klaar=>{
       const venster=document.createElement('div');
-      venster.className='cammodal open bevestigvenster';
+      venster.className='cammodal bevestigvenster';
       venster.innerHTML=
         '<div class="cammodal-box choose">'+
           '<div class="cammodal-title">'+esc(o.titel||'Invullen')+'</div>'+
@@ -292,15 +292,18 @@
           '<button type="button" class="btn primary bev-ja">'+esc(o.okTekst||'Bewaren')+'</button>'+
           '<button type="button" class="btn clear bev-nee">Annuleren</button>'+
         '</div>';
-      document.body.appendChild(venster);
       const inp=venster.querySelector('.bev-inp');
       const fout=venster.querySelector('.code-fout');
       inp.value=(o.waarde==null?'':String(o.waarde));
+      let af=false;
       function sluit(waarde){
+        if(af) return;               // terug.js én de knop kunnen allebei sluiten
+        af=true;
         document.removeEventListener('keydown',toets,true);
-        venster.remove();
+        ruimVensterOp(venster);
         klaar(waarde);
       }
+      toonVenster(venster,()=>sluit(null));   // terug = annuleren
       async function probeer(){
         const waarde=inp.value;
         if(o.controle){
@@ -336,7 +339,7 @@
     const o=opties||{};
     return new Promise(klaar=>{
       const venster=document.createElement('div');
-      venster.className='cammodal open codevenster';
+      venster.className='cammodal codevenster';
       venster.innerHTML=
         '<div class="cammodal-box choose">'+
           '<div class="cammodal-title">'+esc(o.titel||'Code')+'</div>'+
@@ -349,17 +352,19 @@
           '<button type="button" class="btn primary code-ok">Doorgaan</button>'+
           '<button type="button" class="btn clear code-nee">Annuleren</button>'+
         '</div>';
-      document.body.appendChild(venster);
       const inp=venster.querySelector('.code-inp');
       const fout=venster.querySelector('.code-fout');
       const ok=venster.querySelector('.code-ok');
-      let bezig=false;
+      let bezig=false, af=false;
 
       function sluit(waarde){
+        if(af) return;               // terug.js én de knop kunnen allebei sluiten
+        af=true;
         document.removeEventListener('keydown',toets,true);
-        venster.remove();
+        ruimVensterOp(venster);
         klaar(waarde);
       }
+      toonVenster(venster,()=>sluit(null));   // terug = annuleren
       function toets(e){
         if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(null); return; }
         if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); probeer(); return; }
