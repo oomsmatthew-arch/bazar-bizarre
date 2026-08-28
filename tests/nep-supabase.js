@@ -3,15 +3,27 @@
 // 'kolomWeg' is optioneel: {formulieren:['finalevraag']} doet alsof die kolom nog niet
 // bestaat. Net als de echte database geeft een select óf een insert die de kolom noemt
 // dan een fout — zo kunnen we testen dat de app daar netjes mee omgaat.
-function maakNepSupabase(db,ontbrekend,kolomWeg){
+// 'weiger' bootst de beveiliging na: {prijzen:['delete']} laat een verwijdering in die tabel
+// niet gebeuren — maar geeft, net als de echte database, GEEN foutmelding terug. Je krijgt
+// "gelukt, 0 rijen". Precies dat verschil maakte dat verwijderde prijzen terugkwamen.
+function maakNepSupabase(db,ontbrekend,kolomWeg,weiger){
   ontbrekend=ontbrekend||{};       // tabellen die "nog niet bestaan"
   kolomWeg=kolomWeg||{};           // kolommen die "nog niet bestaan", per tabel
+  weiger=weiger||{};               // stil geweigerde bewerkingen, per tabel
+  let heeftSessie=true;            // is dit toestel aangemeld? (zie zetSessie hieronder)
   const log=[];
   function kolomOntbreekt(tabel,naam){ return (kolomWeg[tabel]||[]).indexOf(naam)>=0; }
   function query(tabel){
-    const st={tabel:tabel,soort:'select',filters:[],payload:null,limiet:null,single:false,kolommen:null};
+    const st={tabel:tabel,soort:'select',filters:[],payload:null,limiet:null,single:false,kolommen:null,terug:false};
     const q={
-      select:function(c){ st.soort='select'; st.kolommen=c||null; return q; },
+      // .select() ná een insert/update/delete is géén nieuwe opdracht: het vraagt de
+      // database om de rijen terug te geven die ze effectief heeft aangeraakt (bij PostgREST
+      // is dat "Prefer: return=representation"). Daar hangt in inventaris.js van af of een
+      // verwijdering écht gebeurd is, dus doen we het hier net zo.
+      select:function(c){
+        if(st.soort!=='select'){ st.terug=true; return q; }
+        st.soort='select'; st.kolommen=c||null; return q;
+      },
       insert:function(p){ st.soort='insert'; st.payload=p; return q; },
       upsert:function(p){ st.soort='upsert'; st.payload=p; return q; },
       update:function(p){ st.soort='update'; st.payload=p; return q; },
@@ -50,6 +62,10 @@ function maakNepSupabase(db,ontbrekend,kolomWeg){
       message:"Could not find the '"+fout+"' column of '"+st.tabel+"' in the schema cache"}};
     db[st.tabel]=db[st.tabel]||[];
     const t=db[st.tabel];
+    // STIL GEWEIGERD — dit is wat de echte database doet sinds ze op slot staat: een
+    // verwijdering of wijziging van een toestel dat niet aangemeld is, wordt niet
+    // uitgevoerd, en toch komt er GEEN foutmelding terug. Je krijgt "gelukt, 0 rijen".
+    if((weiger[st.tabel]||[]).indexOf(st.soort)>=0) return {data:st.terug?[]:null,error:null};
     if(st.soort==='select'){
       let rijen=t.filter(function(r){return past(r,st.filters);});
       if(st.limiet) rijen=rijen.slice(0,st.limiet);
@@ -66,12 +82,14 @@ function maakNepSupabase(db,ontbrekend,kolomWeg){
       return {data:lijst,error:null};
     }
     if(st.soort==='update'){
-      t.forEach(function(r,i){ if(past(r,st.filters)) t[i]=Object.assign({},r,st.payload); });
-      return {data:null,error:null};
+      const geraakt=[];
+      t.forEach(function(r,i){ if(past(r,st.filters)){ t[i]=Object.assign({},r,st.payload); geraakt.push(Object.assign({},t[i])); } });
+      return {data:st.terug?geraakt:null,error:null};
     }
     if(st.soort==='delete'){
+      const weg=t.filter(function(r){ return past(r,st.filters); }).map(function(r){ return Object.assign({},r); });
       db[st.tabel]=t.filter(function(r){ return !past(r,st.filters); });
-      return {data:null,error:null};
+      return {data:st.terug?weg:null,error:null};
     }
     return {data:null,error:null};
   }
@@ -81,8 +99,8 @@ function maakNepSupabase(db,ontbrekend,kolomWeg){
       // Sinds de beveiliging (zie docs/BEVEILIGING.md) meldt de app zich eerst aan met een
       // gedeelde toegangscode. In de test doen we alsof dit toestel al aangemeld is.
       auth:{
-        getSession:function(){ return Promise.resolve({data:{session:{user:{email:'team@bazarbizarre.app'}}},error:null}); },
-        signInWithPassword:function(){ return Promise.resolve({data:{},error:null}); }
+        getSession:function(){ return Promise.resolve({data:{session:heeftSessie?{user:{email:'team@bazarbizarre.app'}}:null},error:null}); },
+        signInWithPassword:function(){ heeftSessie=true; return Promise.resolve({data:{},error:null}); }
       },
       channel:function(){ return {on:function(){return this;},subscribe:function(){return this;}}; },
       storage:{from:function(){ return {
@@ -90,6 +108,8 @@ function maakNepSupabase(db,ontbrekend,kolomWeg){
         getPublicUrl:function(p){ return {data:{publicUrl:'https://opslag/'+p}}; }
       };}}
     },
-    db:db, log:log
+    db:db, log:log,
+    // Een toestel dat de toegangscode nooit invulde (of waarvan de aanmelding verlopen is).
+    zetSessie:function(v){ heeftSessie=!!v; }
   };
 }

@@ -383,10 +383,39 @@
   function withTimeout(p,ms){
     return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms||12000))]);
   }
+  // Staat deze rij er ECHT nog? We vragen dit enkel na een verwijdering of wijziging die
+  // "0 rijen" opleverde. Dat kan twee dingen betekenen: de rij was al weg (prima), of de
+  // database wéigerde het (niet prima). Zie de uitleg in flushOutbox hieronder.
+  async function bestaatNog(table,col,val){
+    try{
+      const r=await withTimeout(sb.from(table).select(col).eq(col,val).limit(1),12000);
+      if(r&&r.error) return false;              // kunnen we niet nakijken → niet blijven hangen
+      return !!(r&&r.data&&r.data.length);
+    }catch(e){ return false; }
+  }
+  // Een verstuurde opdracht uit de wachtrij halen — op wélke plaats ze nu ook staat.
+  // Waarom niet gewoon outbox.shift()? Omdat er tussen "versturen" en "gelukt" tijd zit, en
+  // de wachtrij intussen veranderd kan zijn (iemand drukt op "wachtrij wissen", of een
+  // andere pagina schrijft mee). Dan gooide shift() de VERKEERDE wijziging weg: die was
+  // nooit verstuurd en toch voorgoed verdwenen. Precies zo raakte een verwijdering zoek.
+  function opWeg(op){
+    const i=outbox.indexOf(op);
+    if(i<0) return false;              // stond er al niet meer → niets weggooien
+    outbox.splice(i,1); saveOutbox(); return true;
+  }
   async function flushOutbox(){
     if(flushing||!sb||!outbox.length) return;
     if(typeof navigator!=='undefined' && navigator.onLine===false) return;
+    // NIET AANGEMELD = NIETS VERSTUREN. Sinds de database op slot staat, weigert ze elke
+    // wijziging van een toestel dat de toegangscode niet heeft ingevuld. Bij toevoegen zegt
+    // ze dat met een foutmelding, maar bij VERWIJDEREN en WIJZIGEN niet: die komen terug als
+    // "gelukt — 0 rijen". Stuurden we ze toch, dan streepten we ze af als verstuurd terwijl
+    // er niets gebeurd was: op het scherm was de prijs weg, in de database stond ze er nog,
+    // en bij de volgende synchronisatie kwam ze gewoon terug. Nu blijft alles netjes in de
+    // wachtrij staan (het ⏳ in de balk) tot dit toestel wél aangemeld is.
+    if(!aangemeld) return;
     flushing=true;
+    let verwijderd=null;   // uit welke tabel we echt iets wisten weg te halen
     try{
       while(outbox.length){
         const op=outbox[0]; let res, netErr=false;
@@ -394,25 +423,45 @@
           const q=sb.from(op.table); let call;
           if(op.op==='insert') call=q.insert(op.payload);
           else if(op.op==='upsert') call=q.upsert(op.payload);
-          else if(op.op==='update') call=q.update(op.payload).eq(op.col,op.val);
-          else if(op.op==='delete') call=q.delete().eq(op.col,op.val);
-          else { outbox.shift(); saveOutbox(); continue; }
+          // .select() erbij: dan antwoordt de database met de rijen die ze effectief heeft
+          // aangepast of verwijderd. Zonder dat weten we niet of er íets gebeurd is.
+          else if(op.op==='update') call=q.update(op.payload).eq(op.col,op.val).select(op.col);
+          else if(op.op==='delete') call=q.delete().eq(op.col,op.val).select(op.col);
+          else { opWeg(op); continue; }
           res=await withTimeout(call,12000);
         }catch(e){ netErr=true; noteFout('Versturen naar '+op.table,e); } // netwerk weg of time-out → wachtrij behouden, later opnieuw proberen
         if(netErr) break;
-        if(res && res.error){
-          noteFout('Versturen naar '+op.table,res.error);
+        let fout = (res && res.error) ? (res.error.message||String(res.error)) : '';
+        // "Gelukt" is niet altijd gelukt: nul rijen aangeraakt kan óók betekenen dat de
+        // database het weigerde zonder te klagen. Staat de rij er daarna nog, dan is er
+        // niets gebeurd en behandelen we het als een fout i.p.v. het stil af te strepen.
+        if(!fout && (op.op==='delete'||op.op==='update') && res && Array.isArray(res.data) && !res.data.length){
+          if(await bestaatNog(op.table,op.col,op.val))
+            fout='de database liet dit niet toe (is dit toestel nog aangemeld?)';
+        }
+        if(fout){
+          noteFout((op.op==='delete'?'Verwijderen uit ':'Versturen naar ')+op.table,fout);
           // Serverfout (bv. tijdelijke time-out of een grote foto): enkele keren opnieuw
           // proberen i.p.v. de wijziging meteen weg te gooien. Zo komt een foto die de
           // eerste keer faalt alsnog in de database en dus op de andere toestellen.
           op._tries=(op._tries||0)+1;
           if(op._tries<5){ saveOutbox(); break; }
-          console.error('Outbox — opgegeven na '+op._tries+' pogingen:',res.error.message||res.error);
-          outbox.shift(); saveOutbox(); continue;
+          console.error('Outbox — opgegeven na '+op._tries+' pogingen:',fout);
+          // Opgeven mag niet stilletjes gebeuren: dit is een wijziging die de gebruiker op
+          // zijn scherm al doorgevoerd zag. Ze komt in het Systeem-scherm te staan.
+          noteFout('Niet doorgekomen ('+op.op+' — '+op.table+')', fout+' — deze wijziging is weggevallen');
+          opWeg(op); continue;
         }
         if(op._tries) delete op._tries;
-        outbox.shift(); saveOutbox(); noteSync();
+        if(op.op==='delete') verwijderd=op.table;
+        opWeg(op); noteSync();
       }
+      // Een verwijdering die pas nu vertrok (bv. ze stond te wachten tot dit toestel
+      // aangemeld was), is hier weg uit de database maar staat misschien nog in de lijst op
+      // het scherm — die werd intussen ingeladen mét die rij. Even opnieuw ophalen, zodat
+      // het scherm en de database hetzelfde tonen. Enkel bij verwijderen: dat is zeldzaam,
+      // en het is precies het moment waarop je wil zien dat iets écht weg is.
+      if(verwijderd && !outbox.length){ try{ await reloadTable(verwijderd); }catch(e){} }
     } finally {
       flushing=false;
       // Bleven er wijzigingen staan (na een fout) en zijn we online? Plan een nieuwe poging.

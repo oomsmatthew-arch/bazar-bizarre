@@ -22,6 +22,7 @@ $JSC tests/test-toegangen.js
 $JSC tests/test-formulier-aanpassen.js
 $JSC tests/test-zaaien.js
 $JSC tests/test-wachtrij.js
+$JSC tests/test-verwijderen.js
 ```
 
 Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
@@ -43,6 +44,7 @@ Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
 | `test-formulier-aanpassen.js` | Een ingezonden formulier achteraf bewerken: het formulier heeft de voorraad al afgeboekt, dus elke wijziging aan de prijzen of boekjes moet als verschil terug op de stock. Sluit af met de kroontest — aanpassen moet exact hetzelfde opleveren als meteen het juiste formulier insturen |
 | `test-zaaien.js` | Het zaaien van een lege database: een pagina die de standaardlijst niet inlaadt mag de migratievlag niet zetten, want dan komt die lijst op dat toestel nooit meer aan |
 | `test-wachtrij.js` | Het seintje over de wachtrij (`setOnWachtrij`), waar de ⏳-melding in de balk aan hangt: het getal moet elke verandering volgen, precies één keer per verandering, en op 0 komen zodra alles verstuurd is |
+| `test-verwijderen.js` | Verwijderen dat écht doorgaat: een verwijdering die de database stil weigert (dat doet ze sinds de beveiliging: "gelukt, 0 rijen" zonder foutmelding) mag niet uit de wachtrij verdwijnen, en een toestel dat niet aangemeld is stuurt niets — het wacht. Anders is de prijs van je scherm maar staat ze nog in de database, en komt ze bij de volgende synchronisatie terug |
 | `test-opslag.js` | De opslag én het opstarten: één momentopname i.p.v. een kopie per tabel, de verhuizing naar IndexedDB (met een nagemaakte IndexedDB), het geval waarin de opslag al vol zit, "invullen en meteen wegklikken", dat je rol al bekend is vóór de database antwoordt, en dat het laden de offline kopie niet per tabel herschrijft |
 
 `nep-supabase.js` is een nagemaakte database, zodat `test-sync.js` het echte online-gedrag

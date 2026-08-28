@@ -104,6 +104,11 @@
           <button class="btn primary" id="invAdd">Toevoegen</button>
         </div>
       </div>
+      <div class="field">
+        <div class="h">Dubbele prijzen opruimen</div>
+        <p class="hint" style="margin:0 0 10px;">Twee rijen met dezelfde naam zijn twee <b>aparte</b> prijzen. Verwijder je er één, dan blijft de andere staan — en dan lijkt het alsof de prijs terugkomt.</p>
+        <div class="row"><button class="btn" id="dubbelsBtn">🔍 Dubbels zoeken</button></div>
+      </div>
       <div class="h" style="margin:28px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Prijzen &amp; hoeveelheden</div>
       <input type="text" id="beheerZoek" class="finp zoek" placeholder="Zoek een prijs om te bewerken…">
       <div class="invfilter">
@@ -212,6 +217,19 @@
     <div class="cammodal-bar">
       <button class="btn clear" id="feAnnuleer">Annuleren</button>
       <button class="btn primary" id="feOpslaan">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dubbele prijzen: per naam kies je welke rij je houdt, de rest gaat weg. -->
+<div class="cammodal" id="dubbelModal">
+  <div class="cammodal-box formbox">
+    <div class="cammodal-title">Dubbele prijzen</div>
+    <p class="hint" id="dubbelUitleg" style="margin:0 0 12px;"></p>
+    <div id="dubbelLijst"></div>
+    <div class="cammodal-bar">
+      <button class="btn clear" id="dubbelAnnuleer">Sluiten</button>
+      <button class="btn primary" id="dubbelOk">De rest verwijderen</button>
     </div>
   </div>
 </div>
@@ -445,6 +463,13 @@ function renderBeheerList(){
   if(q) pr=pr.filter(p=>p.naam.toLowerCase().includes(q));
   pr.sort((a,b)=>a.naam.localeCompare(b.naam));
   pr.forEach(p=>list.appendChild(prijsRow(p)));
+  // Het knopje hierboven zegt meteen of er iets op te ruimen valt.
+  const db=document.getElementById('dubbelsBtn');
+  if(db){
+    const n=dubbelGroepen().length;
+    db.textContent=n?('🔍 Dubbels opruimen ('+n+')'):'🔍 Dubbels zoeken';
+    db.classList.toggle('primary',!!n);
+  }
   // Melding ONDER de Boekjes-rij hangen, niet de hele lijst overschrijven.
   if(!pr.length&&(q||beheerOnlyUse||beheerCat!=='all')){
     const note=document.createElement('div'); note.className='empty-note';
@@ -461,6 +486,83 @@ document.querySelectorAll('.bchip').forEach(c=>{
   c.onclick=()=>{document.querySelectorAll('.bchip').forEach(x=>x.classList.remove('active'));
     c.classList.add('active');beheerCat=c.dataset.bcat;renderBeheerList();};
 });
+
+// ---- Dubbele prijzen opruimen ----
+// Twee rijen met dezelfde naam zijn twee LOSSE prijzen, elk met een eigen (onzichtbaar)
+// volgnummer. Verwijder je er één, dan blijft de andere gewoon staan — en dan lijkt het
+// alsof de prijs terugkomt. Hier zet je ze naast elkaar en kies je welke je houdt.
+function dubbelGroepen(){
+  const per={};
+  BBInv.getPrijzen().forEach(p=>{
+    const k=String(p.naam||'').trim().toLowerCase();
+    if(!k) return;
+    (per[k]||(per[k]=[])).push(p);
+  });
+  // Binnen een groep staat de rij die je waarschijnlijk wil houden vooraan: die met een
+  // foto, en bij gelijke stand die met het hoogste aantal. Die staat straks aangevinkt.
+  return Object.keys(per).filter(k=>per[k].length>1).sort()
+    .map(k=>per[k].slice().sort((a,b)=>((b.foto?1:0)-(a.foto?1:0))||((b.stock||0)-(a.stock||0))));
+}
+function dubbelDicht(){ document.getElementById('dubbelModal').classList.remove('open'); }
+function toonDubbels(){
+  const groepen=dubbelGroepen();
+  const lijst=document.getElementById('dubbelLijst');
+  const uit=document.getElementById('dubbelUitleg');
+  const ok=document.getElementById('dubbelOk');
+  lijst.innerHTML='';
+  if(!groepen.length){
+    uit.textContent='Geen dubbels gevonden — elke naam staat maar één keer in de lijst.';
+    ok.style.display='none';
+  }else{
+    const nWeg=groepen.reduce((s,g)=>s+g.length-1,0);
+    uit.innerHTML=(groepen.length===1
+        ? 'Eén naam staat meer dan één keer in de lijst.'
+        : '<b>'+groepen.length+'</b> namen staan meer dan één keer in de lijst.')+
+      ' Duid aan welke rij je houdt; de andere '+(nWeg===1?'rij wordt':nWeg+' rijen worden')+' verwijderd.'+
+      '<br><b>Let op:</b> het aantal van een rij die weggaat, verdwijnt mee.';
+    ok.style.display='';
+    groepen.forEach((g,gi)=>{
+      const box=document.createElement('div');
+      box.style.cssText='border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;';
+      box.innerHTML='<div style="font-weight:800;margin-bottom:4px;">'+esc(g[0].naam)+'</div>';
+      g.forEach((p,i)=>{
+        const lab=document.createElement('label');
+        lab.style.cssText='display:flex;align-items:center;gap:10px;padding:6px 2px;cursor:pointer;';
+        lab.innerHTML='<input type="radio" name="dub'+gi+'" value="'+p.id+'"'+(i===0?' checked':'')+'>'+
+          (p.foto?('<img class="thumb" src="'+p.foto+'" alt="">'):'<div class="thumb ph">📷</div>')+
+          '<span style="flex:1">'+(p.cat==='groot'?'Grote prijs':'Kleine prijs')+
+          ' · aantal <b>'+(p.stock||0)+'</b>'+(p.inGebruik?' · ✓ in gebruik':'')+
+          (p.foto?'':' · <span style="color:var(--muted)">geen foto</span>')+'</span>';
+        box.appendChild(lab);
+      });
+      lijst.appendChild(box);
+    });
+  }
+  document.getElementById('dubbelModal').classList.add('open');
+}
+document.getElementById('dubbelsBtn').onclick=toonDubbels;
+document.getElementById('dubbelAnnuleer').onclick=dubbelDicht;
+document.getElementById('dubbelModal').addEventListener('click',e=>{ if(e.target.id==='dubbelModal') dubbelDicht(); });
+document.getElementById('dubbelOk').onclick=async()=>{
+  const perGroep={};
+  document.querySelectorAll('#dubbelLijst input[type=radio]').forEach(r=>{
+    (perGroep[r.name]||(perGroep[r.name]=[])).push(r);
+  });
+  const weg=[];
+  Object.keys(perGroep).forEach(k=>{
+    const gekozen=perGroep[k].find(r=>r.checked);
+    if(!gekozen) return;                     // niets aangeduid → die naam laten staan
+    perGroep[k].forEach(r=>{ if(r!==gekozen) weg.push(r.value); });
+  });
+  if(!weg.length){ bbToon('Er staat niets aangeduid om te verwijderen.'); return; }
+  const wat=weg.length===1?'1 dubbele prijs':weg.length+' dubbele prijzen';
+  if(!await bbBevestig({titel:wat+' verwijderen?', gevaar:true, okTekst:'Ja, verwijderen',
+    tekst:'De rijen die je aanduidde blijven staan. Dit kan niet ongedaan gemaakt worden.'})) return;
+  weg.forEach(id=>BBInv.removePrijs(id));
+  dubbelDicht();
+  renderInventaris(); renderBeheerList(); renderStats();
+  bbToon(wat+' verwijderd.');
+};
 let invAddFoto='';
 document.getElementById('invAddFoto').onclick=()=>chooseFoto(url=>{
   if(!url) return;
