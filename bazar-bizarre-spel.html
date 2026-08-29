@@ -385,6 +385,42 @@
   .qa-q .eye,.qa-a .eye{flex:0 0 auto;background:var(--panel2);border:1px solid var(--line);color:var(--text);
     font-weight:700;font-size:13px;padding:9px 13px;border-radius:9px;cursor:pointer;min-width:84px;align-self:flex-start;}
   .qa .eye:hover{border-color:var(--gold);color:var(--gold);}
+  /* ===== Uitteller: wie zit het dichtst bij het juiste antwoord? ===== */
+  .uitteller{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px;margin-top:14px;max-width:640px;display:grid;gap:10px;}
+  .uitteller .ut-kop{font-family:var(--serif);color:var(--gold);font-size:16px;}
+  .uitteller .ut-uitleg{font-size:12.5px;color:var(--muted);line-height:1.45;margin:-4px 0 0;}
+  .ut-velden{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  @media(max-width:620px){ .ut-velden{grid-template-columns:1fr;} }
+  .ut-veld{display:flex;flex-direction:column;gap:4px;}
+  .ut-veld label{font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);}
+  .ut-veld.a label{color:var(--orange);} .ut-veld.b label{color:var(--purple);}
+  .ut-veld.uit label{color:var(--gold);}
+  .uitteller input{background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:17px;padding:9px 11px;border-radius:9px;outline:none;font-family:inherit;width:100%;}
+  .uitteller input:focus{border-color:var(--gold);}
+  /* De uitslag. 'wacht' = nog niet alles ingevuld, dan blijft het rustig grijs. */
+  .ut-uitslag{background:var(--bg);border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px;font-size:15px;line-height:1.5;color:var(--text);}
+  .ut-uitslag.wacht{color:var(--muted);font-style:italic;}
+  .ut-uitslag .wie{font-weight:800;font-size:17px;}
+  .ut-uitslag .wie.a{color:var(--orange);} .ut-uitslag .wie.b{color:var(--purple);}
+  .ut-uitslag .wie.gelijk{color:var(--gold);}
+  .ut-uitslag .verschil{color:var(--muted);font-size:13px;}
+  .ut-bar{display:flex;gap:10px;flex-wrap:wrap;}
+
+  /* Grote weergave op het presentatiescherm */
+  .ut-groot{display:grid;gap:22px;justify-items:center;}
+  .ut-groot .ut-juist{font-size:clamp(15px,2.6vw,22px);color:var(--gold);font-weight:700;letter-spacing:1px;}
+  .ut-groot .ut-duo{display:flex;gap:clamp(18px,5vw,60px);flex-wrap:wrap;justify-content:center;}
+  .ut-groot .ut-kaart{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
+    border-radius:18px;padding:18px 26px;min-width:180px;}
+  .ut-groot .ut-kaart .nm{font-size:clamp(13px,2vw,17px);color:#cfe0ff;font-weight:700;letter-spacing:1px;}
+  .ut-groot .ut-kaart .gt{font-family:var(--serif);font-size:clamp(30px,6vw,64px);font-weight:800;color:#fff;line-height:1.1;}
+  .ut-groot .ut-kaart .vs{font-size:clamp(12px,1.8vw,15px);color:#9fb2d4;}
+  .ut-groot .ut-kaart.wint{background:rgba(255,210,63,.16);border-color:var(--gold);
+    box-shadow:0 0 34px rgba(255,210,63,.35);}
+  .ut-groot .ut-kaart.wint .gt{color:var(--gold);}
   .trstatus{margin:12px 2px 0;font-size:13px;color:var(--muted);line-height:1.4;}
   .trstatus.ok{color:var(--ok);}
   .trstatus.warn{color:var(--orange);}
@@ -642,6 +678,24 @@
     <div class="finalelayout">
       <div>
         <div class="qawrap" data-grid="qa" id="finaleQA"></div>
+
+        <!-- Uitteller: de twee gegokte antwoorden en het juiste getal; de app rekent uit
+             wie er het dichtst bij zit. Bewust drie velden die je alle drie zelf invult. -->
+        <div class="uitteller">
+          <div class="ut-kop">🎯 Uitteller — wie zit het dichtst bij?</div>
+          <p class="ut-uitleg">Vul de twee gegokte antwoorden in en het juiste getal. Punten en komma's mag je gewoon typen (25.000 · 12,5). De uitslag verschijnt vanzelf.</p>
+          <div class="ut-velden">
+            <div class="ut-veld a"><label for="utA">Antwoord A</label><input type="text" id="utA" inputmode="decimal" placeholder="bv. 50"></div>
+            <div class="ut-veld b"><label for="utB">Antwoord B</label><input type="text" id="utB" inputmode="decimal" placeholder="bv. 101"></div>
+            <div class="ut-veld uit"><label for="utUit">Juiste uitkomst</label><input type="text" id="utUit" inputmode="decimal" placeholder="bv. 78"></div>
+          </div>
+          <div class="ut-uitslag wacht" id="utUitslag">Vul de drie velden in.</div>
+          <div class="ut-bar">
+            <button class="btn" id="utToon">▶ Toon de uitslag groot</button>
+            <button class="btn clear" id="utWis">Uitteller wissen</button>
+          </div>
+        </div>
+
         <div class="bar" style="margin-top:14px;gap:12px;flex-wrap:wrap;">
           <button class="btn" id="trPrewarm">⤓ Vertalingen offline klaarzetten</button>
           <button class="btn" id="vraagOpnieuw">↻ Opnieuw voorstellen</button>
@@ -939,6 +993,10 @@ function freshState(){
     coins: new Array(COIN_MAX).fill(false),
     finale: new Array(8).fill(""),
     finaleMode: "namen",
+    // Uitteller van het finalespel: de twee gegokte antwoorden en het juiste getal.
+    // We bewaren wat er getypt is (dus als tekst), niet het omgerekende getal — anders
+    // zie je bij het terugkomen ineens iets anders staan dan wat je hebt ingetikt.
+    uitteller: {a:"",b:"",uit:""},
     vragen: new Array(8).fill(""),
     antwoorden: new Array(8).fill(""),
     // Welke vraag uit de gedeelde lijst in vak 1 en 2 staat. Nodig om na afloop te
@@ -1115,12 +1173,123 @@ function renderFinale(){
     card.appendChild(qr); card.appendChild(ar); q.appendChild(card);
     [qi,ai].forEach(el=>{ groeiMee(el); el.addEventListener('input',()=>groeiMee(el)); });
   }
+  utRender();
   renderVragenlijst();
   neemHandmatigeVertalingenOver();   // eigen vertalingen krijgen voorrang op de automatische
   updateTrStatus();
   if(navigator.onLine && !finaleAllCached()) schedulePrewarm();
   // De hele lijst alvast vertalen, zodat er tijdens het spel nooit gewacht moet worden.
   if(navigator.onLine) prewarmBank();
+}
+
+// ---------------- UITTELLER: WIE ZIT HET DICHTST BIJ? ----------------
+// Twee gegokte antwoorden en het juiste getal; wie er het minst naast zit, wint.
+//
+// Het lastigste stukje is niet het rekenen maar het LEZEN van wat er getypt wordt. Bij ons
+// is een punt een duizendtal en een komma een decimaal: "25.000" is vijfentwintigduizend,
+// "12,5" is twaalf en een half. JavaScript leest het net andersom. Daarom vertalen we het
+// eerst zelf, in plaats van parseFloat er blind op los te laten — anders wordt 25.000
+// stilletjes 25 en klopt de hele uitslag niet.
+//
+// Er mag ook tekst omheen staan ("41 minuten", "± 150 gram"): we vissen het eerste getal
+// eruit. Een negatief getal of een percentage werkt dus ook.
+function leesGetal(tekst){
+  let s=String(tekst==null?'':tekst).trim();
+  if(!s) return null;
+  s=s.replace(/\s/g,'').replace(/[€$£%]/g,'');
+  const m=s.match(/-?[\d.,]+/);          // het eerste getal uit de tekst
+  if(!m) return null;
+  let g=m[0];
+  if(g.indexOf(',')>=0){
+    // Er staat een komma: die is de decimaal, en punten zijn dan duizendtallen.
+    g=g.replace(/\./g,'').replace(',','.');
+  }else if((g.match(/\./g)||[]).length===1){
+    // Eén punt: duizendtal (1.500) of decimaal (12.5)? Precies drie cijfers erachter en
+    // geen extra punt = duizendtal, zoals iedereen het hier schrijft.
+    const na=g.split('.')[1];
+    if(na.length===3) g=g.replace('.','');
+  }else{
+    g=g.replace(/\./g,'');               // 1.234.567 → duizendtallen
+  }
+  const n=parseFloat(g);
+  return isFinite(n)?n:null;
+}
+// Netjes tonen: hele getallen zonder komma, met punten als duizendtal (zoals we ze typen).
+function toonGetal(n){
+  if(n==null||!isFinite(n)) return '—';
+  const heel=Math.abs(n%1)<1e-9;
+  return n.toLocaleString('nl-BE',{minimumFractionDigits:heel?0:1,maximumFractionDigits:2});
+}
+function utLees(){
+  const s=state.uitteller||{};
+  return {a:leesGetal(s.a), b:leesGetal(s.b), uit:leesGetal(s.uit)};
+}
+// De kern: wie zit er het dichtst bij? Puur het verschil in absolute waarde — te hoog of
+// te laag maakt niet uit, alleen hoe ver ernaast.
+function utBereken(){
+  const g=utLees();
+  if(g.a==null||g.b==null||g.uit==null) return null;
+  const vA=Math.abs(g.a-g.uit), vB=Math.abs(g.b-g.uit);
+  return {a:g.a, b:g.b, uit:g.uit, vA:vA, vB:vB,
+          wint: vA<vB ? 'a' : (vB<vA ? 'b' : 'gelijk')};
+}
+function utRender(){
+  const s=state.uitteller||{};
+  const el=id=>document.getElementById(id);
+  if(el('utA') && document.activeElement!==el('utA')) el('utA').value=s.a||'';
+  if(el('utB') && document.activeElement!==el('utB')) el('utB').value=s.b||'';
+  if(el('utUit') && document.activeElement!==el('utUit')) el('utUit').value=s.uit||'';
+  const box=el('utUitslag'); if(!box) return;
+  const r=utBereken();
+  if(!r){
+    box.className='ut-uitslag wacht';
+    box.textContent=(s.a||s.b||s.uit)
+      ? 'Vul alle drie de velden met een getal in.'
+      : 'Vul de drie velden in.';
+    return;
+  }
+  box.className='ut-uitslag';
+  const naast=(v)=> v===0 ? 'precies juist' : ('zit er '+toonGetal(v)+' naast');
+  if(r.wint==='gelijk'){
+    box.innerHTML='<span class="wie gelijk">Gelijkspel</span> — allebei '+
+      '<b>'+toonGetal(r.vA)+'</b> naast het juiste antwoord ('+toonGetal(r.uit)+').'+
+      '<div class="verschil">A '+toonGetal(r.a)+' · B '+toonGetal(r.b)+'</div>';
+  }else{
+    const w=r.wint==='a'?'A':'B';
+    const wv=r.wint==='a'?r.vA:r.vB, lv=r.wint==='a'?r.vB:r.vA;
+    const wg=r.wint==='a'?r.a:r.b,   lg=r.wint==='a'?r.b:r.a;
+    box.innerHTML='<span class="wie '+r.wint+'">Antwoord '+w+' zit het dichtst bij</span>'+
+      ' — '+toonGetal(wg)+' '+naast(wv)+', tegenover '+toonGetal(lg)+' dat er '+toonGetal(lv)+' naast zit.'+
+      '<div class="verschil">Juiste antwoord: '+toonGetal(r.uit)+'</div>';
+  }
+}
+// De uitslag groot op het scherm, in dezelfde stijl als de andere onthullingen.
+function presentUitslag(){
+  const r=utBereken();
+  if(!r){ bbToon('Vul eerst de drie velden van de uitteller in.','fout'); return; }
+  const kaart=(naam,getal,verschil,wint)=>
+    '<div class="ut-kaart'+(wint?' wint':'')+'">'+
+      '<div class="nm">Antwoord '+naam+'</div>'+
+      '<div class="gt">'+escHtml(toonGetal(getal))+'</div>'+
+      '<div class="vs">'+(verschil===0?'precies juist':(escHtml(toonGetal(verschil))+' ernaast'))+'</div>'+
+    '</div>';
+  // Stond er nog een antwoord-onthulling klaar ("tik om te tonen"), dan vervalt die: anders
+  // zou één tik op het scherm de uitslag meteen vervangen door dat oude antwoord.
+  _pendingReveal=null;
+  const inner=document.getElementById('presentInner');
+  inner.innerHTML=
+    '<div class="flashfx"></div>'+
+    '<div class="ut-groot">'+
+      '<div class="ut-juist">🎯 Het juiste antwoord is '+escHtml(toonGetal(r.uit))+'</div>'+
+      '<div class="ut-duo">'+
+        kaart('A',r.a,r.vA,r.wint==='a'||r.wint==='gelijk')+
+        kaart('B',r.b,r.vB,r.wint==='b'||r.wint==='gelijk')+
+      '</div>'+
+      '<div class="a-flag">'+(r.wint==='gelijk'
+        ? '🤝 Gelijkspel — allebei even dichtbij!'
+        : ('🎉 Antwoord '+(r.wint==='a'?'A':'B')+' zit het dichtst bij!'))+'</div>'+
+    '</div>';
+  openPresent();
 }
 
 // ---------------- VRAGENLIJST (gedeelde bank, minst gespeeld bovenaan) ----------------
@@ -1578,6 +1747,23 @@ function revealAnswer(text){
     transGridHtml();
   fillTransGrid(inner,text);
 }
+
+// De drie velden van de uitteller. Ze zijn met opzet los van de vraag-en-antwoordvakken:
+// je vult ze pas in tijdens het uittellen, en ze blijven staan als je even weggaat.
+[['utA','a'],['utB','b'],['utUit','uit']].forEach(([id,sleutel])=>{
+  const el=document.getElementById(id); if(!el) return;
+  el.oninput=e=>{
+    if(!state.uitteller) state.uitteller={a:"",b:"",uit:""};
+    state.uitteller[sleutel]=e.target.value;
+    save(); utRender();
+  };
+});
+document.getElementById('utToon').onclick=presentUitslag;
+document.getElementById('utWis').onclick=()=>{
+  state.uitteller={a:"",b:"",uit:""};
+  ['utA','utB','utUit'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  save(); utRender();
+};
 
 document.getElementById('presentClose').onclick=closePresent;
 document.getElementById('trPrewarm').onclick=()=>prewarmFinale(true);
@@ -2162,7 +2348,7 @@ document.getElementById('changePin').onclick=changePin;
 // overal "Deze ronde wissen?" — ook bij Tellingen, Prijzen en de Vragen, waar dat niet klopt.
 const RESET_NAAM={
   finale:  {titel:'Het finalespel wissen?',      wat:'De acht ingevulde velden van het finalespel verdwijnen.'},
-  qa:      {titel:'De vragen wissen?',           wat:'Alle vragen én antwoorden van het finalespel verdwijnen.'},
+  qa:      {titel:'De vragen wissen?',           wat:'Alle vragen én antwoorden van het finalespel verdwijnen, en de uitteller wordt leeggemaakt.'},
   prijzen: {titel:'De prijzen wissen?',          wat:'Alle ingevulde prijzen van deze ronde verdwijnen.'},
   controle:{titel:'De tellingen wissen?',        wat:'Alle turven van de controlelijst gaan terug naar nul.'}
 };
@@ -2174,7 +2360,7 @@ document.querySelectorAll('[data-reset]').forEach(b=>{
     if(!await bbBevestig({titel:n.titel, tekst:n.wat,
       okTekst:'Ja, wissen', gevaar:true})) return;
     if(k==='finale')state.finale=new Array(8).fill("");
-    else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");state.vraagIds=["",""];state.vraagHand=false;}
+    else if(k==='qa'){state.vragen=new Array(8).fill("");state.antwoorden=new Array(8).fill("");state.vraagIds=["",""];state.vraagHand=false;state.uitteller={a:"",b:"",uit:""};}
     else if(k==='prijzen')state.prijzen=new Array(8).fill("");
     else if(k==='controle')state.controle=CONTROLE.map(()=>0);
     else state[k]=state[k].map(()=>false);
@@ -2211,7 +2397,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.4';
+const APP_VERSION='v3.5';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;
