@@ -315,7 +315,13 @@
     #beheerList .invrow .del{margin-left:auto;}
   }
   .invrow.span{grid-column:1/-1;}
-  .invrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+  /* De rij mag ALTIJD afbreken, niet pas onder een bepaalde schermbreedte. Deze kaarten
+     staan namelijk in een raster: op een breed scherm met drie kolommen is de KÁART smal
+     terwijl het scherm dat niet is. Een regel die naar de schermbreedte kijkt, slaat daar
+     dus nooit aan — en dat was precies het probleem: de naam werd samengeknepen tot achter
+     het 'in gebruik'-pilletje en de tekst liep er dwars doorheen. */
+  .invrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;row-gap:8px;
+    background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);}
   .thumbwrap{position:relative;flex:0 0 auto;}
   .thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;border:1px solid var(--line);
@@ -379,9 +385,13 @@
   .mtype.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
   #manualKies{width:100%;}
   #fotoView img,#fotoView video{max-width:96vw;max-height:90vh;border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);background:#000;}
-  .invrow .nm{flex:1;min-width:0;}
-  .invrow .nm .t{font-weight:700;font-size:15px;color:var(--text);}
-  .invrow .nm .c{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+  /* 150px is de ondergrens waaronder een naam onleesbaar samengeknepen wordt; komt de rij
+     daaronder, dan schuiven het pilletje en het aantal naar de volgende regel. */
+  .invrow .nm{flex:1 1 150px;min-width:0;}
+  /* Een naam die uit één lang woord bestaat ("Ovenhandschoenen") breken we af in plaats
+     van hem te laten overlopen. */
+  .invrow .nm .t{font-weight:700;font-size:15px;color:var(--text);overflow-wrap:anywhere;}
+  .invrow .nm .c{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap;}
   .invrow .stk{display:flex;align-items:center;flex:0 0 auto;}
   .invrow .stk button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel2);
     color:var(--forest);font-size:20px;font-weight:800;cursor:pointer;line-height:1;}
@@ -393,11 +403,16 @@
   .stocknum{flex:0 0 auto;min-width:54px;text-align:right;font-weight:800;font-size:18px;color:var(--forest);}
   .stocknum.neg{color:#c0392b;}
   /* Stock-lijst: 'in gebruik'-status tonen (alleen-lezen, net als in Beheer) */
-  .invrow .usetag{flex:0 0 auto;border:1px solid #a8d8b8;background:rgba(31,170,107,.13);color:#1f6b43;
+  /* margin-left:auto duwt het pilletje en het aantal naar rechts. Blijft alles op één
+     regel staan, dan sluit het aantal netjes aan bij de rand; breekt de rij af, dan staan
+     ze rechts onder de naam in plaats van links onder de foto — dat oogt bedoeld. */
+  .invrow .usetag{flex:0 0 auto;margin-left:auto;border:1px solid #a8d8b8;background:rgba(31,170,107,.13);color:#1f6b43;
     font-weight:800;border-radius:999px;height:26px;padding:0 11px;font-size:11px;letter-spacing:.3px;
     text-transform:uppercase;white-space:nowrap;display:inline-flex;align-items:center;}
   .invrow .usetag.off{color:var(--muted);background:var(--panel2);border-color:var(--line);}
-  @media(max-width:560px){ #invList .invrow{flex-wrap:wrap;} }
+  /* (Hier stond een @media op 560px die .invrow liet afbreken. Dat is niet meer nodig én
+     het hielp niet waar het moest: de kaarten staan in een raster, dus ze zijn al smal
+     lang vóór het scherm dat is. Afbreken zit nu in .invrow zelf.) */
   .invrow .del{flex:0 0 auto;border:1px solid #e2b6b0;background:#fff;color:#a23b30;font-weight:800;
     border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:15px;}
   .invrow .use{flex:0 0 auto;border:1px solid #e2b6b0;background:#fdecea;color:#a23b30;

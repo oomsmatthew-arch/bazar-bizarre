@@ -126,7 +126,10 @@
   .kiesrij:hover{background:var(--panel2);}
   .kiesrij.aan{border-color:var(--ok);background:rgba(52,210,123,.13);}
   .kiesrij .kfoto{width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid var(--line);flex:0 0 auto;}
-  .kiesrij .knaam{flex:1;min-width:0;font-weight:700;font-size:15px;display:flex;flex-direction:column;gap:2px;}
+  /* overflow-wrap: een prijs die uit één lang woord bestaat ("Ovenhandschoenen") breekt af
+     in plaats van over de knopjes ernaast te lopen. */
+  .kiesrij .knaam{flex:1;min-width:0;font-weight:700;font-size:15px;display:flex;flex-direction:column;gap:2px;
+    overflow-wrap:anywhere;}
   .kiesrij .kstock{font-size:11px;font-weight:600;color:var(--muted);}
   .qstep{display:flex;align-items:center;flex:0 0 auto;}
   .qstep button{width:34px;height:34px;border:1px solid var(--line);background:var(--panel2);color:#fff;
@@ -2448,7 +2451,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.6';
+const APP_VERSION='v3.7';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;
