@@ -455,6 +455,11 @@
   .tr-txt{font-size:clamp(18px,2.6vw,27px);color:var(--text);line-height:1.3;}
   .tr-txt.loading{color:var(--muted);animation:blink 1s infinite;}
   .tr-txt.err{color:var(--pink);font-size:15px;}
+  /* Niet vertaald (geen internet): we tonen de Nederlandse tekst, iets gedempt, met een
+     kadertje in de kop. Zo staat er nooit een foutmelding op het scherm van de zaal. */
+  .tr-txt.onvertaald{color:#cfe0ff;opacity:.85;}
+  .tr-head .tr-note{font-size:10.5px;color:var(--muted);border:1px solid var(--line);
+    border-radius:99px;padding:2px 8px;letter-spacing:.5px;text-transform:none;}
 
   /* antwoord-reveal: eerst "The answer is…", dan klikken om te onthullen */
   .reveal-intro{display:flex;flex-direction:column;align-items:center;gap:16px;cursor:pointer;}
@@ -679,10 +684,17 @@
       <div>
         <div class="qawrap" data-grid="qa" id="finaleQA"></div>
 
+        <div class="bar" style="margin-top:14px;gap:12px;flex-wrap:wrap;">
+          <button class="btn" id="trPrewarm">⤓ Vertalingen offline klaarzetten</button>
+          <button class="btn" id="vraagOpnieuw">↻ Opnieuw voorstellen</button>
+          <button class="btn clear" data-reset="qa">Vragen wissen</button>
+        </div>
+        <div id="trStatus" class="trstatus"></div>
+
         <!-- Uitteller: de twee gegokte antwoorden en het juiste getal; de app rekent uit
              wie er het dichtst bij zit. Bewust drie velden die je alle drie zelf invult. -->
         <div class="uitteller">
-          <div class="ut-kop">🎯 Uitteller — wie zit het dichtst bij?</div>
+          <div class="ut-kop">Uitteller — wie zit het dichtst bij?</div>
           <p class="ut-uitleg">Vul de twee gegokte antwoorden in en het juiste getal. Punten en komma's mag je gewoon typen (25.000 · 12,5). De uitslag verschijnt vanzelf.</p>
           <div class="ut-velden">
             <div class="ut-veld a"><label for="utA">Antwoord A</label><input type="text" id="utA" inputmode="decimal" placeholder="bv. 50"></div>
@@ -695,13 +707,6 @@
             <button class="btn clear" id="utWis">Uitteller wissen</button>
           </div>
         </div>
-
-        <div class="bar" style="margin-top:14px;gap:12px;flex-wrap:wrap;">
-          <button class="btn" id="trPrewarm">⤓ Vertalingen offline klaarzetten</button>
-          <button class="btn" id="vraagOpnieuw">↻ Opnieuw voorstellen</button>
-          <button class="btn clear" data-reset="qa">Vragen wissen</button>
-        </div>
-        <div id="trStatus" class="trstatus"></div>
       </div>
 
       <!-- Vragenlijst: minst en langst geleden gespeeld bovenaan. -->
@@ -1264,32 +1269,54 @@ function utRender(){
   }
 }
 // De uitslag groot op het scherm, in dezelfde stijl als de andere onthullingen.
+// In twee stappen, net als bij het antwoord:
+//   Stap 1 — allebei de gegokte antwoorden naast elkaar. Het juiste getal staat er nog NIET
+//            bij: anders rekent de zaal zelf al uit wie gewonnen heeft en is de spanning weg.
+//   Stap 2 — tik op het scherm: het juiste getal erbij, hoeveel elk ernaast zat, en de
+//            winnaar die oplicht.
+let _pendingUitslag=null;
+function utKaart(naam,getal,verschil,wint){
+  return '<div class="ut-kaart'+(wint?' wint':'')+'">'+
+      '<div class="nm">Antwoord '+naam+'</div>'+
+      '<div class="gt">'+escHtml(toonGetal(getal))+'</div>'+
+      (verschil==null?'':'<div class="vs">'+(verschil===0?'precies juist':(escHtml(toonGetal(verschil))+' ernaast'))+'</div>')+
+    '</div>';
+}
 function presentUitslag(){
   const r=utBereken();
   if(!r){ bbToon('Vul eerst de drie velden van de uitteller in.','fout'); return; }
-  const kaart=(naam,getal,verschil,wint)=>
-    '<div class="ut-kaart'+(wint?' wint':'')+'">'+
-      '<div class="nm">Antwoord '+naam+'</div>'+
-      '<div class="gt">'+escHtml(toonGetal(getal))+'</div>'+
-      '<div class="vs">'+(verschil===0?'precies juist':(escHtml(toonGetal(verschil))+' ernaast'))+'</div>'+
-    '</div>';
   // Stond er nog een antwoord-onthulling klaar ("tik om te tonen"), dan vervalt die: anders
   // zou één tik op het scherm de uitslag meteen vervangen door dat oude antwoord.
   _pendingReveal=null;
+  _pendingUitslag=r;
+  const inner=document.getElementById('presentInner');
+  inner.innerHTML=
+    '<div class="ut-groot">'+
+      '<div class="ut-juist">De twee antwoorden</div>'+
+      '<div class="ut-duo">'+
+        utKaart('A',r.a,null,false)+
+        utKaart('B',r.b,null,false)+
+      '</div>'+
+      '<div class="reveal-tap">👆 Tik op het scherm om te zien wie gewonnen heeft</div>'+
+    '</div>';
+  openPresent();
+}
+function revealUitslag(){
+  const r=_pendingUitslag; if(!r) return;
+  _pendingUitslag=null;
   const inner=document.getElementById('presentInner');
   inner.innerHTML=
     '<div class="flashfx"></div>'+
     '<div class="ut-groot">'+
-      '<div class="ut-juist">🎯 Het juiste antwoord is '+escHtml(toonGetal(r.uit))+'</div>'+
+      '<div class="ut-juist">Het juiste antwoord is '+escHtml(toonGetal(r.uit))+'</div>'+
       '<div class="ut-duo">'+
-        kaart('A',r.a,r.vA,r.wint==='a'||r.wint==='gelijk')+
-        kaart('B',r.b,r.vB,r.wint==='b'||r.wint==='gelijk')+
+        utKaart('A',r.a,r.vA,r.wint==='a'||r.wint==='gelijk')+
+        utKaart('B',r.b,r.vB,r.wint==='b'||r.wint==='gelijk')+
       '</div>'+
       '<div class="a-flag">'+(r.wint==='gelijk'
         ? '🤝 Gelijkspel — allebei even dichtbij!'
         : ('🎉 Antwoord '+(r.wint==='a'?'A':'B')+' zit het dichtst bij!'))+'</div>'+
     '</div>';
-  openPresent();
 }
 
 // ---------------- VRAGENLIJST (gedeelde bank, minst gespeeld bovenaan) ----------------
@@ -1607,7 +1634,20 @@ function fillTransGrid(scope,text){
     if(!text.trim()){cell.textContent='—';cell.classList.remove('loading');return;}
     translate(text,l.code)
       .then(t=>{cell.textContent=t;cell.classList.remove('loading');})
-      .catch(()=>{cell.textContent='(vertaling niet beschikbaar — controleer internet)';cell.classList.add('err');cell.classList.remove('loading');});
+      .catch(()=>{
+        // Niet vertaald én niet te vertalen (geen internet). Midden in de show is een
+        // foutmelding op het grote scherm het slechtste wat er kan staan; we tonen dan
+        // de Nederlandse tekst met een klein kadertje erbij. Het gaat gewoon door.
+        cell.textContent=text;
+        cell.classList.add(navigator.onLine?'err':'onvertaald');
+        cell.classList.remove('loading');
+        const kop=cell.parentElement&&cell.parentElement.querySelector('.tr-head');
+        if(kop && !kop.querySelector('.tr-note')){
+          const n=document.createElement('span'); n.className='tr-note';
+          n.textContent=navigator.onLine?'vertalen lukte niet':'nog niet vertaald';
+          kop.appendChild(n);
+        }
+      });
   });
 }
 // ---- Offline klaarzetten: finalevragen/antwoorden vooraf vertalen + status ----
@@ -1672,8 +1712,8 @@ function updateTrStatus(){
       st.className='trstatus ok';
     }
   }
-  else if(!navigator.onLine){ st.textContent='Nog niet alles vertaald en geen internet. Ga online en klik op "Vertalingen offline klaarzetten".'; st.className='trstatus warn'; }
-  else { st.textContent='Nog niet alles vertaald. Klik op "Vertalingen offline klaarzetten".'; st.className='trstatus warn'; }
+  else if(!navigator.onLine){ st.textContent='Nog niet alles vertaald, en er is nu geen internet. Wat nog ontbreekt verschijnt in het Nederlands; zodra je weer verbinding hebt, vult de app het vanzelf aan.'; st.className='trstatus warn'; }
+  else { st.textContent='Bezig met vertalen op de achtergrond — dat gaat vanzelf. Haast? Klik op "Vertalingen offline klaarzetten".'; st.className='trstatus busy'; }
 }
 async function prewarmFinale(report){
   const st=document.getElementById('trStatus');
@@ -1703,6 +1743,7 @@ function closePresent(){
   p.classList.remove('open'); p.setAttribute('aria-hidden','true');
   document.body.style.overflow='';
   _pendingReveal=null;
+  _pendingUitslag=null;   // ook een half getoonde uitslag vervalt bij het sluiten
   document.getElementById('presentInner').innerHTML='';
 }
 
@@ -1767,11 +1808,14 @@ document.getElementById('utWis').onclick=()=>{
 
 document.getElementById('presentClose').onclick=closePresent;
 document.getElementById('trPrewarm').onclick=()=>prewarmFinale(true);
-window.addEventListener('online',updateTrStatus);
+// Komt de wifi terug, dan haalt de app de ontbrekende vertalingen meteen zelf op. Anders
+// moest je dat opmerken en met de knop aanzetten — precies wat we niet willen.
+window.addEventListener('online',()=>{ updateTrStatus(); prewarmBank(); });
 window.addEventListener('offline',updateTrStatus);
 document.getElementById('present').addEventListener('click',e=>{
   if(e.target.closest('.present-close')) return;                    // ✕ heeft zijn eigen afhandeling
   if(_pendingReveal!==null){ revealAnswer(_pendingReveal); return; } // tik = antwoord tonen
+  if(_pendingUitslag){ revealUitslag(); return; }                    // tik = wie gewonnen heeft
   if(e.target.id==='present') closePresent();                       // tik naast de inhoud = sluiten
 });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('present').classList.contains('open')) closePresent(); });
@@ -2390,6 +2434,13 @@ if(window.BBInv){
     // zodra ze binnen is (of een collega iets wijzigt) tekenen we het finalescherm opnieuw.
     if(document.getElementById('finale').classList.contains('active')) renderFinale();
     else renderVragenlijst();
+    // En we zetten de vertalingen meteen klaar, óók als je op een ander scherm staat.
+    // Vroeger gebeurde dat alleen vanuit renderFinale(), dus alleen als het finalescherm
+    // toevallig openstond op het moment dat de vragen binnenkwamen. Wie de app opstartte
+    // en op het menu bleef, kwam later zonder wifi voor een lege vertaling te staan — en
+    // moest dat vooraf zelf met de knop klaarzetten. Nu gebeurt het vanzelf.
+    neemHandmatigeVertalingenOver();   // eigen vertalingen tellen mee als "al klaar"
+    if(navigator.onLine) prewarmBank();
     if(document.getElementById('vragenbeheer').classList.contains('active')) renderVragenBeheer();
     updateKlaarSync(); // sync-status op het "Doorgestuurd"-scherm live bijwerken
   });
@@ -2397,7 +2448,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.5';
+const APP_VERSION='v3.6';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;
