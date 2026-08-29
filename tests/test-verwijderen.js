@@ -47,8 +47,8 @@ var ONTBREEKT={contacten:true,checklisten:true,logboek:true,activiteit:true,
 
 // Eén sessie = één keer de app opstarten. 'weiger' en 'aangemeld' bepalen hoe streng de
 // nagemaakte database doet.
-async function sessie(db,weiger,aangemeld){
-  var nep=maakNepSupabase(db,Object.assign({},ONTBREEKT),null,weiger);
+async function sessie(db,weiger,aangemeld,onbereikbaar){
+  var nep=maakNepSupabase(db,Object.assign({},ONTBREEKT,onbereikbaar||{}),null,weiger);
   if(aangemeld===false) nep.zetSessie(false);
   globalThis.supabase={createClient:function(){ return nep.client; }};
   delete globalThis.BBInv;
@@ -117,6 +117,30 @@ async function rust(){ for(var i=0;i<30;i++){ await null; if(BBInv.pendingCount(
   await rust();                                 // de lijst wordt na een verwijdering nog eens opgehaald
   ok(!heeft(db,'p1'),'de prijs is nu echt weg uit de database');
   ok(BBInv.getPrijzen().every(function(p){return p.id!=='p1';}),'en ze staat ook niet meer op het scherm');
+
+  print('\n— Zonder verbinding opstarten zet een verwijderde prijs niet terug —');
+  // Het opschonen bij de start ("voorraad 0 mag niet 'in gebruik' staan") schrijft rijen
+  // terug naar de database. Draait dat op de offline kopie, dan wordt een prijs die een
+  // collega intussen verwijderd heeft opnieuw aangemaakt.
+  db=basisDB();
+  await sessie(db); await rust();                         // eerste keer: offline kopie opbouwen
+  // Zo staat het op een tablet die zonder wifi gewerkt heeft: de voorraad ging naar 0
+  // (formulieren afgeboekt) terwijl "in gebruik" nog aan stond. Precies het geval dat het
+  // opschonen bij de start wil rechtzetten — en dus terugschrijft naar de database.
+  var snap=JSON.parse(store['bb_cache_v1']||'{}');
+  (snap.prijzen||[]).forEach(function(p){ if(p.id==='p1'){ p.inGebruik=true; p.stock=0; } });
+  store['bb_cache_v1']=JSON.stringify(snap);
+  db.prijzen=db.prijzen.filter(function(r){ return r.id!=='p1'; });  // collega verwijdert p1
+  // Opstarten zoals in een zaal zonder wifi: de lijst kan niet opgehaald worden, dus draait
+  // de app op de offline kopie. Wat ze wil wegschrijven blijft in de wachtrij staan.
+  navigator.onLine=false;
+  await sessie(db,null,true,{prijzen:true});
+  await rust();
+  navigator.onLine=true;
+  await sessie(db);                                       // en later weer met verbinding
+  await leegmaken(); await rust();
+  ok(!heeft(db,'p1'),'de verwijderde prijs blijft weg uit de database');
+  ok(BBInv.getPrijzen().every(function(p){return p.id!=='p1';}),'en staat ook niet op het scherm');
 
   print('\nRESULTAAT: '+(fouten?fouten+' fout(en)':'alles in orde'));
 })();

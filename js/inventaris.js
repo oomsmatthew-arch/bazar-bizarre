@@ -1656,6 +1656,12 @@
   // meetellen voor de lage-voorraad melding). Corrigeert oude/geïmporteerde gegevens
   // één keer bij het opstarten en synct de verbetering mee naar alle toestellen.
   function normalizeInGebruik(){
+    // ALLEEN opschonen als de lijst écht van de database komt. Lukte het laden niet (geen
+    // internet, of de database antwoordde niet), dan draait de app op de offline kopie van
+    // dit toestel. Die is misschien dagen oud. Schreven we die terug, dan zou een prijs die
+    // een collega intussen verwijderd heeft opnieuw aangemaakt worden — een upsert maakt een
+    // gewiste rij gewoon weer aan. Zo kwamen verwijderde prijzen langs de achterdeur terug.
+    if(!kernOK) return 0;
     const fixed=cache.prijzen.filter(p=>p.inGebruik&&(p.stock||0)<=0);
     if(!fixed.length) return 0;
     fixed.forEach(p=>{ p.inGebruik=false; });
