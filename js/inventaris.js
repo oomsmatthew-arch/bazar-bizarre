@@ -2074,4 +2074,82 @@
     outbox.length=0; saveOutbox(); fire();
     logAct('Systeem: wachtrij gewist ('+n+' wijziging'+(n===1?'':'en')+')');
     return n;
- 
+  }
+
+  // ---------------- AFDRUKKEN ----------------
+  function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function fmtNowNL(){const d=new Date();const p=n=>String(n).padStart(2,'0');return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();}
+  function printHTML(title,bodyHtml){
+    const w=window.open('','_blank');
+    if(!w){bbToon('Kon het afdrukvenster niet openen (popup geblokkeerd?). Sta pop-ups toe voor deze site.');return;}
+    const css='body{font-family:Arial,Helvetica,sans-serif;color:#1d2e22;margin:24px;}h1{font-size:20px;margin:0 0 4px;}.sub{color:#666;font-size:12px;margin-bottom:16px;}table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:8px;}th,td{border:1px solid #ccc;padding:6px 9px;text-align:left;}td.n,th.n{text-align:right;width:90px;}h2{font-size:15px;margin:18px 0 6px;}';
+    w.document.open();
+    w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>'+escHtml(title)+'</title><style>'+css+'</style></head><body>'+bodyHtml+'</body></html>');
+    w.document.close(); w.focus();
+    setTimeout(function(){ try{ w.print(); }catch(e){} }, 350);
+  }
+  function printInventaris(){
+    const pr=getPrijzen(), bk=getBoekjes();
+    const groot=pr.filter(p=>p.cat==='groot').sort((a,b)=>a.naam.localeCompare(b.naam));
+    const klein=pr.filter(p=>p.cat==='klein').sort((a,b)=>a.naam.localeCompare(b.naam));
+    const rows=g=>g.map(p=>'<tr><td>'+escHtml(p.naam)+'</td><td class="n">'+(p.stock||0)+'</td></tr>').join('');
+    const body='<h1>Inventaris — Bazar Bizarre</h1><div class="sub">Afgedrukt op '+fmtNowNL()+'</div>'+
+      '<table><tr><th>Artikel</th><th class="n">Voorraad</th></tr><tr><td><b>Boekjes</b></td><td class="n">'+(bk.stock||0)+'</td></tr></table>'+
+      '<h2>Grote prijzen ('+groot.length+')</h2><table><tr><th>Naam</th><th class="n">Voorraad</th></tr>'+rows(groot)+'</table>'+
+      '<h2>Kleine prijzen ('+klein.length+')</h2><table><tr><th>Naam</th><th class="n">Voorraad</th></tr>'+rows(klein)+'</table>';
+    printHTML('Inventaris',body);
+  }
+  async function printBestellijst(){
+    // bbVraagTekst komt uit js/topbar.js (dat elke pagina laadt); zonder die vraag zou de
+    // lijst zomaar op 5 staan, dus als het venster er onverhoopt niet is vragen we niets
+    // en drukken we de standaarddrempel af.
+    const raw=window.bbVraagTekst
+      ? await bbVraagTekst({titel:'Bestellijst afdrukken', soort:'getal', waarde:'5', okTekst:'Afdrukken',
+          tekst:'Toon prijzen met voorraad t/m welk aantal?'})
+      : '5';
+    if(raw===null) return;
+    const drempel=Math.round(+raw||0);
+    const pr=getPrijzen().filter(p=>(p.stock||0)<=drempel).sort((a,b)=>(a.stock||0)-(b.stock||0)||a.naam.localeCompare(b.naam));
+    const rows=pr.map(p=>'<tr><td>'+escHtml(p.naam)+'</td><td>'+(p.cat==='groot'?'Grote':'Kleine')+'</td><td class="n">'+(p.stock||0)+'</td></tr>').join('');
+    const body='<h1>Bestellijst — bij te bestellen</h1><div class="sub">Voorraad t/m '+drempel+' · afgedrukt op '+fmtNowNL()+'</div>'+
+      (pr.length?('<table><tr><th>Naam</th><th>Soort</th><th class="n">Voorraad</th></tr>'+rows+'</table>'):'<p>Geen prijzen op of onder '+drempel+'.</p>');
+    printHTML('Bestellijst',body);
+  }
+
+  window.BBInv={init,setOnChange:fn=>{onChange=fn;},isReady:()=>ready,
+    seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
+    getFormulieren,setFormulieren,getLeveringen,setLeveringen,
+    isFinalevraagGedeeld:()=>finalevraagOK, VRAAG_MARKER,
+    getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,
+    getContacten,addContact,updateContact,removeContact,isContactenGedeeld:()=>contactenOK,
+    getChecklisten,addChecklist,saveChecklist,removeChecklist,reorderChecklisten,isChecklistenGedeeld:()=>checklistenOK,
+    setChkMedia,getChkMedia,delChkMedia,
+    getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
+    getWerkuren,addWerkuur,updateWerkuur,removeWerkuur,
+    getContractMinuten,setContractMinuten,isWerkurenGedeeld:()=>werkurenOK,
+    getProjecten,getProject,addProject,updateProject,removeProject,
+    getTaken,addTaak,updateTaak,removeTaak,reorderTaken,verplaatsTaken,
+    getBerichten,addBericht,updateBericht,removeBericht,
+    getAgenda,addAgenda,updateAgenda,removeAgenda,
+    getDocs,addDoc,updateDoc,removeDoc,
+    isProjectenGedeeld:()=>projectenOK&&projecttakenOK&&projectberichtenOK,
+    isProjectExtraGedeeld:()=>projectagendaOK&&projectdocsOK,
+    STD_KOLOMMEN,
+    getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
+    setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,
+    getManualsTree,saveManualsTree,uploadFile,lijstOpslag,verwijderOpslag,isManualsGedeeld:()=>manualsdocOK,
+    haalFotosBij,   // foto's van collega's alsnog ophalen (het Database-overzicht gebruikt dit)
+    getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
+    getFinalevragen,gesorteerdeFinalevragen,addFinalevraag,updateFinalevraag,
+    removeFinalevraag,markeerFinalevraagGebruikt,zaaiFinalevragen,leerUitFormulieren,
+    vulOudeSpeelbeurten,
+    getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
+    getSessies,getSessiesFresh,pushSessie,
+    pendingCount,flushOutbox,
+    // Seintje zodra het aantal wachtende wijzigingen verandert (zie meldWachtrij).
+    setOnWachtrij:fn=>{ onWachtrij=fn; gemeld=null; meldWachtrij(); },
+    rolTags,heeftRol,zetRol,
+    getSysteem,pingDB,getOpslag,wisWachtrij,opruimen,
+    submitFormulier,updateFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
+    undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
+})();
