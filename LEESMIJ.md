@@ -157,10 +157,20 @@ instelling hoort bij jou, niet bij het toestel, en dient enkel om een BF uit te 
 Typen mag als `38`, `38,5`, `38:30` of `38u30`.
 
 Bovenaan blader je per maand. Je ziet het maandtotaal, het totaal per categorie en het
-jaartotaal; daaronder staan de dagen gegroepeerd **per week (maandag–zondag)** met een
-weektotaal. Loopt een week over twee maanden, dan staat het volledige weektotaal erbij
-vermeld. Met **📋 Kopieer maand** en **⬇ CSV** krijg je de maand mee, inclusief een kolom
-in honderdsten (7,60 i.p.v. 7u36) — zoals je loonfiche rekent.
+jaartotaal. Daaronder kies je tussen twee weergaves:
+
+- **📅 Kalender** (standaard) — een gewone maandkalender, maandag links. In elk dagvakje
+  staat wat je die dag invulde, met de kleur van de categorie; rechts van elke week het
+  weektotaal. Tik op een dag om ze in te vullen (de datum staat dan meteen goed), of op
+  een balkje om die dag aan te passen. Dagen van de vorige of volgende maand blijven
+  zichtbaar maar gedimd — je week loopt nu eenmaal door — en tellen wél mee in het
+  weektotaal, anders klopt dat getal niet in de randweken.
+- **☰ Lijst** — dezelfde dagen onder elkaar per week, met start- en einduur, wat er van de
+  pauze af ging en je opmerking erbij. Handiger om na te lezen.
+
+Je keuze blijft op dat toestel staan. Met **📋 Kopieer maand** en **⬇ CSV** krijg je de
+maand mee, inclusief een kolom in honderdsten (7,60 i.p.v. 7u36) — zoals je loonfiche
+rekent.
 
 **Eenmalig in te stellen:** voer `docs/werkuren-supabase.sql` uit in Supabase. Zonder die
 tabel werkt de pagina gewoon, maar blijven je uren op één toestel staan — ze vertrekken

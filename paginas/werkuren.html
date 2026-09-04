@@ -47,7 +47,13 @@
         <button class="btn" id="wuCsv">⬇ CSV</button>
       </div>
 
-      <div id="wuLijst"></div>
+      <div class="invtabs" id="wuTabs">
+        <button class="invtab active" data-weergave="kalender">📅 Kalender</button>
+        <button class="invtab" data-weergave="lijst">☰ Lijst</button>
+      </div>
+
+      <div id="wuKalender"></div>
+      <div id="wuLijst" style="display:none"></div>
     </div>
   </div>
 
@@ -154,6 +160,8 @@ function fmtDuur(min){
   const m=Math.round(min||0), a=Math.abs(m);
   return (m<0?'−':'')+Math.floor(a/60)+'u'+p2(a%60);
 }
+// Kort, voor de kleine vakjes in de kalender: 8u00 wordt "8u", 7u30 blijft "7u30".
+const fmtKort=min=>{ const m=Math.round(min||0); return (m%60===0)?(Math.floor(m/60)+'u'):fmtDuur(m); };
 // Voor het vergelijken met je loonfiche: die rekent in honderdsten (7,60 i.p.v. 7u36).
 const fmtDecimaal=min=>((Math.round(min||0)/60).toFixed(2)).replace('.',',');
 
@@ -205,6 +213,11 @@ function weekBereik(ma){
 }
 
 // ---- wie ben ik, en welke maand bekijk ik ----
+// Kalender of lijst? De keuze blijft op dit toestel staan, zodat je ze maar één keer maakt.
+const K_WEERGAVE='bb_werkuren_weergave';
+let weergave='kalender';
+try{ if(localStorage.getItem(K_WEERGAVE)==='lijst') weergave='lijst'; }catch(e){}
+
 let toonMaand=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 let bewerktId=null;      // null = een nieuwe dag, anders de rij die we aanpassen
 let formSoort='gewerkt';
@@ -240,7 +253,17 @@ function renderAlles(){
   inhoud.style.display='';
   renderMaandbalk();
   renderStats();
-  renderLijst();
+  renderWeergave();
+}
+// De tabbladen omzetten en enkel de gekozen weergave tekenen — de andere staat verborgen
+// en wordt ook niet opgebouwd; dat scheelt werk bij elke wijziging.
+function renderWeergave(){
+  document.querySelectorAll('#wuTabs .invtab').forEach(b=>
+    b.classList.toggle('active',b.getAttribute('data-weergave')===weergave));
+  const kal=document.getElementById('wuKalender'), lijst=document.getElementById('wuLijst');
+  kal.style.display   = weergave==='kalender' ? '' : 'none';
+  lijst.style.display = weergave==='lijst'    ? '' : 'none';
+  if(weergave==='kalender') renderKalender(); else renderLijst();
 }
 
 function renderMaandbalk(){
@@ -295,6 +318,70 @@ function rijHtml(w){
       '<span class="wu-tag '+esc(w.soort)+'">'+esc(soortNaam(w.soort))+'</span>'+
       '<span class="wu-uren">'+fmtDuur(w.minuten)+'</span>'+
     '</button>';
+}
+
+// ---------------- KALENDER ----------------
+// Een gewone maandkalender, maandag links. In elk dagvakje staat wat je die dag invulde;
+// rechts van elke week het weektotaal. Tik op een leeg vakje om die dag in te vullen, of
+// op een ingevulde balk om ze aan te passen.
+// Wat er in zo'n balk past is klein, dus: bij 'gewerkt' enkel de uren, bij de andere
+// soorten de afkorting erbij ("JV 8u"). Het dagtotaal komt er enkel bij als je die dag
+// meer dan één ding invulde — anders staat hetzelfde getal er twee keer.
+function kalLabel(w){
+  if(w.soort==='overuren') return '+'+fmtKort(w.minuten);
+  if(w.soort==='jv') return 'JV '+fmtKort(w.minuten);
+  if(w.soort==='bf') return 'BF '+fmtKort(w.minuten);
+  return fmtKort(w.minuten);
+}
+function kalTitel(w){
+  const stuk=[soortNaam(w.soort), fmtDuur(w.minuten)];
+  if(w.soort==='gewerkt'&&w.start&&w.einde) stuk.splice(1,0,w.start+' – '+w.einde);
+  if(w.opmerking) stuk.push(w.opmerking);
+  return stuk.join(' · ');
+}
+function renderKalender(){
+  const box=document.getElementById('wuKalender');
+  const j=toonMaand.getFullYear(), m=toonMaand.getMonth();
+  const start=maandagVan(new Date(j,m,1));
+  const eind=maandagVan(new Date(j,m+1,0)); eind.setDate(eind.getDate()+6);
+  // Alles van deze persoon één keer per datum klaarzetten, i.p.v. per vakje te zoeken.
+  const perDag={}; const alles=mijnUren();
+  alles.forEach(w=>{ (perDag[w.datum]||(perDag[w.datum]=[])).push(w); });
+  const vandaag=isoVan(new Date());
+
+  let html='<div class="kalgrid">';
+  ['ma','di','wo','do','vr','za','zo'].forEach(d=>html+='<div class="kal-kop">'+d+'</div>');
+  html+='<div class="kal-kop">wk</div>';
+
+  const d=new Date(start.getFullYear(),start.getMonth(),start.getDate());
+  while(d<=eind){
+    const weekMa=isoVan(d);
+    for(let i=0;i<7;i++){
+      const iso=isoVan(d);
+      const rijen=perDag[iso]||[];
+      const totaal=somMinuten(rijen);
+      html+='<div class="kal-dag'+(d.getMonth()!==m?' buiten':'')+(iso===vandaag?' vandaag':'')+'">'+
+        '<button class="kal-nr" data-nieuw="'+iso+'" title="Werktijden toevoegen op '+esc(iso)+'">'+
+          '<span class="n">'+d.getDate()+'</span>'+
+          (rijen.length>1?'<span class="t">'+esc(fmtDuur(totaal))+'</span>':'')+
+        '</button>'+
+        rijen.map(w=>'<button class="kal-item '+esc(w.soort)+'" data-id="'+esc(w.id)+'" title="'+esc(kalTitel(w))+'">'+
+          esc(kalLabel(w))+'</button>').join('')+
+      '</div>';
+      d.setDate(d.getDate()+1);
+    }
+    // Het weektotaal telt de héle week (maandag t/m zondag), ook de dagen die in de
+    // vorige of volgende maand vallen — anders klopt het getal niet in de randweken.
+    const weekZo=isoVan(new Date(d.getFullYear(),d.getMonth(),d.getDate()-1));
+    const wtot=somMinuten(alles.filter(w=>w.datum>=weekMa&&w.datum<=weekZo));
+    html+='<div class="kal-wk" title="Week '+weekNr(datumVan(weekMa))+'">'+
+      '<b>'+esc(wtot?fmtDuur(wtot):'—')+'</b><i>w'+weekNr(datumVan(weekMa))+'</i></div>';
+  }
+  html+='</div>';
+  box.innerHTML=html;
+
+  box.querySelectorAll('.kal-item').forEach(b=>b.onclick=()=>openForm(b.getAttribute('data-id')));
+  box.querySelectorAll('.kal-nr').forEach(b=>b.onclick=()=>nieuweDag(b.getAttribute('data-nieuw')));
 }
 
 function renderLijst(){
@@ -387,7 +474,9 @@ function werkResultaatBij(){
   vak.innerHTML=esc(start+' tot '+einde+' = '+fmtDuur(bruto)+' aanwezig — '+uitleg+' → ')+'<b>'+fmtDuur(netto)+'</b>';
 }
 
-function openForm(id){
+// 'datum' is enkel voor een NIEUWE dag: tik je in de kalender op 15 september, dan staat
+// die datum meteen ingevuld.
+function openForm(id,datum){
   const w=id?mijnUren().find(x=>x.id===id):null;
   bewerktId=w?w.id:null;
   document.getElementById('wuModalTitel').textContent=w?'Werktijden aanpassen':'Werktijden toevoegen';
@@ -396,7 +485,7 @@ function openForm(id){
   // eerste van díe maand — anders vul je per ongeluk de verkeerde maand in.
   const nu=new Date();
   const zelfdeMaand=toonMaand.getFullYear()===nu.getFullYear()&&toonMaand.getMonth()===nu.getMonth();
-  document.getElementById('wuDatum').value = w ? w.datum : isoVan(zelfdeMaand?nu:toonMaand);
+  document.getElementById('wuDatum').value = w ? w.datum : (datum || isoVan(zelfdeMaand?nu:toonMaand));
   document.getElementById('wuStart').value = w?(w.start||''):'';
   document.getElementById('wuEinde').value = w?(w.einde||''):'';
   document.getElementById('wuGeenPauze').checked = w?(w.pauze===false):false;
@@ -498,10 +587,17 @@ function schuifMaand(stappen){
 document.getElementById('wuVorige').onclick=()=>schuifMaand(-1);
 document.getElementById('wuVolgende').onclick=()=>schuifMaand(1);
 document.getElementById('wuNu').onclick=()=>{ const n=new Date(); toonMaand=new Date(n.getFullYear(),n.getMonth(),1); renderAlles(); };
-document.getElementById('wuNieuw').onclick=async()=>{
+async function nieuweDag(datum){
   if(!await eisToegang('werkuren','gebruiken','je uren in te vullen')) return;
-  openForm(null);
-};
+  openForm(null,datum);
+}
+document.getElementById('wuNieuw').onclick=()=>nieuweDag(null);
+document.getElementById('wuTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.invtab'); if(!b) return;
+  weergave=b.getAttribute('data-weergave');
+  try{ localStorage.setItem(K_WEERGAVE,weergave); }catch(err){}
+  renderWeergave();
+});
 document.getElementById('wuContract').onclick=vraagContract;
 document.getElementById('wuKopieer').onclick=kopieerMaand;
 document.getElementById('wuCsv').onclick=csvMaand;

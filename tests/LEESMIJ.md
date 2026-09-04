@@ -25,6 +25,7 @@ $JSC tests/test-wachtrij.js
 $JSC tests/test-verwijderen.js
 $JSC tests/test-uitteller.js
 $JSC tests/test-werkuren.js
+$JSC tests/test-werkuren-scherm.js
 ```
 
 Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
@@ -49,6 +50,7 @@ Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
 | `test-verwijderen.js` | Verwijderen dat écht doorgaat: een verwijdering die de database stil weigert (dat doet ze sinds de beveiliging: "gelukt, 0 rijen" zonder foutmelding) mag niet uit de wachtrij verdwijnen, en een toestel dat niet aangemeld is stuurt niets — het wacht. Anders is de prijs van je scherm maar staat ze nog in de database, en komt ze bij de volgende synchronisatie terug |
 | `test-uitteller.js` | De uitteller van het finalespel: wie zit het dichtst bij. Vooral het lézen van de getallen — bij ons is "25.000" vijfentwintigduizend en "12,5" twaalf en een half, precies andersom dan JavaScript het leest. Eén verkeerd gelezen getal en de verkeerde ploeg wint |
 | `test-werkuren.js` | Mijn werkuren: de pauzeregel (vanaf 6u30 gaat er een half uur af), een shift over middernacht, de BF-berekening en het intypen van contracturen — plus dat je enkel je eigen uren ziet en er niets over in het activiteitenlogboek belandt. De rekenregels worden rechtstreeks uit `paginas/werkuren.html` geknipt, dus de test kan niet uit de pas lopen met de app |
+| `test-werkuren-scherm.js` | Het scherm van Mijn werkuren: de maandkalender (35 vakjes, de dagen van de buurmaand gedimd, weektotalen die over de maandgrens doortellen), de lijstweergave, het wisselen tussen beide, en het invulvenster. Draait het echte paginascript tegen een nep-DOM |
 | `test-opslag.js` | De opslag én het opstarten: één momentopname i.p.v. een kopie per tabel, de verhuizing naar IndexedDB (met een nagemaakte IndexedDB), het geval waarin de opslag al vol zit, "invullen en meteen wegklikken", dat je rol al bekend is vóór de database antwoordt, en dat het laden de offline kopie niet per tabel herschrijft |
 
 `nep-supabase.js` is een nagemaakte database, zodat `test-sync.js` het echte online-gedrag
