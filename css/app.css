@@ -624,6 +624,19 @@
   .beheertop .field{margin:0;}
   /* consistente ruimte tussen de blokken in Beheer */
   #pane-beheer > .field{margin-top:24px;}
+  /* Beheer onderaan: export, afdrukken, importeren en terugzetten als vier
+     kleine vakjes naast elkaar i.p.v. vier brede blokken onder elkaar. */
+  .beheergrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-items:stretch;margin-top:24px;}
+  .beheergrid .field{margin:0;display:flex;flex-direction:column;}
+  .beheergrid .field .hint{flex:1 0 auto;}
+  /* In een smal vakje staan de knoppen onder elkaar en vullen ze de breedte,
+     anders breken de labels midden in een woord af. */
+  .beheergrid .row{flex-direction:column;align-items:stretch;gap:8px;}
+  .beheergrid .row .btn{width:100%;text-align:center;}
+  @media(max-width:1000px){.beheergrid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:620px){.beheergrid{grid-template-columns:1fr;}
+    .beheergrid .row{flex-direction:row;}
+    .beheergrid .row .btn{width:auto;}}
   .statlist{margin:10px 2px 0;font-size:14px;color:var(--text);line-height:1.7;}
   .statlist b{color:var(--forest);}
 
