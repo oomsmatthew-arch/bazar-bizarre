@@ -122,7 +122,7 @@
 //   • Gewerkt : einduur − startuur, en vanaf 6u30 gaat er een half uur pauze af —
 //               tenzij je aanvinkt dat je geen pauze nam.
 //   • JV      : telt als 8 uur (aan te passen in het venster).
-//   • BF      : je contracturen ÷ 5, naar boven afgerond op een heel uur.
+//   • BF      : je contracturen ÷ 5, afgerond op een half uur.
 //   • Overuren: je vult zelf in hoeveel het er zijn, zodat je telling zeker klopt.
 
 const PAUZE_VANAF=390;   // 6u30 in minuten: vanaf hier gaat de pauze eraf
@@ -192,9 +192,14 @@ function weekNr(d){
   const week1=new Date(x.getFullYear(),0,4);
   return 1+Math.round(((x-week1)/86400000-3+((week1.getDay()+6)%7))/7);
 }
-// Een BF is je contracturen gedeeld door vijf, naar boven afgerond op een heel uur.
-// (38u00 ÷ 5 = 7u36 → 8u00.)
-function bfUitContract(contractMin){ return Math.ceil((contractMin||0)/5/60)*60; }
+// Een BF is je contracturen gedeeld door vijf, afgerond op een HALF uur — het
+// dichtstbijzijnde, en bij precies in het midden naar boven.
+//   38u ÷ 5 = 7u36  → 7u30   (7u36 ligt dichter bij 7u30 dan bij 8u00)
+//   32u ÷ 5 = 6u24  → 6u30
+//   30u ÷ 5 = 6u00  → 6u00
+// Bewust géén hele uren: dan zou 38u op 8u00 uitkomen, en dat is niet wat er op de
+// loonfiche staat. Het aantal blijft in het venster aanpasbaar, voor wie het anders heeft.
+function bfUitContract(contractMin){ return Math.round((contractMin||0)/5/30)*30; }
 // Contracturen intypen: '38', '38,5', '38:30' en '38u30' mogen allemaal — mensen
 // schrijven dit op vier manieren.
 function parseUren(txt){
@@ -235,6 +240,10 @@ function contractMinuten(){
   return BBInv.getContractMinuten(u.id)||STD_CONTRACT;
 }
 const bfMinuten=()=>bfUitContract(contractMinuten());
+// Heb je je contracturen zelf ingesteld, of rekent de app nog met de standaard van 38u?
+// Dat verschil zag je nergens — en dan denk je dat je 32u bewaard is terwijl er met 38u
+// gerekend wordt. Nu staat het er gewoon bij.
+function contractIngesteld(){ const u=mijnPersoon(); return !!(u && BBInv.getContractMinuten(u.id)); }
 
 // ---------------- OVERZICHT ----------------
 function renderAlles(){
@@ -457,7 +466,9 @@ function werkResultaatBij(){
     if(!min){ vak.className='wuresultaat leeg'; vak.textContent='Vul hierboven het aantal uren in.'; return; }
     vak.className='wuresultaat';
     let extra='';
-    if(formSoort==='bf') extra=' (contracturen '+fmtDuur(contractMinuten())+' ÷ 5 = '+fmtDuur(contractMinuten()/5)+', naar boven afgerond '+fmtDuur(bfMinuten())+')';
+    if(formSoort==='bf') extra=' (contracturen '+fmtDuur(contractMinuten())+' ÷ 5 = '+fmtDuur(contractMinuten()/5)+
+      ', afgerond op een half uur '+fmtDuur(bfMinuten())+')'+
+      (contractIngesteld()?'':' — dat is de standaard; zet je eigen contracturen via ⚙ Contracturen.');
     vak.innerHTML='<b>'+fmtDuur(min)+'</b> telt mee als '+esc(soortNaam(formSoort))+'.'+esc(extra);
     return;
   }
@@ -543,8 +554,9 @@ async function vraagContract(){
   const persoon=mijnPersoon(); if(!persoon) return;
   const nu=contractMinuten();
   const antwoord=await bbVraagTekst({titel:'Je contracturen per week',
-    tekst:'Hiermee rekent de app een BF uit: contracturen ÷ 5, naar boven afgerond op een heel uur.\n'+
-          'Nu ingesteld: '+fmtDuur(nu)+' → een BF telt als '+fmtDuur(bfMinuten())+'.',
+    tekst:'Hiermee rekent de app een BF uit: contracturen ÷ 5, afgerond op een half uur.\n'+
+          (contractIngesteld()?'Nu ingesteld: ':'Nog niet ingesteld — de app rekent met de standaard: ')+
+          fmtDuur(nu)+' → een BF telt als '+fmtDuur(bfMinuten())+'.',
     plaatshouder:'bv. 38 of 38:30', waarde:fmtDuur(nu).replace('u',':'), okTekst:'Bewaren',
     controle:v=>parseUren(v)===null?'Typ het als 38, 38,5 of 38:30.':(parseUren(v)>0&&parseUren(v)<=60*60?'':'Dat lijkt geen geldig aantal uren per week.')});
   if(antwoord===null) return;

@@ -502,6 +502,25 @@
     if(!weg.length || !rijen) return rijen;
     return rijen.filter(r=>!weg.some(o=>r&&r[o.col]===o.val));
   }
+  // De keerzijde daarvan: wat nog in de wachtrij staat om VERSTUURD te worden, is nieuwer
+  // dan wat de database teruggeeft — het is daar simpelweg nog niet aangekomen. Zonder dit
+  // verdwijnt zo'n rij bij het opstarten uit beeld: de verse lijst overschrijft de cache,
+  // de wachtrij vertrekt pas even later, en daarna haalt niemand de lijst nog eens op.
+  // Je pas ingevulde werkdag stond dan niet meer op het scherm, en je contracturen vielen
+  // terug op de standaardwaarde (38u) — met een verkeerde BF tot gevolg.
+  function metWachtendeSchrijfsels(tabel,rijen){
+    const wacht=outbox.filter(o=>(o.op==='upsert'||o.op==='insert')&&o.table===tabel);
+    if(!wacht.length) return rijen;
+    const uit=(rijen||[]).slice();
+    wacht.forEach(o=>{
+      (Array.isArray(o.payload)?o.payload:[o.payload]).forEach(rij=>{
+        if(!rij||rij.id==null) return;
+        const i=uit.findIndex(x=>x&&x.id===rij.id);
+        if(i>=0) uit[i]=rij; else uit.push(rij);   // eigen versie wint van die van de server
+      });
+    });
+    return uit;
+  }
   // Een verse lijst uit de database heeft geen foto's; die staan hier al (uit IndexedDB of
   // van eerder). Deze zet ze terug op hun plaats, zodat ze niet van het scherm verdwijnen.
   function behoudFotos(oud,nieuw){
@@ -777,7 +796,7 @@
     try{
       const r=kolommen ? await selectSmal(table,kolommen) : await sb.from(table).select('*');
       if(r.error){ setOK(false); loadBackup(cacheKey,backupKey); }
-      else { setOK(true); cache[cacheKey]=behoudFotos(cache[cacheKey],(r.data||[]).map(mapFn)); if(cache[cacheKey].length) saveBackup(cacheKey,backupKey); }
+      else { setOK(true); cache[cacheKey]=behoudFotos(cache[cacheKey],metWachtendeSchrijfsels(table,r.data||[]).map(mapFn)); if(cache[cacheKey].length) saveBackup(cacheKey,backupKey); }
     }catch(e){ setOK(false); loadBackup(cacheKey,backupKey); }
   }
   // Activiteitenlogboek: enkel de recentste 500 laden (kan lang worden).

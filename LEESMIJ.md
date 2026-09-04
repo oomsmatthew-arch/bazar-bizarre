@@ -146,15 +146,16 @@ Het gedeelde account *ENT algemeen* kan hier niets invullen — uren horen bij e
 | **Gewerkt** | einduur − startuur. Vanaf **6u30** aanwezig gaat er **30 min pauze** af, tenzij je aanvinkt dat je géén pauze nam. Een shift die over middernacht loopt (17:00 → 01:00) telt gewoon door. |
 | **Overuren** | je vult zelf in hoeveel het er zijn, zodat je telling zeker klopt |
 | **JV** | 8u00 (in het venster aan te passen) |
-| **BF** | je **contracturen ÷ 5**, naar boven afgerond op een heel uur (38u → 7u36 → **8u00**) |
+| **BF** | je **contracturen ÷ 5**, afgerond op het dichtstbijzijnde half uur: 38u → 7u36 → **7u30**, 32u → 6u24 → **6u30**, 24u → 4u48 → **5u00** |
 
 Vóór je bewaart, staat er in gewone taal wat de app rekent — bv. *"09:00 tot 17:30 = 8u30
 aanwezig — vanaf 6u30 gaat er 30 min pauze af → **8u00**"*. Tik op een dag in de lijst om
 hem aan te passen of te verwijderen.
 
-Je **contracturen per week** zet je met de knop ⚙ Contracturen (standaard 38u00). Die
-instelling hoort bij jou, niet bij het toestel, en dient enkel om een BF uit te rekenen.
-Typen mag als `38`, `38,5`, `38:30` of `38u30`.
+Je **contracturen per week** zet je met de knop ⚙ Contracturen. Die instelling hoort bij
+jou, niet bij het toestel, en dient enkel om een BF uit te rekenen. Typen mag als `38`,
+`38,5`, `38:30` of `38u30`. Zolang je ze niet zelf ingesteld hebt, rekent de app met 38u00
+en zegt het venster er ook bij dat dat de standaard is.
 
 Bovenaan blader je per maand. Je ziet het maandtotaal, het totaal per categorie en het
 jaartotaal. Daaronder kies je tussen twee weergaves:

@@ -64,11 +64,18 @@ ok(brutoMinuten('09:00','09:00')===0,'zelfde uur = 0 (het formulier weigert dit)
 ok(brutoMinuten('','17:00')===null,'zonder startuur geen uitkomst');
 ok(brutoMinuten('09:00','25:00')===null,'een onmogelijk uur geeft geen uitkomst');
 
-print('\n— BF: contracturen ÷ 5, naar boven afgerond —');
-ok(bfUitContract(38*60)===480,'38u/week → BF van 8u00 (7u36 naar boven)');
-ok(bfUitContract(30*60)===360,'30u/week → BF van 6u00 (precies, blijft 6u00)');
-ok(bfUitContract(20*60)===240,'20u/week → BF van 4u00');
-ok(bfUitContract(19*60)===240,'19u/week → BF van 4u00 (3u48 naar boven)');
+print('\n— BF: contracturen ÷ 5, afgerond op een half uur —');
+// De twee gevallen die de regel vastleggen: 7u36 hoort naar 7u30 (niet naar 8u00),
+// 6u24 hoort naar 6u30. Het is dus het DICHTSTBIJZIJNDE halfuur, niet "altijd omhoog".
+ok(bfUitContract(38*60)===450,'38u/week → 7u36 → BF van 7u30');
+ok(bfUitContract(32*60)===390,'32u/week → 6u24 → BF van 6u30');
+ok(bfUitContract(24*60)===300,'24u/week → 4u48 → BF van 5u00');
+ok(bfUitContract(30*60)===360,'30u/week → 6u00 blijft 6u00');
+ok(bfUitContract(35*60)===420,'35u/week → 7u00 blijft 7u00');
+ok(bfUitContract(37*60)===450,'37u/week → 7u24 → BF van 7u30');
+ok(bfUitContract(20*60)===240,'20u/week → 4u00 blijft 4u00');
+ok(bfUitContract(19*60)===240,'19u/week → 3u48 → BF van 4u00');
+ok(bfUitContract(0)===0,'niets ingesteld → 0 (de pagina neemt dan 38u)');
 ok(JV_MIN===480,'een JV telt als 8u00');
 
 print('\n— Contracturen intypen: vier schrijfwijzen —');
