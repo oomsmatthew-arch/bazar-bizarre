@@ -1,5 +1,5 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v7.0';
+const CACHE = 'bazar-bizarre-v7.1';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
@@ -8,6 +8,7 @@ const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart
 const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./manifest.json','./manuals.json',
   './paginas/inventaris.html','./paginas/bestellingen.html','./paginas/checklists.html',
   './paginas/contacten.html','./paginas/logboek.html','./paginas/manuals.html',
+  './paginas/werkuren.html',
   './paginas/instellingen.html','./paginas/activiteit.html','./paginas/systeem.html',
   './paginas/projecten.html','./paginas/ratings.html','./paginas/ratings-vergelijk.html',
   './css/app.css','./js/kern.js','./js/topbar.js','./js/terug.js','./js/zoek.js',

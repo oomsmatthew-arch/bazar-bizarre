@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v7.0';
+const APP_VERSION='v7.1';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -187,6 +187,8 @@ const TOEGANG_CATEGORIEEN=[
    std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
   {key:'logboek',     naam:'Logboek',        uitleg:'Overdracht tussen shifts.',
    std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'werkuren',    naam:'Mijn werkuren',  uitleg:'Je eigen gepresteerde uren bijhouden. Iedereen ziet enkel zijn eigen uren — ook wie hier "beheren" mag, ziet die van een collega niet.',
+   std:{bekijken:'vast',gebruiken:'vast',beheren:'vast'}},
   {key:'manuals',     naam:'Online manuals', uitleg:'Handleidingen en video\'s.',
    std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
   {key:'activiteit',  naam:'Activiteit',     uitleg:'Wie heeft wat aangepast.',

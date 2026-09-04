@@ -8,11 +8,12 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],manualsdoc:null,appconfig:null,spelarchief:null};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],werkuren:[],manualsdoc:null,appconfig:null,spelarchief:null};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
   let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
   let projectenOK=false, projecttakenOK=false, projectberichtenOK=false, projectagendaOK=false, projectdocsOK=false;
+  let werkurenOK=false;
   // Losse kolom die er later bij kwam: 'finalevraag' op de tabel formulieren.
   // Zie docs/finalevraag-kolom.sql — zonder die kolom werkt alles gewoon, maar komt de
   // finalevraag in het bestaande veld 'finale' terecht, herkenbaar aan VRAAG_MARKER.
@@ -68,11 +69,14 @@
   // De lokale stand van vóór het synchroniseren; loadShared overschrijft de reservekopie,
   // dus nemen we bij het opstarten eerst een kopie.
   let lokaalVoorSync={};
-  const PROJ_TABELLEN=[['projecten',K_PROJECTEN_BACKUP],['projecttaken',K_PROJTAKEN_BACKUP],
+  // De tabellen die deze inhaalboekhouding gebruiken. 'werkuren' rijdt mee: ook daar mag
+  // een rij die je zonder internet (of vóór de tabel bestond) invulde niet op één toestel
+  // blijven staan. Ze heeft geen oude losse opslagsleutel, vandaar null.
+  const INHAAL_TABELLEN=[['projecten',K_PROJECTEN_BACKUP],['projecttaken',K_PROJTAKEN_BACKUP],
     ['projectberichten',K_PROJBERICHTEN_BACKUP],['projectagenda',K_PROJAGENDA_BACKUP],
-    ['projectdocs',K_PROJDOCS_BACKUP]];
+    ['projectdocs',K_PROJDOCS_BACKUP],['werkuren',null]];
   function bewaarLokaleProjectstand(){
-    PROJ_TABELLEN.forEach(paar=>{ lokaalVoorSync[paar[0]]=lokaleKopie(paar[0],paar[1]); });
+    INHAAL_TABELLEN.forEach(paar=>{ lokaalVoorSync[paar[0]]=lokaleKopie(paar[0],paar[1]); });
   }
   // Eenmalig bij de overstap naar deze versie: alles wat al op dit toestel staat markeren
   // als "moet nog vertrekken". Projecten die gemaakt zijn vóór deze boekhouding bestond,
@@ -80,7 +84,7 @@
   const K_WACHT_INIT='bb_proj_wacht_init';
   function eenmaligWachtVullen(){
     if(localStorage.getItem(K_WACHT_INIT)==='1') return;
-    PROJ_TABELLEN.forEach(paar=>{
+    INHAAL_TABELLEN.forEach(paar=>{
       (lokaalVoorSync[paar[0]]||[]).forEach(x=>{ if(x&&x.id) wachtErbij(paar[0],x.id); });
     });
     localStorage.setItem(K_WACHT_INIT,'1');
@@ -134,7 +138,7 @@
       boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: zonderFoto(cache.leveringen),
       bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: zonderFoto(cache.gebruikers), activiteit: cache.activiteit,
       projecten: cache.projecten, projecttaken: cache.projecttaken, projectberichten: cache.projectberichten,
-      projectagenda: cache.projectagenda, projectdocs: cache.projectdocs,
+      projectagenda: cache.projectagenda, projectdocs: cache.projectdocs, werkuren: cache.werkuren,
       manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
     };
   }
@@ -254,7 +258,7 @@
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
       cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.gebruikers=c.gebruikers||[]; cache.activiteit=c.activiteit||[];
       cache.projecten=c.projecten||[]; cache.projecttaken=c.projecttaken||[]; cache.projectberichten=c.projectberichten||[];
-      cache.projectagenda=c.projectagenda||[]; cache.projectdocs=c.projectdocs||[];
+      cache.projectagenda=c.projectagenda||[]; cache.projectdocs=c.projectdocs||[]; cache.werkuren=c.werkuren||[];
       cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null;
       overlayOudeKopieen();
       return true;
@@ -527,6 +531,16 @@
   const gebrToRow=g=>({id:g.id,naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',foto:g.foto||'',ts:g.ts||0});
   const gebrToRowKaal=g=>({id:g.id,naam:g.naam||'',pin:g.pin||'',rol:g.rol||'',ts:g.ts||0});  // zonder foto, zie toRowKaal
   const mapAct=r=>({id:r.id,ts:r.ts||0,wie:r.wie||'',actie:r.actie||''});
+  // Werkuren: één rij = één dag van één persoon. 'gebruiker' is het id uit de namenlijst,
+  // 'naam' staat er enkel bij zodat een rij leesbaar blijft als een account ooit opnieuw
+  // wordt aangemaakt. 'pauze' = is er pauze genomen (true) — het formulier vraagt het
+  // omgekeerde ("geen pauze genomen"), zie paginas/werkuren.html.
+  const mapUur=r=>({id:r.id,gebruiker:r.gebruiker||'',naam:r.naam||'',datum:r.datum||'',
+    soort:r.soort||'gewerkt',start:r.start||'',einde:r.einde||'',pauze:r.pauze!==false,
+    minuten:+r.minuten||0,opmerking:r.opmerking||'',ts:r.ts||0});
+  const uurToRow=w=>({id:w.id,gebruiker:w.gebruiker||'',naam:w.naam||'',datum:w.datum||'',
+    soort:w.soort||'gewerkt',start:w.start||'',einde:w.einde||'',pauze:w.pauze!==false,
+    minuten:Math.round(+w.minuten||0),opmerking:w.opmerking||'',ts:w.ts||0});
   const actToRow=a=>({id:a.id,ts:a.ts||0,wie:a.wie||'',actie:a.actie||''});
   // ---- Projecten (bord met taken + bespreking) ----
   const arr=v=>Array.isArray(v)?v:(v?(function(){try{const p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return [];}})():[]);
@@ -712,12 +726,12 @@
     }
     localStorage.setItem(FLAG,'1');
   }
-  // Projecten inhalen: alles wat op dit toestel is aangemaakt terwijl de gedeelde tabel
+  // Inhalen: alles wat op dit toestel is aangemaakt terwijl de gedeelde tabel
   // er nog niet was (of terwijl er geen internet was) alsnog naar de database sturen.
   // We vergelijken op id: wat de database al kent laten we met rust, de rest gaat mee.
   // Anders dan bij de oude lijsten gebruiken we hier géén eenmalige vlag — die zorgde
   // ervoor dat later lokaal aangemaakte projecten voorgoed op één toestel bleven staan.
-  async function seedProjectTable(table,toRowFn,cacheKey,backupKey,okGetter){
+  async function seedTabelInhalen(table,toRowFn,cacheKey,backupKey,okGetter){
     if(!okGetter()) return;
     const wacht=(projWacht[table]||[]).slice();
     if(!wacht.length) return;
@@ -734,7 +748,7 @@
     cache[cacheKey]=cache[cacheKey].concat(teSturen.filter(x=>!bekend[x.id]));
     saveBackup(cacheKey,backupKey);
     wachtWeg(table,wacht);
-    console.log('Projecten: '+teSturen.length+' rij(en) uit "'+table+'" alsnog gedeeld.');
+    console.log('Inhalen: '+teSturen.length+' rij(en) uit "'+table+'" alsnog gedeeld.');
   }
   function defaultChecklist(){
     const items=['Boekjes geteld en klaar','Super Deals op het rek','Trolley Tunes muziek klaar','How Much? potten + weegschaal klaar','Crazy Coins munten klaar','Finalevragen voorbereid','Micro getest','Geluid/muziek getest','Prijzentafel klaar','Controleblad bij de hand'].map(t=>({text:t,done:false}));
@@ -745,11 +759,12 @@
     await migrateListToShared('checklisten',checklistToRow,'checklisten',K_CHECKLISTEN_BACKUP,()=>checklistenOK);
     await migrateListToShared('logboek',logToRow,'logboek',K_LOGBOEK_BACKUP,()=>logboekOK);
     await migrateListToShared('gebruikers',gebrToRow,'gebruikers',K_GEBRUIKERS_BACKUP,()=>gebruikersOK);
-    await seedProjectTable('projecten',projectToRow,'projecten',K_PROJECTEN_BACKUP,()=>projectenOK);
-    await seedProjectTable('projecttaken',taakToRow,'projecttaken',K_PROJTAKEN_BACKUP,()=>projecttakenOK);
-    await seedProjectTable('projectberichten',berichtToRow,'projectberichten',K_PROJBERICHTEN_BACKUP,()=>projectberichtenOK);
-    await seedProjectTable('projectagenda',agendaToRow,'projectagenda',K_PROJAGENDA_BACKUP,()=>projectagendaOK);
-    await seedProjectTable('projectdocs',docToRow,'projectdocs',K_PROJDOCS_BACKUP,()=>projectdocsOK);
+    await seedTabelInhalen('projecten',projectToRow,'projecten',K_PROJECTEN_BACKUP,()=>projectenOK);
+    await seedTabelInhalen('projecttaken',taakToRow,'projecttaken',K_PROJTAKEN_BACKUP,()=>projecttakenOK);
+    await seedTabelInhalen('projectberichten',berichtToRow,'projectberichten',K_PROJBERICHTEN_BACKUP,()=>projectberichtenOK);
+    await seedTabelInhalen('projectagenda',agendaToRow,'projectagenda',K_PROJAGENDA_BACKUP,()=>projectagendaOK);
+    await seedTabelInhalen('projectdocs',docToRow,'projectdocs',K_PROJDOCS_BACKUP,()=>projectdocsOK);
+    await seedTabelInhalen('werkuren',uurToRow,'werkuren',null,()=>werkurenOK);
     if(checklistenOK && !cache.checklisten.length && localStorage.getItem('bb_sharedseed_checklisten_def')!=='1'){
       const def=defaultChecklist(); const r=await sb.from('checklisten').insert(checklistToRow(def)); err(r);
       cache.checklisten=[def]; saveBackup('checklisten',K_CHECKLISTEN_BACKUP);
@@ -843,6 +858,7 @@
       loadShared('projectberichten','projectberichten',mapBericht,K_PROJBERICHTEN_BACKUP,v=>projectberichtenOK=v),
       loadShared('projectagenda','projectagenda',mapAgenda,K_PROJAGENDA_BACKUP,v=>projectagendaOK=v),
       loadShared('projectdocs','projectdocs',mapDoc,K_PROJDOCS_BACKUP,v=>projectdocsOK=v),
+      loadShared('werkuren','werkuren',mapUur,null,v=>werkurenOK=v),
       loadActiviteit(),
       loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v),
       loadDoc('appconfig','appconfig',v=>appconfigOK=v),
@@ -906,6 +922,7 @@
     else if(t==='projectberichten'&&projectberichtenOK){const r=await sb.from('projectberichten').select('*'); if(r.data){cache.projectberichten=r.data.map(mapBericht); saveBackup('projectberichten',K_PROJBERICHTEN_BACKUP);}}
     else if(t==='projectagenda'&&projectagendaOK){const r=await sb.from('projectagenda').select('*'); if(r.data){cache.projectagenda=r.data.map(mapAgenda); saveBackup('projectagenda',K_PROJAGENDA_BACKUP);}}
     else if(t==='projectdocs'&&projectdocsOK){const r=await sb.from('projectdocs').select('*'); if(r.data){cache.projectdocs=r.data.map(mapDoc); saveBackup('projectdocs',K_PROJDOCS_BACKUP);}}
+    else if(t==='werkuren'&&werkurenOK){const r=await sb.from('werkuren').select('*'); if(r.data){cache.werkuren=r.data.map(mapUur); saveBackup('werkuren',null);}}
     else if(t==='manualsdoc'&&manualsdocOK){const r=await sb.from('manualsdoc').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.manualsdoc=r.data?(r.data.data||null):null;}}
     else if(t==='appconfig'&&appconfigOK){const r=await sb.from('appconfig').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.appconfig=r.data?(r.data.data||null):null;}}
     else if(t==='spelarchief'&&spelarchiefOK){const r=await sb.from('spelarchief').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.spelarchief=r.data?(r.data.data||null):null;}}
@@ -1112,19 +1129,71 @@
     logAct('Logboekbericht verwijderd');
   }
 
+  // ---------------- WERKUREN (persoonlijk) ----------------
+  // Eén rij per ingevulde dag, met het id van de persoon erbij. Iedereen schrijft in
+  // dezelfde tabel, maar elk scherm toont enkel je EIGEN rijen: dit is je persoonlijke
+  // urenoverzicht, geen teamplanning. Zo staan je uren wel op al je eigen toestellen.
+  //
+  // Bewust GEEN logAct(): wanneer jij gewerkt hebt, hoort niet in het gedeelde
+  // activiteitenoverzicht thuis dat elke vaste medewerker kan openen.
+  const WU_INSTELLING='instelling';   // aparte rij per persoon: je contracturen per week
+  function saveWuBackup(){ saveBackup('werkuren',null); }
+  // Nieuwste dag bovenaan; twee rijen op dezelfde dag op startuur.
+  const getWerkuren=gebruiker=>cache.werkuren
+    .filter(w=>w&&w.soort!==WU_INSTELLING&&(!gebruiker||w.gebruiker===gebruiker))
+    .slice().sort((a,b)=>String(b.datum||'').localeCompare(String(a.datum||''))
+                       ||String(a.start||'').localeCompare(String(b.start||'')));
+  function addWerkuur(w){
+    w=w||{};
+    const rec={id:uid(),gebruiker:w.gebruiker||'',naam:w.naam||'',datum:w.datum||'',
+      soort:w.soort||'gewerkt',start:w.start||'',einde:w.einde||'',pauze:w.pauze!==false,
+      minuten:Math.round(+w.minuten||0),opmerking:w.opmerking||'',ts:Date.now()};
+    cache.werkuren.push(rec); saveWuBackup();
+    inhaalSchrijf('werkuren',werkurenOK,uurToRow(rec),rec.id);
+    return rec;
+  }
+  function updateWerkuur(id,patch){
+    const r=cache.werkuren.find(x=>x.id===id); if(!r) return null;
+    Object.assign(r,patch); saveWuBackup();
+    inhaalSchrijf('werkuren',werkurenOK,uurToRow(r),r.id);
+    return r;
+  }
+  function removeWerkuur(id){
+    cache.werkuren=cache.werkuren.filter(w=>w.id!==id); saveWuBackup();
+    inhaalWissen('werkuren',werkurenOK,id);
+  }
+  // Je contracturen per week: nodig om een BF uit te rekenen (contracturen ÷ 5, naar boven
+  // afgerond). Die instelling hoort bij jou en niet bij dit toestel, dus ze staat als een
+  // aparte rij in dezelfde tabel — getWerkuren() laat ze weg zodat ze nooit in je lijst
+  // opduikt. Het id is afgeleid van je gebruikers-id, dus er kan er maar één per persoon zijn.
+  const getContractMinuten=gebruiker=>{
+    const r=cache.werkuren.find(x=>x&&x.soort===WU_INSTELLING&&x.gebruiker===gebruiker);
+    return r?(+r.minuten||0):0;
+  };
+  function setContractMinuten(gebruiker,minuten){
+    if(!gebruiker) return null;
+    const id='wu-cfg-'+gebruiker;
+    let r=cache.werkuren.find(x=>x&&x.id===id);
+    if(!r){ r={id,gebruiker,naam:'',datum:'',soort:WU_INSTELLING,start:'',einde:'',pauze:true,minuten:0,opmerking:'',ts:0}; cache.werkuren.push(r); }
+    r.minuten=Math.round(+minuten||0); r.ts=Date.now(); saveWuBackup();
+    inhaalSchrijf('werkuren',werkurenOK,uurToRow(r),r.id);
+    return r;
+  }
+
   // ---------------- PROJECTEN (gedeeld) — bord met taken + bespreking ----------------
   // Drie tabellen: 'projecten' (het project zelf, met zijn kolommen), 'projecttaken'
   // (de kaarten op het bord) en 'projectberichten' (de bespreking). Bestaat een tabel
   // nog niet in Supabase, dan werkt alles gewoon lokaal op dit toestel verder.
   const STD_KOLOMMEN=['Te doen','Bezig','Wacht op','Klaar'];
-  // Schrijven naar een projecttabel. Bestaat de gedeelde tabel, dan gaat de wijziging via
-  // de wachtrij naar de database. Zo niet, dan onthouden we het id zodat de rij later
-  // alsnog vertrekt in plaats van op dit ene toestel te blijven staan.
-  function projSchrijf(tabel,gedeeld,rij,id){
+  // Schrijven naar een tabel die de inhaalboekhouding gebruikt (de projecttabellen en
+  // werkuren). Bestaat de gedeelde tabel, dan gaat de wijziging via de wachtrij naar de
+  // database. Zo niet, dan onthouden we het id zodat de rij later alsnog vertrekt in
+  // plaats van op dit ene toestel te blijven staan.
+  function inhaalSchrijf(tabel,gedeeld,rij,id){
     if(gedeeld) dbUpsert(tabel,rij);
     else { wachtErbij(tabel,id); persistCache(); }
   }
-  function projWissen(tabel,gedeeld,id){
+  function inhaalWissen(tabel,gedeeld,id){
     if(gedeeld) dbDelete(tabel,'id',id);
     else { wachtWeg(tabel,[id]); persistCache(); }
   }
@@ -1140,13 +1209,13 @@
       verantwoordelijke:(p&&p.verantwoordelijke)||'',kolommen:(p&&p.kolommen&&p.kolommen.length)?p.kolommen.slice():STD_KOLOMMEN.slice(),
       pos:maxPos+1,archief:false,ts:Date.now()};
     cache.projecten.push(rec); saveProjBackup();
-    projSchrijf('projecten',projectenOK,projectToRow(rec),rec.id);
+    inhaalSchrijf('projecten',projectenOK,projectToRow(rec),rec.id);
     logAct('Project aangemaakt: '+rec.naam); return rec;
   }
   function updateProject(id,patch){
     const r=cache.projecten.find(x=>x.id===id); if(!r) return null;
     Object.assign(r,patch); saveProjBackup();
-    projSchrijf('projecten',projectenOK,projectToRow(r),r.id);
+    inhaalSchrijf('projecten',projectenOK,projectToRow(r),r.id);
     let wat='aangepast';
     if(patch&&('archief' in patch)) wat=patch.archief?'gearchiveerd':'uit het archief gehaald';
     else if(patch&&('status' in patch)) wat='status → '+patch.status;
@@ -1187,7 +1256,7 @@
       wie:t.wie||[],deadline:t.deadline||'',labels:t.labels||[],subtaken:t.subtaken||[],
       pos:maxPos+1,klaar:false,klaarDoor:'',klaarTs:0,door:t.door||actor||'',ts:Date.now()};
     cache.projecttaken.push(rec); saveTaakBackup();
-    projSchrijf('projecttaken',projecttakenOK,taakToRow(rec),rec.id);
+    inhaalSchrijf('projecttaken',projecttakenOK,taakToRow(rec),rec.id);
     logAct('Taak toegevoegd: '+rec.titel+projSuffix(rec.projectId)); return rec;
   }
   function updateTaak(id,patch,stil){
@@ -1197,7 +1266,7 @@
       else if(!patch.klaar && r.klaar){ r.klaarDoor=''; r.klaarTs=0; }
     }
     Object.assign(r,patch); saveTaakBackup();
-    projSchrijf('projecttaken',projecttakenOK,taakToRow(r),r.id);
+    inhaalSchrijf('projecttaken',projecttakenOK,taakToRow(r),r.id);
     if(!stil){
       let wat='aangepast';
       if(patch&&('klaar' in patch)) wat=patch.klaar?'afgevinkt':'heropend';
@@ -1209,21 +1278,21 @@
   function removeTaak(id){
     const t0=cache.projecttaken.find(t=>t.id===id);
     cache.projecttaken=cache.projecttaken.filter(t=>t.id!==id); saveTaakBackup();
-    projWissen('projecttaken',projecttakenOK,id);
+    inhaalWissen('projecttaken',projecttakenOK,id);
     logAct('Taak verwijderd'+(t0?': '+t0.titel+projSuffix(t0.projectId):''));
   }
   // Nieuwe volgorde binnen een kolom (array van taak-id's) na het slepen.
   function reorderTaken(ids,kolom){
     ids.forEach((id,idx)=>{ const r=cache.projecttaken.find(x=>x.id===id); if(r){ r.pos=idx; if(kolom) r.kolom=kolom; } });
     saveTaakBackup();
-    ids.forEach(id=>{ const r=cache.projecttaken.find(x=>x.id===id); if(r) projSchrijf('projecttaken',projecttakenOK,taakToRow(r),r.id); });
+    ids.forEach(id=>{ const r=cache.projecttaken.find(x=>x.id===id); if(r) inhaalSchrijf('projecttaken',projecttakenOK,taakToRow(r),r.id); });
   }
   // Een kolom hernoemen of verwijderen: de taken erin mee laten verhuizen.
   function verplaatsTaken(projectId,vanKolom,naarKolom){
     const lijst=cache.projecttaken.filter(t=>t.projectId===projectId&&t.kolom===vanKolom);
     if(!lijst.length) return;
     lijst.forEach(t=>{ t.kolom=naarKolom; }); saveTaakBackup();
-    lijst.forEach(t=>projSchrijf('projecttaken',projecttakenOK,taakToRow(t),t.id));
+    lijst.forEach(t=>inhaalSchrijf('projecttaken',projecttakenOK,taakToRow(t),t.id));
   }
   const getBerichten=projectId=>cache.projectberichten.filter(b=>!projectId||b.projectId===projectId)
     .slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
@@ -1231,18 +1300,18 @@
     const rec={id:uid(),projectId:b.projectId||'',soort:b.soort||'bericht',ts:Date.now(),
       auteur:b.auteur||actor||'',tekst:b.tekst||'',data:b.data||{}};
     cache.projectberichten.push(rec); saveBerBackup();
-    projSchrijf('projectberichten',projectberichtenOK,berichtToRow(rec),rec.id);
+    inhaalSchrijf('projectberichten',projectberichtenOK,berichtToRow(rec),rec.id);
     logAct('Bericht geplaatst'+projSuffix(rec.projectId)); return rec;
   }
   function updateBericht(id,patch){
     const r=cache.projectberichten.find(b=>b.id===id); if(!r) return null;
     Object.assign(r,patch); saveBerBackup();
-    projSchrijf('projectberichten',projectberichtenOK,berichtToRow(r),r.id);
+    inhaalSchrijf('projectberichten',projectberichtenOK,berichtToRow(r),r.id);
     logAct((r.soort==='verslag'?'Verslag':'Bericht')+' aangepast'+projSuffix(r.projectId)); return r;
   }
   function removeBericht(id){
     cache.projectberichten=cache.projectberichten.filter(b=>b.id!==id); saveBerBackup();
-    projWissen('projectberichten',projectberichtenOK,id);
+    inhaalWissen('projectberichten',projectberichtenOK,id);
     logAct('Bericht verwijderd');
   }
   function projSuffix(projectId){ const p=getProject(projectId); return p?(' ('+p.naam+')'):''; }
@@ -1256,19 +1325,19 @@
       titel:a.titel||'',soort:a.soort||'afspraak',plaats:a.plaats||'',wie:a.wie||[],notitie:a.notitie||'',
       door:a.door||actor||'',ts:Date.now()};
     cache.projectagenda.push(rec); saveAgendaBackup();
-    projSchrijf('projectagenda',projectagendaOK,agendaToRow(rec),rec.id);
+    inhaalSchrijf('projectagenda',projectagendaOK,agendaToRow(rec),rec.id);
     logAct('Agenda-item toegevoegd: '+rec.titel+projSuffix(rec.projectId)); return rec;
   }
   function updateAgenda(id,patch){
     const r=cache.projectagenda.find(x=>x.id===id); if(!r) return null;
     Object.assign(r,patch); saveAgendaBackup();
-    projSchrijf('projectagenda',projectagendaOK,agendaToRow(r),r.id);
+    inhaalSchrijf('projectagenda',projectagendaOK,agendaToRow(r),r.id);
     logAct('Agenda-item aangepast: '+(r.titel||'')+projSuffix(r.projectId)); return r;
   }
   function removeAgenda(id){
     const a0=cache.projectagenda.find(a=>a.id===id);
     cache.projectagenda=cache.projectagenda.filter(a=>a.id!==id); saveAgendaBackup();
-    projWissen('projectagenda',projectagendaOK,id);
+    inhaalWissen('projectagenda',projectagendaOK,id);
     logAct('Agenda-item verwijderd'+(a0?': '+a0.titel:''));
   }
 
@@ -1284,19 +1353,19 @@
     const rec={id:uid(),projectId:d.projectId||'',naam:d.naam||'',url:d.url||'',soort:d.soort||'Overig',
       bron:d.bron||'link',mime:d.mime||'',grootte:+d.grootte||0,taakId:d.taakId||'',door:d.door||actor||'',ts:Date.now()};
     cache.projectdocs.push(rec); saveDocsBackup();
-    projSchrijf('projectdocs',projectdocsOK,docToRow(rec),rec.id);
+    inhaalSchrijf('projectdocs',projectdocsOK,docToRow(rec),rec.id);
     logAct('Document toegevoegd: '+rec.naam+projSuffix(rec.projectId)); return rec;
   }
   function updateDoc(id,patch){
     const r=cache.projectdocs.find(d=>d.id===id); if(!r) return null;
     Object.assign(r,patch); saveDocsBackup();
-    projSchrijf('projectdocs',projectdocsOK,docToRow(r),r.id);
+    inhaalSchrijf('projectdocs',projectdocsOK,docToRow(r),r.id);
     logAct('Document aangepast: '+(r.naam||'')+projSuffix(r.projectId)); return r;
   }
   function removeDoc(id){
     const d0=cache.projectdocs.find(d=>d.id===id);
     cache.projectdocs=cache.projectdocs.filter(d=>d.id!==id); saveDocsBackup();
-    projWissen('projectdocs',projectdocsOK,id);
+    inhaalWissen('projectdocs',projectdocsOK,id);
     logAct('Document verwijderd'+(d0?': '+d0.naam:''));
   }
 
@@ -1912,6 +1981,7 @@
     {tabel:'projectberichten',label:'Projectberichten',    ok:()=>projectberichtenOK,tel:()=>cache.projectberichten.length},
     {tabel:'projectagenda',  label:'Projectagenda',        ok:()=>projectagendaOK,  tel:()=>cache.projectagenda.length},
     {tabel:'projectdocs',    label:'Projectdocumenten',    ok:()=>projectdocsOK,    tel:()=>cache.projectdocs.length},
+    {tabel:'werkuren',      label:'Werkuren',             ok:()=>werkurenOK,       tel:()=>cache.werkuren.length},
     {tabel:'manualsdoc',     label:'Online manuals',       ok:()=>manualsdocOK,     tel:()=>cache.manualsdoc?1:0},
     {tabel:'appconfig',      label:'Instellingen (gedeeld)',ok:()=>appconfigOK,     tel:()=>cache.appconfig?1:0},
     {tabel:'spelarchief',    label:'Spelarchief',          ok:()=>spelarchiefOK,    tel:()=>cache.spelarchief?1:0}
@@ -2036,6 +2106,8 @@
     getChecklisten,addChecklist,saveChecklist,removeChecklist,reorderChecklisten,isChecklistenGedeeld:()=>checklistenOK,
     setChkMedia,getChkMedia,delChkMedia,
     getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
+    getWerkuren,addWerkuur,updateWerkuur,removeWerkuur,
+    getContractMinuten,setContractMinuten,isWerkurenGedeeld:()=>werkurenOK,
     getProjecten,getProject,addProject,updateProject,removeProject,
     getTaken,addTaak,updateTaak,removeTaak,reorderTaken,verplaatsTaken,
     getBerichten,addBericht,updateBericht,removeBericht,

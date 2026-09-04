@@ -127,6 +127,49 @@ ziet of de nieuwste versie geladen is.
 (SQL Editor → New query → plakken → Run). Doe je dat niet, dan werkt Projecten gewoon, maar
 staat alles enkel op dát toestel. Onderaan de pagina zie je welke van de twee het is.
 
+## Mijn werkuren (persoonlijk)
+
+Kaart **Mijn werkuren** op de startpagina. Bedoeld om per dag in te vullen hoe je gewerkt
+hebt, zodat je op het eind van de week of de maand ziet hoeveel je presteerde — en dat
+naast je loonfiche kan leggen.
+
+**Je ziet enkel je eigen uren.** Elke rij draagt het id van wie ze invulde en het scherm
+toont alleen de jouwe. Ze staan wél op al je eigen toestellen (gsm én tablet) en werken
+ook zonder wifi. Standaard is de kaart enkel zichtbaar voor **vaste medewerkers en
+admins**; dat verander je via ⚙ Instellingen → 🔑 Toegangen.
+Het gedeelde account *ENT algemeen* kan hier niets invullen — uren horen bij een persoon.
+
+**Werktijden toevoegen** opent één formulier met een datum, een categorie en de uren:
+
+| Categorie | Wat de app rekent |
+|---|---|
+| **Gewerkt** | einduur − startuur. Vanaf **6u30** aanwezig gaat er **30 min pauze** af, tenzij je aanvinkt dat je géén pauze nam. Een shift die over middernacht loopt (17:00 → 01:00) telt gewoon door. |
+| **Overuren** | je vult zelf in hoeveel het er zijn, zodat je telling zeker klopt |
+| **JV** | 8u00 (in het venster aan te passen) |
+| **BF** | je **contracturen ÷ 5**, naar boven afgerond op een heel uur (38u → 7u36 → **8u00**) |
+
+Vóór je bewaart, staat er in gewone taal wat de app rekent — bv. *"09:00 tot 17:30 = 8u30
+aanwezig — vanaf 6u30 gaat er 30 min pauze af → **8u00**"*. Tik op een dag in de lijst om
+hem aan te passen of te verwijderen.
+
+Je **contracturen per week** zet je met de knop ⚙ Contracturen (standaard 38u00). Die
+instelling hoort bij jou, niet bij het toestel, en dient enkel om een BF uit te rekenen.
+Typen mag als `38`, `38,5`, `38:30` of `38u30`.
+
+Bovenaan blader je per maand. Je ziet het maandtotaal, het totaal per categorie en het
+jaartotaal; daaronder staan de dagen gegroepeerd **per week (maandag–zondag)** met een
+weektotaal. Loopt een week over twee maanden, dan staat het volledige weektotaal erbij
+vermeld. Met **📋 Kopieer maand** en **⬇ CSV** krijg je de maand mee, inclusief een kolom
+in honderdsten (7,60 i.p.v. 7u36) — zoals je loonfiche rekent.
+
+**Eenmalig in te stellen:** voer `docs/werkuren-supabase.sql` uit in Supabase. Zonder die
+tabel werkt de pagina gewoon, maar blijven je uren op één toestel staan — ze vertrekken
+alsnog zodra de tabel er is.
+
+**Let op wat dit niet is:** persoonlijk in de app is niet hetzelfde als een kluis. De
+tabel staat in dezelfde open database als de rest; wie rechtstreeks in Supabase kijkt,
+ziet alles. Om die reden komt er ook **niets over je werkuren in het activiteitenlogboek**.
+
 ## Rollen: Vaste mdw en Admin
 
 Bij elke naam (⚙ Instellingen → *Namenlijst beheren*) staan twee knopjes. Iemand kan beide
@@ -359,6 +402,7 @@ aanpassen aan een onderdeel, dan open je gewoon dat ene bestand — de rest blij
 | Checklists | `paginas/checklists.html` |
 | Contacten | `paginas/contacten.html` |
 | Logboek | `paginas/logboek.html` |
+| Mijn werkuren | `paginas/werkuren.html` (vaste mdw + admin) |
 | Online manuals | `paginas/manuals.html` |
 | Instellingen | `paginas/instellingen.html` |
 | Activiteit | `paginas/activiteit.html` (admin of vaste mdw) |
@@ -397,6 +441,7 @@ supabase.min.js → inventaris-data.js → inventaris.js → kern.js → eigen s
 **`docs/` — naslag voor jou, niet nodig voor de site:**
 - `projecten-supabase.sql` — eenmalig uit te voeren in Supabase
 - `finalevraag-kolom.sql` — voegt de kolom `finalevraag` toe aan de tabel `formulieren`
+- `werkuren-supabase.sql` — maakt de tabel `werkuren` aan voor "Mijn werkuren"
 - `PROJECTEN-PLAN.md` — het plan en de gemaakte keuzes achter Projecten
 - `STAPPENPLAN.md` — de checklist: beveiligen, naam kiezen, eigen domeinnaam
 - `BEVEILIGING.md` — de database op slot zetten met een gedeelde toegangscode

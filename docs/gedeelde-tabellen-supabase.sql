@@ -137,7 +137,31 @@ create table if not exists public.activiteit (
 create index if not exists activiteit_ts_idx on public.activiteit (ts desc);
 
 -- ---------------------------------------------------------------------------
--- 8) ONLINE MANUALS (mappenstructuur), INSTELLINGEN en SPEL-ARCHIEF
+-- 8) MIJN WERKUREN (persoonlijk urenoverzicht per medewerker)
+-- ---------------------------------------------------------------------------
+-- Eén rij per ingevulde dag. Elke rij draagt het id van de persoon die ze invulde en de
+-- app toont je enkel je eigen rijen — persoonlijk in de app dus, maar geen kluis: wie
+-- rechtstreeks in Supabase kijkt ziet alles, net als bij de andere tabellen.
+-- Zie ook docs/werkuren-supabase.sql als je enkel deze tabel wil aanmaken.
+create table if not exists public.werkuren (
+  id        text primary key,
+  gebruiker text default '',            -- id uit de tabel 'gebruikers': van wie deze rij is
+  naam      text default '',
+  datum     text default '',            -- JJJJ-MM-DD
+  soort     text default 'gewerkt',     -- gewerkt / overuren / jv / bf / instelling
+  start     text default '',            -- HH:MM (enkel bij 'gewerkt')
+  einde     text default '',            -- HH:MM (enkel bij 'gewerkt')
+  pauze     boolean default true,       -- is er pauze genomen? (false = niet aftrekken)
+  minuten   integer default 0,          -- wat deze dag meetelt, in minuten
+  opmerking text default '',
+  ts        bigint default 0
+);
+-- 'instelling' is een aparte rij per persoon met de contracturen per week (in minuten),
+-- nodig om een BF uit te rekenen. Die rij verschijnt nooit in het overzicht.
+create index if not exists werkuren_gebruiker_idx on public.werkuren (gebruiker, datum);
+
+-- ---------------------------------------------------------------------------
+-- 9) ONLINE MANUALS (mappenstructuur), INSTELLINGEN en SPEL-ARCHIEF
 --    Deze drie bewaren hun gegevens als één blok (jsonb) in één rij.
 -- ---------------------------------------------------------------------------
 -- Manuals: één rij (id = 1), 'data' bevat de volledige mappenboom
@@ -167,7 +191,7 @@ declare t text;
 begin
   foreach t in array array[
     'prijzen','leveringen','boekjes','formulieren','bestellingen','contacten',
-    'checklisten','logboek','gebruikers','activiteit','manualsdoc','appconfig','spelarchief'
+    'checklisten','logboek','gebruikers','activiteit','werkuren','manualsdoc','appconfig','spelarchief'
   ] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "app volledige toegang" on public.%I', t);

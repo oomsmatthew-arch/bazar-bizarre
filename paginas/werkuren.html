@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mijn werkuren · Entertainment</title>
+<meta name="description" content="Je eigen gepresteerde uren per dag bijhouden, met overuren, JV en BF, en het week- en maandtotaal zien.">
+<link rel="manifest" href="../manifest.json">
+<!-- De verbinding met de database alvast opzetten (DNS + beveiligde handdruk). -->
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="../assets/logo-cp.png">
+<link rel="apple-touch-icon" href="../assets/logo-cp.png">
+<link rel="stylesheet" href="../css/app.css">
+</head>
+<body data-toegang="werkuren" data-titel="Mijn werkuren">
+
+<div class="wrap">
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
+
+  <div class="view paginainhoud" id="werkuren">
+    <p class="hint">Vul hier per dag in hoe je gewerkt hebt. <b>Je ziet enkel je eigen uren</b> — een collega die deze pagina opent, ziet die van hem. Je uren staan wel op al je eigen toestellen, en werken ook zonder wifi.</p>
+
+    <!-- Deze melding vervangt de hele pagina als er (nog) niets te tonen valt:
+         niet ingelogd, of ingelogd met het gedeelde account ENT algemeen. -->
+    <div class="empty-note" id="wuGeenPersoon" style="display:none"></div>
+
+    <div id="wuInhoud" style="display:none">
+      <div class="wumaand">
+        <button class="mpijl" id="wuVorige" title="Vorige maand">‹</button>
+        <div class="mnaam" id="wuMaandNaam">—</div>
+        <button class="mpijl" id="wuVolgende" title="Volgende maand">›</button>
+        <button class="btn mnu" id="wuNu" style="display:none">Deze maand</button>
+      </div>
+
+      <div class="statgrid" id="wuStats"></div>
+
+      <div class="wubar">
+        <button class="btn primary" id="wuNieuw">＋ Werktijden toevoegen</button>
+        <button class="btn" id="wuContract">⚙ Contracturen</button>
+        <button class="btn" id="wuKopieer">📋 Kopieer maand</button>
+        <button class="btn" id="wuCsv">⬇ CSV</button>
+      </div>
+
+      <div id="wuLijst"></div>
+    </div>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+
+<!-- ---------------- HET INVULVENSTER ---------------- -->
+<div class="cammodal" id="wuModal"><div class="cammodal-box formbox wuform">
+  <div class="cammodal-title" id="wuModalTitel">Werktijden toevoegen</div>
+
+  <label for="wuDatum">Datum</label>
+  <input type="date" class="finp" id="wuDatum">
+
+  <label>Categorie</label>
+  <div class="wusoorten" id="wuSoorten">
+    <button type="button" class="wusoort active" data-soort="gewerkt">Gewerkt</button>
+    <button type="button" class="wusoort" data-soort="overuren">Overuren</button>
+    <button type="button" class="wusoort" data-soort="jv">JV</button>
+    <button type="button" class="wusoort" data-soort="bf">BF</button>
+  </div>
+
+  <!-- Gewerkt: start- en einduur, met de pauzeregel eronder. -->
+  <div id="wuTijdvak">
+    <div class="wu2">
+      <div><label for="wuStart">Startuur</label><input type="time" class="finp" id="wuStart"></div>
+      <div><label for="wuEinde">Einduur</label><input type="time" class="finp" id="wuEinde"></div>
+    </div>
+    <label class="wucheck"><input type="checkbox" id="wuGeenPauze"> Ik heb géén pauze genomen</label>
+  </div>
+
+  <!-- Overuren / JV / BF: gewoon een aantal uren. -->
+  <div id="wuDuurvak" style="display:none">
+    <label id="wuDuurLabel">Aantal uren</label>
+    <div class="wu2">
+      <div><input type="number" class="finp" id="wuUren" min="0" max="24" step="1" inputmode="numeric" placeholder="uren"></div>
+      <div><input type="number" class="finp" id="wuMin" min="0" max="59" step="5" inputmode="numeric" placeholder="minuten"></div>
+    </div>
+  </div>
+
+  <div class="wuresultaat leeg" id="wuResultaat">Vul hierboven je uren in.</div>
+
+  <label for="wuOpm">Opmerking (mag leeg blijven)</label>
+  <input type="text" class="finp" id="wuOpm" placeholder="bv. opbouw kerstmarkt">
+
+  <div class="cammodal-bar">
+    <button class="btn clear" id="wuAnnuleer">Annuleren</button>
+    <button class="btn primary" id="wuBewaar">Bewaren</button>
+  </div>
+  <button class="btn gevaar" id="wuVerwijder" style="display:none;width:100%;margin-top:10px">🗑 Deze dag verwijderen</button>
+</div></div>
+
+<script src="../js/supabase.min.js"></script>
+<script src="../js/terug.js"></script>
+<script src="../js/inventaris.js"></script>
+<script src="../js/kern.js"></script>
+<script>
+// ---------------- MIJN WERKUREN ----------------
+// Je persoonlijke urenoverzicht. Alles staat in de gedeelde tabel 'werkuren', maar elke
+// rij draagt het id van de persoon die ze invulde en dit scherm toont enkel de jouwe.
+// Zo staan je uren op je gsm én op de tablet, zonder dat je die van een collega ziet.
+//
+// De drie regels die de app voor je uitrekent:
+//   • Gewerkt : einduur − startuur, en vanaf 6u30 gaat er een half uur pauze af —
+//               tenzij je aanvinkt dat je geen pauze nam.
+//   • JV      : telt als 8 uur (aan te passen in het venster).
+//   • BF      : je contracturen ÷ 5, naar boven afgerond op een heel uur.
+//   • Overuren: je vult zelf in hoeveel het er zijn, zodat je telling zeker klopt.
+
+const PAUZE_VANAF=390;   // 6u30 in minuten: vanaf hier gaat de pauze eraf
+const PAUZE_MIN=30;      // een half uur
+const JV_MIN=480;        // een JV-dag = 8 uur
+const STD_CONTRACT=2280; // 38u00 per week, tot je zelf iets anders instelt
+
+const SOORTEN=[
+  {key:'gewerkt', naam:'Gewerkt'},
+  {key:'overuren',naam:'Overuren'},
+  {key:'jv',      naam:'JV'},
+  {key:'bf',      naam:'BF'}
+];
+const soortNaam=k=>(SOORTEN.find(s=>s.key===k)||{naam:k}).naam;
+
+const DAGEN=['zo','ma','di','wo','do','vr','za'];
+const MAANDEN=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+
+// ---- tijd en datum ----
+const p2=n=>String(n).padStart(2,'0');
+function isoVan(d){ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
+// Zelf ontleden i.p.v. new Date('2025-09-01'): die leest de tekst als wereldtijd en
+// schuift hier een dag op zodra je een uur vóór of na middernacht zit.
+function datumVan(iso){
+  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||''));
+  return m ? new Date(+m[1],+m[2]-1,+m[3]) : null;
+}
+function tijdNaarMin(t){
+  const m=/^(\d{1,2}):(\d{2})$/.exec(String(t||'').trim());
+  if(!m) return null;
+  const u=+m[1], mi=+m[2];
+  return (u>=0&&u<=23&&mi>=0&&mi<=59) ? u*60+mi : null;
+}
+function fmtDuur(min){
+  const m=Math.round(min||0), a=Math.abs(m);
+  return (m<0?'−':'')+Math.floor(a/60)+'u'+p2(a%60);
+}
+// Voor het vergelijken met je loonfiche: die rekent in honderdsten (7,60 i.p.v. 7u36).
+const fmtDecimaal=min=>((Math.round(min||0)/60).toFixed(2)).replace('.',',');
+
+// Bruto = de tijd die je aanwezig was. Loopt het einduur voorbij middernacht (een
+// avondshift die om 00:30 eindigt), dan tellen we er een dag bij.
+function brutoMinuten(start,einde){
+  const a=tijdNaarMin(start), b=tijdNaarMin(einde);
+  if(a==null||b==null) return null;
+  let d=b-a; if(d<0) d+=24*60;
+  return d;
+}
+// Netto = wat er meetelt. pauze=true betekent: er is pauze genomen.
+function nettoMinuten(start,einde,pauze){
+  const bruto=brutoMinuten(start,einde);
+  if(bruto==null) return null;
+  return (pauze && bruto>=PAUZE_VANAF) ? bruto-PAUZE_MIN : bruto;
+}
+// Maandag van de week waar deze dag in valt (de week begint bij ons op maandag).
+function maandagVan(d){
+  const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  x.setDate(x.getDate()-((x.getDay()+6)%7));
+  return x;
+}
+// Het weeknummer zoals de kalender het toont (ISO: de week van 4 januari is week 1).
+function weekNr(d){
+  const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  x.setDate(x.getDate()+3-((x.getDay()+6)%7));       // de donderdag van deze week
+  const week1=new Date(x.getFullYear(),0,4);
+  return 1+Math.round(((x-week1)/86400000-3+((week1.getDay()+6)%7))/7);
+}
+// Een BF is je contracturen gedeeld door vijf, naar boven afgerond op een heel uur.
+// (38u00 ÷ 5 = 7u36 → 8u00.)
+function bfUitContract(contractMin){ return Math.ceil((contractMin||0)/5/60)*60; }
+// Contracturen intypen: '38', '38,5', '38:30' en '38u30' mogen allemaal — mensen
+// schrijven dit op vier manieren.
+function parseUren(txt){
+  const s=String(txt||'').trim().replace(',','.');
+  let m=/^(\d{1,3})\s*[:uh]\s*(\d{1,2})?$/i.exec(s);
+  if(m) return (+m[1])*60+(+(m[2]||0));
+  m=/^(\d{1,3})(\.\d+)?$/.exec(s);
+  if(m) return Math.round(parseFloat(s)*60);
+  return null;
+}
+// "1 – 7 sep" voor in de weekkop.
+function weekBereik(ma){
+  const zo=new Date(ma.getFullYear(),ma.getMonth(),ma.getDate()+6);
+  const kort=d=>d.getDate()+' '+MAANDEN[d.getMonth()].slice(0,3);
+  return kort(ma)+' – '+kort(zo);
+}
+
+// ---- wie ben ik, en welke maand bekijk ik ----
+let toonMaand=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+let bewerktId=null;      // null = een nieuwe dag, anders de rij die we aanpassen
+let formSoort='gewerkt';
+
+// Het gedeelde account "ENT algemeen" hoort hier niet: dat gebruikt iedereen, dus uren
+// die je eronder invult zijn van niemand. Log in met je eigen naam.
+function mijnPersoon(){
+  const u=currentUser();
+  if(!u || u.id==='entalg') return null;
+  return u;
+}
+const mijnUren=()=>{ const u=mijnPersoon(); return u?BBInv.getWerkuren(u.id):[]; };
+function contractMinuten(){
+  const u=mijnPersoon(); if(!u) return STD_CONTRACT;
+  return BBInv.getContractMinuten(u.id)||STD_CONTRACT;
+}
+const bfMinuten=()=>bfUitContract(contractMinuten());
+
+// ---------------- OVERZICHT ----------------
+function renderAlles(){
+  const persoon=mijnPersoon();
+  const melding=document.getElementById('wuGeenPersoon');
+  const inhoud=document.getElementById('wuInhoud');
+  if(!persoon){
+    inhoud.style.display='none';
+    melding.style.display='';
+    melding.innerHTML=currentUser()
+      ? 'Je bent ingelogd met het gedeelde account <b>ENT algemeen</b>. Werkuren zijn persoonlijk — tik rechtsboven op je naam en log in met je eigen naam.'
+      : 'Log in met je eigen naam om je werkuren bij te houden.';
+    return;
+  }
+  melding.style.display='none';
+  inhoud.style.display='';
+  renderMaandbalk();
+  renderStats();
+  renderLijst();
+}
+
+function renderMaandbalk(){
+  document.getElementById('wuMaandNaam').textContent=MAANDEN[toonMaand.getMonth()]+' '+toonMaand.getFullYear();
+  const nu=new Date();
+  const isNu=toonMaand.getFullYear()===nu.getFullYear() && toonMaand.getMonth()===nu.getMonth();
+  document.getElementById('wuNu').style.display=isNu?'none':'';
+}
+
+// De rijen van de getoonde maand, oudste dag eerst (dat leest als een agenda).
+function urenVanMaand(){
+  const j=toonMaand.getFullYear(), m=toonMaand.getMonth();
+  return mijnUren().filter(w=>{ const d=datumVan(w.datum); return d && d.getFullYear()===j && d.getMonth()===m; })
+    .sort((a,b)=>String(a.datum).localeCompare(String(b.datum))||String(a.start||'').localeCompare(String(b.start||'')));
+}
+const somMinuten=lijst=>lijst.reduce((t,w)=>t+(+w.minuten||0),0);
+const perSoort=(lijst,k)=>somMinuten(lijst.filter(w=>w.soort===k));
+
+function renderStats(){
+  const maand=urenVanMaand();
+  const jaar=mijnUren().filter(w=>{ const d=datumVan(w.datum); return d && d.getFullYear()===toonMaand.getFullYear(); });
+  const tegel=(waarde,label,kleur)=>'<div class="statcard'+(kleur?' '+kleur:'')+'"><div class="v">'+esc(waarde)+'</div><div class="l">'+esc(label)+'</div></div>';
+  document.getElementById('wuStats').innerHTML=
+    tegel(fmtDuur(somMinuten(maand)),'Totaal deze maand')+
+    tegel(fmtDuur(perSoort(maand,'gewerkt')),'Gewerkt')+
+    tegel(fmtDuur(perSoort(maand,'overuren')),'Overuren','orange')+
+    tegel(fmtDuur(perSoort(maand,'jv')),'JV','grey')+
+    tegel(fmtDuur(perSoort(maand,'bf')),'BF','grey')+
+    tegel(fmtDuur(somMinuten(jaar)),'Totaal '+toonMaand.getFullYear(),'green');
+}
+
+// Eén ingevulde dag als knop: tikken opent hem opnieuw in het venster.
+function rijHtml(w){
+  const d=datumVan(w.datum);
+  const dag=d?DAGEN[d.getDay()]:'';
+  const datum=d?(p2(d.getDate())+'/'+p2(d.getMonth()+1)):esc(w.datum);
+  let tijd, meta;
+  if(w.soort==='gewerkt' && w.start && w.einde){
+    const bruto=brutoMinuten(w.start,w.einde);
+    tijd=esc(w.start)+' – '+esc(w.einde);
+    meta = (w.pauze && bruto!=null && bruto>=PAUZE_VANAF)
+      ? fmtDuur(bruto)+' aanwezig, − '+PAUZE_MIN+' min pauze'
+      : (w.pauze ? 'geen pauze afgetrokken (minder dan '+fmtDuur(PAUZE_VANAF)+')' : 'geen pauze genomen');
+  } else {
+    tijd=soortNaam(w.soort);
+    meta='zelf ingevuld';
+  }
+  if(w.opmerking) meta=w.opmerking;
+  return '<button class="wurij" data-id="'+esc(w.id)+'">'+
+      '<span class="wu-dag"><b>'+esc(dag)+'</b><i>'+datum+'</i></span>'+
+      '<span class="wu-mid"><span class="wu-tijd">'+tijd+'</span><span class="wu-meta">'+esc(meta)+'</span></span>'+
+      '<span class="wu-tag '+esc(w.soort)+'">'+esc(soortNaam(w.soort))+'</span>'+
+      '<span class="wu-uren">'+fmtDuur(w.minuten)+'</span>'+
+    '</button>';
+}
+
+function renderLijst(){
+  const box=document.getElementById('wuLijst');
+  const maand=urenVanMaand();
+  if(!maand.length){
+    box.innerHTML='<div class="wuleeg">Nog niets ingevuld voor '+esc(MAANDEN[toonMaand.getMonth()])+'. Tik op <b>＋ Werktijden toevoegen</b>.</div>';
+    return;
+  }
+  // Per week groeperen, op de maandag van die week. Een week die over twee maanden
+  // loopt tonen we hier maar half — daarom zetten we het volledige weektotaal erbij
+  // zodra dat verschilt, anders zou je denken dat je die week te weinig werkte.
+  const alles=mijnUren();
+  const groepen=new Map();
+  maand.forEach(w=>{
+    const d=datumVan(w.datum); if(!d) return;
+    const sleutel=isoVan(maandagVan(d));
+    if(!groepen.has(sleutel)) groepen.set(sleutel,[]);
+    groepen.get(sleutel).push(w);
+  });
+  let html='';
+  Array.from(groepen.keys()).sort().forEach(sleutel=>{
+    const ma=datumVan(sleutel);
+    const rijen=groepen.get(sleutel);
+    const totaal=somMinuten(rijen);
+    const zondag=isoVan(new Date(ma.getFullYear(),ma.getMonth(),ma.getDate()+6));
+    const heleWeek=somMinuten(alles.filter(w=>w.datum>=sleutel&&w.datum<=zondag));
+    html+='<div class="wuweek">'+
+      '<div class="wuweekkop">'+
+        '<span class="wk">Week '+weekNr(ma)+'</span>'+
+        '<span class="wd">'+esc(weekBereik(ma))+(heleWeek!==totaal?(' · hele week '+fmtDuur(heleWeek)):'')+'</span>'+
+        '<span class="wt">'+fmtDuur(totaal)+'</span>'+
+      '</div>'+
+      rijen.map(rijHtml).join('')+
+    '</div>';
+  });
+  box.innerHTML=html;
+  box.querySelectorAll('.wurij').forEach(b=>{
+    b.onclick=()=>openForm(b.getAttribute('data-id'));
+  });
+}
+
+// ---------------- HET VENSTER ----------------
+function zetSoort(k){
+  formSoort=k;
+  document.querySelectorAll('#wuSoorten .wusoort').forEach(b=>b.classList.toggle('active',b.getAttribute('data-soort')===k));
+  document.getElementById('wuTijdvak').style.display = k==='gewerkt' ? '' : 'none';
+  document.getElementById('wuDuurvak').style.display = k==='gewerkt' ? 'none' : '';
+  document.getElementById('wuDuurLabel').textContent =
+    k==='overuren' ? 'Hoeveel overuren?' : (k==='jv' ? 'Hoeveel uren telt deze JV?' : 'Hoeveel uren telt deze BF?');
+  werkResultaatBij();
+}
+// Bij het wisselen van categorie meteen het bekende aantal invullen, zodat je
+// voor een JV of BF niets moet uitrekenen.
+function vulStandaardDuur(k){
+  if(k==='jv') zetDuurVelden(JV_MIN);
+  else if(k==='bf') zetDuurVelden(bfMinuten());
+  else if(k==='overuren') zetDuurVelden(0);
+}
+function zetDuurVelden(min){
+  document.getElementById('wuUren').value=Math.floor((min||0)/60);
+  document.getElementById('wuMin').value=(min||0)%60;
+}
+const duurUitVelden=()=>Math.max(0,(+document.getElementById('wuUren').value||0))*60
+                      + Math.max(0,(+document.getElementById('wuMin').value||0));
+
+// De uitkomst die je straks bewaart, in gewone taal — zodat je ziet wat de app rekent
+// vóór je op Bewaren tikt.
+function werkResultaatBij(){
+  const vak=document.getElementById('wuResultaat');
+  if(formSoort!=='gewerkt'){
+    const min=duurUitVelden();
+    if(!min){ vak.className='wuresultaat leeg'; vak.textContent='Vul hierboven het aantal uren in.'; return; }
+    vak.className='wuresultaat';
+    let extra='';
+    if(formSoort==='bf') extra=' (contracturen '+fmtDuur(contractMinuten())+' ÷ 5 = '+fmtDuur(contractMinuten()/5)+', naar boven afgerond '+fmtDuur(bfMinuten())+')';
+    vak.innerHTML='<b>'+fmtDuur(min)+'</b> telt mee als '+esc(soortNaam(formSoort))+'.'+esc(extra);
+    return;
+  }
+  const start=document.getElementById('wuStart').value, einde=document.getElementById('wuEinde').value;
+  const bruto=brutoMinuten(start,einde);
+  if(bruto==null){ vak.className='wuresultaat leeg'; vak.textContent='Vul een start- en einduur in.'; return; }
+  const geenPauze=document.getElementById('wuGeenPauze').checked;
+  const netto=nettoMinuten(start,einde,!geenPauze);
+  let uitleg;
+  if(geenPauze && bruto>=PAUZE_VANAF) uitleg='geen pauze genomen, dus er gaat niets af';
+  else if(bruto>=PAUZE_VANAF) uitleg='vanaf '+fmtDuur(PAUZE_VANAF)+' gaat er '+PAUZE_MIN+' min pauze af';
+  else uitleg='minder dan '+fmtDuur(PAUZE_VANAF)+', dus geen pauze afgetrokken';
+  vak.className='wuresultaat';
+  vak.innerHTML=esc(start+' tot '+einde+' = '+fmtDuur(bruto)+' aanwezig — '+uitleg+' → ')+'<b>'+fmtDuur(netto)+'</b>';
+}
+
+function openForm(id){
+  const w=id?mijnUren().find(x=>x.id===id):null;
+  bewerktId=w?w.id:null;
+  document.getElementById('wuModalTitel').textContent=w?'Werktijden aanpassen':'Werktijden toevoegen';
+  document.getElementById('wuVerwijder').style.display=w?'':'none';
+  // Een nieuwe dag begint op vandaag, tenzij je een andere maand bekijkt: dan op de
+  // eerste van díe maand — anders vul je per ongeluk de verkeerde maand in.
+  const nu=new Date();
+  const zelfdeMaand=toonMaand.getFullYear()===nu.getFullYear()&&toonMaand.getMonth()===nu.getMonth();
+  document.getElementById('wuDatum').value = w ? w.datum : isoVan(zelfdeMaand?nu:toonMaand);
+  document.getElementById('wuStart').value = w?(w.start||''):'';
+  document.getElementById('wuEinde').value = w?(w.einde||''):'';
+  document.getElementById('wuGeenPauze').checked = w?(w.pauze===false):false;
+  document.getElementById('wuOpm').value = w?(w.opmerking||''):'';
+  const soort=w?w.soort:'gewerkt';
+  if(w && soort!=='gewerkt') zetDuurVelden(w.minuten); else vulStandaardDuur(soort);
+  zetSoort(soort);
+  document.getElementById('wuModal').classList.add('open');
+  setTimeout(()=>{ try{ document.getElementById(soort==='gewerkt'?'wuStart':'wuUren').focus(); }catch(e){} },60);
+}
+function sluitForm(){ document.getElementById('wuModal').classList.remove('open'); }
+
+async function bewaarForm(){
+  if(!await eisToegang('werkuren','gebruiken','je uren in te vullen')) return;
+  const persoon=mijnPersoon();
+  if(!persoon){ bbToon('Log eerst in met je eigen naam.'); return; }
+  const datum=document.getElementById('wuDatum').value;
+  if(!datumVan(datum)){ bbToon('Kies eerst een datum.'); return; }
+  const start=document.getElementById('wuStart').value, einde=document.getElementById('wuEinde').value;
+  let minuten, pauze=true;
+  if(formSoort==='gewerkt'){
+    const bruto=brutoMinuten(start,einde);
+    if(bruto==null){ bbToon('Vul een start- en einduur in.'); return; }
+    if(bruto===0){ bbToon('Start- en einduur zijn hetzelfde — dan is er niets gewerkt.'); return; }
+    pauze=!document.getElementById('wuGeenPauze').checked;
+    minuten=nettoMinuten(start,einde,pauze);
+  } else {
+    minuten=duurUitVelden();
+    if(!minuten){ bbToon('Vul in hoeveel uren het zijn.'); return; }
+  }
+  const rij={gebruiker:persoon.id, naam:persoon.naam||'', datum, soort:formSoort,
+    start:formSoort==='gewerkt'?start:'', einde:formSoort==='gewerkt'?einde:'',
+    pauze, minuten, opmerking:document.getElementById('wuOpm').value.trim()};
+  if(bewerktId) BBInv.updateWerkuur(bewerktId,rij); else BBInv.addWerkuur(rij);
+  // Bewaar je een dag uit een andere maand, spring dan mee — anders lijkt het
+  // alsof er niets gebeurd is.
+  const d=datumVan(datum);
+  toonMaand=new Date(d.getFullYear(),d.getMonth(),1);
+  sluitForm();
+  renderAlles();
+  bbToon(bewerktId?'Aangepast.':'Bewaard: '+fmtDuur(minuten)+' op '+p2(d.getDate())+'/'+p2(d.getMonth()+1)+'.');
+}
+
+async function verwijderForm(){
+  if(!bewerktId) return;
+  if(!await bbBevestig({titel:'Deze dag verwijderen?', okTekst:'Ja, verwijderen', gevaar:true,
+    tekst:'De ingevulde uren van deze dag verdwijnen uit je overzicht.'})) return;
+  BBInv.removeWerkuur(bewerktId);
+  sluitForm();
+  renderAlles();
+}
+
+// ---------------- CONTRACTUREN (voor de BF-berekening) ----------------
+async function vraagContract(){
+  const persoon=mijnPersoon(); if(!persoon) return;
+  const nu=contractMinuten();
+  const antwoord=await bbVraagTekst({titel:'Je contracturen per week',
+    tekst:'Hiermee rekent de app een BF uit: contracturen ÷ 5, naar boven afgerond op een heel uur.\n'+
+          'Nu ingesteld: '+fmtDuur(nu)+' → een BF telt als '+fmtDuur(bfMinuten())+'.',
+    plaatshouder:'bv. 38 of 38:30', waarde:fmtDuur(nu).replace('u',':'), okTekst:'Bewaren',
+    controle:v=>parseUren(v)===null?'Typ het als 38, 38,5 of 38:30.':(parseUren(v)>0&&parseUren(v)<=60*60?'':'Dat lijkt geen geldig aantal uren per week.')});
+  if(antwoord===null) return;
+  BBInv.setContractMinuten(persoon.id,parseUren(antwoord));
+  renderAlles();
+  bbToon('Contracturen op '+fmtDuur(contractMinuten())+' gezet. Een BF telt nu als '+fmtDuur(bfMinuten())+'.');
+}
+
+// ---------------- UITVOER (om naast je loonfiche te leggen) ----------------
+function maandRijen(){
+  const rijen=[['Datum','Dag','Categorie','Start','Einde','Pauze af','Uren','Uren (decimaal)','Opmerking']];
+  const maand=urenVanMaand();
+  maand.forEach(w=>{
+    const d=datumVan(w.datum);
+    const bruto=w.soort==='gewerkt'?brutoMinuten(w.start,w.einde):null;
+    const pauzeAf=(w.soort==='gewerkt'&&w.pauze&&bruto!=null&&bruto>=PAUZE_VANAF)?(PAUZE_MIN+' min'):'—';
+    rijen.push([w.datum, d?DAGEN[d.getDay()]:'', soortNaam(w.soort), w.start||'', w.einde||'',
+      pauzeAf, fmtDuur(w.minuten), fmtDecimaal(w.minuten), w.opmerking||'']);
+  });
+  rijen.push([]);
+  SOORTEN.forEach(s=>{ const m=perSoort(maand,s.key); if(m) rijen.push(['Totaal '+s.naam,'','','','','',fmtDuur(m),fmtDecimaal(m),'']); });
+  const tot=somMinuten(maand);
+  rijen.push(['TOTAAL '+MAANDEN[toonMaand.getMonth()]+' '+toonMaand.getFullYear(),'','','','','',fmtDuur(tot),fmtDecimaal(tot),'']);
+  return rijen;
+}
+function kopieerMaand(){
+  if(!urenVanMaand().length){ bbToon('Deze maand is nog leeg.'); return; }
+  copyText(rowsToTSV(maandRijen()));
+}
+function csvMaand(){
+  if(!urenVanMaand().length){ bbToon('Deze maand is nog leeg.'); return; }
+  dl('werkuren-'+toonMaand.getFullYear()+'-'+p2(toonMaand.getMonth()+1)+'.csv', rowsToCSV(maandRijen()));
+}
+
+// ---------------- KNOPPEN ----------------
+function schuifMaand(stappen){
+  toonMaand=new Date(toonMaand.getFullYear(),toonMaand.getMonth()+stappen,1);
+  renderAlles();
+}
+document.getElementById('wuVorige').onclick=()=>schuifMaand(-1);
+document.getElementById('wuVolgende').onclick=()=>schuifMaand(1);
+document.getElementById('wuNu').onclick=()=>{ const n=new Date(); toonMaand=new Date(n.getFullYear(),n.getMonth(),1); renderAlles(); };
+document.getElementById('wuNieuw').onclick=async()=>{
+  if(!await eisToegang('werkuren','gebruiken','je uren in te vullen')) return;
+  openForm(null);
+};
+document.getElementById('wuContract').onclick=vraagContract;
+document.getElementById('wuKopieer').onclick=kopieerMaand;
+document.getElementById('wuCsv').onclick=csvMaand;
+document.getElementById('wuSoorten').addEventListener('click',e=>{
+  const b=e.target.closest('.wusoort'); if(!b) return;
+  const k=b.getAttribute('data-soort');
+  if(k===formSoort) return;
+  // Van gewerkt naar JV/BF: meteen het bekende aantal invullen. Terug naar gewerkt
+  // laat de tijden staan die je al had.
+  if(k!=='gewerkt') vulStandaardDuur(k);
+  zetSoort(k);
+});
+['wuStart','wuEinde','wuUren','wuMin'].forEach(id=>document.getElementById(id).addEventListener('input',werkResultaatBij));
+document.getElementById('wuGeenPauze').addEventListener('change',werkResultaatBij);
+document.getElementById('wuBewaar').onclick=bewaarForm;
+document.getElementById('wuAnnuleer').onclick=sluitForm;
+document.getElementById('wuVerwijder').onclick=verwijderForm;
+document.getElementById('wuModal').addEventListener('click',e=>{ if(e.target.id==='wuModal') sluitForm(); });
+
+// ---- opstarten ----
+window.bbStart=renderAlles;
+window.bbNaLogin=renderAlles;      // andere collega ingelogd → zijn eigen uren tonen
+window.bbOnChange=renderAlles;     // wijziging van je ander toestel komt binnen
+</script>
+</body>
+</html>
