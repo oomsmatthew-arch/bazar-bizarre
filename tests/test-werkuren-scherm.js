@@ -92,8 +92,14 @@ ok(rijen[0][7]==='Uren (decimaal)','er is een kolom in honderdsten');
 ok(rijen[rijen.length-1][7]==='25,00','het maandtotaal is 25,00');
 
 print('\n— Het formulier —');
-openForm(null);
-ok(el('wuDatum').value==='2026-09-04','een nieuwe dag begint vandaag: '+el('wuDatum').value);
+// "Vandaag" is wat de klok zegt op de dag dat deze test draait — niet een vaste datum,
+// anders valt de test om zodra het een dag later is. De getoonde maand moet dan wel de
+// huidige zijn: bekijk je een andere maand, dan begint een nieuwe dag op de 1ste daarvan.
+var nu=new Date(), vandaag=nu.getFullYear()+'-'+String(nu.getMonth()+1).padStart(2,'0')+'-'+String(nu.getDate()).padStart(2,'0');
+zetMaand(nu.getFullYear(),nu.getMonth()); openForm(null);
+ok(el('wuDatum').value===vandaag,'een nieuwe dag begint vandaag: '+el('wuDatum').value);
+zetMaand(2026,8); openForm(null);
+ok(el('wuDatum').value==='2026-09-01'||vandaag.slice(0,7)==='2026-09','bekijk je een andere maand, dan op de 1ste daarvan: '+el('wuDatum').value);
 openForm(null,'2026-09-15');
 ok(el('wuDatum').value==='2026-09-15','tik je in de kalender op 15 sep, dan staat die datum er meteen');
 el('wuStart').value='09:00'; el('wuEinde').value='16:00'; el('wuGeenPauze').checked=false; werkResultaatBij();
