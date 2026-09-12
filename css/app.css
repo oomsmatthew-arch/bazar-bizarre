@@ -342,6 +342,8 @@
      'Namen beheren' vraagt het wachtwoord terwijl dat scherm openstaat. */
   .codevenster{z-index:9500;}
   .codevenster .code-uitleg{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+  /* het wachtwoordveld staat in een eigen <form> (zie js/topbar.js); die mag geen eigen vak zijn */
+  .codevenster .code-form{display:contents;}
   /* De letterafstand zet ook een spatie ACHTER het laatste teken; die duwt de bolletjes
      een half karakter naar links. Met evenveel inspringing links compenseren we dat. */
   .codevenster .code-inp{font-size:20px;text-align:center;letter-spacing:6px;padding-left:calc(12px + 6px);}

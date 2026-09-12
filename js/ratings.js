@@ -582,9 +582,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   // waardoor de wachtwoordvraag stilletjes overgeslagen zou worden.
   async function magBewerken(){
     if(isVaste()) return true;
+    const fz=$('fZoek'), zoekVoor=fz?fz.value:'';
     const p=await bbVraagCode({titel:'Beheer-wachtwoord',
       uitleg:'Nodig om de ratings te uploaden of te wissen. Vaste medewerkers hoeven dit niet.',
       plaatshouder:'Wachtwoord', controle:v=>v===beheerPin()?'':'Onjuist wachtwoord.'});
+    // Vangnet: sommige browsers vullen bij een wachtwoordveld óók een "gebruikersnaam" in,
+    // en kozen daarvoor het zoekveld (er stond dan ineens 0000 in en de lijst was leeg).
+    // Het venster zelf houdt dat nu tegen; is het toch gebeurd, zet het zoekveld dan terug.
+    if(fz && fz.value!==zoekVoor){ fz.value=zoekVoor; _filter.zoek=zoekVoor.trim().toLowerCase(); renderReviews(); }
     return p!==null;
   }
   const importBtn=$('importBtn'), wisBtn=$('wisBtn'), leegImport=$('leegImport');

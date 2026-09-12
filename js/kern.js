@@ -59,7 +59,7 @@ document.body.insertAdjacentHTML('afterbegin',`
       <div class="gebradd">
         <div class="h">Nieuwe collega</div>
         <input type="text" id="gebrNaam" class="finp" placeholder="Naam (bv. Jan)">
-        <input type="tel" id="gebrPin" class="finp" inputmode="numeric" maxlength="4" value="0000" placeholder="Pincode (4 cijfers)">
+        <input type="tel" id="gebrPin" class="finp" inputmode="numeric" maxlength="4" value="0000" autocomplete="off" placeholder="Pincode (4 cijfers)">
         <button class="btn primary" id="gebrAdd">Collega toevoegen</button>
       </div>
       <div class="gebrlist" id="gebrlist" style="margin-top:14px"></div>

@@ -89,10 +89,53 @@
     }catch(e){}
   }
 
+  // ---------------- DE VENSTERS OOK ZONDER css/app.css ----------------
+  // De ratings- en projectpagina's laden css/app.css niet (ze hebben een eigen, kleinere
+  // stijl). De vensters en meldingen hieronder stonden daar dus zónder opmaak: het
+  // wachtwoordvenster kwam als losse tekst onderaan de pagina terecht, en de gebruikersknop
+  // in de balk toonde "MMatthew Ooms" — de initiaal plakte tegen de naam.
+  // Hier staan enkel de regels die die stukken nodig hebben, afgebakend op hun eigen
+  // klassen. Ze komen als EERSTE stylesheet in <head>, zodat wat een pagina zelf al opmaakt
+  // (projecten.html heeft een eigen .userbtn) blijft winnen. Laadt de pagina app.css wél,
+  // dan staat alles er al in en doen we niets.
+  function zorgVensterCss(){
+    if(document.getElementById('bbVensterCss')) return;
+    if(document.querySelector('link[href*="app.css"]')) return;
+    const s=document.createElement('style'); s.id='bbVensterCss';
+    s.textContent=
+      '.userbtn{border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13px;padding:9px 12px;border-radius:12px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;gap:6px;font-family:inherit}'+
+      '.userbtn:active{transform:translateY(1px)}'+
+      '.userbtn .av{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.28);font-size:12px;overflow:hidden}'+
+      '.userbtn .av img{width:100%;height:100%;object-fit:cover;display:block}'+
+      '@media(max-width:560px){.userbtn .nm{display:none}}'+
+      '.cammodal{position:fixed;inset:0;bottom:auto;height:var(--bb-zicht,100%);overflow:auto;background:rgba(8,16,20,.85);display:none;z-index:9500;align-items:flex-start;justify-content:center;padding:14px;box-sizing:border-box}'+
+      '.cammodal.open{display:flex}'+
+      '.cammodal-box{margin:auto;max-height:100%;overflow:auto;box-sizing:border-box;width:100%;max-width:340px;background:var(--panel,#fff);color:var(--text,#1d2e22);border:1px solid var(--line,#cfe0c8);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px}'+
+      '.cammodal-title{font-family:var(--serif,Georgia,serif);color:var(--forest,#2f6450);font-size:18px;margin-bottom:4px}'+
+      '.cammodal .code-uitleg{margin:0;font-size:13px;color:var(--muted,#5e7363);line-height:1.5}'+
+      '.cammodal .bev-tekst{margin:0;font-size:14px;color:var(--text,#1d2e22);line-height:1.55;white-space:pre-line}'+
+      '.cammodal .code-form{display:contents}'+
+      '.cammodal .finp{width:100%;box-sizing:border-box;background:var(--panel2,#f4f8f2);border:1px solid var(--line,#cfe0c8);color:var(--text,#1d2e22);font-size:16px;padding:11px 12px;border-radius:12px;font-family:inherit}'+
+      '.cammodal .code-inp{font-size:20px;text-align:center;letter-spacing:6px;padding-left:18px}'+
+      '.cammodal .code-fout{background:#fdecea;border:1px solid #e2b6b0;color:#a23b30;border-radius:10px;padding:9px 11px;font-size:13px;font-weight:700}'+
+      '[data-theme="dark"] .cammodal .code-fout{background:#3a2020;color:#f0a0a0;border-color:#5c2c2c}'+
+      '.cammodal .btn{border:1px solid var(--line,#cfe0c8);border-radius:12px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;background:var(--panel2,#f4f8f2);color:var(--forest,#2f6450)}'+
+      '.cammodal .btn.primary{background:linear-gradient(120deg,var(--leaf,#4a9b5e),var(--forest2,#2f6450));color:#fff;border-color:var(--forest2,#2f6450)}'+
+      '.cammodal .btn.clear{background:transparent;color:var(--muted,#5e7363);border-color:var(--line,#cfe0c8)}'+
+      '.cammodal .btn.gevaar{color:#c0392b;border-color:#e5b4ad}'+
+      '.bbmeldingen{position:fixed;left:0;right:0;bottom:0;z-index:9800;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 14px 16px;pointer-events:none}'+
+      '.bbmelding{pointer-events:auto;max-width:520px;width:100%;box-sizing:border-box;background:var(--panel,#fff);border:1px solid var(--line,#cfe0c8);border-left:5px solid var(--forest,#2f6450);border-radius:12px;padding:11px 14px;box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:14px;line-height:1.5;color:var(--text,#1d2e22);white-space:pre-line;cursor:pointer}'+
+      '.bbmelding.fout{border-left-color:#c0483a}'+
+      '.bbmelding.weg{opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s}';
+    const head=document.head||document.getElementsByTagName('head')[0];
+    if(head) head.insertBefore(s,head.firstChild); else document.documentElement.appendChild(s);
+  }
+
   // ---------------- DE BALK ----------------
   const body=document.body;
   if(!geenBalk) bouwBalk();
   function bouwBalk(){
+  zorgVensterCss();
   const titel=body.getAttribute('data-titel')||(document.title||'').split('·')[0].trim()||'EntertainmentVM';
   const rechts=body.getAttribute('data-rechts')||'home';
   const start=ROOT+'entertainment.html';
@@ -175,6 +218,7 @@
   // Fouten blijven wat langer staan dan bevestigingen. Blokkeert niets — je kunt gewoon
   // doorwerken, wat op een tablet ter plaatse het hele verschil maakt.
   function bbToon(tekst,soort){
+    zorgVensterCss();
     let bak=document.getElementById('bbMeldingen');
     if(!bak){
       bak=document.createElement('div');
@@ -242,7 +286,7 @@
 
   // Tab binnen het venster houden. Anders wandel je met Tab zó het venster uit, naar de
   // knoppen eronder: die zie je niet, maar je kunt ze wel bedienen.
-  const TABBAAR='button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+  const TABBAAR='button:not([disabled]), [href], input:not([disabled]):not([tabindex="-1"]), select, textarea, [tabindex]:not([tabindex="-1"])';
   function houdTabBinnen(e,el){
     const kan=el.querySelectorAll(TABBAAR);
     if(!kan.length) return;
@@ -260,6 +304,7 @@
 
   let vensterNr=0;
   function toonVenster(el,sluitMet){
+    zorgVensterCss();
     el.id='bbvenster'+(++vensterNr);
     el.dataset.vanaf=String(Date.now());
     // Voor schermlezers: dit is een venster dat de rest afdekt, en zo heet het.
@@ -404,10 +449,18 @@
         '<div class="cammodal-box choose">'+
           '<div class="cammodal-title">'+esc(o.titel||'Code')+'</div>'+
           (o.uitleg?('<p class="code-uitleg">'+esc(o.uitleg)+'</p>'):'')+
-          '<input type="password" class="finp code-inp" autocomplete="off" '+
-            (o.cijfers===false?'':'inputmode="numeric" ')+
-            (o.maxlengte?('maxlength="'+(+o.maxlengte)+'" '):'')+
-            'placeholder="'+esc(o.plaatshouder||'••••')+'">'+
+          // In een eigen <form>, mét een (onzichtbare) gebruikersnaam erbij. Zonder dat zoekt
+          // de wachtwoordbeheerder van de browser het dichtstbijzijnde tekstveld op de pagina
+          // op als "gebruikersnaam" — en zo kwam "0000" in het zoekveld van de ratingspagina
+          // terecht, waarna de zoekopdracht niets meer vond.
+          '<form class="code-form" autocomplete="off">'+
+            '<input type="text" name="username" autocomplete="username" value="beheer" tabindex="-1" aria-hidden="true" '+
+              'style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">'+
+            '<input type="password" name="password" class="finp code-inp" autocomplete="current-password" '+
+              (o.cijfers===false?'':'inputmode="numeric" ')+
+              (o.maxlengte?('maxlength="'+(+o.maxlengte)+'" '):'')+
+              'placeholder="'+esc(o.plaatshouder||'••••')+'">'+
+          '</form>'+
           '<div class="code-fout" style="display:none"></div>'+
           '<button type="button" class="btn primary code-ok">Doorgaan</button>'+
           '<button type="button" class="btn clear code-nee">Annuleren</button>'+
@@ -416,6 +469,8 @@
       const fout=venster.querySelector('.code-fout');
       const ok=venster.querySelector('.code-ok');
       let bezig=false, af=false;
+      // "Ga" op een schermtoetsenbord verstuurt het formulier; dat is hetzelfde als Doorgaan.
+      venster.querySelector('.code-form').addEventListener('submit',e=>{ e.preventDefault(); probeer(); });
 
       function sluit(waarde){
         if(af) return;               // terug.js én de knop kunnen allebei sluiten
