@@ -489,22 +489,34 @@ function vulPrintOpties(){
 function openPrintDialog(){ if(!_data){ bbToon('Nog geen gegevens om af te drukken.'); return; } vulPrintOpties(); $('printModal').classList.add('open'); }
 function sluitPrint(){ const m=$('printModal'); if(m) m.classList.remove('open'); }
 window.bbVensterSluiters={ printModal:sluitPrint }; // terugknop sluit het printvenster (zie js/terug.js)
+// De opmaak van wat er op papier (of in de PDF) komt — voor het afdrukoverzicht én het
+// maandrapport. .tip staat alleen op het scherm, niet op papier.
+const PRINT_CSS='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:26px;}'+
+  'h1{font-size:21px;margin:0 0 2px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}'+
+  'h2{font-size:15px;margin:18px 0 6px;color:#2f6450;border-bottom:2px solid #cfe0c8;padding-bottom:3px;}'+
+  'h3{font-size:13px;margin:12px 0 4px;color:#2f6450;}'+
+  'table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:6px;}'+
+  'th,td{border:1px solid #d5ddd0;padding:5px 9px;text-align:left;}th{background:#f0f5ec;}'+
+  'td.n,th.n{text-align:right;white-space:nowrap;width:92px;}'+
+  '.kv{display:flex;gap:24px;flex-wrap:wrap;margin:6px 0 4px;}.kv div{font-size:12px;color:#666;}.kv b{display:block;font-size:20px;color:#2f6450;}'+
+  '.rev{border-bottom:1px solid #eee;padding:6px 0;font-size:12px;}.rev .s{font-weight:bold;display:inline-block;width:34px;}.rev .o{color:#777;font-style:italic;}'+
+  '.g{color:#2f9e57;}.a{color:#e08a1e;}.r{color:#c0392b;}'+
+  '.mnd{break-before:page;page-break-before:always;}'+
+  '.twee{display:flex;gap:18px;align-items:flex-start;}.twee>div{flex:1;min-width:0;}'+
+  '.tip{background:#f0f5ec;border:1px solid #cfe0c8;border-radius:8px;padding:8px 12px;font-size:13px;margin:0 0 14px;}'+
+  '@media print{.tip{display:none;}}';
+// Een nieuw venster met de inhoud, en meteen het afdrukvenster van de browser erover. Wil
+// je een PDF, kies daar dan "Opslaan als PDF" als bestemming — elke browser kan dat.
+function openPrintVenster(titel,inhoud){
+  const w=window.open('','_blank'); if(!w){ bbToon('Kon het afdrukvenster niet openen (sta pop-ups toe voor deze site).'); return; }
+  w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>'+esc(titel)+'</title><style>'+PRINT_CSS+'</style></head><body>'+inhoud+'</body></html>');
+  w.document.close(); w.focus(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 400);
+}
 function doePrint(){
   const o={ boekjaar:$('pBoekjaar').value, maand:$('pMaand').value, categorie:$('pCat').value,
     samenv:$('pSamenv').checked, mnd:$('pMnd').checked, act:$('pAct').checked, taal:$('pTaal').checked, reacties:$('pReacties').checked };
   sluitPrint();
-  const w=window.open('','_blank'); if(!w){ bbToon('Kon het afdrukvenster niet openen (sta pop-ups toe voor deze site).'); return; }
-  const css='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:26px;}'+
-    'h1{font-size:21px;margin:0 0 2px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}'+
-    'h2{font-size:15px;margin:18px 0 6px;color:#2f6450;border-bottom:2px solid #cfe0c8;padding-bottom:3px;}'+
-    'table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:6px;}'+
-    'th,td{border:1px solid #d5ddd0;padding:5px 9px;text-align:left;}th{background:#f0f5ec;}'+
-    'td.n,th.n{text-align:right;white-space:nowrap;width:92px;}'+
-    '.kv{display:flex;gap:24px;flex-wrap:wrap;margin:6px 0 4px;}.kv div{font-size:12px;color:#666;}.kv b{display:block;font-size:20px;color:#2f6450;}'+
-    '.rev{border-bottom:1px solid #eee;padding:6px 0;font-size:12px;}.rev .s{font-weight:bold;display:inline-block;width:34px;}.rev .o{color:#777;font-style:italic;}'+
-    '.g{color:#2f9e57;}.a{color:#e08a1e;}.r{color:#c0392b;}';
-  w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Ratings-overzicht</title><style>'+css+'</style></head><body>'+bouwPrintHtml(o)+'</body></html>');
-  w.document.close(); w.focus(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 400);
+  openPrintVenster('Ratings-overzicht', bouwPrintHtml(o));
 }
 function bouwPrintHtml(o){
   let rev=((_data&&_data.reviews)||[]).slice();
@@ -540,6 +552,42 @@ function bouwPrintHtml(o){
     }).join('');
   }
   return h;
+}
+
+// ---------------------------------------------------------------- PDF per maand
+// Hetzelfde als de tegels bovenaan de pagina, maar dan MAAND VOOR MAAND: het maandgemiddelde
+// met de beste en laagste activiteit van die maand, en daaronder per activiteit en per taal
+// het gemiddelde van díe maand. Eerst een overzichtstabel met alle maanden, dan elke maand
+// op een eigen blad. Volgt het boekjaar dat bovenaan gekozen is.
+const hoofd=s=>String(s||'').replace(/^./,c=>c.toUpperCase());
+function bouwMaandRapportHtml(rev,selectie){
+  const kl3=v=>v>=4?'g':(v>=3?'a':'r');
+  const maanden=groepeer(rev,r=>maandKey(r.datum)).sort((a,b)=>b.key.localeCompare(a.key)); // nieuwste eerst
+  let h='<h1>Ratings per maand</h1><div class="sub">'+esc(selectie)+' — '+rev.length+' reacties · '+maanden.length+' maand(en) · afgedrukt op '+fmtNu()+'</div>'+
+    '<p class="tip">Als PDF bewaren? Kies in het afdrukvenster bij <b>Bestemming</b> voor <b>Opslaan als PDF</b>.</p>';
+  if(!maanden.length) return h+'<p>Geen reacties voor deze selectie.</p>';
+  const tabel=(titel,rows,kop)=> rows.length?('<'+kop+'>'+esc(titel)+'</'+kop+'><table><tr><th>Naam</th><th class="n">Gemiddelde</th><th class="n">Reacties</th></tr>'+
+    rows.map(r=>'<tr><td>'+esc(r.naam)+'</td><td class="n '+kl3(r.gem)+'"><b>'+fmtScore(r.gem)+'</b></td><td class="n">'+r.n+'</td></tr>').join('')+'</table>'):'';
+  h+=tabel('Per maand',maanden.map(m=>({naam:hoofd(maandLabel(m.key)),gem:m.gem,n:m.n})),'h2');
+  maanden.forEach(m=>{
+    const mr=rev.filter(r=>maandKey(r.datum)===m.key);
+    const pa=groepeer(mr,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem||b.n-a.n);
+    const pt=groepeer(mr,taalVan).sort((a,b)=>b.n-a.n||b.gem-a.gem);
+    const best=pa[0]||null, laag=pa.length>1?pa[pa.length-1]:null;
+    h+='<div class="mnd"><h2>'+esc(hoofd(maandLabel(m.key)))+'</h2>'+
+      '<div class="kv"><div>Gemiddelde<b class="'+kl3(m.gem)+'">'+fmtScore(m.gem)+'</b>'+m.n+' reacties</div>'+
+      (best?'<div>Beste activiteit<b class="'+kl3(best.gem)+'">'+fmtScore(best.gem)+'</b>'+esc(best.key)+'</div>':'')+
+      (laag?'<div>Laagste activiteit<b class="'+kl3(laag.gem)+'">'+fmtScore(laag.gem)+'</b>'+esc(laag.key)+'</div>':'')+'</div>'+
+      '<div class="twee"><div>'+tabel('Per activiteit',pa.map(a=>({naam:a.key,gem:a.gem,n:a.n})),'h3')+'</div>'+
+      '<div>'+tabel('Per taal',pt.map(t=>({naam:t.key,gem:t.gem,n:t.n})),'h3')+'</div></div></div>';
+  });
+  return h;
+}
+function maandRapport(){
+  if(!_data){ bbToon('Nog geen gegevens om te exporteren.'); return; }
+  let rev=((_data&&_data.reviews)||[]).slice();
+  if(_boekjaar) rev=rev.filter(r=>boekjaarKey(r.datum)===_boekjaar);
+  openPrintVenster('Ratings per maand', bouwMaandRapportHtml(rev, _boekjaar?'Boekjaar '+boekjaarLabel(_boekjaar):'Alle boekjaren'));
 }
 
 // ---------------------------------------------------------------- thema
@@ -599,6 +647,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       tekst:'De ingelezen ratings van dit toestel worden gewist.'})){ try{localStorage.removeItem(K_DATA);}catch(e){} location.reload(); } }; }
   if(leegImport){ leegImport.innerHTML='<button class="btn primary" id="leegImportBtn">📄 Ratings uploaden</button>'; const b=$('leegImportBtn'); if(b) b.onclick=async()=>{ if(await magBewerken()) inp&&inp.click(); }; }
   const pb=$('printBtn'); if(pb) pb.onclick=openPrintDialog;
+  const pmb=$('pdfMaandBtn'); if(pmb) pmb.onclick=maandRapport;
   const pa=$('pAfdruk'); if(pa) pa.onclick=doePrint;
   const pan=$('pAnnuleer'); if(pan) pan.onclick=sluitPrint;
   const pmod=$('printModal'); if(pmod) pmod.onclick=e=>{ if(e.target===pmod) sluitPrint(); };
