@@ -633,6 +633,15 @@ document.getElementById('wuModal').addEventListener('click',e=>{ if(e.target.id=
 window.bbStart=renderAlles;
 window.bbNaLogin=renderAlles;      // andere collega ingelogd → zijn eigen uren tonen
 window.bbOnChange=renderAlles;     // wijziging van je ander toestel komt binnen
+// Kom je terug naar dit scherm — ander tabblad, de app weer naar voren gehaald — haal dan
+// je uren opnieuw op. Wat je intussen op je gsm invulde staat dan ook hier, zonder te
+// herladen. Normaal komt dat live binnen; dit vangt het op als die verbinding wegviel.
+// En voor een tablet die de hele dag op dit scherm blijft staan: elke anderhalve minuut.
+function ververs(){ if(document.hidden) return; if(window.BBInv&&BBInv.ververs) BBInv.ververs('werkuren'); }
+document.addEventListener('visibilitychange',ververs);
+window.addEventListener('focus',ververs);
+window.addEventListener('pageshow',e=>{ if(e&&e.persisted) ververs(); });
+setInterval(ververs,90000);
 </script>
 </body>
 </html>

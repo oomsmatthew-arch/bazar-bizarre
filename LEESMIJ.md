@@ -141,7 +141,9 @@ naast je loonfiche kan leggen.
 
 **Je ziet enkel je eigen uren.** Elke rij draagt het id van wie ze invulde en het scherm
 toont alleen de jouwe. Ze staan wél op al je eigen toestellen (gsm én tablet) en werken
-ook zonder wifi. Standaard is de kaart enkel zichtbaar voor **vaste medewerkers en
+ook zonder wifi. Wat je op je gsm invult, staat op de tablet zodra je dat scherm daar weer
+naar voren haalt (en om de anderhalve minuut zolang het openstaat) — herladen hoeft niet.
+Standaard is de kaart enkel zichtbaar voor **vaste medewerkers en
 admins**; dat verander je via ⚙ Instellingen → 🔑 Toegangen.
 Het gedeelde account *ENT algemeen* kan hier niets invullen — uren horen bij een persoon.
 

@@ -937,12 +937,14 @@
       else { setOK(true); cache[cacheKey]=r.data?(r.data.data||null):null; }
     }catch(e){ setOK(false); }
   }
-  async function reloadTable(t){
+  async function reloadTable(t,ookMetWachtrij){
     // BESCHERMING TEGEN GEGEVENSVERLIES bij wifi-wissel (bv. KPN ↔ TP-Link/mengpaneel):
     // overschrijf de lokale cache NIET zolang er nog eigen wijzigingen wachten om verstuurd
     // te worden. Anders wist een (mogelijk verouderde) serverkopie je nog-niet-gesyncte
     // wijzigingen (bv. je boekjes-telling). Zodra alles veilig verstuurd is, herladen we weer.
-    if(outbox.length || dirty.size){ return; }
+    // 'ookMetWachtrij' (zie ververs) mag dat enkel overslaan voor een tabel waarvan de tak
+    // hieronder de wachtrij zélf over de serverlijst legt — nu alleen werkuren.
+    if(!ookMetWachtrij && (outbox.length || dirty.size)){ return; }
     // Ook hier zonder foto's: dit vuurt bij elke wijziging van een collega (elke voorraadtik),
     // en de foto's die we al hebben blijven gewoon staan (behoudFotos).
     if(t==='prijzen'){const r=await selectSmal('prijzen',KOL_PRIJZEN); if(r.data)cache.prijzen=behoudFotos(cache.prijzen,zonderWachtendeWissers('prijzen',r.data).map(fromRow));}
@@ -960,11 +962,29 @@
     else if(t==='projectberichten'&&projectberichtenOK){const r=await sb.from('projectberichten').select('*'); if(r.data){cache.projectberichten=r.data.map(mapBericht); saveBackup('projectberichten',K_PROJBERICHTEN_BACKUP);}}
     else if(t==='projectagenda'&&projectagendaOK){const r=await sb.from('projectagenda').select('*'); if(r.data){cache.projectagenda=r.data.map(mapAgenda); saveBackup('projectagenda',K_PROJAGENDA_BACKUP);}}
     else if(t==='projectdocs'&&projectdocsOK){const r=await sb.from('projectdocs').select('*'); if(r.data){cache.projectdocs=r.data.map(mapDoc); saveBackup('projectdocs',K_PROJDOCS_BACKUP);}}
-    else if(t==='werkuren'&&werkurenOK){const r=await sb.from('werkuren').select('*'); if(r.data){cache.werkuren=r.data.map(mapUur); saveBackup('werkuren',null);}}
+    // Werkuren: wat hier nog te versturen of te wissen staat, blijft voorgaan op de serverlijst.
+    else if(t==='werkuren'&&werkurenOK){const r=await sb.from('werkuren').select('*'); if(r.data){cache.werkuren=metWachtendeSchrijfsels('werkuren',zonderWachtendeWissers('werkuren',r.data)).map(mapUur); saveBackup('werkuren',null);}}
     else if(t==='manualsdoc'&&manualsdocOK){const r=await sb.from('manualsdoc').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.manualsdoc=r.data?(r.data.data||null):null;}}
     else if(t==='appconfig'&&appconfigOK){const r=await sb.from('appconfig').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.appconfig=r.data?(r.data.data||null):null;}}
     else if(t==='spelarchief'&&spelarchiefOK){const r=await sb.from('spelarchief').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.spelarchief=r.data?(r.data.data||null):null;}}
     persistCache();
+  }
+  // Eén tabel op vraag van een pagina opnieuw ophalen — bv. zodra dat scherm weer in beeld
+  // komt. Wat je op je ander toestel invulde terwijl dit scherm op de achtergrond stond, komt
+  // zo alsnog binnen zonder de pagina te herladen. Normaal brengt de live-verbinding dat
+  // meteen, maar op een wifi zonder echt internet (of achter een adblocker) valt die weg.
+  // Niet vaker dan één keer per paar seconden per tabel: 'focus' en 'visibilitychange'
+  // vuren vlak na elkaar. Enkel voor tabellen waarvan reloadTable de wachtrij meeneemt.
+  const VERVERSBAAR={werkuren:true};
+  const laatstVerverst={};
+  async function ververs(tabel){
+    if(!VERVERSBAAR[tabel] || !sb || !aangemeld || !ready) return false;
+    if(typeof navigator!=='undefined' && navigator.onLine===false) return false;
+    if(Date.now()-(laatstVerverst[tabel]||0)<3000) return false;
+    laatstVerverst[tabel]=Date.now();
+    try{ await reloadTable(tabel,true); }catch(e){ noteFout('Verversen van '+tabel,e); return false; }
+    fire();
+    return true;
   }
   function subscribe(){
     try{
@@ -2252,7 +2272,7 @@
     vulOudeSpeelbeurten,telFormulierenBij,telFormulierBij,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
-    pendingCount,flushOutbox,
+    pendingCount,flushOutbox,ververs,
     // Seintje zodra het aantal wachtende wijzigingen verandert (zie meldWachtrij).
     setOnWachtrij:fn=>{ onWachtrij=fn; gemeld=null; meldWachtrij(); },
     rolTags,heeftRol,zetRol,
