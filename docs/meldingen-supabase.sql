@@ -101,21 +101,23 @@ declare
   r text[] := '{}';
 begin
   if a like '%verwijderd%' or a like '%gewist%' then
-    r := r || '🗑 verwijderd';
+    r := array_append(r, '🗑 verwijderd');
   end if;
   if a like '%wachtwoord%' or a like '%pincode gereset%' or a like '%toegangen%'
      or a like '% — rol%' or a like 'gebruiker toegevoegd%' then
-    r := r || '🔑 beheer';
+    r := array_append(r, '🔑 beheer');
   end if;
   if a like '%hersteld naar de startlijst%' or a like 'systeem:%' or a like 'boekjesvoorraad ingesteld%' then
-    r := r || '♻️ ingrijpend';
+    r := array_append(r, '♻️ ingrijpend');
   end if;
-  if case when nacht_van > nacht_tot then (u >= nacht_van or u < nacht_tot)
-          else (u >= nacht_van and u < nacht_tot) end then
-    r := r || '🌙 ’s nachts';
+  -- 'Nacht' loopt meestal over middernacht (23 → 6); dan is het nacht vóór 6 of vanaf 23.
+  -- Geen 'case' in deze voorwaarde: PL/pgSQL stopt de if-voorwaarde bij het eerste 'then'.
+  if (nacht_van > nacht_tot and (u >= nacht_van or u < nacht_tot))
+     or (nacht_van <= nacht_tot and u >= nacht_van and u < nacht_tot) then
+    r := array_append(r, '🌙 ’s nachts');
   end if;
   if not bekend then
-    r := r || '❓ onbekende naam';
+    r := array_append(r, '❓ onbekende naam');
   end if;
   return nullif(array_to_string(r, ' · '), '');
 end $$;

@@ -1,6 +1,11 @@
 # Meldingen — een mailtje als er iets opvalt
 
-> ⏳ **Nog niet uitgevoerd.** Twee stappen, samen een kwartiertje. Kost niets.
+> ⏳ **Stand van zaken (12 september 2026).** Stap 1 is gedaan: er is een Resend-account op
+> `oomsmatthew@gmail.com` met een sleutel, en een testmail via die sleutel kwam met status 200
+> door. Het script staat **ingevuld** klaar op je Mac als `docs/meldingen-supabase.INGEVULD.sql`
+> (blijft lokaal; staat in `.gitignore` en gaat dus niet mee naar GitHub — de repo is openbaar).
+> Nog te doen: stap 2 (het script draaien), en als je de mail op je **werkadres** wil: het
+> domein koppelen, zie *Naar je werkadres* onderaan.
 
 ## Wat je krijgt
 
@@ -63,8 +68,10 @@ dan koppel je `entertainmentvm.be` (zie *Aanpassen* onderaan).
 
 ### Stap 2 — Het script draaien
 
-1. Open [meldingen-supabase.sql](meldingen-supabase.sql) en vul **bovenaan** de twee waarden
-   in: je mailadres en de sleutel uit stap 1. Laat de aanhalingstekens staan.
+1. Op je Mac staat `docs/meldingen-supabase.INGEVULD.sql` met de sleutel en het adres al
+   ingevuld — open dat bestand. (Op een andere computer: open
+   [meldingen-supabase.sql](meldingen-supabase.sql) en vul **bovenaan** de twee waarden zelf in;
+   laat de aanhalingstekens staan.)
 2. Ga naar je project op https://supabase.com → **SQL Editor** → **New query**.
 3. Plak het hele bestand en klik **Run**.
 4. Onderaan verschijnt een regel *Mail "🧪 Entertainment-app: testmail…" onderweg naar …*.
@@ -132,15 +139,7 @@ update meldingen.instellingen set weekmail = false;
 script — de regels met `like`. Pas ze aan en draai het hele script opnieuw (je twee waarden
 staan er dan nog in).
 
-**Ook naar collega's, of een eigen afzender.** Daarvoor moet Resend weten dat
-`entertainmentvm.be` van jou is: Resend → **Domains** → **Add domain** → de DNS-regels
-die ze tonen bij je domeinregistrar toevoegen (zelfde plek als in
-[EIGEN-DOMEIN.md](EIGEN-DOMEIN.md)). Daarna:
-```sql
-update meldingen.instellingen
-   set van  = 'Entertainment-app <meldingen@entertainmentvm.be>',
-       naar = 'jij@adres.be';   -- één adres; meerdere kan door de functie aan te passen
-```
+**Naar je werkadres of naar collega's:** zie de sectie *Naar je werkadres* hieronder.
 
 **Uitzetten** (alles blijft staan, er komt enkel geen mail meer):
 ```sql
@@ -155,6 +154,53 @@ drop schema meldingen cascade;
 ```
 
 ---
+
+## Naar je werkadres (matthew.ooms@groupepvp.com)
+
+Zolang er geen eigen domein aan Resend gekoppeld is, mag Resend **enkel naar het adres van je
+Resend-account** sturen — dat is je Gmail. Een proefzending naar het werkadres werd op
+12 september geweigerd met precies die melding (status 403). Er zijn drie wegen:
+
+**A. Het domein koppelen (aangeraden — eenmalig, daarna kan alles).** Dan mag Resend naar
+eender welk adres sturen, met een nette afzender zoals `meldingen@entertainmentvm.be`. Je DNS
+staat bij **Combell**.
+
+1. Resend → **Domains** → **Add Domain** → `entertainmentvm.be`. Kies als regio **Europe**.
+2. Resend toont dan drie of vier DNS-records: een **TXT** voor `resend._domainkey` (DKIM), een
+   **MX** en een **TXT** voor `send` (SPF), en een optionele **TXT** voor `_dmarc`. Laat dat
+   scherm open staan.
+3. Log in bij Combell → **Mijn Combell** → **Domeinnamen** → `entertainmentvm.be` →
+   **DNS-beheer**. Voeg de records één voor één toe, met exact de naam, het type en de waarde
+   uit het Resend-scherm. Let op: als Combell de naam automatisch aanvult met
+   `.entertainmentvm.be`, typ je enkel het deel ervoor (`resend._domainkey`, `send`, `_dmarc`).
+4. De mail die het domein nu al heeft (via mailprotect.be) blijft gewoon werken: de records van
+   Resend staan op de subnaam `send.` en raken het bestaande SPF- en MX-record van het domein
+   zelf niet aan. Verander die bestaande records dus **niet**.
+5. Terug in Resend: **Verify DNS Records**. Meestal groen binnen een half uur, soms duurt het
+   een paar uur.
+6. Daarna in de Supabase SQL Editor:
+   ```sql
+   update meldingen.instellingen
+      set van  = 'Entertainment-app <meldingen@entertainmentvm.be>',
+          naar = 'matthew.ooms@groupepvp.com';
+   select meldingen.verstuur(true);   -- meteen een testmail naar het werkadres
+   ```
+   Het adres `meldingen@…` hoeft niet echt te bestaan; het is enkel de afzender.
+
+**B. Snel, zonder DNS: een tweede Resend-account op je werkadres.** Meld je bij Resend aan met
+`matthew.ooms@groupepvp.com`, maak daar een nieuwe sleutel, en zet die in Supabase:
+```sql
+update meldingen.instellingen
+   set resend_sleutel = 're_NIEUWE_SLEUTEL',
+       naar           = 'matthew.ooms@groupepvp.com';
+select meldingen.verstuur(true);
+```
+Nadeel: bedrijfsmail filtert een afzender als `onboarding@resend.dev` al eens weg; kijk dus
+in je map Ongewenste e-mail of vraag IT om hem toe te laten.
+
+**C. Nog sneller: Gmail laten doorsturen.** Gmail → Instellingen → *Doorsturen en POP/IMAP* →
+*Een doorstuuradres toevoegen* → je werkadres bevestigen → filter op afzender
+`onboarding@resend.dev` → *Doorsturen naar*. De mail komt dan "via Gmail" op je werk aan.
 
 ## Wat het níét ziet
 

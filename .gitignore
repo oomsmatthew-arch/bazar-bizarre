@@ -1,2 +1,5 @@
 # Werkmateriaal / bron — staat lokaal, gaat NIET mee online
 _bron/
+
+# Ingevulde SQL-scripts met sleutels/wachtwoorden — enkel lokaal, nooit online
+docs/*.INGEVULD.sql
