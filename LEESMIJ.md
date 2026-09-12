@@ -290,6 +290,19 @@ gegevens ontbreken. Je ziet er:
 - **Versie & offline** — welke versie er draait en of de app offline klaarstaat. Met
   **🔄 Vernieuwen forceren** haal je de app opnieuw op (je gegevens blijven staan).
 
+## Meldingen per mail (als er iets opvalt)
+
+Wil je niet elke dag het logboek onder **Activiteit** doorbladeren, dan kan de database het
+voor je doen: elke ochtend kijkt Supabase zelf naar wat er sinds gisteren is gebeurd en mailt
+je **één overzichtje** als er iets opvalt — iets verwijderd, een wachtwoord of rol gewijzigd,
+activiteit midden in de nacht, een onbekende naam, opvallend veel wijzigingen van één
+persoon, of het logboek zelf dat gewist is. Niets opvallends? Dan geen mail, behalve op
+maandag: dan komt er altijd een weekoverzicht, zodat je weet dat het nog draait.
+
+Aan de app verandert er niets; het is één SQL-script plus een gratis account bij een
+mailverzenddienst. Het stappenplan staat in `docs/MELDINGEN.md`, het script in
+`docs/meldingen-supabase.sql`.
+
 ## Hoe de app opslaat (en waarom de opslag vol liep)
 
 Elk toestel houdt een volledige kopie bij, zodat alles offline werkt. Sinds **v3.0** staat
@@ -458,6 +471,8 @@ supabase.min.js → inventaris-data.js → inventaris.js → kern.js → eigen s
 - `BEVEILIGING.md` — de database op slot zetten met een gedeelde toegangscode
 - `beveiliging-supabase.sql` — hoort bij bovenstaande; `beveiliging-terugdraaien.sql` is de noodknop
 - `EIGEN-DOMEIN.md` — van het github.io-adres naar een eigen domeinnaam
+- `MELDINGEN.md` — elke ochtend een mailtje als er iets opvalt in het activiteitenlogboek
+- `meldingen-supabase.sql` — hoort bij bovenstaande; eenmalig uit te voeren in Supabase
 
 **`tests/` — controles op de opslag** (zie `tests/LEESMIJ.md`); handig na een wijziging.
 
