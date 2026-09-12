@@ -43,8 +43,14 @@ daardoor dezelfde opslag** op het toestel.
   af. Klopt er toch iets niet, dan pas je het aantal en de datum aan bij *Bewerken*. Vraag 1
   en 2 (backup) worden daar automatisch uit gevuld. Tik een andere vraag aan om ze in vak 1 te
   zetten; lang indrukken (of rechtsklikken) zet ze in vak 2. **↻ Opnieuw voorstellen** kiest
-  twee verse vragen. Sluit je het spel af, dan worden de gebruikte vragen afgevinkt en zakken
-  ze in de lijst — zo krijg je nooit twee keer kort na elkaar dezelfde.
+  twee verse vragen. Sluit je het spel af, dan telt de app de speelbeurt bij **uit het
+  doorgestuurde formulier zelf** (de vraag op de regel `V1:`) en zakt die vraag in de lijst —
+  zo krijg je nooit twee keer kort na elkaar dezelfde. Elk formulier telt precies één keer:
+  raakt een teller toch verouderd (bv. doordat een tablet met een oude kopie het gedeelde
+  document overschreef), dan zet de volgende start van de app ze weer recht — een vraag kan
+  nooit minder vaak of minder recent gespeeld staan dan de formulieren aantonen. Sinds v7.4;
+  daarvoor telde het spel op het id van de gekozen vraag, en klopte dat niet meer, dan ging
+  de speelbeurt verloren.
   - **🔒 Vragen beheren** (onderaan de lijst, met het beheer-wachtwoord): vragen toevoegen,
     aanpassen, de teller op nul zetten of verwijderen. Enkel het Nederlands invullen volstaat —
     de app vertaalt zelf naar Engels, Frans en Duits.

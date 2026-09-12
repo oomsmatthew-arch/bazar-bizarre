@@ -22,6 +22,8 @@ globalThis.draaiTimers=function(tot){
 };
 globalThis.navigator={onLine:true};
 async function rust(){ for(var i=0;i<80;i++) await Promise.resolve(); }
+// De wachtrij helemaal laten leeglopen (elke opdracht kost een paar beurten).
+async function verwerk(){ for(var i=0;i<60 && BBInv.pendingCount()>0;i++){ await rust(); draaiTimers(); } await rust(); }
 
 var fouten=0;
 function ok(v,wat){ if(!v){ fouten++; print('  ✗ '+wat); } else print('  ✓ '+wat); }
@@ -131,19 +133,25 @@ function namen(lijst){ return lijst.map(function(v){return v.vraag;}); }
   print('\n— Een ander scherm dat instellingen bewaart, wist de vragen niet —');
   // Zo doet pushConfig() in js/kern.js het: die schrijft zijn eigen sleutels weg.
   BBInv.saveConfig({mededeling:'Test',drempel:16,pin:'3920'});
-  await rust();
+  await verwerk();
   ok(BBInv.getFinalevragen().length===3,'de vragen staan er nog');
   ok(BBInv.getConfig().mededeling==='Test','en de mededeling is bewaard');
   var bewaard=(db.appconfig[0]||{}).data||{};
   ok((bewaard.finalevragen||[]).length===3,'ook in de database staan ze er allebei');
 
-  print('\n— De tellers overleven een herstart —');
-  var idNu=BBInv.gesorteerdeFinalevragen()[0].id;
-  BBInv.markeerFinalevraagGebruikt([idNu]);
-  await rust(); draaiTimers(); await rust();
+  print('\n— Een doorgestuurd formulier telt de speelbeurt bij, en die overleeft een herstart —');
+  // Het spel geeft geen id van de vraag meer door: het formulier zelf is de bron.
+  var bovenaan=BBInv.gesorteerdeFinalevragen()[0]; var idNu=bovenaan.id, keerVoor=bovenaan.keer||0;
+  var tsVoor=Date.now();
+  BBInv.submitFormulier({namen:'Test',kleine:[],groot:[],boekjes:{gereserveerd:0,extra:0,gratis:0},
+    finale:'',finalevraag:'V1: '+bovenaan.vraag+' → '+bovenaan.antwoord+'\nV2: Backup? → nee',opmerking:''});
+  var direct=BBInv.getFinalevragen().find(function(v){return v.id===idNu;});
+  ok(direct && direct.keer===keerVoor+1,'meteen na het doorsturen staat de teller één hoger ('+(keerVoor+1)+')');
+  ok(direct && direct.laatst>=tsVoor,'met de datum van het formulier');
+  await verwerk();
   await sessie(db);
   var na=BBInv.getFinalevragen().find(function(v){return v.id===idNu;});
-  ok(na && (na.keer||0)>=1,'de teller staat na het opnieuw opstarten nog op '+((na&&na.keer)||0));
+  ok(na && (na.keer||0)===keerVoor+1,'na het opnieuw opstarten staat ze daar nog — niet dubbel geteld');
   ok(BBInv.gesorteerdeFinalevragen()[0].id!==idNu,'en die vraag staat niet meer bovenaan');
 
   print('\n— De handmatig doorgegeven speelbeurten worden ingevuld —');
@@ -232,6 +240,77 @@ function namen(lijst){ return lijst.map(function(v){return v.vraag;}); }
   await sessie(db);
   var tijd2=zoek('time use institute');
   ok(tijd2 && tijd2.keer===1,'nog steeds 1× gespeeld');
+
+  print('\n— Zet een toestel met een oude kopie de teller terug, dan herstelt de volgende start ze —');
+  // Dit is wat er in september 2026 gebeurde: een formulier van 05/09 met de aardappel-vraag,
+  // maar de vraag bleef op "1× gespeeld, laatst 10/08" staan.
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  globalThis.FINALEVRAGEN_DEFAULT=[{vraag:'Vraag A?',antwoord:'a'},{vraag:'Vraag B?',antwoord:'b'}];
+  var db5=basisDB();
+  await sessie(db5);
+  var fA=BBInv.submitFormulier({namen:'X',kleine:[],groot:[],boekjes:{},finale:'',finalevraag:'V1: Vraag A? → a',opmerking:''});
+  await verwerk();
+  var vraagA=function(){ return BBInv.getFinalevragen().find(function(v){return v.vraag==='Vraag A?';}); };
+  ok(vraagA().keer===1,'na het doorsturen: 1× gespeeld');
+  // Een ander toestel, met een kopie van vóór dit spel, schreef het hele document weg.
+  var doc=db5.appconfig[0].data;
+  doc.finalevragen.forEach(function(v){ v.keer=0; v.laatst=0; });
+  delete doc.finalevragenGeteld[fA.id];
+  await sessie(db5);
+  ok(vraagA().keer===1,'na een nieuwe start staat de teller weer op 1');
+  ok(vraagA().laatst===fA.ts,'met de datum van het formulier');
+  await verwerk();
+  await sessie(db5);
+  ok(vraagA().keer===1,'en nog een start telt niet dubbel');
+
+  print('\n— Instellingen bewaren vanaf een toestel met een oude kopie wist de tellers niet —');
+  // Dit toestel is gestart; daarna telt een ANDERE tablet een spel bij (rechtstreeks in de database).
+  var docB=db5.appconfig[0].data;
+  docB.finalevragen.forEach(function(v){ if(v.vraag==='Vraag B?'){ v.keer=7; v.laatst=123456; } });
+  docB.finalevragenGeteld['f-ander']=1;
+  BBInv.saveConfig({mededeling:'Hallo'});   // zoals pushConfig() in kern.js dat doet
+  await verwerk();
+  var bewaardB=db5.appconfig[0].data;
+  var bB=bewaardB.finalevragen.find(function(v){return v.vraag==='Vraag B?';});
+  ok(bB && bB.keer===7 && bB.laatst===123456,'de teller van de andere tablet staat er nog (7×)');
+  ok(bewaardB.finalevragenGeteld['f-ander']===1,'net als haar teloverzicht');
+  ok(bewaardB.mededeling==='Hallo','en de mededeling is wél bewaard');
+
+  print('\n— De tellers kunnen niet achterlopen op de formulieren (herstel bij het opstarten) —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var db6=basisDB();
+  var tAug=new Date(2026,7,10,22,0).getTime(), tSep=new Date(2026,8,5,22,41).getTime();
+  var AARD='De eerste aardappelen kwamen vanuit Zuid-Amerika naar Europa, maar wanneer was dat volgens Wikipedia?';
+  db6.formulieren=[{id:'f-sep',ts:tSep,namen:'Billy en Lien',kleine:[],groot:[],boekjes:{},opmerking:'',finale:'',
+    finalevraag:'V1: '+AARD+' → 1536'}];
+  // Het document zoals het in de database stond: al "geleerd", maar de speelbeurt van 05/09 ontbreekt.
+  db6.appconfig=[{id:1,data:{finalevragenGeleerd:true,finalevragenBeurten:true,finalevragen:[
+    {id:'q-aard',vraag:AARD,antwoord:'1536',keer:1,laatst:tAug},
+    {id:'q-bf',vraag:'Wanneer valt Black Friday?',antwoord:'27 november',keer:0,laatst:0}]}}];
+  await sessie(db6);
+  var aardR=function(){ return BBInv.getFinalevragen().find(function(v){return v.id==='q-aard';}); };
+  ok(aardR().laatst===tSep,'de aardappel-vraag staat op laatst 05/09/2026 (was 10/08)');
+  ok(aardR().keer===1,'en blijft op 1× — één formulier bewijst niet meer dan dat');
+  ok(BBInv.gesorteerdeFinalevragen()[0].id==='q-bf','Black Friday (nooit gespeeld) staat bovenaan');
+  await verwerk();
+  ok((db6.appconfig[0].data.finalevragenGeteld||{})['f-sep']===1,'het formulier staat als geteld in de database');
+  // Een later formulier met dezelfde vraag, van een tablet die de telling niet haalde.
+  db6.formulieren.push({id:'f-sep2',ts:tSep+7*86400000,namen:'Z',kleine:[],groot:[],boekjes:{},opmerking:'',finale:'',
+    finalevraag:'V1: '+AARD+' → 1536'});
+  await sessie(db6);
+  ok(aardR().keer===2,'een formulier dat nog niet geteld was, telt bij de volgende start alsnog mee (2×)');
+  ok(aardR().laatst===tSep+7*86400000,'met de nieuwste datum');
+
+  print('\n— Een vraag over meerdere regels wordt herkend —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var db7=basisDB();
+  db7.appconfig=[{id:1,data:{finalevragenGeleerd:true,finalevragenBeurten:true,finalevragen:[
+    {id:'q-2r',vraag:'Regel één,\nregel twee?',antwoord:'ja',keer:0,laatst:0}]}}];
+  db7.formulieren=[{id:'f-2r',ts:5000,namen:'Q',kleine:[],groot:[],boekjes:{},opmerking:'',finale:'',
+    finalevraag:'V1: Regel één,\nregel twee? → ja\nV2: Backup? → nee'}];
+  await sessie(db7);
+  var q2=BBInv.getFinalevragen().find(function(v){return v.id==='q-2r';});
+  ok(q2 && q2.keer===1 && q2.laatst===5000,'de vraag met een regelovergang telt gewoon mee');
 
   print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');
 })();

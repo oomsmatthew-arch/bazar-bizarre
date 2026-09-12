@@ -7,6 +7,10 @@
 // niet gebeuren — maar geeft, net als de echte database, GEEN foutmelding terug. Je krijgt
 // "gelukt, 0 rijen". Precies dat verschil maakte dat verwijderde prijzen terugkwamen.
 function maakNepSupabase(db,ontbrekend,kolomWeg,weiger){
+  // Net als de echte database geeft ze KOPIEËN terug en bewaart ze KOPIEËN: wat de app
+  // daarna in haar geheugen verandert, staat niet vanzelf ook in de database — en omgekeerd.
+  // Zo kan een test "een ander toestel" nabootsen door rechtstreeks in db te schrijven.
+  function kopie(x){ return x===undefined?undefined:JSON.parse(JSON.stringify(x)); }
   ontbrekend=ontbrekend||{};       // tabellen die "nog niet bestaan"
   kolomWeg=kolomWeg||{};           // kolommen die "nog niet bestaan", per tabel
   weiger=weiger||{};               // stil geweigerde bewerkingen, per tabel
@@ -69,21 +73,21 @@ function maakNepSupabase(db,ontbrekend,kolomWeg,weiger){
     if(st.soort==='select'){
       let rijen=t.filter(function(r){return past(r,st.filters);});
       if(st.limiet) rijen=rijen.slice(0,st.limiet);
-      if(st.single) return {data:rijen[0]||null,error:null};
-      return {data:rijen.map(function(r){return Object.assign({},r);}),error:null};
+      if(st.single) return {data:kopie(rijen[0])||null,error:null};
+      return {data:rijen.map(kopie),error:null};
     }
     const lijst=Array.isArray(st.payload)?st.payload:[st.payload];
-    if(st.soort==='insert'){ lijst.forEach(function(r){ t.push(Object.assign({},r)); }); return {data:lijst,error:null}; }
+    if(st.soort==='insert'){ lijst.forEach(function(r){ t.push(kopie(r)); }); return {data:lijst,error:null}; }
     if(st.soort==='upsert'){
       lijst.forEach(function(r){
         const i=t.findIndex(function(x){return x.id===r.id;});
-        if(i>=0) t[i]=Object.assign({},r); else t.push(Object.assign({},r));
+        if(i>=0) t[i]=kopie(r); else t.push(kopie(r));
       });
       return {data:lijst,error:null};
     }
     if(st.soort==='update'){
       const geraakt=[];
-      t.forEach(function(r,i){ if(past(r,st.filters)){ t[i]=Object.assign({},r,st.payload); geraakt.push(Object.assign({},t[i])); } });
+      t.forEach(function(r,i){ if(past(r,st.filters)){ t[i]=Object.assign({},r,kopie(st.payload)); geraakt.push(kopie(t[i])); } });
       return {data:st.terug?geraakt:null,error:null};
     }
     if(st.soort==='delete'){

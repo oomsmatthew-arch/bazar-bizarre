@@ -120,11 +120,12 @@ async function verwerk(){ await rust(); draaiTimers(); await rust(); }
   var db3=basisDB();
   await sessie(db3);
   BBInv.saveConfig({finalevragen:[
-    {id:'v1',vraag:'Hoeveel ballonnen?',antwoord:'42',keer:1,laatst:1000},
+    {id:'v1',vraag:'Hoeveel ballonnen?',antwoord:'42',keer:0,laatst:0},
     {id:'v2',vraag:'Hoofdstad van Frankrijk?',antwoord:'Parijs',keer:0,laatst:0}]});
   var f3=BBInv.submitFormulier({namen:'Test',kleine:[],groot:[],
     boekjes:{gereserveerd:0,extra:0,gratis:0},finale:'',finalevraag:'V1: Hoeveel ballonnen? → 42',opmerking:''});
   await verwerk();
+  ok(BBInv.getFinalevragen().find(function(x){return x.id==='v1';}).keer===1,'doorsturen telt de gestelde vraag bij');
   BBInv.updateFormulier(f3.id,{finalevraag:'V1: Hoofdstad van Frankrijk? → Parijs'});
   await verwerk();
   var bank=BBInv.getFinalevragen();

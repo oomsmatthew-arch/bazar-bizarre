@@ -407,6 +407,20 @@
     if(i<0) return false;              // stond er al niet meer → niets weggooien
     outbox.splice(i,1); saveOutbox(); return true;
   }
+  // Het gedeelde instellingen-document (appconfig) is één rij die elk scherm in zijn geheel
+  // wegschrijft. Vroeger won dus altijd wie het LAATST schreef — ook een tablet die al uren
+  // geen wijzigingen meer had binnengekregen. Zo raakte een speelbeurt van de finalevraag
+  // zoek: de ene tablet telde ze bij, een ander toestel (met een oude kopie) bewaarde daarna
+  // zijn instellingen en zette de teller onbedoeld terug. Nu halen we vlak vóór het
+  // versturen de huidige stand op en leggen we daar enkel onze eigen sleutels overheen.
+  // Geeft de database een foutmelding (bv. de tabel bestaat nog niet), dan sturen we wat we
+  // hadden — net als vroeger.
+  async function mergeAppconfig(op){
+    const r=await withTimeout(sb.from('appconfig').select('data').eq('id',1).maybeSingle(),12000);
+    if(!r || r.error) return;
+    const server=(r.data && r.data.data && typeof r.data.data==='object') ? r.data.data : {};
+    op.payload={id:1,data:Object.assign({},server,op.patch)};
+  }
   async function flushOutbox(){
     if(flushing||!sb||!outbox.length) return;
     if(typeof navigator!=='undefined' && navigator.onLine===false) return;
@@ -424,6 +438,10 @@
       while(outbox.length){
         const op=outbox[0]; let res, netErr=false;
         try{
+          // Het gedeelde instellingen-document: eerst de huidige stand ophalen en daar
+          // enkel onze eigen sleutels op leggen (zie mergeAppconfig). Valt het netwerk
+          // hier weg, dan gooit dit en blijft de opdracht netjes in de wachtrij.
+          if(op.op==='upsert' && op.table==='appconfig' && op.patch && typeof op.patch==='object') await mergeAppconfig(op);
           const q=sb.from(op.table); let call;
           if(op.op==='insert') call=q.insert(op.payload);
           else if(op.op==='upsert') call=q.upsert(op.payload);
@@ -722,6 +740,7 @@
       zaaiFinalevragen();    // eenmalig de startlijst met finalevragen plaatsen
       leerUitFormulieren();  // tellers bijwerken met wat er al ingezonden is
       vulOudeSpeelbeurten(); // en met de handmatig doorgegeven speelbeurten
+      telFormulierenBij();   // en elk formulier dat nog niet in de tellers zit (zelfherstellend)
     }
     normalizeInGebruik(); // prijzen op 0 die nog "in gebruik" stonden opschonen + syncen
     subscribe();
@@ -1467,10 +1486,15 @@
   // SAMENVOEGEN, niet vervangen. Verschillende schermen bewaren elk hun eigen stukje
   // instellingen; wie het hele document zou overschrijven, gooit de rest weg (zo zou
   // pushConfig() in kern.js de vragenbank hieronder wissen).
+  // 'patch' = enkel de sleutels die dít scherm nu wijzigt. Bij het versturen wordt die op
+  // de stand van de database gelegd (zie mergeAppconfig), zodat een toestel met een
+  // verouderde kopie nooit de stukken van een ander overschrijft — bv. de tellers van de
+  // vragenbank die een andere tablet net bijwerkte.
   function saveConfig(obj){
     cache.appconfig=Object.assign({},cache.appconfig||{},obj||{});
     try{localStorage.setItem('bb_appconfig',JSON.stringify(cache.appconfig));}catch(e){}
-    if(appconfigOK) dbUpsert('appconfig',{id:1,data:cache.appconfig}); else persistCache();
+    if(appconfigOK) enqueue({op:'upsert',table:'appconfig',payload:{id:1,data:cache.appconfig},patch:Object.assign({},obj||{})});
+    else persistCache();
   }
 
   // ---------------- FINALEVRAGEN (gedeelde vragenbank) ----------------
@@ -1481,7 +1505,19 @@
     const c=cache.appconfig;
     return (c && Array.isArray(c.finalevragen)) ? c.finalevragen : null;
   }
-  function _bewaarVragen(lijst){ saveConfig({finalevragen:lijst}); }
+  // De vragen en het overzicht van getelde formulieren (zie telFormulierenBij) gaan
+  // altijd SAMEN naar de database: raakt het ene verouderd, dan het andere ook — en dan
+  // kan de telling zichzelf herstellen.
+  function _bewaarVragen(lijst,geteld){
+    const patch={finalevragen:lijst};
+    const g=geteld||_geteld(); if(g) patch.finalevragenGeteld=g;
+    saveConfig(patch);
+  }
+  // Welke formulieren al in de tellers verrekend zijn: formulier-id → 1.
+  function _geteld(){
+    const c=cache.appconfig; const g=c&&c.finalevragenGeteld;
+    return (g && typeof g==='object' && !Array.isArray(g)) ? g : null;
+  }
   // Eén keer de startlijst plaatsen als er nog niets staat.
   function zaaiFinalevragen(){
     if(_vragenLijst()) return false;
@@ -1558,33 +1594,105 @@
     const i=fin.indexOf(VRAAG_MARKER);
     return i>=0 ? fin.slice(i+VRAAG_MARKER.length) : '';
   }
-  // De vraag die in een formulier écht gesteld is: de eerste regel (V1). De tweede is de
-  // backup en telt nooit mee.
-  function _eersteVraagVan(f){
-    const tekst=_vraagUitFormulier(f); if(!tekst) return '';
-    const regel=String(tekst).split('\n')[0]||'';
-    const kaal=regel.replace(/^\s*V\d+\s*:\s*/,'').trim(); if(!kaal) return '';
-    return (kaal.split('→')[0]||'').trim();
+  // De vraag die in een formulier écht gesteld is: V1, alles tot aan de backup (V2). Een
+  // vraag mag zelf over meerdere regels lopen. De backup telt nooit mee.
+  function _eersteRegel(f){
+    const tekst=String(_vraagUitFormulier(f)||''); if(!tekst) return '';
+    const i=tekst.search(/\n\s*V2\s*:/i);
+    return (i>=0?tekst.slice(0,i):tekst).replace(/^\s*V\d+\s*:\s*/,'').trim();
   }
+  function _eersteVraagVan(f){ const r=_eersteRegel(f); return r?(r.split('→')[0]||'').trim():''; }
+  function _eersteAntwoordVan(f){ const r=_eersteRegel(f); const i=r.indexOf('→'); return i>=0?r.slice(i+1).trim():''; }
+  function _vraagRec(lijst,tekst){ const s=_normVraag(tekst); return s?(lijst.find(x=>_normVraag(x.vraag)===s)||null):null; }
   // Een verwijderd formulier terugdraaien in de telling.
   function telFormulierAf(f){
-    const lijst=_vragenLijst(); if(!lijst) return;
-    const v=_eersteVraagVan(f); if(!v) return;
-    const sleutel=_normVraag(v);
-    const rec=lijst.find(x=>_normVraag(x.vraag)===sleutel); if(!rec) return;
-    rec.keer=Math.max(0,(rec.keer||0)-1);
-    // 'laatst' opnieuw bepalen uit de formulieren die er nog wél zijn.
-    let nieuwste=0;
-    (cache.formulieren||[]).forEach(g=>{
-      if(_normVraag(_eersteVraagVan(g))!==sleutel) return;
-      if((g.ts||0)>nieuwste) nieuwste=g.ts||0;
-    });
-    if(nieuwste) rec.laatst=nieuwste;
-    else if(!rec.keer) rec.laatst=0;
-    // Blijft de teller boven nul zonder formulier (bv. een speelbeurt van vóór deze
-    // versie), dan laten we de datum staan — beter dan hem op "nooit" zetten. Corrigeren
-    // kan met de hand via Vragen beheren.
-    _bewaarVragen(lijst);
+    const lijst=_vragenLijst(); if(!lijst||!f) return;
+    const geteld=_geteld();
+    // Nooit meegeteld? Dan valt er ook niets terug te draaien. (Zonder overzicht — een
+    // document van vóór deze versie — gaan we ervan uit dat het wél geteld was.)
+    if(geteld && !geteld[f.id]) return;
+    if(geteld) delete geteld[f.id];
+    const v=_eersteVraagVan(f); const rec=_vraagRec(lijst,v);
+    if(rec){
+      rec.keer=Math.max(0,(rec.keer||0)-1);
+      // 'laatst' opnieuw bepalen uit de formulieren die er nog wél zijn (en meetellen).
+      const sleutel=_normVraag(v); let nieuwste=0;
+      (cache.formulieren||[]).forEach(g=>{
+        if(g.id===f.id || (geteld && !geteld[g.id])) return;
+        if(_normVraag(_eersteVraagVan(g))!==sleutel) return;
+        if((g.ts||0)>nieuwste) nieuwste=g.ts||0;
+      });
+      if(nieuwste) rec.laatst=nieuwste;
+      else if(!rec.keer) rec.laatst=0;
+      // Blijft de teller boven nul zonder formulier (bv. een speelbeurt van vóór deze
+      // versie), dan laten we de datum staan — beter dan hem op "nooit" zetten. Corrigeren
+      // kan met de hand via Vragen beheren.
+    }
+    _bewaarVragen(lijst,geteld);
+  }
+  // ELK FORMULIER TELT ZICHZELF. Vroeger telde het spel de speelbeurt bij op het moment van
+  // doorsturen, op het id van de gekozen vraag. Dat ging op twee manieren mis:
+  //  1. Klopte dat id niet meer (vraag zelf getypt of aangepast, sessie hersteld, een
+  //     verouderde lijst op de tablet), dan stond de vraag wél in het formulier maar telde
+  //     ze niet mee. De vraag bleef "laatst 10/08" terwijl ze op 05/09 nog gesteld was.
+  //  2. Een ander toestel met een oude kopie van het document kon de teller daarna
+  //     weer terugzetten (zie mergeAppconfig).
+  // Nu is het formulier zelf de bron: we houden per formulier-id bij of het al verrekend
+  // is. Dat mag zo vaak je wil (bij elke start, na elk doorsturen): wat al geteld is,
+  // telt niet nog eens. En raakt een teller toch verouderd, dan staat het formulier er
+  // nog en telt het bij de volgende start alsnog mee.
+  function _telBij(f,lijst,geteld){
+    if(!f||!f.id||geteld[f.id]) return false;
+    geteld[f.id]=1;
+    const v=_eersteVraagVan(f); if(!v) return true;   // geen vraag: enkel als "gezien" noteren
+    let rec=_vraagRec(lijst,v);
+    // Zelf getypte vraag die nog niet in de bank staat? Dan hoort ze er vanaf nu wél in —
+    // anders stelt de app ze de volgende keer gewoon opnieuw voor.
+    if(!rec){ rec={id:uid(),vraag:v,antwoord:_eersteAntwoordVan(f),keer:0,laatst:0}; lijst.push(rec); }
+    rec.keer=(rec.keer||0)+1;
+    if((f.ts||0)>(rec.laatst||0)) rec.laatst=f.ts||0;
+    return true;
+  }
+  // 'zonder' (optioneel): één formulier-id overslaan — zie telFormulierBij.
+  function telFormulierenBij(zonder){
+    const lijst=_vragenLijst(); if(!lijst) return 0;
+    let geteld=_geteld(), raak=0, veranderd=false;
+    if(!geteld){
+      // Eerste keer (of het overzicht raakte zoek): alles wat er staat geldt als geteld —
+      // die speelbeurten zaten al in de tellers. Maar een teller kan nooit LAGER staan dan
+      // wat de formulieren bewijzen: minstens zo vaak gespeeld, en minstens zo recent.
+      // Precies zo wordt een verloren speelbeurt alsnog rechtgezet.
+      geteld={}; const per={};
+      (cache.formulieren||[]).forEach(f=>{
+        if(!f||!f.id||f.id===zonder) return;
+        geteld[f.id]=1;
+        const rec=_vraagRec(lijst,_eersteVraagVan(f)); if(!rec) return;
+        const p=per[rec.id]||(per[rec.id]={n:0,laatst:0});
+        p.n++; if((f.ts||0)>p.laatst) p.laatst=f.ts||0;
+      });
+      lijst.forEach(rec=>{
+        const p=per[rec.id]; if(!p) return;
+        if((rec.keer||0)<p.n){ rec.keer=p.n; raak++; }
+        if((rec.laatst||0)<p.laatst){ rec.laatst=p.laatst; raak++; }
+      });
+      veranderd=true;
+    } else {
+      (cache.formulieren||[]).forEach(f=>{ if(f&&f.id!==zonder&&_telBij(f,lijst,geteld)){ veranderd=true; if(_eersteVraagVan(f)) raak++; } });
+    }
+    if(veranderd) _bewaarVragen(lijst,geteld);
+    if(raak) console.log('Finalevragen: '+raak+' speelbeurt(en) uit formulieren bijgeteld.');
+    return raak;
+  }
+  // Eén (net ingezonden) formulier meetellen.
+  function telFormulierBij(f){
+    const lijst=_vragenLijst(); if(!lijst||!f) return false;
+    let geteld=_geteld();
+    // Nog geen overzicht (document van vóór deze versie)? Eerst de bestaande formulieren
+    // als geteld noteren — zónder dit nieuwe — en het dan gewoon bijtellen.
+    if(!geteld){ telFormulierenBij(f.id); geteld=_geteld(); if(!geteld) return false; }
+    if(!_telBij(f,lijst,geteld)) return false;
+    _bewaarVragen(lijst,geteld);
+    return true;
   }
   function leerUitFormulieren(){
     const c=cache.appconfig;
@@ -1593,11 +1701,9 @@
     const opNaam={}; lijst.forEach(v=>{ opNaam[_normVraag(v.vraag)]=v; });
     let raak=0;
     (cache.formulieren||[]).forEach(f=>{
-      // Alleen de EERSTE regel (V1) telt — zie _eersteVraagVan.
+      // Alleen de EERSTE vraag (V1) telt — zie _eersteVraagVan.
       const v=_eersteVraagVan(f); if(!v) return;
-      const eerste=(String(_vraagUitFormulier(f)).split('\n')[0]||'').replace(/^\s*V\d+\s*:\s*/,'');
-      const d=eerste.split('→');
-      const a=d.length>1?d.slice(1).join('→').trim():'';
+      const a=_eersteAntwoordVan(f);
       const sleutel=_normVraag(v);
       let rec=opNaam[sleutel];
       if(!rec){ rec={id:uid(),vraag:v,antwoord:a,keer:0,laatst:0}; lijst.push(rec); opNaam[sleutel]=rec; }
@@ -1637,13 +1743,11 @@
     if(raak) console.log('Finalevragen: '+raak+' eerdere speelbeurt(en) ingevuld.');
     return raak;
   }
-  // Aanvinken dat een vraag gespeeld is — dit stuurt de volgorde voor de volgende keer.
-  function markeerFinalevraagGebruikt(ids){
-    const lijst=_vragenLijst(); if(!lijst) return;
-    const nu=Date.now(); let raak=0;
-    (ids||[]).forEach(id=>{ const r=lijst.find(x=>x.id===id); if(r){ r.keer=(r.keer||0)+1; r.laatst=nu; raak++; } });
-    if(raak) _bewaarVragen(lijst);
-  }
+  // Vroeger vinkte het spel hier zelf aan dat een vraag gespeeld was. Dat gebeurt nu vanuit
+  // het formulier (submitFormulier → telFormulierBij), zie de uitleg bij _telBij. Blijft
+  // bestaan zodat een oudere, nog gecachete versie van het spel er niet over struikelt —
+  // maar telt niets meer bij, anders telde die versie de speelbeurt dubbel.
+  function markeerFinalevraagGebruikt(){ }
   // ---------------- SPEL-ARCHIEF (gedeeld document) ----------------
   const getArchief=()=>cache.spelarchief;
   function saveArchief(arr){
@@ -1785,6 +1889,9 @@
     if(finalevraagOK) rij.finalevraag=rec.finalevraag;
     else if(rec.finalevraag) rij.finale=[rec.finale,VRAAG_MARKER+rec.finalevraag].filter(Boolean).join(' — ');
     dbInsert('formulieren',rij);
+    // De speelbeurt van de finalevraag meteen verrekenen in de vragenbank — uit het
+    // formulier zelf, niet uit wat het spel dácht gekozen te hebben (zie _telBij).
+    telFormulierBij(rec);
     logAct('Spel afgesloten / formulier ingezonden'+(rec.namen?': '+rec.namen:''));
     return rec;
   }
@@ -2142,7 +2249,7 @@
     getConfig,saveConfig,isConfigGedeeld:()=>appconfigOK,
     getFinalevragen,gesorteerdeFinalevragen,addFinalevraag,updateFinalevraag,
     removeFinalevraag,markeerFinalevraagGebruikt,zaaiFinalevragen,leerUitFormulieren,
-    vulOudeSpeelbeurten,
+    vulOudeSpeelbeurten,telFormulierenBij,telFormulierBij,
     getArchief,saveArchief,isArchiefGedeeld:()=>spelarchiefOK,
     getSessies,getSessiesFresh,pushSessie,
     pendingCount,flushOutbox,

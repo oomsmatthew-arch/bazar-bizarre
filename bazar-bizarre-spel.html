@@ -2170,9 +2170,9 @@ document.getElementById('fDoorsturen').onclick=async()=>{
     finalevraag:fvEl.value.trim(),
     opmerking:document.getElementById('fOpm').value.trim()};
   bbSetActor(); // zorg dat de juiste naam in het activiteitenlog komt
-  // Enkel VRAAG 1 telt mee: vak 2 is de backup en wordt normaal niet gesteld. Zou die ook
-  // meetellen, dan zakte een vraag in de lijst zonder dat ze ooit gespeeld is.
-  if(BBInv.markeerFinalevraagGebruikt) BBInv.markeerFinalevraagGebruikt([(state.vraagIds||[])[0]].filter(Boolean));
+  // De speelbeurt van de finalevraag wordt bij het doorsturen uit het formulier zelf
+  // geteld (enkel VRAAG 1 — vak 2 is de backup). Vroeger gebeurde dat hier apart, op het
+  // id van de gekozen vraag; klopte dat id niet meer, dan telde de vraag niet mee.
   const rec=BBInv.submitFormulier(f);
   laatsteEigenFormulier=rec?rec.id:null;   // hier hoort 'Ongedaan maken' bij, en aan niets anders
   onthoudNaam(namen);
@@ -2276,7 +2276,9 @@ async function changePin(){
     maxlengte:8, controle:v=>v===n?'':'Dat is niet dezelfde code. Probeer opnieuw.'});
   if(n2===null) return;
   localStorage.setItem(PINKEY,n);
-  if(window.BBInv&&BBInv.saveConfig){ BBInv.saveConfig(Object.assign({},BBInv.getConfig()||{},{pin:n})); }
+  // Enkel de pincode meegeven: saveConfig voegt zelf samen, en zo overschrijft dit toestel
+  // nooit de rest van het gedeelde document met een mogelijk verouderde kopie.
+  if(window.BBInv&&BBInv.saveConfig){ BBInv.saveConfig({pin:n}); }
   bbToon('Pincode gewijzigd.');
 }
 
