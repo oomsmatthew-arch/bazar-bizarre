@@ -44,8 +44,7 @@
         <button class="btn primary" id="wuNieuw">＋ Werktijden toevoegen</button>
         <button class="btn" id="wuContract">⚙ Contracturen</button>
         <button class="btn" id="wuKopieer">📋 Kopieer maand</button>
-        <button class="btn" id="wuCsv">⬇ CSV</button>
-        <button class="btn" id="wuExcel" title="Een echte Excel-tabel met dikgedrukte koppen, nette kolommen en een balkje per dag in de urenkolom">📊 Excel-overzicht</button>
+        <button class="btn" id="wuExcel" title="Een echte Excel-tabel met dikgedrukte koppen, nette kolommen, weektotalen en een balkje per dag in de urenkolom">📊 Excel-overzicht</button>
       </div>
 
       <div class="invtabs" id="wuTabs">
@@ -567,15 +566,39 @@ async function vraagContract(){
 }
 
 // ---------------- UITVOER (om naast je loonfiche te leggen) ----------------
+// Per week gegroepeerd — zelfde maandag-tot-zondag-indeling als de lijstweergave — met
+// een weektotaal na elke week, en daaronder de vertrouwde totalen per soort + de maand.
+// Loopt een week over de maandgrens, dan staat het volledige weektotaal (met de dagen
+// van de buurmaand erbij) in de Opmerking-kolom van die weekrij zodra dat verschilt —
+// anders lijkt het net of je die week te weinig werkte.
+function weekGroepen(maand){
+  const groepen=new Map();
+  maand.forEach(w=>{
+    const d=datumVan(w.datum); if(!d) return;
+    const sleutel=isoVan(maandagVan(d));
+    if(!groepen.has(sleutel)) groepen.set(sleutel,[]);
+    groepen.get(sleutel).push(w);
+  });
+  return Array.from(groepen.keys()).sort().map(sleutel=>({sleutel,maandag:datumVan(sleutel),rijen:groepen.get(sleutel)}));
+}
+function heleWeekMinuten(sleutel){
+  const zo=isoVan(new Date(datumVan(sleutel).getFullYear(),datumVan(sleutel).getMonth(),datumVan(sleutel).getDate()+6));
+  return somMinuten(mijnUren().filter(w=>w.datum>=sleutel&&w.datum<=zo));
+}
 function maandRijen(){
   const rijen=[['Datum','Dag','Categorie','Start','Einde','Pauze af','Uren','Uren (decimaal)','Opmerking']];
   const maand=urenVanMaand();
-  maand.forEach(w=>{
-    const d=datumVan(w.datum);
-    const bruto=w.soort==='gewerkt'?brutoMinuten(w.start,w.einde):null;
-    const pauzeAf=(w.soort==='gewerkt'&&w.pauze&&bruto!=null&&bruto>=PAUZE_VANAF)?(PAUZE_MIN+' min'):'—';
-    rijen.push([w.datum, d?DAGEN[d.getDay()]:'', soortNaam(w.soort), w.start||'', w.einde||'',
-      pauzeAf, fmtDuur(w.minuten), fmtDecimaal(w.minuten), w.opmerking||'']);
+  weekGroepen(maand).forEach(week=>{
+    week.rijen.forEach(w=>{
+      const d=datumVan(w.datum);
+      const bruto=w.soort==='gewerkt'?brutoMinuten(w.start,w.einde):null;
+      const pauzeAf=(w.soort==='gewerkt'&&w.pauze&&bruto!=null&&bruto>=PAUZE_VANAF)?(PAUZE_MIN+' min'):'—';
+      rijen.push([w.datum, d?DAGEN[d.getDay()]:'', soortNaam(w.soort), w.start||'', w.einde||'',
+        pauzeAf, fmtDuur(w.minuten), fmtDecimaal(w.minuten), w.opmerking||'']);
+    });
+    const totaal=somMinuten(week.rijen), heleWeek=heleWeekMinuten(week.sleutel);
+    const opm=heleWeek!==totaal?('hele week: '+fmtDuur(heleWeek)):'';
+    rijen.push(['Week '+weekNr(week.maandag)+' ('+weekBereik(week.maandag)+')','','','','','',fmtDuur(totaal),fmtDecimaal(totaal),opm]);
   });
   rijen.push([]);
   SOORTEN.forEach(s=>{ const m=perSoort(maand,s.key); if(m) rijen.push(['Totaal '+s.naam,'','','','','',fmtDuur(m),fmtDecimaal(m),'']); });
@@ -586,10 +609,6 @@ function maandRijen(){
 function kopieerMaand(){
   if(!urenVanMaand().length){ bbToon('Deze maand is nog leeg.'); return; }
   copyText(rowsToTSV(maandRijen()));
-}
-function csvMaand(){
-  if(!urenVanMaand().length){ bbToon('Deze maand is nog leeg.'); return; }
-  dl('werkuren-'+toonMaand.getFullYear()+'-'+p2(toonMaand.getMonth()+1)+'.csv', rowsToCSV(maandRijen()));
 }
 
 // ---- Excel-overzicht (.xlsx): een echt Excel-bestand met opmaak i.p.v. een ruwe CSV —
@@ -649,35 +668,44 @@ function xlsxMaand(){
   r++;
   rijenXml+='<row r="'+r+'">'+kop.map(function(k,i){return wuXCellText(xlsxKolom(i)+r,1,k);}).join('')+'</row>';
   r++;
-  const dataStart=r;
-  maand.forEach(function(w){
-    const d=datumVan(w.datum);
-    const dag=d?DAGEN[d.getDay()]:'';
-    const bruto=w.soort==='gewerkt'?brutoMinuten(w.start,w.einde):null;
-    const pauzeAf=(w.soort==='gewerkt'&&w.pauze&&bruto!=null&&bruto>=PAUZE_VANAF)?(PAUZE_MIN+' min'):'—';
-    const serial=xlsxDatum(w.datum);
-    let c='';
-    c+= serial!=null ? wuXCellNum('A'+r,4,serial) : wuXCellText('A'+r,2,w.datum);
-    c+=wuXCellText('B'+r,3,dag);
-    c+=wuXCellText('C'+r,2,soortNaam(w.soort));
-    c+=wuXCellText('D'+r,3,w.start||'');
-    c+=wuXCellText('E'+r,3,w.einde||'');
-    c+=wuXCellText('F'+r,3,pauzeAf);
-    c+=wuXCellNum('G'+r,5,(+w.minuten||0)/1440);
-    c+=wuXCellNum('H'+r,6,+(((+w.minuten||0)/60).toFixed(4)));
-    c+=wuXCellText('I'+r,2,w.opmerking||'');
-    rijenXml+='<row r="'+r+'">'+c+'</row>';
-    r++;
-  });
-  const dataEnd=r-1;
-  function totaalRij(label,minuten){
+  function totaalRij(label,minuten,opm){
     let c=wuXCellText('A'+r,7,label)+
       'BCDEF'.split('').map(function(k){return '<c r="'+k+r+'" s="7"/>';}).join('')+
       wuXCellNum('G'+r,8,minuten/1440)+
       wuXCellNum('H'+r,9,+((minuten/60).toFixed(4)))+
-      '<c r="I'+r+'" s="7"/>';
+      wuXCellText('I'+r,7,opm||'');
     rijenXml+='<row r="'+r+'">'+c+'</row>'; r++;
   }
+  // Per week (maandag t/m zondag, zelfde indeling als de lijstweergave), met een
+  // weektotaal na elke week — de gegevensbalk loopt enkel over de echte dagen, dus per
+  // week apart (anders trekt de weekrij zelf, veel groter dan een dag, alle balkjes plat).
+  const dataBarRanges=[];
+  weekGroepen(maand).forEach(function(week){
+    const dataStart=r;
+    week.rijen.forEach(function(w){
+      const d=datumVan(w.datum);
+      const dag=d?DAGEN[d.getDay()]:'';
+      const bruto=w.soort==='gewerkt'?brutoMinuten(w.start,w.einde):null;
+      const pauzeAf=(w.soort==='gewerkt'&&w.pauze&&bruto!=null&&bruto>=PAUZE_VANAF)?(PAUZE_MIN+' min'):'—';
+      const serial=xlsxDatum(w.datum);
+      let c='';
+      c+= serial!=null ? wuXCellNum('A'+r,4,serial) : wuXCellText('A'+r,2,w.datum);
+      c+=wuXCellText('B'+r,3,dag);
+      c+=wuXCellText('C'+r,2,soortNaam(w.soort));
+      c+=wuXCellText('D'+r,3,w.start||'');
+      c+=wuXCellText('E'+r,3,w.einde||'');
+      c+=wuXCellText('F'+r,3,pauzeAf);
+      c+=wuXCellNum('G'+r,5,(+w.minuten||0)/1440);
+      c+=wuXCellNum('H'+r,6,+(((+w.minuten||0)/60).toFixed(4)));
+      c+=wuXCellText('I'+r,2,w.opmerking||'');
+      rijenXml+='<row r="'+r+'">'+c+'</row>';
+      r++;
+    });
+    dataBarRanges.push('H'+dataStart+':H'+(r-1));
+    const totaal=somMinuten(week.rijen), heleWeek=heleWeekMinuten(week.sleutel);
+    totaalRij('Week '+weekNr(week.maandag)+' ('+weekBereik(week.maandag)+')', totaal,
+      heleWeek!==totaal?('hele week: '+fmtDuur(heleWeek)):'');
+  });
   SOORTEN.forEach(function(s){ const m=perSoort(maand,s.key); if(m) totaalRij('Totaal '+s.naam,m); });
   totaalRij('TOTAAL '+maandNaam+' '+jaar, somMinuten(maand));
   const laatsteRij=r-1;
@@ -694,9 +722,7 @@ function xlsxMaand(){
     '<col min="9" max="9" width="42" customWidth="1"/>'+
     '</cols>';
   const merges='<mergeCells count="1"><mergeCell ref="A1:I1"/></mergeCells>';
-  // De gegevensbalk enkel over de echte dagen — niet over de totaalrijen, anders trekt
-  // dat ene grote getal alle dagbalkjes plat.
-  const balkjes=dataEnd>=dataStart ? ('<conditionalFormatting sqref="H'+dataStart+':H'+dataEnd+'">'+
+  const balkjes=dataBarRanges.length ? ('<conditionalFormatting sqref="'+dataBarRanges.join(' ')+'">'+
     '<cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF4A9B5E"/></dataBar></cfRule>'+
     '</conditionalFormatting>') : '';
   const freeze='<sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A3" sqref="A3"/></sheetView></sheetViews>';
@@ -734,7 +760,6 @@ document.getElementById('wuTabs').addEventListener('click',e=>{
 });
 document.getElementById('wuContract').onclick=vraagContract;
 document.getElementById('wuKopieer').onclick=kopieerMaand;
-document.getElementById('wuCsv').onclick=csvMaand;
 document.getElementById('wuExcel').onclick=xlsxMaand;
 document.getElementById('wuSoorten').addEventListener('click',e=>{
   const b=e.target.closest('.wusoort'); if(!b) return;
