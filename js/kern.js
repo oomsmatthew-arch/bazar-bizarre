@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v7.4';
+const APP_VERSION='v7.5';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -427,8 +427,11 @@ function pickVideo(cb){
 }
 
 // ---- Import / Export ----
-function csvCell(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}
-function rowsToCSV(rows){return rows.map(r=>r.map(csvCell).join(',')).join('\r\n');}
+// Puntkomma als scheidingsteken (net als Excel/Numbers in het Nederlands verwachten) —
+// anders botst dat met de komma in onze uren-bedragen (bv. "6,75") en moet alles
+// tussen aanhalingstekens, wat er in Excel rommelig/plat uitziet.
+function csvCell(v){const s=String(v==null?'':v); return /[;"\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function rowsToCSV(rows){return rows.map(r=>r.map(csvCell).join(';')).join('\r\n');}
 function rowsToTSV(rows){return rows.map(r=>r.map(v=>String(v==null?'':v).replace(/\t/g,' ').replace(/\r?\n/g,' ')).join('\t')).join('\n');}
 function dl(name,text){const blob=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;
