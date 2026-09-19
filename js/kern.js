@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v7.7';
+const APP_VERSION='v7.8';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -455,6 +455,95 @@ function rowsToTSV(rows){return rows.map(r=>r.map(v=>String(v==null?'':v).replac
 function dl(name,text){const blob=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;
   document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1500);}
+function dlBytes(name,bytes,mime){const blob=new Blob([bytes],{type:mime});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1500);}
+
+// ---- Echte Excel-bestanden (.xlsx) schrijven, mét opmaak ----
+// Een xlsx is een zip met XML erin. We bouwen 'm zelf i.p.v. een externe library erbij te
+// halen (al gauw een paar honderd kB, en de app moet ook offline werken): de zip zelf
+// slaan we ONgecomprimeerd op ("stored"), dat scheelt de nood aan een deflate-implementatie.
+const XLSX_CRC_TABEL=(function(){
+  const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; }
+  return t;
+})();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=XLSX_CRC_TABEL[(c^u8[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+// Bouwt de zip van een lijst {naam, data:Uint8Array} — geen compressie, gewoon "stored".
+function zipStored(bestanden){
+  const enc=new TextEncoder();
+  const stukken=[], centrals=[]; let offset=0;
+  bestanden.forEach(f=>{
+    const naam=enc.encode(f.naam), data=f.data, crc=crc32(data), size=data.length;
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,0,true); lh.setUint16(12,0,true);
+    lh.setUint32(14,crc,true); lh.setUint32(18,size,true); lh.setUint32(22,size,true);
+    lh.setUint16(26,naam.length,true); lh.setUint16(28,0,true);
+    stukken.push(new Uint8Array(lh.buffer),naam,data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0,true);
+    ch.setUint16(10,0,true); ch.setUint16(12,0,true); ch.setUint16(14,0,true);
+    ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
+    ch.setUint16(28,naam.length,true); ch.setUint16(30,0,true); ch.setUint16(32,0,true);
+    ch.setUint16(34,0,true); ch.setUint16(36,0,true); ch.setUint32(38,0,true); ch.setUint32(42,offset,true);
+    centrals.push(new Uint8Array(ch.buffer),naam);
+    offset+=30+naam.length+data.length;
+  });
+  let cdSize=0; centrals.forEach(p=>cdSize+=p.length);
+  const cdStart=offset;
+  const eocd=new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0,0x06054b50,true); eocd.setUint16(4,0,true); eocd.setUint16(6,0,true);
+  eocd.setUint16(8,bestanden.length,true); eocd.setUint16(10,bestanden.length,true);
+  eocd.setUint32(12,cdSize,true); eocd.setUint32(16,cdStart,true); eocd.setUint16(20,0,true);
+  const delen=stukken.concat(centrals,[new Uint8Array(eocd.buffer)]);
+  let totaal=0; delen.forEach(d=>totaal+=d.length);
+  const uit=new Uint8Array(totaal); let p=0;
+  delen.forEach(d=>{ uit.set(d,p); p+=d.length; });
+  return uit;
+}
+function xmlEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function xlsxKolom(n){ let s='',m=n+1; while(m>0){ const r=(m-1)%26; s=String.fromCharCode(65+r)+s; m=Math.floor((m-1)/26); } return s; }
+// Dagen sinds Excel's (rare) start van 30 december 1899 — de gangbare formule.
+function xlsxDatum(iso){
+  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'')); if(!m) return null;
+  return Date.UTC(+m[1],+m[2]-1,+m[3])/86400000+25569;
+}
+// Bouwt een volledig .xlsx-bestand met één werkblad. sheetXml = de inhoud van
+// xl/worksheets/sheet1.xml (het <worksheet>-element, mét xml-declaratie); stylesXml =
+// de inhoud van xl/styles.xml (het <styleSheet>-element, mét xml-declaratie).
+function xlsxEenBlad(bladNaam,sheetXml,stylesXml){
+  const contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+    '<Default Extension="xml" ContentType="application/xml"/>'+
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'+
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+    '</Types>';
+  const relsRoot='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+    '</Relationships>';
+  const workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+    '<sheets><sheet name="'+xmlEsc(bladNaam).slice(0,31)+'" sheetId="1" r:id="rId1"/></sheets>'+
+    '</workbook>';
+  const workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+    '</Relationships>';
+  const enc=new TextEncoder();
+  return zipStored([
+    {naam:'[Content_Types].xml',data:enc.encode(contentTypes)},
+    {naam:'_rels/.rels',data:enc.encode(relsRoot)},
+    {naam:'xl/workbook.xml',data:enc.encode(workbook)},
+    {naam:'xl/_rels/workbook.xml.rels',data:enc.encode(workbookRels)},
+    {naam:'xl/styles.xml',data:enc.encode(stylesXml)},
+    {naam:'xl/worksheets/sheet1.xml',data:enc.encode(sheetXml)}
+  ]);
+}
 function copyText(t){const done=()=>bbToon('Gekopieerd! Plak het in Google Sheets of Excel (Ctrl+V).');
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>fb());}else fb();
   function fb(){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';

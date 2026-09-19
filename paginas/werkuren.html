@@ -45,7 +45,7 @@
         <button class="btn" id="wuContract">⚙ Contracturen</button>
         <button class="btn" id="wuKopieer">📋 Kopieer maand</button>
         <button class="btn" id="wuCsv">⬇ CSV</button>
-        <button class="btn" id="wuPrint" title="Een overzichtelijk blad met je uren per dag als balkjes, en de volledige tabel — om af te drukken of als PDF te bewaren">🖨 Overzicht / PDF</button>
+        <button class="btn" id="wuExcel" title="Een echte Excel-tabel met dikgedrukte koppen, nette kolommen en een balkje per dag in de urenkolom">📊 Excel-overzicht</button>
       </div>
 
       <div class="invtabs" id="wuTabs">
@@ -592,82 +592,125 @@ function csvMaand(){
   dl('werkuren-'+toonMaand.getFullYear()+'-'+p2(toonMaand.getMonth()+1)+'.csv', rowsToCSV(maandRijen()));
 }
 
-// ---- Afdrukken / PDF: hetzelfde als de CSV, maar als leesbaar blad met balkjes per dag
-// i.p.v. een ruw bestand dat je zelf in Excel moet gaan opmaken. Zelfde recept als
-// "📑 PDF per maand" bij Ratings: een nieuw venster met een print-opmaak, en de browser
-// doet de rest ("Opslaan als PDF" bij Bestemming).
-const WU_PRINT_CSS='body{font-family:Arial,Helvetica,sans-serif;color:#1b2233;margin:26px;}'+
-  'h1{font-size:21px;margin:0 0 2px;}.sub{color:#666;font-size:12px;margin-bottom:14px;}'+
-  'h2{font-size:15px;margin:20px 0 8px;color:#2f6450;border-bottom:2px solid #cfe0c8;padding-bottom:3px;}'+
-  '.tip{background:#f0f5ec;border:1px solid #cfe0c8;border-radius:8px;padding:8px 12px;font-size:13px;margin:0 0 14px;}'+
-  '@media print{.tip{display:none;}}'+
-  '.kv{display:flex;gap:22px;flex-wrap:wrap;margin:4px 0;}.kv div{font-size:12px;color:#666;}.kv b{display:block;font-size:22px;color:#2f6450;}'+
-  '.balkrij{display:flex;align-items:center;gap:10px;padding:3px 0;}'+
-  '.balklabel{width:66px;flex:none;font-size:12px;color:#555;}'+
-  '.balkbaan{flex:1;height:14px;background:#eef3ea;border-radius:3px;}'+
-  '.balk{height:100%;background:#4a9b5e;border-radius:0 4px 4px 0;}'+
-  '.balkwaarde{width:54px;flex:none;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;}'+
-  'table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:6px;}'+
-  'th,td{border:1px solid #d5ddd0;padding:5px 9px;text-align:left;}th{background:#f0f5ec;}'+
-  'td.n,th.n{text-align:right;white-space:nowrap;}'+
-  'tr.totaalrij td{font-weight:bold;border-top:2px solid #2f6450;}';
-function wuOpenPrintVenster(titel,inhoud){
-  const w=window.open('','_blank');
-  if(!w){ bbToon('Kon het afdrukvenster niet openen (sta pop-ups toe voor deze site).'); return; }
-  w.document.write('<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>'+esc(titel)+'</title><style>'+WU_PRINT_CSS+'</style></head><body>'+inhoud+'</body></html>');
-  w.document.close(); w.focus(); setTimeout(function(){ try{ w.print(); }catch(e){} },400);
-}
-// Eén balkje per dag (totaal van die dag, ongeacht categorie), zo lang mogelijk t.o.v.
-// de drukste dag van de maand — dan springt in één oogopslag in het oog welke dagen zwaar waren.
-function dagTotalenVanMaand(maand){
-  const m={};
-  maand.forEach(w=>{ m[w.datum]=(m[w.datum]||0)+(+w.minuten||0); });
-  return Object.keys(m).sort().map(datum=>({datum:datum,minuten:m[datum]}));
-}
-function wuBalkenHtml(dagen){
-  if(!dagen.length) return '';
-  const max=Math.max(1,...dagen.map(d=>d.minuten));
-  return dagen.map(function(d){
-    const dt=datumVan(d.datum);
-    const label=dt?(p2(dt.getDate())+' '+DAGEN[dt.getDay()]):d.datum;
-    const pct=Math.max(3,Math.round(d.minuten/max*100));
-    return '<div class="balkrij"><div class="balklabel">'+esc(label)+'</div>'+
-      '<div class="balkbaan"><div class="balk" style="width:'+pct+'%"></div></div>'+
-      '<div class="balkwaarde">'+esc(fmtDuur(d.minuten))+'</div></div>';
-  }).join('');
-}
-// Dezelfde rijen als de CSV (maandRijen), maar als nette tabel — de lege scheidingsrij
-// slaan we hier over, en de twee totaalrijen krijgen een dikke lijn erboven.
-function wuTabelHtml(rijen){
-  const kop=rijen[0], lijnen=rijen.slice(1).filter(function(r){return r.length;});
-  const isN=kop.map(function(k){return /^uren/i.test(k);});
-  const th=kop.map(function(k,i){return '<th'+(isN[i]?' class="n"':'')+'>'+esc(k)+'</th>';}).join('');
-  const trs=lijnen.map(function(r){
-    const totaal=/^totaal/i.test(String(r[0]||''));
-    const tds=r.map(function(c,i){return '<td'+(isN[i]?' class="n"':'')+'>'+esc(c)+'</td>';}).join('');
-    return '<tr'+(totaal?' class="totaalrij"':'')+'>'+tds+'</tr>';
-  }).join('');
-  return '<table><tr>'+th+'</tr>'+trs+'</table>';
-}
-function printMaand(){
+// ---- Excel-overzicht (.xlsx): een echt Excel-bestand met opmaak i.p.v. een ruwe CSV —
+// vaste kolombreedtes (geen "########" meer), een dikgedrukte kopregel, écht getypte
+// datums en uren (Excel toont "6,75" met een komma vanzelf, in jouw eigen taalinstelling),
+// en een native Excel-"gegevensbalk" in de urenkolom: een balkje per dag, in de cel zelf.
+const WU_XLSX_STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+  '<numFmts count="2">'+
+  '<numFmt numFmtId="164" formatCode="dd/mm/yyyy"/>'+
+  '<numFmt numFmtId="165" formatCode="[h]&quot;u&quot;mm"/>'+
+  '</numFmts>'+
+  '<fonts count="3">'+
+  '<font><sz val="11"/><name val="Calibri"/></font>'+
+  '<font><b/><sz val="11"/><name val="Calibri"/></font>'+
+  '<font><b/><sz val="14"/><color rgb="FF2F6450"/><name val="Calibri"/></font>'+
+  '</fonts>'+
+  '<fills count="3">'+
+  '<fill><patternFill patternType="none"/></fill>'+
+  '<fill><patternFill patternType="gray125"/></fill>'+
+  '<fill><patternFill patternType="solid"><fgColor rgb="FFF0F5EC"/><bgColor indexed="64"/></patternFill></fill>'+
+  '</fills>'+
+  '<borders count="3">'+
+  '<border><left/><right/><top/><bottom/><diagonal/></border>'+
+  '<border><left style="thin"><color rgb="FFD5DDD0"/></left><right style="thin"><color rgb="FFD5DDD0"/></right><top style="thin"><color rgb="FFD5DDD0"/></top><bottom style="thin"><color rgb="FFD5DDD0"/></bottom><diagonal/></border>'+
+  '<border><left style="thin"><color rgb="FFD5DDD0"/></left><right style="thin"><color rgb="FFD5DDD0"/></right><top style="medium"><color rgb="FF2F6450"/></top><bottom style="thin"><color rgb="FFD5DDD0"/></bottom><diagonal/></border>'+
+  '</borders>'+
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+  '<cellXfs count="11">'+
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+                                                                      // 0 standaard
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'+ // 1 kopregel
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>'+                                                       // 2 tekst
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>'+ // 3 tekst gecentreerd
+  '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>'+ // 4 datum
+  '<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right"/></xf>'+  // 5 duur (bv. 6u45)
+  '<xf numFmtId="2" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right"/></xf>'+    // 6 decimaal
+  '<xf numFmtId="0" fontId="1" fillId="0" borderId="2" xfId="0" applyFont="1" applyBorder="1"/>'+                                          // 7 totaalrij tekst
+  '<xf numFmtId="165" fontId="1" fillId="0" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right"/></xf>'+ // 8 totaalrij duur
+  '<xf numFmtId="2" fontId="1" fillId="0" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right"/></xf>'+   // 9 totaalrij decimaal
+  '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'+ // 10 titelbanner
+  '</cellXfs>'+
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'+
+  '</styleSheet>';
+function wuXCellText(ref,s,tekst){ return '<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(tekst)+'</t></is></c>'; }
+function wuXCellNum(ref,s,getal){ return '<c r="'+ref+'" s="'+s+'"><v>'+getal+'</v></c>'; }
+function xlsxMaand(){
   const persoon=mijnPersoon(); if(!persoon) return;
   const maand=urenVanMaand();
   if(!maand.length){ bbToon('Deze maand is nog leeg.'); return; }
-  const titel=MAANDEN[toonMaand.getMonth()]+' '+toonMaand.getFullYear();
-  const nu=new Date(), vandaag=p2(nu.getDate())+'/'+p2(nu.getMonth()+1)+'/'+nu.getFullYear();
-  const h='<h1>Mijn werkuren — '+esc(persoon.naam)+'</h1>'+
-    '<div class="sub">'+esc(titel)+' · afgedrukt op '+vandaag+'</div>'+
-    '<p class="tip">Als PDF bewaren? Kies in het afdrukvenster bij <b>Bestemming</b> voor <b>Opslaan als PDF</b>.</p>'+
-    '<div class="kv">'+
-      '<div>Totaal deze maand<b>'+fmtDuur(somMinuten(maand))+'</b></div>'+
-      '<div>Gewerkt<b>'+fmtDuur(perSoort(maand,'gewerkt'))+'</b></div>'+
-      '<div>Overuren<b>'+fmtDuur(perSoort(maand,'overuren'))+'</b></div>'+
-      '<div>JV<b>'+fmtDuur(perSoort(maand,'jv'))+'</b></div>'+
-      '<div>BF<b>'+fmtDuur(perSoort(maand,'bf'))+'</b></div>'+
-    '</div>'+
-    '<h2>Uren per dag</h2>'+wuBalkenHtml(dagTotalenVanMaand(maand))+
-    '<h2>Alle dagen</h2>'+wuTabelHtml(maandRijen());
-  wuOpenPrintVenster('Werkuren — '+titel,h);
+  const kop=['Datum','Dag','Categorie','Start','Einde','Pauze af','Uren','Uren (decimaal)','Opmerking'];
+  const maandNaam=MAANDEN[toonMaand.getMonth()], jaar=toonMaand.getFullYear();
+  const titelTekst='Mijn werkuren — '+persoon.naam+' — '+maandNaam+' '+jaar;
+
+  let rijenXml='', r=1;
+  rijenXml+='<row r="'+r+'" ht="22" customHeight="1">'+wuXCellText('A'+r,10,titelTekst)+
+    'BCDEFGHI'.split('').map(function(k){return '<c r="'+k+r+'" s="10"/>';}).join('')+'</row>';
+  r++;
+  rijenXml+='<row r="'+r+'">'+kop.map(function(k,i){return wuXCellText(xlsxKolom(i)+r,1,k);}).join('')+'</row>';
+  r++;
+  const dataStart=r;
+  maand.forEach(function(w){
+    const d=datumVan(w.datum);
+    const dag=d?DAGEN[d.getDay()]:'';
+    const bruto=w.soort==='gewerkt'?brutoMinuten(w.start,w.einde):null;
+    const pauzeAf=(w.soort==='gewerkt'&&w.pauze&&bruto!=null&&bruto>=PAUZE_VANAF)?(PAUZE_MIN+' min'):'—';
+    const serial=xlsxDatum(w.datum);
+    let c='';
+    c+= serial!=null ? wuXCellNum('A'+r,4,serial) : wuXCellText('A'+r,2,w.datum);
+    c+=wuXCellText('B'+r,3,dag);
+    c+=wuXCellText('C'+r,2,soortNaam(w.soort));
+    c+=wuXCellText('D'+r,3,w.start||'');
+    c+=wuXCellText('E'+r,3,w.einde||'');
+    c+=wuXCellText('F'+r,3,pauzeAf);
+    c+=wuXCellNum('G'+r,5,(+w.minuten||0)/1440);
+    c+=wuXCellNum('H'+r,6,+(((+w.minuten||0)/60).toFixed(4)));
+    c+=wuXCellText('I'+r,2,w.opmerking||'');
+    rijenXml+='<row r="'+r+'">'+c+'</row>';
+    r++;
+  });
+  const dataEnd=r-1;
+  function totaalRij(label,minuten){
+    let c=wuXCellText('A'+r,7,label)+
+      'BCDEF'.split('').map(function(k){return '<c r="'+k+r+'" s="7"/>';}).join('')+
+      wuXCellNum('G'+r,8,minuten/1440)+
+      wuXCellNum('H'+r,9,+((minuten/60).toFixed(4)))+
+      '<c r="I'+r+'" s="7"/>';
+    rijenXml+='<row r="'+r+'">'+c+'</row>'; r++;
+  }
+  SOORTEN.forEach(function(s){ const m=perSoort(maand,s.key); if(m) totaalRij('Totaal '+s.naam,m); });
+  totaalRij('TOTAAL '+maandNaam+' '+jaar, somMinuten(maand));
+  const laatsteRij=r-1;
+
+  const cols='<cols>'+
+    '<col min="1" max="1" width="12" customWidth="1"/>'+
+    '<col min="2" max="2" width="6" customWidth="1"/>'+
+    '<col min="3" max="3" width="11" customWidth="1"/>'+
+    '<col min="4" max="4" width="7" customWidth="1"/>'+
+    '<col min="5" max="5" width="7" customWidth="1"/>'+
+    '<col min="6" max="6" width="9" customWidth="1"/>'+
+    '<col min="7" max="7" width="9" customWidth="1"/>'+
+    '<col min="8" max="8" width="16" customWidth="1"/>'+
+    '<col min="9" max="9" width="42" customWidth="1"/>'+
+    '</cols>';
+  const merges='<mergeCells count="1"><mergeCell ref="A1:I1"/></mergeCells>';
+  // De gegevensbalk enkel over de echte dagen — niet over de totaalrijen, anders trekt
+  // dat ene grote getal alle dagbalkjes plat.
+  const balkjes=dataEnd>=dataStart ? ('<conditionalFormatting sqref="H'+dataStart+':H'+dataEnd+'">'+
+    '<cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF4A9B5E"/></dataBar></cfRule>'+
+    '</conditionalFormatting>') : '';
+  const freeze='<sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A3" sqref="A3"/></sheetView></sheetViews>';
+
+  const sheetXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<dimension ref="A1:I'+laatsteRij+'"/>'+
+    freeze+cols+
+    '<sheetData>'+rijenXml+'</sheetData>'+
+    merges+balkjes+
+    '</worksheet>';
+
+  const bytes=xlsxEenBlad('Werkuren '+maandNaam.slice(0,3)+' '+jaar,sheetXml,WU_XLSX_STYLES);
+  dlBytes('werkuren-'+jaar+'-'+p2(toonMaand.getMonth()+1)+'.xlsx',bytes,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 // ---------------- KNOPPEN ----------------
@@ -692,7 +735,7 @@ document.getElementById('wuTabs').addEventListener('click',e=>{
 document.getElementById('wuContract').onclick=vraagContract;
 document.getElementById('wuKopieer').onclick=kopieerMaand;
 document.getElementById('wuCsv').onclick=csvMaand;
-document.getElementById('wuPrint').onclick=printMaand;
+document.getElementById('wuExcel').onclick=xlsxMaand;
 document.getElementById('wuSoorten').addEventListener('click',e=>{
   const b=e.target.closest('.wusoort'); if(!b) return;
   const k=b.getAttribute('data-soort');
