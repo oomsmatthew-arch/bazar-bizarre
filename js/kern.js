@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v7.5';
+const APP_VERSION='v7.6';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -166,6 +166,7 @@ const TOEGANG_KEUZES=[
   {waarde:'iedereen', naam:'Iedereen'},
   {waarde:'vast',     naam:'Vaste mdw + admin'},
   {waarde:'admin',    naam:'Enkel admin'},
+  {waarde:'wie',      naam:'Bepaalde medewerkers…'},
   {waarde:'beheer',   naam:'Met wachtwoord'}
 ];
 // De standaardwaarden zijn zo gekozen dat de app zich precies gedraagt zoals vóór deze
@@ -200,6 +201,11 @@ function _toegangStd(cat){
   const c=TOEGANG_CATEGORIEEN.find(x=>x.key===cat);
   return c?c.std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'};
 }
+// 'wie' wordt niet letterlijk opgeslagen: de gekozen medewerkers komen erachter, bv.
+// 'wie:id1,id2'. Zo'n waarde staat niet zelf in TOEGANG_KEUZES, dus hier apart herkend.
+function _toegangGeldig(w){
+  return TOEGANG_KEUZES.some(k=>k.waarde===w) || /^wie:/.test(w||'');
+}
 function getToegangen(){
   let opgeslagen={};
   try{ opgeslagen=JSON.parse(localStorage.getItem(K_TOEGANGEN))||{}; }catch(e){ opgeslagen={}; }
@@ -209,7 +215,7 @@ function getToegangen(){
     uit[c.key]={};
     TOEGANG_NIVEAUS.forEach(n=>{
       const w=eigen[n];
-      uit[c.key][n]=TOEGANG_KEUZES.some(k=>k.waarde===w) ? w : c.std[n];
+      uit[c.key][n]=_toegangGeldig(w) ? w : c.std[n];
     });
   });
   return uit;
@@ -222,6 +228,18 @@ function toegangRegel(cat,niveau){
   const t=getToegangen()[cat];
   return (t&&t[niveau])||_toegangStd(cat)[niveau];
 }
+// 'wie:id1,id2' — enkel de aangevinkte medewerkers mogen dit, ongeacht hun rol.
+function toegWieMag(r){
+  const u=fullCurrentUser(); if(!u) return false;
+  const ids=r.slice(4).split(',').filter(Boolean);
+  return ids.includes(u.id);
+}
+// Leesbare naam van een toegangsregel voor in een melding — 'wie:id1,id2' komt niet
+// letterlijk voor in TOEGANG_KEUZES, dus die wordt hier apart vertaald.
+function toegLabel(r){
+  if(/^wie:/.test(r||'')) return 'Bepaalde medewerkers';
+  return (TOEGANG_KEUZES.find(k=>k.waarde===r)||{}).naam||r;
+}
 // Mag ik dit, zonder iets te vragen? 'beheer' geldt als toegestaan zodra het wachtwoord
 // deze sessie al is ingetikt (of je vaste mdw / admin bent).
 function magToegang(cat,niveau){
@@ -230,6 +248,7 @@ function magToegang(cat,niveau){
   if(r==='vast')     return isVasteMdw()||isAdmin();
   if(r==='admin')    return isAdmin();
   if(r==='beheer')   return isVasteMdw()||isAdmin()||isOntgrendeld();
+  if(/^wie:/.test(r)) return toegWieMag(r);
   return true;
 }
 // Mag ik dit, en zo niet: vraag het wachtwoord of zeg waarom niet.
@@ -237,8 +256,8 @@ async function eisToegang(cat,niveau,actie){
   const r=toegangRegel(cat,niveau);
   if(r==='beheer') return await eisBeheer(actie);
   if(magToegang(cat,niveau)) return true;
-  bbToon('Daar heb je geen toegang toe.\n\nDit is ingesteld op "'+
-    (TOEGANG_KEUZES.find(k=>k.waarde===r)||{}).naam+'". Een admin kan dat wijzigen via Instellingen → Toegangen.');
+  bbToon('Daar heb je geen toegang toe.\n\nDit is ingesteld op "'+toegLabel(r)+
+    '". Een admin kan dat wijzigen via Instellingen → Toegangen.');
   return false;
 }
 // Eenmalig: de twee losse projectinstellingen van vóór deze versie overnemen.

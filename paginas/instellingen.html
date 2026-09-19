@@ -213,13 +213,51 @@ function tekenToegangen(){
     h+='<tr><td class="naam"><b>'+esc(c.naam)+'</b><span>'+esc(c.uitleg)+'</span></td>';
     TOEGANG_NIVEAUS.forEach(n=>{
       const w=(huidig[c.key]||{})[n];
+      const isWie=/^wie:/.test(w||'');
       h+='<td><select class="finp toegsel" data-cat="'+c.key+'" data-niv="'+n+'">'+
-        TOEGANG_KEUZES.map(k=>'<option value="'+k.waarde+'"'+(k.waarde===w?' selected':'')+'>'+esc(k.naam)+'</option>').join('')+
+        TOEGANG_KEUZES.map(k=>'<option value="'+k.waarde+'"'+((k.waarde===w||(isWie&&k.waarde==='wie'))?' selected':'')+'>'+esc(k.naam)+'</option>').join('')+
         '</select></td>';
     });
-    h+='</tr>';
+    h+='</tr><tr class="toegwierij" data-cat="'+c.key+'" style="display:none"><td colspan="'+(TOEGANG_NIVEAUS.length+1)+'"></td></tr>';
   });
   wrap.innerHTML=h+'</table>';
+  const gebruikers=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
+  TOEGANG_CATEGORIEEN.forEach(c=>{
+    TOEGANG_NIVEAUS.forEach(n=>{
+      const w=(huidig[c.key]||{})[n]||'';
+      if(/^wie:/.test(w)) toegWiePaneelZet(c.key,n,w.slice(4).split(',').filter(Boolean),gebruikers);
+    });
+  });
+  wrap.querySelectorAll('.toegsel').forEach(sel=>{
+    sel.onchange=()=>{
+      const cat=sel.getAttribute('data-cat'), niv=sel.getAttribute('data-niv');
+      if(sel.value==='wie') toegWiePaneelZet(cat,niv,[],gebruikers);
+      else toegWiePaneelWeg(cat,niv);
+    };
+  });
+}
+// De rij met keuzeknoppen ("wie mag dit precies") staat meteen onder de categorie zelf,
+// en verschijnt enkel voor een niveau dat op "Bepaalde medewerkers…" staat.
+function toegWieRij(cat){ return document.querySelector('.toegwierij[data-cat="'+cat+'"]'); }
+function toegWiePaneelWeg(cat,niv){
+  const rij=toegWieRij(cat); if(!rij) return;
+  const cel=rij.querySelector('td');
+  const el=cel.querySelector('.toegwie[data-niv="'+niv+'"]');
+  if(el) el.remove();
+  if(!cel.children.length) rij.style.display='none';
+}
+function toegWiePaneelZet(cat,niv,ids,gebruikers){
+  const rij=toegWieRij(cat); if(!rij) return;
+  const cel=rij.querySelector('td');
+  let el=cel.querySelector('.toegwie[data-niv="'+niv+'"]');
+  if(!el){ el=document.createElement('div'); el.className='toegwie'; el.setAttribute('data-niv',niv); cel.appendChild(el); }
+  const nivNaam=niv.charAt(0).toUpperCase()+niv.slice(1);
+  el.innerHTML='<div class="kop">'+esc(nivNaam)+' — wie mag dit?</div>'+
+    (gebruikers.length
+      ? '<div class="chips">'+gebruikers.map(g=>'<button type="button" class="chip'+(ids.includes(g.id)?' on':'')+'" data-id="'+esc(g.id)+'">'+esc(g.naam)+'</button>').join('')+'</div>'
+      : '<div class="hint" style="margin:0">Nog geen collega\'s om te kiezen — voeg ze hieronder bij Gebruikers toe.</div>');
+  el.querySelectorAll('.chip').forEach(btn=>{ btn.onclick=()=>btn.classList.toggle('on'); });
+  rij.style.display='';
 }
 function toegMeld(tekst){
   const el=document.getElementById('toegMelding'); if(!el) return;
@@ -230,7 +268,14 @@ document.getElementById('toegBewaar').onclick=()=>{
   const nieuw={};
   document.querySelectorAll('.toegsel').forEach(s=>{
     const c=s.getAttribute('data-cat'), n=s.getAttribute('data-niv');
-    (nieuw[c]||(nieuw[c]={}))[n]=s.value;
+    let w=s.value;
+    if(w==='wie'){
+      const rij=toegWieRij(c);
+      const paneel=rij&&rij.querySelector('.toegwie[data-niv="'+n+'"]');
+      const ids=paneel?[...paneel.querySelectorAll('.chip.on')].map(b=>b.getAttribute('data-id')):[];
+      w='wie:'+ids.join(',');
+    }
+    (nieuw[c]||(nieuw[c]={}))[n]=w;
   });
   setToegangen(nieuw);
   if(window.BBInv&&BBInv.logAct) BBInv.logAct('Toegangen aangepast');

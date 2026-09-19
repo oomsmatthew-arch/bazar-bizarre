@@ -885,6 +885,14 @@
   .toegtab td.naam b{display:block;font-size:14px;color:var(--forest);}
   .toegtab td.naam span{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:2px;}
   .toegtab select{width:100%;min-width:150px;font-size:14px;padding:8px 10px;}
+  .toegwierij td{border-top:none;padding:0 10px 10px 0;}
+  .toegwie{margin-top:6px;padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;}
+  .toegwie+.toegwie{margin-top:10px;}
+  .toegwie .kop{font-size:12px;font-weight:800;color:var(--forest);margin-bottom:8px;}
+  .toegwie .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .toegwie .chip{border:1px solid var(--line);background:var(--panel);color:var(--text);
+    border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;}
+  .toegwie .chip.on{background:var(--forest);color:#fff;border-color:var(--forest);}
 
   /* ================================================================
      DONKER THEMA — de laatste licht-getinte vlakjes

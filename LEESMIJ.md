@@ -216,8 +216,14 @@ wie het mag **bekijken**, **gebruiken** en **beheren**. De instelling geldt op a
 | **Gebruiken** | Het gewone werk: toevoegen, invullen, afvinken |
 | **Beheren** | Het slotje: verwijderen, lijsten aanpassen, en bij Bestellingen ook de bedragen |
 
-Per niveau kies je uit vier mogelijkheden: **Iedereen** · **Vaste mdw + admin** ·
-**Enkel admin** · **Met wachtwoord** (vaste medewerkers en admins hoeven het niet te typen).
+Per niveau kies je uit vijf mogelijkheden: **Iedereen** · **Vaste mdw + admin** ·
+**Enkel admin** · **Bepaalde medewerkers…** · **Met wachtwoord** (vaste medewerkers en
+admins hoeven het niet te typen).
+
+Kies je **Bepaalde medewerkers…**, dan verschijnt er een lijstje met alle collega's als
+aanvinkbare knoppen — je duidt zelf aan wie dat niveau mag, ongeacht hun rol (vast/admin
+of niet). Zo kan bijvoorbeeld Mijn werkuren op maat van één of enkele specifieke mensen
+staan, zonder dat ze daarvoor Vaste medewerker of Admin moeten zijn.
 
 Staat een onderdeel op *Met wachtwoord*, dan blijft de kaart gewoon staan — je krijgt de
 vraag pas als je ze opent. Mag je iets niet bekijken, dan verdwijnt de kaart helemaal.

@@ -21,6 +21,9 @@ globalThis.isVasteMdw=function(){ return IK.vast; };
 globalThis.isAdmin=function(){ return IK.admin; };
 globalThis.isOntgrendeld=function(){ return IK.ontgrendeld; };
 globalThis.eisBeheer=function(){ return IK.vast||IK.admin||IK.ontgrendeld; };
+// 'Bepaalde medewerkers…' kijkt naar fullCurrentUser().id — hier ook na te bootsen.
+var IK_ID='geen';
+globalThis.fullCurrentUser=function(){ return {id:IK_ID}; };
 globalThis.pushConfig=function(){};
 globalThis.cfgApplying=false;
 globalThis.alert=function(){};
@@ -41,6 +44,7 @@ function laadToegangen(){
     'globalThis.toegangRegel=toegangRegel;'+
     'globalThis.magToegang=magToegang;'+
     'globalThis.eisToegang=eisToegang;'+
+    'globalThis.toegLabel=toegLabel;'+
     'globalThis.TOEGANG_CATEGORIEEN=TOEGANG_CATEGORIEEN;'+
     'globalThis.TOEGANG_NIVEAUS=TOEGANG_NIVEAUS;'+
     'globalThis.TOEGANG_KEUZES=TOEGANG_KEUZES;');
@@ -104,6 +108,19 @@ function verse(){ Object.keys(store).forEach(function(k){ delete store[k]; }); }
   ok(magToegang('logboek','bekijken')===true,'een admin ook');
   IK={vast:false,admin:false,ontgrendeld:false};
   ok(magToegang('logboek','bekijken')===false,'iemand zonder rol niet');
+
+  print('\n— "Bepaalde medewerkers…" laat enkel de aangevinkte mensen door —');
+  verse();
+  setToegangen({werkuren:{beheren:'wie:mila,tom'}});
+  IK={vast:false,admin:false,ontgrendeld:false};
+  IK_ID='mila';
+  ok(magToegang('werkuren','beheren')===true,'Mila staat op de lijst → mag het');
+  IK_ID='sara';
+  ok(magToegang('werkuren','beheren')===false,'Sara niet → mag het niet, ook al is ze ingelogd');
+  IK={vast:false,admin:true,ontgrendeld:false};
+  ok(magToegang('werkuren','beheren')===false,'een admin die niet op de lijst staat, mag het ook niet — dit is een bewuste keuze, geen rol');
+  ok(toegLabel('wie:mila,tom')==='Bepaalde medewerkers','de melding noemt het geen "undefined"');
+  IK_ID='geen';
 
   print('\n— De oude projectinstellingen worden overgenomen —');
   verse();
