@@ -1049,7 +1049,7 @@
   // Bestellingen vullen: bij een lege (gedeelde of lokale) lijst starten we met de
   // standaardlijst uit het Excel-overzicht. Bestaat de gedeelde tabel en is die leeg
   // terwijl we lokaal al iets hebben, dan uploaden we de lokale kopie.
-  const BESTEL_SEED_VER=4; // verhoog dit wanneer de startlijst uit het Excel verandert
+  const BESTEL_SEED_VER=5; // verhoog dit wanneer de startlijst uit het Excel verandert
   function bestelSeed(){
     const def=window.BESTELLINGEN_DEFAULT||[];
     return def.map((b,i)=>Object.assign({id:uid(),ts:Date.now()+i},JSON.parse(JSON.stringify(b))));

@@ -825,15 +825,13 @@ window.BESTELLINGEN_DEFAULT = [
  {datum:"2026-09-08", cat:"CGT",              info:"Prize Night boekjes",                                               status:"Uitgepakt", aantal:"3840 boekjes",       ent:0,       bay:0,       hsb:0, leverancier:"CP printing",               leverdatum:"",           opm:""},
  {datum:"2026-09-13", cat:"O&F",              info:"Trompetten",                                                        status:"Onderweg",  aantal:"2",                  ent:300.00,  bay:0,       hsb:0, leverancier:"Heg Productions",           leverdatum:"",           opm:""},
  {datum:"2026-09-13", cat:"CGT",              info:"Letter set",                                                        status:"Onderweg",  aantal:"1",                  ent:125.00,  bay:0,       hsb:0, leverancier:"Heg Productions",           leverdatum:"",           opm:""},
-
- // ---- Nog geen besteldatum (wel al in het Excel-overzicht klaargezet) ----
- {datum:"",           cat:"CGT",              info:"Prijzen Prize Night",                                               status:"Besteld",   aantal:"8 dozen + troostpr", ent:1380.00, bay:0,       hsb:0, leverancier:"Ready4Bingo",               leverdatum:"",           opm:""},
- {datum:"",           cat:"Halloween",        info:"Materiaal kindertocht",                                             status:"Besteld",   aantal:"",                   ent:63.60,   bay:0,       hsb:0, leverancier:"Espa",                      leverdatum:"",           opm:""},
- {datum:"",           cat:"Halloween",        info:"Materiaal volwassenen",                                             status:"Uitgepakt", aantal:"8 en 2",             ent:64.94,   bay:0,       hsb:0, leverancier:"Manutan",                   leverdatum:"",           opm:""},
- {datum:"",           cat:"Halloween",        info:"Decor",                                                             status:"Onderweg",  aantal:"",                   ent:265.00,  bay:0,       hsb:0, leverancier:"",                          leverdatum:"",           opm:""},
- {datum:"",           cat:"Sinterklaas",      info:"Strooigoed + schoentje zetten + pietenbezoeken cadeau",             status:"Besteld",   aantal:"",                   ent:239.46,  bay:0,       hsb:0, leverancier:"Emago",                     leverdatum:"",           opm:""},
- {datum:"",           cat:"Sinterklaas",      info:"Snoepzakken Sinterklaas",                                           status:"Besteld",   aantal:"180",                ent:1062.00, bay:0,       hsb:0, leverancier:"Snoepstunt",                leverdatum:"",           opm:""},
- {datum:"",           cat:"Sinterklaas",      info:"Strooigoed",                                                        status:"Besteld",   aantal:"",                   ent:276.58,  bay:0,       hsb:0, leverancier:"Solucious",                 leverdatum:"",           opm:""}
+ {datum:"2026-09-13", cat:"CGT",              info:"Prijzen Prize Night",                                               status:"Besteld",   aantal:"8 dozen + troostpr", ent:1380.00, bay:0,       hsb:0, leverancier:"Ready4Bingo",               leverdatum:"",           opm:""},
+ {datum:"2026-09-14", cat:"Halloween",        info:"Materiaal kindertocht",                                             status:"Besteld",   aantal:"",                   ent:63.60,   bay:0,       hsb:0, leverancier:"Espa",                      leverdatum:"",           opm:""},
+ {datum:"2026-09-14", cat:"Halloween",        info:"Materiaal volwassenen",                                             status:"Uitgepakt", aantal:"8 en 2",             ent:64.94,   bay:0,       hsb:0, leverancier:"Manutan",                   leverdatum:"",           opm:""},
+ {datum:"2026-09-14", cat:"Halloween",        info:"Decor",                                                             status:"Onderweg",  aantal:"",                   ent:265.00,  bay:0,       hsb:0, leverancier:"",                          leverdatum:"",           opm:""},
+ {datum:"2026-09-15", cat:"Sinterklaas",      info:"Strooigoed + schoentje zetten + pietenbezoeken cadeau",             status:"Besteld",   aantal:"",                   ent:239.46,  bay:0,       hsb:0, leverancier:"Emago",                     leverdatum:"",           opm:""},
+ {datum:"2026-09-15", cat:"Sinterklaas",      info:"Snoepzakken Sinterklaas",                                           status:"Besteld",   aantal:"180",                ent:1062.00, bay:0,       hsb:0, leverancier:"Snoepstunt",                leverdatum:"",           opm:""},
+ {datum:"2026-09-15", cat:"Sinterklaas",      info:"Strooigoed",                                                        status:"Besteld",   aantal:"",                   ent:276.58,  bay:0,       hsb:0, leverancier:"Solucious",                 leverdatum:"",           opm:""}
 ];
 
 // Sleutels (datum|omschrijving|leverancier) van de vórige startlijst. De eenmalige
@@ -849,9 +847,11 @@ window.BESTELLINGEN_OUDE_SLEUTELS = [
  "2025-11-18|sint snoep|solucious","2025-11-18|trompetten 2|heg productions",
  "2025-11-20|aankleding aquariums + pietenpakket|lobbes","2025-11-20|give away's|espa",
  "2025-11-20|glitter tattoo|florence","2025-11-20|kerst actie intern (kerstboom en ballen)|ava",
- "2025-11-20|knutselmateriaal|lobbes","2025-11-22|haardroger|bol.com","2025-11-22|pruiken onderhoud|vekemans",
- "2025-11-22|pruiken tape|florence","2025-12-08|pennen|discount office","2026-01-02|barkruk|kaiserkraft",
- "2026-01-02|boekjes spelshow (bingo)|cp printing","2026-01-05|prijzen en troostprijzen|ready4bingo",
+ "2025-11-20|knutselmateriaal|lobbes","2025-11-20|knutselmaterieaal|lobbes","2025-11-22|haardroger|bol.com",
+ "2025-11-22|pruiken onderhoud|vekemans","2025-11-22|pruiken tape|florence","2025-12-08|pennen|discount office",
+ "2026-01-02|barkruk|kaiserkraft","2026-01-02|boekjes spelshow (bingo)|cp printing",
+ "2026-01-05|prijzen en troostprijzen|ready4bingo","2026-01-09|cadeaupakketjes sint + extra deco|lobbes",
+ "2026-01-09|cadeaupakketjes sint + extra deco|marjo","2026-01-09|papieren draagtasjes|bunzl",
  "2026-01-22|chocolade|snoepstunt","2026-01-22|wijn zakjes|ava","2026-01-26|2 shure + plopkapjes + kabels|thomann",
  "2026-01-26|laarshoezen? tim|fun fashion",
  "2026-01-30|bing pet (1) - orry sokken (8) - rep sokken (6) - bing sokken (4)|zell",
@@ -861,18 +861,25 @@ window.BESTELLINGEN_OUDE_SLEUTELS = [
  "2026-02-18|prijzen|ready4bingo","2026-02-18|prijzen|van der meulen",
  "2026-02-25|paaseieren en snoeppakketje|solucious","2026-02-25|paaseieren hol|sligro","2026-02-25|penselen|bol.com",
  "2026-02-28|schelpen woops|lobbes","2026-03-04|boekjes|cp printing","2026-03-23|give away|espa",
- "2026-04-06|prijzen|ready4bingo","2026-04-16|boekjes|cp print","2026-04-16|rubberen matten, dj poolparty|manutan",
- "2026-04-23|knutselmateriaal|lobbes","2026-04-28|boma alco spray|boma",
- "2026-04-28|postkaarten o&f schrijven|cp print","2026-04-28|wattenschijfjes + afwasmiddel|solucious",
+ "2026-04-06|prijzen|ready4bingo","2026-04-16|boekjes|cp print","2026-04-16|boekjes|cp printing",
+ "2026-04-16|rubberen matten, dj poolparty|manutan","2026-04-23|knutselmateriaal|lobbes",
+ "2026-04-28|boma alco spray|boma","2026-04-28|postkaarten o&f schrijven|cp print",
+ "2026-04-28|postkaarten o&f schrijven|cp printing","2026-04-28|wattenschijfjes + afwasmiddel|solucious",
  "2026-05-13|marshmallows|sligro","2026-05-21|goud en give away|espa",
  "2026-05-21|verf om te knutselen en ander knutselmateriaal|lobbes","2026-05-27|kabel|thomann",
  "2026-05-27|prijzen spelshow|van der meulen","2026-05-28|schmink|noddies","2026-06-01|prijzen|ready4bingo",
  "2026-06-16|jack naar usb c|bax music","2026-06-16|ursa straps, kabel brug en 2x jack voor live|thomann",
  "2026-06-26|prizenight en orkestbak materiaal|heg productions","2026-07-06|vogelverzorging, knuffels|lobbes",
  "2026-07-09|tablets|coolblue","2026-07-12|bolderkar|bol.com","2026-07-12|zwarte doek podium|baxshop",
- "2026-07-13|drankjes|sligro","2026-07-13|snoep|snoepstunt","2026-07-15|schminkmateriaal|noddies",
- "2026-07-22|kistjes + verf|lobbes","2026-07-28|knutsel zwaarden xl|lobbes",
- "2026-08-07|prijzen spelshow|van der meulen"
+ "2026-07-13|drankjes|sligro","2026-07-13|prijzen fqn|van der meulen","2026-07-13|snoep|snoepstunt",
+ "2026-07-15|schminkmateriaal|noddies","2026-07-16|waterspelletjes|lobbes","2026-07-22|kistjes + verf|lobbes",
+ "2026-07-28|knutsel zwaarden xl|lobbes","2026-08-05|kabels|thomann","2026-08-07|prijzen spelshow|van der meulen",
+ "2026-08-10|prijzen prize night|ready4bingo","2026-08-12|prijzen spelshow sleutelhanger orry|van der meulen",
+ "2026-08-17|snoep|","2026-08-28|knuffels en kledij|teddy mountain","2026-08-30|gitaar kabel|",
+ "2026-09-08|prize night boekjes|cp printing","2026-09-13|letter set|heg productions",
+ "2026-09-13|trompetten|heg productions","|decor|","|materiaal kindertocht|espa","|materiaal volwassenen|manutan",
+ "|prijzen prize night|ready4bingo","|snoepzakken sinterklaas|snoepstunt",
+ "|strooigoed + schoentje zetten + pietenbezoeken cadeau|emago","|strooigoed|solucious"
 ];
 
 // ---------------------------------------------------------------------------

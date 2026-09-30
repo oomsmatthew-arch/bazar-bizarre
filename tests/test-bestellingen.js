@@ -71,7 +71,7 @@ function oudeTabel(){
   var kw=function(d){ if(!d) return 0; var m=+d.slice(5,7); return m>=10?1:(m<=3?2:(m<=6?3:4)); };
   var som={0:[0,0],1:[0,0],2:[0,0],3:[0,0],4:[0,0]};
   DEF.forEach(function(b){ var k=kw(b.datum); som[k][0]+=b.ent; som[k][1]+=b.bay; });
-  var excel={1:[2727.93,2212.68],2:[7083.29,913.68],3:[3474.36,2128.70],4:[3658.10,2247.65]};
+  var excel={1:[2727.93,2212.68],2:[7083.29,913.68],3:[3474.36,2128.70],4:[7009.68,2247.65]};
   [1,2,3,4].forEach(function(k){
     ok(+som[k][0].toFixed(2)===excel[k][0] && +som[k][1].toFixed(2)===excel[k][1],
        'kwartaal '+k+' telt op tot hetzelfde als het tabblad Financieel');
@@ -92,7 +92,7 @@ function oudeTabel(){
   db2.bestellingen=oudeTabel().concat([{id:'eigen1',ts:9000,besteldatum:'2026-07-20',
     categorie:'Techniek',info:'Zelf toegevoegde bestelling',status:'Besteld',aantal:'1',
     kost_ent:12.50,kost_bay:0,kost_hsb:0,leverancier:'Thomann',leverdatum:'',door:'Matthew',opmerking:''}]);
-  ok(db2.bestellingen.length===74,'we starten met 73 oude rijen + 1 eigen');
+  ok(db2.bestellingen.length===98,'we starten met 97 oude rijen + 1 eigen');
   var nep2=await sessie(db2);
   var na=BBInv.getBestellingen();
   ok(na.length===94,'94 bestellingen na het gelijkzetten: 93 uit het Excel + 1 eigen (nu: '+na.length+')');
@@ -104,14 +104,14 @@ function oudeTabel(){
      'en staat maar één keer in de lijst');
   ok(na.some(function(b){ return b.datum==='2026-07-15' && b.status==='Uitgepakt' && b.bay===301.75; }),
      'op 15/07 met de nieuwe status en het bedrag uit het Excel');
-  ok(na.filter(function(b){ return b.datum>='2026-07-01' && b.info!=='Zelf toegevoegde bestelling'; }).length===21,
+  ok(na.filter(function(b){ return b.datum>='2026-07-01' && b.info!=='Zelf toegevoegde bestelling'; }).length===28,
      'kwartaal 4 (juli t/m september) is toegevoegd');
   var prijzen0601=na.filter(function(b){ return b.datum==='2026-06-01'; });
   ok(prijzen0601.length===1 && prijzen0601[0].status==='Uitgepakt' && prijzen0601[0].ent===1280,
      'de prijzen van 01/06 staan nu op Uitgepakt met € 1280');
   ok(nep2.db.bestellingen.length===94,'de gedeelde tabel telt er ook 94 (nu: '+nep2.db.bestellingen.length+')');
   ok(dubbels(nep2.db.bestellingen.map(rijSleutel)).length===0,'ook daar geen dubbels');
-  ok(store['bb_bestel_seed_ver']==='4','de versie staat op 4, dus dit gebeurt niet nog eens');
+  ok(store['bb_bestel_seed_ver']==='5','de versie staat op 5, dus dit gebeurt niet nog eens');
 
   print('\n— Hetzelfde toestel nog eens opstarten —');
   var nep3=await sessie(nep2.db);
