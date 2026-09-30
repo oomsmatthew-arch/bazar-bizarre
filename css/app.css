@@ -290,6 +290,10 @@
   .finp.zoek{margin:0 0 10px;}
   /* datum-velden: waarde links uitlijnen (iOS duwt ze anders naar rechts) */
   .finp[type="date"]{-webkit-appearance:none;appearance:none;text-align:left;min-height:46px;}
+  .hoofdstukbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 16px;padding:0 0 16px;border-bottom:1px solid var(--line);}
+  .hoofdstuk{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:800;
+    font-size:14px;padding:10px 20px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow);}
+  .hoofdstuk.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
   .invtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 16px;}
   .invtab{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;
     font-size:14px;padding:9px 14px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow);}

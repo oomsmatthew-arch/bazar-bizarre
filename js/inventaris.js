@@ -8,10 +8,11 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],werkuren:[],manualsdoc:null,appconfig:null,spelarchief:null};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],werkuren:[],manualsdoc:null,appconfig:null,spelarchief:null,producten:[],productleveringen:[]};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
   let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
+  let productenOK=false, productleveringenOK=false;
   let projectenOK=false, projecttakenOK=false, projectberichtenOK=false, projectagendaOK=false, projectdocsOK=false;
   let werkurenOK=false;
   // Losse kolom die er later bij kwam: 'finalevraag' op de tabel formulieren.
@@ -41,6 +42,8 @@
   const K_CHECKLISTEN_BACKUP='bb_checklisten';
   const K_LOGBOEK_BACKUP='bb_logboek';
   const K_GEBRUIKERS_BACKUP='bb_gebruikers';
+  const K_PRODUCTEN_BACKUP='bb_producten';
+  const K_PRODLEV_BACKUP='bb_productleveringen';
   const K_NAMEN_SNEL='bb_namen_snel';   // enkel de namenlijst — zie bewaarNamenSnel()
   const K_ACTIVITEIT_BACKUP='bb_activiteit';
   const K_PROJECTEN_BACKUP='bb_projecten';
@@ -105,7 +108,8 @@
   const BACKUP_PAREN=[['bestellingen',K_BESTEL_BACKUP],['contacten',K_CONTACTEN_BACKUP],
     ['checklisten',K_CHECKLISTEN_BACKUP],['logboek',K_LOGBOEK_BACKUP],['gebruikers',K_GEBRUIKERS_BACKUP],
     ['activiteit',K_ACTIVITEIT_BACKUP],['projecten',K_PROJECTEN_BACKUP],['projecttaken',K_PROJTAKEN_BACKUP],
-    ['projectberichten',K_PROJBERICHTEN_BACKUP],['projectagenda',K_PROJAGENDA_BACKUP],['projectdocs',K_PROJDOCS_BACKUP]];
+    ['projectberichten',K_PROJBERICHTEN_BACKUP],['projectagenda',K_PROJAGENDA_BACKUP],['projectdocs',K_PROJDOCS_BACKUP],
+    ['producten',K_PRODUCTEN_BACKUP],['productleveringen',K_PRODLEV_BACKUP]];
   const OUDE_BACKUPS=BACKUP_PAREN.map(p=>p[1]);
   // De momentopname zelf woont in IndexedDB (honderden MB's) i.p.v. in localStorage
   // (± 5 MB, niet te verhogen). We lezen ze bij het opstarten één keer in en houden ze
@@ -139,7 +143,8 @@
       bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: zonderFoto(cache.gebruikers), activiteit: cache.activiteit,
       projecten: cache.projecten, projecttaken: cache.projecttaken, projectberichten: cache.projectberichten,
       projectagenda: cache.projectagenda, projectdocs: cache.projectdocs, werkuren: cache.werkuren,
-      manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief
+      manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief,
+      producten: cache.producten, productleveringen: zonderFoto(cache.productleveringen)
     };
   }
   const idbKan=()=>typeof indexedDB!=='undefined';
@@ -260,6 +265,7 @@
       cache.projecten=c.projecten||[]; cache.projecttaken=c.projecttaken||[]; cache.projectberichten=c.projectberichten||[];
       cache.projectagenda=c.projectagenda||[]; cache.projectdocs=c.projectdocs||[]; cache.werkuren=c.werkuren||[];
       cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null;
+      cache.producten=c.producten||[]; cache.productleveringen=c.productleveringen||[];
       overlayOudeKopieen();
       return true;
     }catch(e){ overlayOudeKopieen(); return false; }
@@ -281,7 +287,7 @@
   // leveringen en gebruikers (profielfoto). In localStorage lopen die de opslag in geen
   // tijd vol; IndexedDB heeft honderden MB's. In de momentopname staat daarom foto:''.
   const IDB_NAME='bb_offline', IDB_STORE='kv', IDB_PHOTOKEY='prijzenfoto';
-  const IDB_LEVFOTO='leveringfoto', IDB_GEBRFOTO='gebruikerfoto';
+  const IDB_LEVFOTO='leveringfoto', IDB_GEBRFOTO='gebruikerfoto', IDB_PRODLEVFOTO='productleveringfoto';
   const IDB_SNAPSHOT='momentopname';   // de volledige offline kopie (zie hierboven)
   function idbOpen(){
     return new Promise((res,rej)=>{
@@ -336,13 +342,15 @@
     bewaarFotos(IDB_PHOTOKEY,cache.prijzen);
     bewaarFotos(IDB_LEVFOTO,cache.leveringen);
     bewaarFotos(IDB_GEBRFOTO,cache.gebruikers);
+    bewaarFotos(IDB_PRODLEVFOTO,cache.productleveringen);
   }
   // Bij offline laden: de foto's terug in de cache zetten (localStorage bevat ze niet).
   function restorePhotosFromIDB(){
     return Promise.all([
       herstelFotos(IDB_PHOTOKEY,()=>cache.prijzen),
       herstelFotos(IDB_LEVFOTO,()=>cache.leveringen),
-      herstelFotos(IDB_GEBRFOTO,()=>cache.gebruikers)
+      herstelFotos(IDB_GEBRFOTO,()=>cache.gebruikers),
+      herstelFotos(IDB_PRODLEVFOTO,()=>cache.productleveringen)
     ]).then(()=>{});
   }
 
@@ -560,6 +568,13 @@
   const bestelToRow=b=>({id:b.id,ts:b.ts||0,besteldatum:b.datum||'',categorie:b.cat||'',info:b.info||'',status:b.status||'Besteld',aantal:b.aantal||'',kost_ent:+b.ent||0,kost_bay:+b.bay||0,kost_hsb:+b.hsb||0,leverancier:b.leverancier||'',leverdatum:b.leverdatum||'',door:b.door||'',opmerking:b.opm||''});
   const mapContact=r=>({id:r.id,naam:r.naam||'',rol:r.rol||'',tel:r.tel||'',mail:r.mail||'',ts:r.ts||0});
   const contactToRow=c=>({id:c.id,naam:c.naam||'',rol:c.rol||'',tel:c.tel||'',mail:c.mail||'',ts:c.ts||0});
+  // ---- Producten per hoofdstuk (Quiz / O&F / Algemeen) — eenvoudige lijst, los van 'prijzen' ----
+  const mapProduct=r=>({id:r.id,hoofdstuk:r.hoofdstuk||'algemeen',naam:r.naam||'',stock:r.stock||0});
+  const productToRow=p=>({id:p.id,hoofdstuk:p.hoofdstuk||'algemeen',naam:p.naam||'',stock:+p.stock||0});
+  const mapProductLev=r=>({id:r.id,ts:r.ts||0,hoofdstuk:r.hoofdstuk||'algemeen',datum:r.datum||'',
+    product_id:r.product_id||'',product_naam:r.product_naam||'',aantal:+r.aantal||0,tekst:r.tekst||'',foto:r.foto||''});
+  const productLevToRow=l=>({id:l.id,ts:l.ts||0,hoofdstuk:l.hoofdstuk||'algemeen',datum:l.datum||'',
+    product_id:l.product_id||'',product_naam:l.product_naam||'',aantal:+l.aantal||0,tekst:l.tekst||'',foto:l.foto||''});
   const mapChecklist=r=>({id:r.id,naam:r.naam||'',items:Array.isArray(r.items)?r.items:(r.items?(function(){try{return JSON.parse(r.items)}catch(e){return []}})():[]),pos:+r.pos||0,ts:r.ts||0});
   const checklistToRow=c=>({id:c.id,naam:c.naam||'',items:c.items||[],pos:+c.pos||0,ts:c.ts||0});
   const mapLog=r=>({id:r.id,ts:r.ts||0,datum:r.datum||'',auteur:r.auteur||'',tekst:r.tekst||'',klaar:!!r.klaar});
@@ -797,6 +812,8 @@
     await migrateListToShared('checklisten',checklistToRow,'checklisten',K_CHECKLISTEN_BACKUP,()=>checklistenOK);
     await migrateListToShared('logboek',logToRow,'logboek',K_LOGBOEK_BACKUP,()=>logboekOK);
     await migrateListToShared('gebruikers',gebrToRow,'gebruikers',K_GEBRUIKERS_BACKUP,()=>gebruikersOK);
+    await migrateListToShared('producten',productToRow,'producten',K_PRODUCTEN_BACKUP,()=>productenOK);
+    await migrateListToShared('productleveringen',productLevToRow,'productleveringen',K_PRODLEV_BACKUP,()=>productleveringenOK);
     await seedTabelInhalen('projecten',projectToRow,'projecten',K_PROJECTEN_BACKUP,()=>projectenOK);
     await seedTabelInhalen('projecttaken',taakToRow,'projecttaken',K_PROJTAKEN_BACKUP,()=>projecttakenOK);
     await seedTabelInhalen('projectberichten',berichtToRow,'projectberichten',K_PROJBERICHTEN_BACKUP,()=>projectberichtenOK);
@@ -856,7 +873,7 @@
     if(fotosBezig) return; fotosBezig=true;           // niet twee keer tegelijk
     try{
       let iets=false;
-      for(const [tabel,key] of [['prijzen','prijzen'],['leveringen','leveringen'],['gebruikers','gebruikers']])
+      for(const [tabel,key] of [['prijzen','prijzen'],['leveringen','leveringen'],['gebruikers','gebruikers'],['productleveringen','productleveringen']])
         if(await haalFotosVoor(tabel,key)) iets=true;
       if(iets) persistCache();                        // meteen offline bewaren (ook in IndexedDB)
     } finally { fotosBezig=false; }
@@ -891,6 +908,8 @@
       loadShared('checklisten','checklisten',mapChecklist,K_CHECKLISTEN_BACKUP,v=>checklistenOK=v),
       loadShared('logboek','logboek',mapLog,K_LOGBOEK_BACKUP,v=>logboekOK=v),
       loadShared('gebruikers','gebruikers',mapGebr,K_GEBRUIKERS_BACKUP,v=>gebruikersOK=v,KOL_GEBRUIKERS),
+      loadShared('producten','producten',mapProduct,K_PRODUCTEN_BACKUP,v=>productenOK=v),
+      loadShared('productleveringen','productleveringen',mapProductLev,K_PRODLEV_BACKUP,v=>productleveringenOK=v),
       loadShared('projecten','projecten',mapProject,K_PROJECTEN_BACKUP,v=>projectenOK=v),
       loadShared('projecttaken','projecttaken',mapTaak,K_PROJTAKEN_BACKUP,v=>projecttakenOK=v),
       loadShared('projectberichten','projectberichten',mapBericht,K_PROJBERICHTEN_BACKUP,v=>projectberichtenOK=v),
@@ -962,6 +981,8 @@
     else if(t==='checklisten'&&checklistenOK){const r=await sb.from('checklisten').select('*'); if(r.data){cache.checklisten=r.data.map(mapChecklist); saveBackup('checklisten',K_CHECKLISTEN_BACKUP);}}
     else if(t==='logboek'&&logboekOK){const r=await sb.from('logboek').select('*'); if(r.data){cache.logboek=r.data.map(mapLog); saveBackup('logboek',K_LOGBOEK_BACKUP);}}
     else if(t==='gebruikers'&&gebruikersOK){const r=await selectSmal('gebruikers',KOL_GEBRUIKERS); if(r.data){cache.gebruikers=behoudFotos(cache.gebruikers,r.data.map(mapGebr)); saveBackup('gebruikers',K_GEBRUIKERS_BACKUP);}}
+    else if(t==='producten'&&productenOK){const r=await sb.from('producten').select('*'); if(r.data){cache.producten=r.data.map(mapProduct); saveBackup('producten',K_PRODUCTEN_BACKUP);}}
+    else if(t==='productleveringen'&&productleveringenOK){const r=await sb.from('productleveringen').select('*'); if(r.data){cache.productleveringen=behoudFotos(cache.productleveringen,r.data.map(mapProductLev)); saveBackup('productleveringen',K_PRODLEV_BACKUP);}}
     else if(t==='activiteit'&&activiteitOK){const r=await sb.from('activiteit').select('*').order('ts',{ascending:false}).limit(500); if(r.data){cache.activiteit=r.data.map(mapAct); saveBackup('activiteit',K_ACTIVITEIT_BACKUP);}}
     else if(t==='projecten'&&projectenOK){const r=await sb.from('projecten').select('*'); if(r.data){cache.projecten=r.data.map(mapProject); saveBackup('projecten',K_PROJECTEN_BACKUP);}}
     else if(t==='projecttaken'&&projecttakenOK){const r=await sb.from('projecttaken').select('*'); if(r.data){cache.projecttaken=r.data.map(mapTaak); saveBackup('projecttaken',K_PROJTAKEN_BACKUP);}}
@@ -1144,6 +1165,47 @@
     cache.contacten=cache.contacten.filter(c=>c.id!==id); saveContactBackup();
     if(contactenOK) dbDelete('contacten','id',id); else persistCache();
     logAct('Contact verwijderd'+(g?': '+g.naam:''));
+  }
+
+  // ---- Producten per hoofdstuk (Quiz / O&F / Algemeen): eenvoudige lijst, naam + aantal ----
+  const getProducten=()=>cache.producten;
+  function saveProductBackup(){ saveBackup('producten',K_PRODUCTEN_BACKUP); }
+  function addProduct(hoofdstuk,naam,stock){
+    const rec={id:uid(),hoofdstuk:hoofdstuk||'algemeen',naam:naam||'',stock:+stock||0};
+    cache.producten.push(rec); saveProductBackup();
+    if(productenOK) dbUpsert('producten',productToRow(rec)); else persistCache();
+    logAct('Product toegevoegd: '+(rec.naam||'')); return rec;
+  }
+  function setProductStock(id,v){
+    const p=cache.producten.find(x=>x.id===id); if(!p) return;
+    p.stock=Math.round(v||0); saveProductBackup();
+    if(productenOK) dbUpsert('producten',productToRow(p)); else persistCache();
+  }
+  function removeProduct(id){
+    const p=cache.producten.find(x=>x.id===id);
+    cache.producten=cache.producten.filter(x=>x.id!==id); saveProductBackup();
+    if(productenOK) dbDelete('producten','id',id); else persistCache();
+    logAct('Product verwijderd'+(p?': '+p.naam:''));
+  }
+  // ---- Leveringen van die producten: verhoogt meteen de voorraad van het gekozen product ----
+  const getProductleveringen=()=>cache.productleveringen;
+  function saveProductLevBackup(){ saveBackup('productleveringen',K_PRODLEV_BACKUP); }
+  function addProductLevering(lev){
+    const hoofdstuk=lev.hoofdstuk||'algemeen';
+    const prod=cache.producten.find(x=>x.id===lev.productId);
+    const aantal=Math.round(+lev.aantal||0);
+    if(prod && aantal){ prod.stock=(prod.stock||0)+aantal; saveProductBackup(); if(productenOK) dbUpsert('producten',productToRow(prod)); else persistCache(); }
+    const rec={id:uid(),ts:Date.now(),hoofdstuk,datum:lev.datum||'',product_id:lev.productId||'',product_naam:prod?prod.naam:'',aantal,tekst:lev.tekst||''};
+    if(lev.foto) rec.foto=lev.foto;
+    cache.productleveringen.push(rec); saveProductLevBackup();
+    if(productleveringenOK) dbInsert('productleveringen',productLevToRow(rec)); else persistCache();
+    logAct('Levering geregistreerd'+(aantal?(' (+'+aantal+' × '+(rec.product_naam||'?')+')'):'')); return rec;
+  }
+  function removeProductLevering(id){
+    const l=cache.productleveringen.find(x=>x.id===id);
+    cache.productleveringen=cache.productleveringen.filter(x=>x.id!==id); saveProductLevBackup();
+    if(productleveringenOK) dbDelete('productleveringen','id',id); else persistCache();
+    if(l) logAct('Levering verwijderd');
   }
 
   // ---------------- CHECKLISTS (gedeeld) ----------------
@@ -2127,6 +2189,8 @@
     {tabel:'checklisten',    label:'Checklists',           ok:()=>checklistenOK,    tel:()=>cache.checklisten.length},
     {tabel:'logboek',        label:'Logboek',              ok:()=>logboekOK,        tel:()=>cache.logboek.length},
     {tabel:'gebruikers',     label:'Gebruikers (namen)',   ok:()=>gebruikersOK,     tel:()=>cache.gebruikers.length},
+    {tabel:'producten',      label:'Producten (Quiz/O&F/Algemeen)', ok:()=>productenOK, tel:()=>cache.producten.length},
+    {tabel:'productleveringen',label:'Productleveringen',  ok:()=>productleveringenOK, tel:()=>cache.productleveringen.length},
     {tabel:'activiteit',     label:'Activiteit',           ok:()=>activiteitOK,     tel:()=>cache.activiteit.length},
     {tabel:'projecten',      label:'Projecten',            ok:()=>projectenOK,      tel:()=>cache.projecten.length},
     {tabel:'projecttaken',   label:'Projecttaken',         ok:()=>projecttakenOK,   tel:()=>cache.projecttaken.length},
@@ -2269,6 +2333,8 @@
     isProjectExtraGedeeld:()=>projectagendaOK&&projectdocsOK,
     STD_KOLOMMEN,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
+    getProducten,addProduct,setProductStock,removeProduct,isProductenGedeeld:()=>productenOK,
+    getProductleveringen,addProductLevering,removeProductLevering,isProductleveringenGedeeld:()=>productleveringenOK,
     setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,
     getManualsTree,saveManualsTree,uploadFile,lijstOpslag,verwijderOpslag,isManualsGedeeld:()=>manualsdocOK,
     haalFotosBij,   // foto's van collega's alsnog ophalen (het Database-overzicht gebruikt dit)

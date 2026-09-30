@@ -25,26 +25,39 @@
 
   <div class="view paginainhoud" id="inventaris">
     <p class="hint">Beheer hier je voorraad. Het formulier in Bazar Bizarre boekt automatisch af; hier registreer je leveringen, voeg je artikelen toe en bekijk je de inzendingen.</p>
+    <div class="hoofdstukbar" id="hoofdstukBar">
+      <button type="button" class="hoofdstuk active" data-hs="prizenight">Prizenight</button>
+      <button type="button" class="hoofdstuk" data-hs="quiz">Quiz</button>
+      <button type="button" class="hoofdstuk" data-hs="of">O&amp;F</button>
+      <button type="button" class="hoofdstuk" data-hs="algemeen">Algemeen</button>
+    </div>
     <div class="invtabs">
       <button class="invtab active" data-tab="stock">Stock</button>
-      <button class="invtab" data-tab="boekjes">Boekjes</button>
-      <button class="invtab" data-tab="formulieren">Formulieren</button>
+      <button class="invtab" data-tab="boekjes" data-hs-only="prizenight">Boekjes</button>
+      <button class="invtab" data-tab="formulieren" data-hs-only="prizenight">Formulieren</button>
       <button class="invtab" data-tab="leveringen">Leveringen</button>
       <button class="invtab" data-tab="beheer">🔒 Beheer</button>
     </div>
 
     <!-- STOCK (overzicht, alleen-lezen) -->
     <div class="invpane active" id="pane-stock">
-      <p class="hint" style="margin:0 2px 12px;">Actuele voorraad. Verandert automatisch door leveringen en doorgestuurde formulieren. Aanpassen doe je onder <b>🔒 Beheer</b>.</p>
-      <div class="invsum" id="invSum"></div>
-      <input type="text" id="invZoek" class="finp zoek" placeholder="Zoek een prijs…">
-      <div class="invfilter">
-        <button class="chip active" data-cat="all">Alle</button>
-        <button class="chip" data-cat="klein">Kleine</button>
-        <button class="chip" data-cat="groot">Grote</button>
-        <button class="usefilter" id="invUseFilter">★ Alleen 'in gebruik'</button>
+      <div class="hsonly hs-prizenight">
+        <p class="hint" style="margin:0 2px 12px;">Actuele voorraad. Verandert automatisch door leveringen en doorgestuurde formulieren. Aanpassen doe je onder <b>🔒 Beheer</b>.</p>
+        <div class="invsum" id="invSum"></div>
+        <input type="text" id="invZoek" class="finp zoek" placeholder="Zoek een prijs…">
+        <div class="invfilter">
+          <button class="chip active" data-cat="all">Alle</button>
+          <button class="chip" data-cat="klein">Kleine</button>
+          <button class="chip" data-cat="groot">Grote</button>
+          <button class="usefilter" id="invUseFilter">★ Alleen 'in gebruik'</button>
+        </div>
+        <div class="invlist" id="invList"></div>
       </div>
-      <div class="invlist" id="invList"></div>
+      <div class="hsonly hs-andere" hidden>
+        <p class="hint" style="margin:0 2px 12px;">Actuele voorraad voor dit hoofdstuk. Aanpassen doe je onder <b>🔒 Beheer</b>.</p>
+        <input type="text" id="prodZoek" class="finp zoek" placeholder="Zoek een product…">
+        <div class="invlist" id="prodList"></div>
+      </div>
     </div>
 
     <!-- BOEKJES (saldo + historiek) -->
@@ -58,6 +71,7 @@
 
     <!-- BEHEER (wachtwoord) -->
     <div class="invpane" id="pane-beheer">
+      <div class="hsonly hs-prizenight">
       <div class="beheertop">
         <div class="field gezondheid">
           <div class="h">Voorraad-gezondheid</div>
@@ -149,6 +163,37 @@
         <div class="row"><button class="btn" id="invReset">Inventaris herstellen naar startlijst</button></div>
       </div>
       </div>
+      </div>
+
+      <div class="hsonly hs-andere" hidden>
+        <div class="field">
+          <div class="h">Nieuwe levering registreren</div>
+          <label for="prodLevDatum">Datum</label>
+          <input type="date" id="prodLevDatum" class="finp">
+          <label for="prodLevKies">Product</label>
+          <select id="prodLevKies" class="finp"></select>
+          <label for="prodLevAantal">Aantal geleverd (komt bij de voorraad van dat product)</label>
+          <input type="number" id="prodLevAantal" class="finp" min="0" value="0">
+          <label for="prodLevTekst">Notitie / opmerking (optioneel)</label>
+          <input type="text" id="prodLevTekst" class="finp" placeholder="bv. 2 dozen extra">
+          <div class="row" style="margin-top:10px;align-items:center;">
+            <button class="btn" id="prodLevFotoBtn">📷 Foto</button>
+            <img id="prodLevFotoPrev" class="thumb" alt="" style="display:none">
+            <button class="btn primary" id="prodLevAdd">Levering toevoegen</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="h">Product toevoegen</div>
+          <div class="addrow">
+            <input type="text" id="prodNewNaam" class="nm" placeholder="Naam nieuw product">
+            <input type="number" id="prodNewStock" style="width:90px" placeholder="aantal" value="0">
+            <button class="btn primary" id="prodAdd">Toevoegen</button>
+          </div>
+        </div>
+        <div class="h" style="margin:28px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Producten &amp; hoeveelheden</div>
+        <input type="text" id="prodBeheerZoek" class="finp zoek" placeholder="Zoek een product om te bewerken…">
+        <div class="invlist" id="prodBeheerList"></div>
+      </div>
     </div>
 
     <!-- FORMULIEREN -->
@@ -163,8 +208,14 @@
 
     <!-- LEVERINGEN (overzicht) -->
     <div class="invpane" id="pane-leveringen">
-      <p class="hint">Overzicht van alle geregistreerde leveringen (datum, boekjes en notitie). Een nieuwe levering registreer je onder 🔒 Beheer.</p>
-      <div id="levList"></div>
+      <div class="hsonly hs-prizenight">
+        <p class="hint">Overzicht van alle geregistreerde leveringen (datum, boekjes en notitie). Een nieuwe levering registreer je onder 🔒 Beheer.</p>
+        <div id="levList"></div>
+      </div>
+      <div class="hsonly hs-andere" hidden>
+        <p class="hint">Overzicht van alle geregistreerde leveringen voor dit hoofdstuk. Een nieuwe levering registreer je onder 🔒 Beheer.</p>
+        <div id="prodLevList"></div>
+      </div>
     </div>
 
   </div>
@@ -246,6 +297,39 @@
 // ================= INVENTARIS BEHEER =================
 let invCat='all';
 
+// Hoofdstukken: Prizenight is de bestaande prijzenlijst; Quiz/O&F/Algemeen zijn elk een
+// eigen, eenvoudige productenlijst (naam + aantal), los van de Bazar Bizarre-prijzen.
+let huidigHoofdstuk='prizenight';
+function isPrizenight(){ return huidigHoofdstuk==='prizenight'; }
+document.querySelectorAll('.hoofdstuk').forEach(b=>{
+  b.onclick=()=>{
+    if(b.dataset.hs===huidigHoofdstuk) return;
+    huidigHoofdstuk=b.dataset.hs;
+    document.querySelectorAll('.hoofdstuk').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.invtab[data-hs-only]').forEach(x=>{ x.hidden=!isPrizenight(); });
+    document.querySelectorAll('.hsonly.hs-prizenight').forEach(x=>{ x.hidden=!isPrizenight(); });
+    document.querySelectorAll('.hsonly.hs-andere').forEach(x=>{ x.hidden=isPrizenight(); });
+    // Stond je op Boekjes/Formulieren (enkel Prizenight), ga dan terug naar Stock.
+    const actief=document.querySelector('.invtab.active');
+    if(!isPrizenight() && actief && actief.hasAttribute('data-hs-only')){
+      document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
+      const stockBtn=document.querySelector('.invtab[data-tab="stock"]'); stockBtn.classList.add('active');
+      document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
+      document.getElementById('pane-stock').classList.add('active');
+    }
+    renderActievePane();
+  };
+});
+function renderActievePane(){
+  const t=document.querySelector('.invtab.active').dataset.tab;
+  if(t==='stock'){ if(isPrizenight()){renderInvSum();renderInvStock();} else renderProdStock(); }
+  else if(t==='boekjes') renderBoekjes();
+  else if(t==='formulieren') renderFormulieren();
+  else if(t==='leveringen'){ if(isPrizenight()) renderLeveringen(); else renderProdLeveringen(); }
+  else if(t==='beheer'){ if(isPrizenight()) renderBeheer(); else renderProdBeheer(); }
+}
+
 // tabs (Beheer is met wachtwoord beveiligd zodat niet iedereen kan wijzigen)
 // eisBeheer() staat in kern.js: het onthoudt de toegang voor dit tabblad, dus je
 // hoeft het wachtwoord niet opnieuw in te tikken als je van pagina wisselt.
@@ -257,11 +341,7 @@ document.querySelectorAll('.invtab').forEach(b=>{
     b.classList.add('active');
     document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
     document.getElementById('pane-'+t).classList.add('active');
-    if(t==='stock'){renderInvSum();renderInvStock();}
-    else if(t==='boekjes') renderBoekjes();
-    else if(t==='formulieren') renderFormulieren();
-    else if(t==='leveringen') renderLeveringen();
-    else if(t==='beheer') renderBeheer();
+    renderActievePane();
   };
 });
 // filters + zoek
@@ -644,6 +724,110 @@ function renderLeveringen(){
       '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
     if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
     d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(await bbBevestig({titel:'Levering verwijderen?', tekst:'De stock wordt niet automatisch teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
+    wrap.appendChild(d);
+  });
+}
+
+// ---- Producten per hoofdstuk (Quiz / O&F / Algemeen): eenvoudige lijst, naam + aantal ----
+function renderProdStock(){
+  const list=document.getElementById('prodList'); if(!list) return; list.innerHTML='';
+  const q=(document.getElementById('prodZoek').value||'').toLowerCase().trim();
+  let items=BBInv.getProducten().filter(p=>p.hoofdstuk===huidigHoofdstuk);
+  if(q) items=items.filter(p=>p.naam.toLowerCase().includes(q));
+  items.sort((a,b)=>a.naam.localeCompare(b.naam));
+  if(!items.length){
+    const note=document.createElement('div'); note.className='empty-note';
+    note.textContent=q?'Geen producten gevonden.':'Nog geen producten voor dit hoofdstuk. Voeg ze toe onder 🔒 Beheer.';
+    list.appendChild(note); return;
+  }
+  items.forEach(p=>{
+    const row=document.createElement('div'); row.className='invrow';
+    row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div></div>'+
+      '<div class="stocknum'+((p.stock||0)<0?' neg':'')+'">'+(p.stock||0)+'</div>';
+    list.appendChild(row);
+  });
+}
+document.getElementById('prodZoek').oninput=renderProdStock;
+
+function prodRow(p){
+  const row=document.createElement('div'); row.className='invrow';
+  row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div></div>'+
+    '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(p.stock||0)+'"><button type="button" class="pl">+</button></div>'+
+    '<button type="button" class="del" title="Verwijderen">✕</button>';
+  const inp=row.querySelector('.stk input');
+  const commit=v=>{ v=Math.round(v||0); BBInv.setProductStock(p.id,v); inp.value=v; inp.classList.toggle('neg',v<0); };
+  row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
+  row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
+  inp.onchange=()=>commit(+inp.value||0);
+  inp.classList.toggle('neg',(p.stock||0)<0);
+  row.querySelector('.del').onclick=async()=>{
+    if(!await bbBevestig({titel:'Product verwijderen?', tekst:'"'+p.naam+'" wordt verwijderd.', okTekst:'Ja, verwijderen', gevaar:true})) return;
+    BBInv.removeProduct(p.id);
+    renderProdBeheerList(); vulProdLevKiezer();
+  };
+  return row;
+}
+function renderProdBeheerList(){
+  const list=document.getElementById('prodBeheerList'); if(!list) return; list.innerHTML='';
+  const q=(document.getElementById('prodBeheerZoek').value||'').toLowerCase().trim();
+  let items=BBInv.getProducten().filter(p=>p.hoofdstuk===huidigHoofdstuk);
+  if(q) items=items.filter(p=>p.naam.toLowerCase().includes(q));
+  items.sort((a,b)=>a.naam.localeCompare(b.naam));
+  if(!items.length){
+    const note=document.createElement('div'); note.className='empty-note';
+    note.textContent=q?'Geen producten gevonden.':'Nog geen producten. Voeg er hierboven één toe.';
+    list.appendChild(note); return;
+  }
+  items.forEach(p=>list.appendChild(prodRow(p)));
+}
+function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); }
+document.getElementById('prodBeheerZoek').oninput=renderProdBeheerList;
+document.getElementById('prodAdd').onclick=()=>{
+  const naam=document.getElementById('prodNewNaam').value.trim();
+  const stock=+document.getElementById('prodNewStock').value||0;
+  if(!naam){bbToon('Geef eerst een naam in.');return;}
+  BBInv.addProduct(huidigHoofdstuk,naam,stock);
+  document.getElementById('prodNewNaam').value=''; document.getElementById('prodNewStock').value='0';
+  renderProdBeheerList(); vulProdLevKiezer();
+};
+
+function vulProdLevKiezer(){
+  const sel=document.getElementById('prodLevKies'); if(!sel) return;
+  const items=BBInv.getProducten().filter(p=>p.hoofdstuk===huidigHoofdstuk).slice().sort((a,b)=>a.naam.localeCompare(b.naam));
+  sel.innerHTML=items.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.naam)+' ('+(p.stock||0)+' op voorraad)</option>').join('')
+    || '<option value="">— nog geen producten, voeg er eerst één toe —</option>';
+}
+let prodLevFoto='';
+document.getElementById('prodLevFotoBtn').onclick=()=>chooseFoto(url=>{ prodLevFoto=url||''; const p=document.getElementById('prodLevFotoPrev'); if(p){p.src=prodLevFoto;p.style.display=prodLevFoto?'':'none';} });
+document.getElementById('prodLevAdd').onclick=()=>{
+  const productId=document.getElementById('prodLevKies').value;
+  const aantal=+document.getElementById('prodLevAantal').value||0;
+  const datum=document.getElementById('prodLevDatum').value;
+  const tekst=document.getElementById('prodLevTekst').value.trim();
+  if(!productId){bbToon('Voeg eerst een product toe.');return;}
+  if(!aantal&&!tekst&&!prodLevFoto){bbToon('Vul minstens een aantal, een notitie of een foto in.');return;}
+  BBInv.addProductLevering({hoofdstuk:huidigHoofdstuk,productId,aantal,datum,tekst,foto:prodLevFoto});
+  document.getElementById('prodLevAantal').value='0';
+  document.getElementById('prodLevTekst').value='';
+  prodLevFoto=''; const p=document.getElementById('prodLevFotoPrev'); if(p){p.src='';p.style.display='none';}
+  renderProdBeheerList(); vulProdLevKiezer();
+  bbToon('Levering geregistreerd.');
+};
+function renderProdLeveringen(){
+  const wrap=document.getElementById('prodLevList'); if(!wrap) return;
+  const levs=BBInv.getProductleveringen().filter(l=>l.hoofdstuk===huidigHoofdstuk).slice().sort((a,b)=>b.ts-a.ts);
+  wrap.innerHTML='';
+  if(!levs.length){wrap.innerHTML='<p class="hint">Nog geen leveringen geregistreerd.</p>';return;}
+  levs.forEach(l=>{
+    const d=document.createElement('div'); d.className='subrec';
+    const parts=[];
+    if(l.aantal&&l.product_naam) parts.push('<b>'+l.aantal+'</b>× '+esc(l.product_naam));
+    if(l.tekst) parts.push(esc(l.tekst));
+    const fotoHtml=l.foto?'<img class="thumb ro" src="'+l.foto+'" alt="" style="float:right;margin-left:10px;cursor:zoom-in">':'';
+    d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
+      '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
+    if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
+    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(await bbBevestig({titel:'Levering verwijderen?', tekst:'De voorraad wordt niet automatisch teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.removeProductLevering(l.id);renderProdLeveringen();}};
     wrap.appendChild(d);
   });
 }
