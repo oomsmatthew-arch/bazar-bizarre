@@ -937,21 +937,27 @@
       else { setOK(true); cache[cacheKey]=r.data?(r.data.data||null):null; }
     }catch(e){ setOK(false); }
   }
+  // Staat er voor DEZE tabel nog iets klaar om verstuurd te worden? ('dirty' is enkel de
+  // voorraadvelden, dus die telt alleen mee voor 'prijzen'.)
+  function tabelHeeftWachtrij(t){ return outbox.some(o=>o.table===t) || (t==='prijzen' && dirty.size>0); }
   async function reloadTable(t,ookMetWachtrij){
     // BESCHERMING TEGEN GEGEVENSVERLIES bij wifi-wissel (bv. KPN ↔ TP-Link/mengpaneel):
-    // overschrijf de lokale cache NIET zolang er nog eigen wijzigingen wachten om verstuurd
-    // te worden. Anders wist een (mogelijk verouderde) serverkopie je nog-niet-gesyncte
-    // wijzigingen (bv. je boekjes-telling). Zodra alles veilig verstuurd is, herladen we weer.
+    // overschrijf de lokale cache NIET zolang er voor DEZE tabel nog eigen wijzigingen wachten
+    // om verstuurd te worden. Anders wist een (mogelijk verouderde) serverkopie je nog-niet-
+    // gesyncte wijzigingen (bv. je boekjes-telling). Zodra alles veilig verstuurd is, herladen
+    // we weer. Enkel op de eigen tabel kijken (niet de hele wachtrij): anders blokkeert een
+    // lopende voorraadtelling ook het binnenkomen van wijzigingen aan bv. bestellingen van een
+    // collega, tot die telling stopt.
     // 'ookMetWachtrij' (zie ververs) mag dat enkel overslaan voor een tabel waarvan de tak
-    // hieronder de wachtrij zélf over de serverlijst legt — nu alleen werkuren.
-    if(!ookMetWachtrij && (outbox.length || dirty.size)){ return; }
+    // hieronder de wachtrij zélf over de serverlijst legt.
+    if(!ookMetWachtrij && tabelHeeftWachtrij(t)){ return; }
     // Ook hier zonder foto's: dit vuurt bij elke wijziging van een collega (elke voorraadtik),
     // en de foto's die we al hebben blijven gewoon staan (behoudFotos).
     if(t==='prijzen'){const r=await selectSmal('prijzen',KOL_PRIJZEN); if(r.data)cache.prijzen=behoudFotos(cache.prijzen,zonderWachtendeWissers('prijzen',r.data).map(fromRow));}
     else if(t==='boekjes'){const r=await sb.from('boekjes').select('*').eq('id',1).maybeSingle(); cache.boekjes={stock:r&&r.data?(r.data.stock||0):0};}
     else if(t==='formulieren'){const r=await sb.from('formulieren').select('*'); if(r.data)cache.formulieren=r.data.map(mapForm);}
     else if(t==='leveringen'){const r=await selectSmal('leveringen',KOL_LEVERINGEN); if(r.data)cache.leveringen=behoudFotos(cache.leveringen,r.data.slice());}
-    else if(t==='bestellingen'&&bestelOK){const r=await sb.from('bestellingen').select('*'); if(r.data){cache.bestellingen=r.data.map(mapBestel); saveBestelBackup();}}
+    else if(t==='bestellingen'&&bestelOK){const r=await sb.from('bestellingen').select('*'); if(r.data){cache.bestellingen=metWachtendeSchrijfsels('bestellingen',zonderWachtendeWissers('bestellingen',r.data)).map(mapBestel); saveBestelBackup();}}
     else if(t==='contacten'&&contactenOK){const r=await sb.from('contacten').select('*'); if(r.data){cache.contacten=r.data.map(mapContact); saveBackup('contacten',K_CONTACTEN_BACKUP);}}
     else if(t==='checklisten'&&checklistenOK){const r=await sb.from('checklisten').select('*'); if(r.data){cache.checklisten=r.data.map(mapChecklist); saveBackup('checklisten',K_CHECKLISTEN_BACKUP);}}
     else if(t==='logboek'&&logboekOK){const r=await sb.from('logboek').select('*'); if(r.data){cache.logboek=r.data.map(mapLog); saveBackup('logboek',K_LOGBOEK_BACKUP);}}
@@ -975,7 +981,7 @@
   // meteen, maar op een wifi zonder echt internet (of achter een adblocker) valt die weg.
   // Niet vaker dan één keer per paar seconden per tabel: 'focus' en 'visibilitychange'
   // vuren vlak na elkaar. Enkel voor tabellen waarvan reloadTable de wachtrij meeneemt.
-  const VERVERSBAAR={werkuren:true};
+  const VERVERSBAAR={werkuren:true,bestellingen:true};
   const laatstVerverst={};
   async function ververs(tabel){
     if(!VERVERSBAAR[tabel] || !sb || !aangemeld || !ready) return false;
@@ -1043,7 +1049,7 @@
   // Bestellingen vullen: bij een lege (gedeelde of lokale) lijst starten we met de
   // standaardlijst uit het Excel-overzicht. Bestaat de gedeelde tabel en is die leeg
   // terwijl we lokaal al iets hebben, dan uploaden we de lokale kopie.
-  const BESTEL_SEED_VER=3; // verhoog dit wanneer de startlijst uit het Excel verandert
+  const BESTEL_SEED_VER=4; // verhoog dit wanneer de startlijst uit het Excel verandert
   function bestelSeed(){
     const def=window.BESTELLINGEN_DEFAULT||[];
     return def.map((b,i)=>Object.assign({id:uid(),ts:Date.now()+i},JSON.parse(JSON.stringify(b))));

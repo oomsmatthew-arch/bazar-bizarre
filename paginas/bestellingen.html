@@ -495,6 +495,16 @@ window.bbConfigToegepast=()=>{
   mgBjExtra=lsArr('bb_bestel_bj_extra',[]);
   ontvangenStats=lsArr('bb_bestel_ontvangen',['In loods','Uitgepakt']);
 };
+
+// Kom je terug naar dit scherm — ander tabblad, de app weer naar voren gehaald — haal dan
+// de bestellingen opnieuw op. Normaal komt een wijziging van een collega live binnen; dit
+// vangt het op als die verbinding even wegviel (bv. het toestel lag een tijdje stil).
+// En voor een tablet die de hele dag op dit scherm blijft staan: elke anderhalve minuut.
+function ververs(){ if(document.hidden) return; if(window.BBInv&&BBInv.ververs) BBInv.ververs('bestellingen'); }
+document.addEventListener('visibilitychange',ververs);
+window.addEventListener('focus',ververs);
+window.addEventListener('pageshow',e=>{ if(e&&e.persisted) ververs(); });
+setInterval(ververs,90000);
 </script>
 </body>
 </html>
