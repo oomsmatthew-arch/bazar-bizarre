@@ -293,7 +293,7 @@ const ACT_CANON=[
   {naam:'O&F: Show', re:/orry[^,]{0,25}:\s*show\s*$/i},
   {naam:'Family Quiz Night', re:/quiz/i},
   {naam:'Crazy Game Time', re:/crazy\s*game|dr[oô]les?\s*de\s*jeux/i},
-  {naam:'Live muziek', re:/live[\s-]*mu|musique\s*live/i},
+  {naam:'Live muziek / Chill Tunes', re:/live[\s-]*mu|musique\s*live|chill\s*tunes/i},
   {naam:'Halloween griezeltocht', re:/griezeltocht|grusellauf|halloween[^,]{0,30}(griezel|grusel|promenade|magique|zauber)|promenade[^,]{0,30}halloween/i}
 ];
 function canonAct(naam){ const n=String(naam||''); for(let i=0;i<ACT_CANON.length;i++){ if(ACT_CANON[i].re.test(n)) return ACT_CANON[i].naam; } return n; }
