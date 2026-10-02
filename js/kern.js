@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v8.5';
+const APP_VERSION='v8.6';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -565,10 +565,15 @@ const K_USER='bb_current_user';      // {id,naam} van wie op dit toestel is inge
 const K_REMEMBER='bb_remember_user'; // '1' = eigen gsm → ingelogd blijven
 const K_REMEMBER_ENT='bb_remember_ent'; // per toestel: "ENT algemeen" ingelogd houden
 // Sinds elke kaart een eigen pagina is, laadt de app bij élke tik opnieuw. Zonder
-// dit merkteken zou je dan telkens opnieuw je pincode moeten intikken. Het staat in
-// sessionStorage: het blijft binnen dit tabblad, maar is weg zodra je de app sluit —
-// precies zoals vroeger, toen alles één pagina was.
-const K_SESSIE='bb_sessie_actief';
+// dit merkteken zou je dan telkens opnieuw je pincode moeten intikken.
+// Stond vroeger in sessionStorage ("weg zodra je de app sluit") — maar op een tablet
+// met weinig geheugen ruimt Android een tabblad op de achtergrond soms zelf op en zet
+// het nadien vers terug neer. Dat voelt voor de gebruiker als "gewoon doorgaan", maar
+// sessionStorage is dan wél leeg: iedereen moest dan ineens opnieuw inloggen, middenin
+// een druk evenement. Met een tijdstempel in localStorage (die zo'n opruiming wél
+// overleeft) blijf je ingelogd zolang je het toestel recent nog gebruikt hebt.
+const K_LAATST_ACTIEF='bb_laatst_actief';
+const SESSIE_DUUR_MS=6*60*60*1000; // 6 uur zonder enige aanraking = terug naar het inlogscherm
 
 function currentUser(){ try{return JSON.parse(localStorage.getItem(K_USER)||'null');}catch(e){return null;} }
 function currentUserName(){ const u=currentUser(); return u&&u.naam?u.naam:''; }
@@ -576,7 +581,7 @@ function setCurrentUser(u,remember){
   if(u) localStorage.setItem(K_USER,JSON.stringify({id:u.id,naam:u.naam}));
   else localStorage.removeItem(K_USER);
   if(remember) localStorage.setItem(K_REMEMBER,'1'); else localStorage.removeItem(K_REMEMBER);
-  try{ if(u) sessionStorage.setItem(K_SESSIE,'1'); else sessionStorage.removeItem(K_SESSIE); }catch(e){}
+  try{ if(u) localStorage.setItem(K_LAATST_ACTIEF,String(Date.now())); else localStorage.removeItem(K_LAATST_ACTIEF); }catch(e){}
   resetBeheerLocks(); // andere gebruiker → beheer-toegang opnieuw verdienen
   updateUserBtn();
 }
@@ -1033,11 +1038,16 @@ document.getElementById('profielModal').addEventListener('click',e=>{ if(e.targe
 
 // ---- Inlog-status bij het opstarten en na het laden van de gedeelde lijst ----
 function bootAuth(){
-  // Ingelogd blijven: ofwel "onthoud mij" (eigen gsm), ofwel binnen dezelfde
-  // app-sessie — dat laatste is nodig omdat elke pagina apart geladen wordt.
-  let sessie=false; try{ sessie=sessionStorage.getItem(K_SESSIE)==='1'; }catch(e){}
+  // Ingelogd blijven: ofwel "onthoud mij" (eigen gsm), ofwel recent nog actief geweest
+  // (zie K_LAATST_ACTIEF hierboven) — dat laatste is nodig omdat elke pagina apart
+  // geladen wordt, én omdat een tablet soms zelf een tabblad herstart.
+  let laatstActief=0; try{ laatstActief=+(localStorage.getItem(K_LAATST_ACTIEF)||0)||0; }catch(e){}
+  const nogActief=laatstActief && (Date.now()-laatstActief<SESSIE_DUUR_MS);
   const remembered=localStorage.getItem(K_REMEMBER)==='1', u=currentUser();
-  if((remembered||sessie) && u){ updateUserBtn(); hideLogin(); }
+  if((remembered||nogActief) && u){
+    try{ localStorage.setItem(K_LAATST_ACTIEF,String(Date.now())); }catch(e){} // de klok loopt verder
+    updateUserBtn(); hideLogin();
+  }
   else { setCurrentUser(null,false); showLogin(); } // verse start: altijd opnieuw inloggen (geen hervatten zonder pincode)
 }
 // Sommige pagina's zijn enkel voor bepaalde rollen (Systeem = admin, Activiteit =
@@ -1135,7 +1145,18 @@ if('serviceWorker' in navigator){
 // niemand bezig is (geen open venster, en minstens ~3 min geen aanraking, of het
 // scherm staat op de achtergrond), zodat we niemand midden in het typen onderbreken.
 let updateReady=false, lastActivity=Date.now();
-['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{lastActivity=Date.now();},{passive:true}));
+// Dezelfde aanraking die hier 'lastActivity' bijhoudt, verlengt ook de ingelogde sessie
+// (K_LAATST_ACTIEF hierboven) — maar niet bij elke tik herschrijven, dat is nodeloos
+// veel schrijfwerk op een toestel dat de hele dag aangeraakt wordt.
+let _laatstActiefGeschreven=0;
+function bumpLaatstActief(){
+  if(!currentUser()) return;
+  const nu=Date.now();
+  if(nu-_laatstActiefGeschreven<60000) return;
+  _laatstActiefGeschreven=nu;
+  try{ localStorage.setItem(K_LAATST_ACTIEF,String(nu)); }catch(e){}
+}
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{lastActivity=Date.now(); bumpLaatstActief();},{passive:true}));
 function appIsBusy(){
   // een open invoervenster? dan niet herladen
   if(document.querySelector('.cammodal.open, .modal.open')) return true;

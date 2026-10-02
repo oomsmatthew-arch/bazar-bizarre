@@ -2034,6 +2034,39 @@ document.getElementById('afsluitSpel').onclick=()=>{ renderFormulier(); show('fo
 let fSel={klein:{},groot:{}}; // id -> aantal
 let fFilter={klein:'alle',groot:'alle'};
 let fUsage={};
+
+// ---- Klad van dit formulier bewaren: overleeft een onverwachte herlaad/herstart ----
+// Alles hierboven (turven, finalespel…) staat al in 'state' en overleeft een herlaad
+// al langer. Maar wat je HIER intikt — welke prijzen precies weg zijn, de namen, de
+// boekjes, de finalevraag — stond nergens bewaard tot je op "Doorsturen" drukte. Komt
+// een tablet precies dán vast te zitten (leeg geheugen, wifi die wegvalt…), dan was je
+// alle werk van het invullen kwijt. Nu wordt elke wijziging meteen opgeslagen, en staat
+// alles er — stil, zonder vraag — weer zoals je het achterliet als je hier terugkomt.
+const KEYFORMDRAFT='bazarbizarre_formulier_klad';
+function saveFormDraft(){
+  try{
+    localStorage.setItem(KEYFORMDRAFT, JSON.stringify({
+      ts:Date.now(), fSel,
+      namen:document.getElementById('fNamen').value,
+      bkRes:document.getElementById('fBkRes').value,
+      bkExtra:document.getElementById('fBkExtra').value,
+      bkGratis:document.getElementById('fBkGratis').value,
+      finaleVraag:document.getElementById('fFinaleVraag').value,
+      opm:document.getElementById('fOpm').value
+    }));
+  }catch(e){}
+}
+function wisFormDraft(){ try{localStorage.removeItem(KEYFORMDRAFT);}catch(e){} }
+// Ouder dan 12 uur: dat is geen onderbroken formulier meer van zonet, maar waarschijnlijk
+// een restant van een dag die niet netjes werd afgesloten. Dan niet laten terugkomen.
+function laadFormDraft(){
+  try{
+    const raw=localStorage.getItem(KEYFORMDRAFT); if(!raw) return null;
+    const d=JSON.parse(raw);
+    if(!d || (Date.now()-(d.ts||0))>12*60*60*1000){ wisFormDraft(); return null; }
+    return d;
+  }catch(e){ return null; }
+}
 function computeUsage(){
   fUsage={};
   BBInv.getFormulieren().forEach(rec=>{
@@ -2065,11 +2098,11 @@ function renderKiesLijst(cat){
       st.innerHTML='<button type="button" class="qmin">−</button><span class="qn">'+sel+'</span><button type="button" class="qpl">+</button>';
       st.querySelector('.qmin').onclick=e=>{e.stopPropagation();
         if(sel<=1){delete fSel[cat][p.id];}else{fSel[cat][p.id]=sel-1;}
-        renderKiesLijst(cat);updateTel(cat);};
-      st.querySelector('.qpl').onclick=e=>{e.stopPropagation();fSel[cat][p.id]=sel+1;renderKiesLijst(cat);updateTel(cat);};
+        renderKiesLijst(cat);updateTel(cat);saveFormDraft();};
+      st.querySelector('.qpl').onclick=e=>{e.stopPropagation();fSel[cat][p.id]=sel+1;renderKiesLijst(cat);updateTel(cat);saveFormDraft();};
       row.appendChild(st);
     }
-    row.onclick=()=>{ if(fSel[cat][p.id])delete fSel[cat][p.id]; else fSel[cat][p.id]=1; renderKiesLijst(cat); updateTel(cat); };
+    row.onclick=()=>{ if(fSel[cat][p.id])delete fSel[cat][p.id]; else fSel[cat][p.id]=1; renderKiesLijst(cat); updateTel(cat); saveFormDraft(); };
     lijstEl.appendChild(row);
   });
 }
@@ -2094,34 +2127,46 @@ function finaleVraagTekst(){
   return uit.join('\n');
 }
 function renderFormulier(){
-  fSel={klein:{},groot:{}};
+  // Stond er een onderbroken klad van dit formulier (zie saveFormDraft hierboven), dan
+  // krijgt die voorrang op de normale voorinvulling — anders zou net het herstellen
+  // van een onderbroken formulier het weer overschrijven met een lege/verse versie.
+  const klad=laadFormDraft();
+  fSel = (klad && klad.fSel) ? Object.assign({klein:{},groot:{}}, klad.fSel) : {klein:{},groot:{}};
   fFilter={klein:'alle',groot:'alle'};
   computeUsage();
   document.querySelectorAll('.formfilter').forEach(fb=>fb.querySelectorAll('.fchip').forEach((c,i)=>c.classList.toggle('active',i===0)));
   const recente=getRecenteNamen();
   document.getElementById('fDatum').textContent=fmtTs(Date.now()).split(' ')[0];
-  document.getElementById('fNamen').value=recente[0]||'';
+  document.getElementById('fNamen').value= klad ? (klad.namen||'') : (recente[0]||'');
   document.getElementById('fNamenLijst').innerHTML=recente.map(n=>'<option value="'+esc(n)+'">').join('');
-  document.getElementById('fFinaleVraag').value=finaleVraagTekst();
-  document.getElementById('fOpm').value='';
+  document.getElementById('fFinaleVraag').value= klad ? (klad.finaleVraag||'') : finaleVraagTekst();
+  document.getElementById('fOpm').value= klad ? (klad.opm||'') : '';
   // --- overnemen vanuit het controleblad (vorige pagina) ---
-  // 8 prijzen → voorselectie in de keuzelijsten (op naam → juiste categorie)
-  const _inv=(window.BBInv?BBInv.getPrijzen():[]);
-  (state.prijzen||[]).forEach(naam=>{
-    const n=(naam||'').trim(); if(!n) return;
-    const p=_inv.find(x=>x.naam.toLowerCase()===n.toLowerCase());
-    if(p) fSel[p.cat][p.id]=(fSel[p.cat][p.id]||0)+1;
-  });
+  // 8 prijzen → voorselectie in de keuzelijsten (op naam → juiste categorie). Enkel
+  // zonder klad: anders overschrijft dit de keuzes van een onderbroken formulier met
+  // wat er nu toevallig op het controleblad staat.
+  if(!klad){
+    const _inv=(window.BBInv?BBInv.getPrijzen():[]);
+    (state.prijzen||[]).forEach(naam=>{
+      const n=(naam||'').trim(); if(!n) return;
+      const p=_inv.find(x=>x.naam.toLowerCase()===n.toLowerCase());
+      if(p) fSel[p.cat][p.id]=(fSel[p.cat][p.id]||0)+1;
+    });
+  }
   // turven → boekjes (Reserved → gereserveerd, Extra Sale → extra, 3+1 → gratis)
   const _cc=kw=>{const i=CONTROLE.findIndex(c=>c.toLowerCase().includes(kw));return i>=0?(state.controle[i]||0):0;};
-  document.getElementById('fBkRes').value=_cc('reserved');
-  document.getElementById('fBkExtra').value=_cc('extra');
-  document.getElementById('fBkGratis').value=_cc('3+1');
+  document.getElementById('fBkRes').value= klad ? (klad.bkRes||0) : _cc('reserved');
+  document.getElementById('fBkExtra').value= klad ? (klad.bkExtra||0) : _cc('extra');
+  document.getElementById('fBkGratis').value= klad ? (klad.bkGratis||0) : _cc('3+1');
   document.getElementById('fKleinZoek').value=''; document.getElementById('fGrootZoek').value='';
   renderKiesLijst('klein'); renderKiesLijst('groot'); updateTel('klein'); updateTel('groot');
 }
 document.getElementById('fKleinZoek').oninput=()=>renderKiesLijst('klein');
 document.getElementById('fGrootZoek').oninput=()=>renderKiesLijst('groot');
+// Elk veld bewaart meteen mee in het klad (zie saveFormDraft hierboven).
+['fNamen','fBkRes','fBkExtra','fBkGratis','fFinaleVraag','fOpm'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',saveFormDraft);
+});
 document.querySelectorAll('.formfilter').forEach(fb=>{
   const cat=fb.dataset.fcat;
   fb.querySelectorAll('.fchip').forEach(c=>{
@@ -2135,7 +2180,9 @@ document.getElementById('fFinaleOver').onclick=()=>{
   if(!t){ bbToon('Er staat nog geen vraag of antwoord bij het Finalespel.','fout'); return; }
   document.getElementById('fFinaleVraag').value=t;
 };
-document.getElementById('fAnnuleer').onclick=()=>show('menu');
+// Bewust kiezen om door te gaan is een duidelijk "ik stop hiermee" — anders zou een
+// oud, geannuleerd klad later bij een heel ander, nieuw formulier weer opduiken.
+document.getElementById('fAnnuleer').onclick=()=>{ wisFormDraft(); show('menu'); };
 // Het formulier dat wíj net doorstuurden. Alleen dát mag 'Ongedaan maken' terugdraaien —
 // zie de uitleg bij die knop verderop.
 let laatsteEigenFormulier=null;
@@ -2175,6 +2222,7 @@ document.getElementById('fDoorsturen').onclick=async()=>{
   // id van de gekozen vraag; klopte dat id niet meer, dan telde de vraag niet mee.
   const rec=BBInv.submitFormulier(f);
   laatsteEigenFormulier=rec?rec.id:null;   // hier hoort 'Ongedaan maken' bij, en aan niets anders
+  wisFormDraft();   // veilig binnen: het klad van dit formulier hoeft niet langer terug te komen
   onthoudNaam(namen);
   // archiveer ook de spel-sessie (bestaande spel-archief met turven/finale)
   const games=loadGames(); games.push(snapshotGame(namen)); saveGames(games);
@@ -2453,7 +2501,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.7';
+const APP_VERSION='v3.8';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;
