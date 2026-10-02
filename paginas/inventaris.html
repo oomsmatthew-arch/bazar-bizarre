@@ -187,6 +187,8 @@
           <div class="addrow">
             <input type="text" id="prodNewNaam" class="nm" placeholder="Naam nieuw product">
             <input type="number" id="prodNewStock" style="width:90px" placeholder="aantal" value="0">
+            <button class="btn" id="prodAddFoto">📷 Foto</button>
+            <img id="prodAddFotoPrev" class="thumb" alt="" style="display:none">
             <button class="btn primary" id="prodAdd">Toevoegen</button>
           </div>
         </div>
@@ -742,8 +744,10 @@ function renderProdStock(){
   }
   items.forEach(p=>{
     const row=document.createElement('div'); row.className='invrow';
-    row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div></div>'+
+    row.innerHTML=(p.foto?'<img class="thumb ro" src="'+p.foto+'" alt="">':'<div class="thumb ph ro">📷</div>')+
+      '<div class="nm"><div class="t">'+esc(p.naam)+'</div></div>'+
       '<div class="stocknum'+((p.stock||0)<0?' neg':'')+'">'+(p.stock||0)+'</div>';
+    if(p.foto){const t=row.querySelector('.thumb'); if(t){t.style.cursor='zoom-in'; t.onclick=()=>viewFoto(p.foto);}}
     list.appendChild(row);
   });
 }
@@ -754,6 +758,15 @@ function prodRow(p){
   row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div></div>'+
     '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(p.stock||0)+'"><button type="button" class="pl">+</button></div>'+
     '<button type="button" class="del" title="Verwijderen">✕</button>';
+  const tw=document.createElement('div'); tw.className='thumbwrap';
+  tw.innerHTML=p.foto?('<img class="thumb" src="'+p.foto+'" alt=""><button type="button" class="thumbx" title="Foto verwijderen">✕</button>'):'<div class="thumb ph">📷</div>';
+  tw.querySelector('.thumb').onclick=()=>chooseFoto(url=>{
+    if(!url) return;
+    BBInv.setProductFoto(p.id,url);
+    renderProdBeheerList();
+  });
+  if(p.foto) tw.querySelector('.thumbx').onclick=async e=>{e.stopPropagation();if(await bbBevestig({titel:'Foto verwijderen?', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setProductFoto(p.id,'');renderProdBeheerList();}};
+  row.prepend(tw);
   const inp=row.querySelector('.stk input');
   const commit=v=>{ v=Math.round(v||0); BBInv.setProductStock(p.id,v); inp.value=v; inp.classList.toggle('neg',v<0); };
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
@@ -782,12 +795,19 @@ function renderProdBeheerList(){
 }
 function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); }
 document.getElementById('prodBeheerZoek').oninput=renderProdBeheerList;
+let prodNewFoto='';
+document.getElementById('prodAddFoto').onclick=()=>chooseFoto(url=>{
+  if(!url) return;
+  prodNewFoto=url;
+  const prev=document.getElementById('prodAddFotoPrev'); prev.src=url; prev.style.display='block';
+});
 document.getElementById('prodAdd').onclick=()=>{
   const naam=document.getElementById('prodNewNaam').value.trim();
   const stock=+document.getElementById('prodNewStock').value||0;
   if(!naam){bbToon('Geef eerst een naam in.');return;}
-  BBInv.addProduct(huidigHoofdstuk,naam,stock);
+  BBInv.addProduct(huidigHoofdstuk,naam,stock,prodNewFoto);
   document.getElementById('prodNewNaam').value=''; document.getElementById('prodNewStock').value='0';
+  prodNewFoto=''; const prev=document.getElementById('prodAddFotoPrev'); prev.src=''; prev.style.display='none';
   renderProdBeheerList(); vulProdLevKiezer();
 };
 

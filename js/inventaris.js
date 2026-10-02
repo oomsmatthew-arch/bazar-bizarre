@@ -26,6 +26,12 @@
   // en zou een inzending onnodig in de terugvalweg belanden.
   let finalevraagOK=false;
   try{ finalevraagOK=localStorage.getItem(K_FVCOL)==='1'; }catch(e){}
+  // Zelfde verhaal voor 'foto' op de tabel producten (Quiz/O&F/Algemeen) — zie
+  // docs/producten-foto-kolom.sql. Zonder die kolom blijft een toegevoegde foto op
+  // dit ene toestel staan; productToRow laat het veld dan gewoon weg bij het opslaan.
+  const K_PFCOL='bb_producten_foto_kolom';
+  let productenFotoOK=false;
+  try{ productenFotoOK=localStorage.getItem(K_PFCOL)==='1'; }catch(e){}
   // Diagnose: wat het Systeem-scherm toont. Zonder dit merk je pas veel later dat er iets
   // stilletjes misliep (tabel ontbreekt, wachtrij vast, nooit aangemeld…).
   const K_LAST_SYNC='bb_last_sync';
@@ -370,6 +376,21 @@
   // ---- Outbox: wijzigingen die nog naar de database moeten (overleven offline) ----
   let outbox=[]; try{const r=localStorage.getItem(K_OUTBOX); outbox=r?(JSON.parse(r)||[]):[];}catch(e){outbox=[];}
   let flushing=false, retryT=null;
+  // Op een wifi zonder échte internettoegang (bv. een losse TP-Link om enkel een
+  // techniektafel mee aan te sturen) denkt de browser dat hij online is — en probeert de
+  // app dus gewoon te blijven synchroniseren. Zonder afkoeling is dat een hele avond lang
+  // om de 6 seconden een mislukte poging van 12 seconden: dat vreet stilletjes batterij en
+  // geheugen. Lukt het meermaals NIET om de server zelfs maar te bereiken, dan wachten we
+  // steeds langer — 6s · 30s · 1 min · en dan elk uur — tot het weer lukt. Komt er een
+  // antwoord van de server (al is het een foutmelding), dan was er duidelijk wél verbinding:
+  // dan springt de teller terug naar 0 en blijft de snelle 6s-aanpak gelden.
+  let netFailStreak=0;
+  // Niet vóór dit tijdstip opnieuw proberen. Zonder dit zou ELKE nieuwe handeling (een
+  // volgend formulier, een voorraadtik) via enqueue() meteen weer een eigen poging
+  // starten, dwars door de afkoeltijd heen — en dan heeft die niets opgeleverd.
+  let blokkeerTot=0;
+  const NET_BACKOFF=[6000,30000,60000,60*60*1000];
+  function volgendeBackoff(){ return NET_BACKOFF[Math.min(netFailStreak,NET_BACKOFF.length-1)]; }
   // Wie wil weten hoeveel er nog wacht (de ⏳-melding in de balk), krijgt een seintje
   // zodra dat getal verandert. Vroeger keek die melding elke 3 seconden zélf, de hele
   // dag door, aan iets dat zelden wijzigt — op een tablet die van 's ochtends tot
@@ -384,7 +405,15 @@
   }
   function saveOutbox(){ try{localStorage.setItem(K_OUTBOX,JSON.stringify(outbox));}catch(e){} meldWachtrij(); }
   function pendingCount(){ return outbox.length; }
-  function enqueue(op){ outbox.push(op); saveOutbox(); persistCache(); flushOutbox(); }
+  function enqueue(op){
+    outbox.push(op); saveOutbox(); persistCache();
+    // Tijdens de afkoeltijd na herhaalde mislukte pogingen (zie NET_BACKOFF hierboven)
+    // niet bij ELKE nieuwe handeling meteen een eigen poging starten — dat zou de
+    // afkoeling net tenietdoen. De al geplande herprobeer-timer pakt het vanzelf weer op
+    // zodra de wachttijd om is; een rechtstreekse aanroep van flushOutbox() (het
+    // 'online'-signaal, de knop op het Systeem-scherm, het opstarten) gaat wél altijd door.
+    if(Date.now()>=blokkeerTot) flushOutbox();
+  }
   function dbInsert(table,payload){ enqueue({op:'insert',table,payload}); }
   function dbUpsert(table,payload){ enqueue({op:'upsert',table,payload}); }
   function dbUpdate(table,col,val,payload){ enqueue({op:'update',table,col,val,payload}); }
@@ -442,6 +471,7 @@
     if(!aangemeld) return;
     flushing=true;
     let verwijderd=null;   // uit welke tabel we echt iets wisten weg te halen
+    let hadNetErr=false;   // kregen we de server zelf niet te pakken? (i.t.t. een foutmelding ERVAN)
     try{
       while(outbox.length){
         const op=outbox[0]; let res, netErr=false;
@@ -460,7 +490,7 @@
           else { opWeg(op); continue; }
           res=await withTimeout(call,12000);
         }catch(e){ netErr=true; noteFout('Versturen naar '+op.table,e); } // netwerk weg of time-out → wachtrij behouden, later opnieuw proberen
-        if(netErr) break;
+        if(netErr){ hadNetErr=true; break; }
         let fout = (res && res.error) ? (res.error.message||String(res.error)) : '';
         // "Gelukt" is niet altijd gelukt: nul rijen aangeraakt kan óók betekenen dat de
         // database het weigerde zonder te klagen. Staat de rij er daarna nog, dan is er
@@ -494,9 +524,14 @@
       if(verwijderd && !outbox.length){ try{ await reloadTable(verwijderd); }catch(e){} }
     } finally {
       flushing=false;
-      // Bleven er wijzigingen staan (na een fout) en zijn we online? Plan een nieuwe poging.
+      netFailStreak = hadNetErr ? (netFailStreak+1) : 0;
+      const wacht = hadNetErr ? volgendeBackoff() : 6000;
+      blokkeerTot = hadNetErr ? (Date.now()+wacht) : 0;
+      // Bleven er wijzigingen staan (na een fout) en zijn we online? Plan een nieuwe poging —
+      // snel (6s) bij een gewone foutmelding van de server, steeds trager bij herhaalde
+      // keren dat de server niet eens te bereiken was (zie de uitleg bij NET_BACKOFF hierboven).
       if(outbox.length && !(typeof navigator!=='undefined' && navigator.onLine===false)){
-        clearTimeout(retryT); retryT=setTimeout(()=>{ retryT=null; flushOutbox(); }, 6000);
+        clearTimeout(retryT); retryT=setTimeout(()=>{ retryT=null; flushOutbox(); }, wacht);
       }
       fire();
     }
@@ -569,8 +604,13 @@
   const mapContact=r=>({id:r.id,naam:r.naam||'',rol:r.rol||'',tel:r.tel||'',mail:r.mail||'',ts:r.ts||0});
   const contactToRow=c=>({id:c.id,naam:c.naam||'',rol:c.rol||'',tel:c.tel||'',mail:c.mail||'',ts:c.ts||0});
   // ---- Producten per hoofdstuk (Quiz / O&F / Algemeen) — eenvoudige lijst, los van 'prijzen' ----
-  const mapProduct=r=>({id:r.id,hoofdstuk:r.hoofdstuk||'algemeen',naam:r.naam||'',stock:r.stock||0});
-  const productToRow=p=>({id:p.id,hoofdstuk:p.hoofdstuk||'algemeen',naam:p.naam||'',stock:+p.stock||0});
+  const mapProduct=r=>({id:r.id,hoofdstuk:r.hoofdstuk||'algemeen',naam:r.naam||'',stock:r.stock||0,foto:r.foto||''});
+  // De foto-kolom bestaat niet overal al: zonder haar sturen we 'foto' gewoon niet mee,
+  // anders mislukt de hele rij. Voor gewone wijzigingen (enkel de voorraad) gebruiken we
+  // productToRowKaal, zodat niet bij elke +/- klik de hele foto opnieuw verstuurd wordt —
+  // zelfde reden als toRowKaal bij de prijzen van Prizenight.
+  const productToRow=p=>{ const r={id:p.id,hoofdstuk:p.hoofdstuk||'algemeen',naam:p.naam||'',stock:+p.stock||0}; if(productenFotoOK) r.foto=p.foto||''; return r; };
+  const productToRowKaal=p=>({id:p.id,hoofdstuk:p.hoofdstuk||'algemeen',naam:p.naam||'',stock:+p.stock||0});
   const mapProductLev=r=>({id:r.id,ts:r.ts||0,hoofdstuk:r.hoofdstuk||'algemeen',datum:r.datum||'',
     product_id:r.product_id||'',product_naam:r.product_naam||'',aantal:+r.aantal||0,tekst:r.tekst||'',foto:r.foto||''});
   const productLevToRow=l=>({id:l.id,ts:l.ts||0,hoofdstuk:l.hoofdstuk||'algemeen',datum:l.datum||'',
@@ -921,7 +961,8 @@
       loadDoc('appconfig','appconfig',v=>appconfigOK=v),
       loadDoc('spelarchief','spelarchief',v=>spelarchiefOK=v),
       laadSessies(),
-      probeerFinalevraag()
+      probeerFinalevraag(),
+      probeerProductFoto()
     ]);
     } finally { bulkLaden=false; }
     persistCache();
@@ -936,6 +977,14 @@
       // aan wat we de vorige keer wisten.
       finalevraagOK=!(r&&r.error);
       try{ localStorage.setItem(K_FVCOL, finalevraagOK?'1':'0'); }catch(e){}
+    }catch(e){ /* netwerk weg → laatst bekende stand behouden */ }
+  }
+  // Zelfde controle voor de kolom 'foto' op producten.
+  async function probeerProductFoto(){
+    try{
+      const r=await sb.from('producten').select('foto').limit(1);
+      productenFotoOK=!(r&&r.error);
+      try{ localStorage.setItem(K_PFCOL, productenFotoOK?'1':'0'); }catch(e){}
     }catch(e){ /* netwerk weg → laatst bekende stand behouden */ }
   }
   // Gedeelde recente sessies: aparte rij (id=2) in dezelfde spelarchief-tabel — geen extra opzet nodig.
@@ -1170,8 +1219,8 @@
   // ---- Producten per hoofdstuk (Quiz / O&F / Algemeen): eenvoudige lijst, naam + aantal ----
   const getProducten=()=>cache.producten;
   function saveProductBackup(){ saveBackup('producten',K_PRODUCTEN_BACKUP); }
-  function addProduct(hoofdstuk,naam,stock){
-    const rec={id:uid(),hoofdstuk:hoofdstuk||'algemeen',naam:naam||'',stock:+stock||0};
+  function addProduct(hoofdstuk,naam,stock,foto){
+    const rec={id:uid(),hoofdstuk:hoofdstuk||'algemeen',naam:naam||'',stock:+stock||0,foto:foto||''};
     cache.producten.push(rec); saveProductBackup();
     if(productenOK) dbUpsert('producten',productToRow(rec)); else persistCache();
     logAct('Product toegevoegd: '+(rec.naam||'')); return rec;
@@ -1179,7 +1228,13 @@
   function setProductStock(id,v){
     const p=cache.producten.find(x=>x.id===id); if(!p) return;
     p.stock=Math.round(v||0); saveProductBackup();
-    if(productenOK) dbUpsert('producten',productToRow(p)); else persistCache();
+    if(productenOK) dbUpsert('producten',productToRowKaal(p)); else persistCache();
+  }
+  function setProductFoto(id,dataUrl){
+    const p=cache.producten.find(x=>x.id===id); if(!p) return false;
+    p.foto=dataUrl||''; saveProductBackup();
+    if(productenOK&&productenFotoOK) dbUpdate('producten','id',id,{foto:p.foto}); else persistCache();
+    return true;
   }
   function removeProduct(id){
     const p=cache.producten.find(x=>x.id===id);
@@ -1194,7 +1249,7 @@
     const hoofdstuk=lev.hoofdstuk||'algemeen';
     const prod=cache.producten.find(x=>x.id===lev.productId);
     const aantal=Math.round(+lev.aantal||0);
-    if(prod && aantal){ prod.stock=(prod.stock||0)+aantal; saveProductBackup(); if(productenOK) dbUpsert('producten',productToRow(prod)); else persistCache(); }
+    if(prod && aantal){ prod.stock=(prod.stock||0)+aantal; saveProductBackup(); if(productenOK) dbUpsert('producten',productToRowKaal(prod)); else persistCache(); }
     const rec={id:uid(),ts:Date.now(),hoofdstuk,datum:lev.datum||'',product_id:lev.productId||'',product_naam:prod?prod.naam:'',aantal,tekst:lev.tekst||''};
     if(lev.foto) rec.foto=lev.foto;
     cache.productleveringen.push(rec); saveProductLevBackup();
@@ -2333,7 +2388,8 @@
     isProjectExtraGedeeld:()=>projectagendaOK&&projectdocsOK,
     STD_KOLOMMEN,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
-    getProducten,addProduct,setProductStock,removeProduct,isProductenGedeeld:()=>productenOK,
+    getProducten,addProduct,setProductStock,setProductFoto,removeProduct,isProductenGedeeld:()=>productenOK,
+    isProductenFotoGedeeld:()=>productenFotoOK,
     getProductleveringen,addProductLevering,removeProductLevering,isProductleveringenGedeeld:()=>productleveringenOK,
     setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,
     getManualsTree,saveManualsTree,uploadFile,lijstOpslag,verwijderOpslag,isManualsGedeeld:()=>manualsdocOK,
