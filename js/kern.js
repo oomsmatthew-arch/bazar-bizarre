@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v8.7';
+const APP_VERSION='v8.8';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1140,8 +1140,14 @@ if('serviceWorker' in navigator){
 }
 
 // ---------------- AUTOMATISCH VERNIEUWEN (blijft up-to-date) ----------------
-// Een tablet die de hele dag openstaat draait anders oude code. We kijken periodiek
-// of er een nieuwe versie online staat en herladen dan stil — maar alleen wanneer
+// Een tablet die de hele dag openstaat draait anders oude code. Vroeger ging dat via
+// een vaste timer die om de 15 minuten vroeg "is er al iets nieuws?" — de hele avond
+// door, ook als er niets te melden viel. Nu gebeurt dat enkel nog op een ECHT moment:
+// bij het opstarten (eenmalig), wanneer het toestel terug online komt, wanneer je
+// terugkeert naar een verborgen tabblad — én, het belangrijkste, zodra er een update
+// wordt doorgestuurd (zie scripts/meld-update.js en BBInv.setOnUpdateSignal hieronder:
+// dat stuurt op dát moment een seintje naar alle open toestellen via Supabase realtime).
+// Toont zo'n controle een nieuwe versie, dan herladen we stil — maar alleen wanneer
 // niemand bezig is (geen open venster, en minstens ~3 min geen aanraking, of het
 // scherm staat op de achtergrond), zodat we niemand midden in het typen onderbreken.
 let updateReady=false, lastActivity=Date.now();
@@ -1196,6 +1202,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     updateSyncBadge();
   });
   if(typeof window.bbStart==='function') window.bbStart();
+  // Vóór init(), zodat het seintje al klaarstaat zodra de realtime-verbinding meteen
+  // daarna wordt opgezet (zie subscribeUpdateSignal in js/inventaris.js).
+  if(BBInv.setOnUpdateSignal) BBInv.setOnUpdateSignal(checkForUpdate);
   BBInv.init();
   // De ⏳-melding volgt de wachtrij: de gegevenslaag geeft een seintje zodra dat aantal
   // verandert. Vroeger stond hier een setInterval van 3 seconden dat de hele dag door
@@ -1204,9 +1213,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   // oude manier, zodat de melding hoe dan ook blijft werken.)
   if(BBInv.setOnWachtrij) BBInv.setOnWachtrij(updateSyncBadge);
   else { updateSyncBadge(); setInterval(updateSyncBadge,3000); }
-  // Automatisch vernieuwen: eerste check na 1 min, daarna elk kwartier; en elke 30s
-  // kijken of het een geschikt moment is om (stil) te herladen bij een nieuwe versie.
+  // Automatisch vernieuwen: één controle vlak na het opstarten (geen vaste herhaling
+  // meer — zie de uitleg hierboven), en elke 30s kijken of het een geschikt moment is
+  // om (stil) te herladen bij een nieuwe versie.
   setTimeout(checkForUpdate,60000);
-  setInterval(checkForUpdate,15*60*1000);
   setInterval(tryReload,30000);
 });

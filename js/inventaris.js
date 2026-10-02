@@ -7,7 +7,7 @@
   const SUPABASE_URL='https://tbromtomzglqtuyezoav.supabase.co';
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
-  let sb=null, ready=false, onChange=null;
+  let sb=null, ready=false, onChange=null, onUpdateSignaal=null;
   const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],werkuren:[],manualsdoc:null,appconfig:null,spelarchief:null,producten:[],productleveringen:[]};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
@@ -773,6 +773,7 @@
     }
     libOK=true;
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    subscribeUpdateSignal(); // luistert los van aanmelden/internet-status hierna — werkt ook zonder team-login
     const toegang=await zorgVoorToegang();
     aangemeld=!!toegang;
     if(!toegang){
@@ -1073,6 +1074,19 @@
         if(realtime==='mislukt') noteFout('Realtime','kon niet luisteren naar wijzigingen van andere toestellen');
       });
     }catch(e){ realtime='mislukt'; noteFout('Realtime',e); console.error('Realtime mislukt:',e); }
+  }
+  // Signaal "er staat een nieuwe versie klaar" — gestuurd door scripts/meld-update.js vlak
+  // na het online zetten van een update. Dit is géén tabelwijziging (geen aan/afmelden
+  // nodig, werkt met enkel de anon-sleutel): alle toestellen die nu open staan, horen het
+  // zonder dat iemand hoeft te wachten tot de volgende periodieke controle — want die
+  // bestaat hier bewust niet meer. kern.js luistert hierop via setOnUpdateSignal() en doet
+  // dan zijn eigen (betrouwbare) check: wélke versie staat er écht online.
+  function subscribeUpdateSignal(){
+    try{
+      sb.channel('bb-update').on('broadcast',{event:'controleer'},()=>{
+        if(onUpdateSignaal) try{ onUpdateSignaal(); }catch(e){ console.error(e); }
+      }).subscribe();
+    }catch(e){ /* geen internet of bibliotheek niet geladen: de controle bij het opstarten blijft gelden */ }
   }
 
   // Eenmalige migratie: als de database nog leeg is, upload de lokale gegevens
@@ -2368,7 +2382,7 @@
     printHTML('Bestellijst',body);
   }
 
-  window.BBInv={init,setOnChange:fn=>{onChange=fn;},isReady:()=>ready,
+  window.BBInv={init,setOnChange:fn=>{onChange=fn;},setOnUpdateSignal:fn=>{onUpdateSignaal=fn;},isReady:()=>ready,
     seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
     isFinalevraagGedeeld:()=>finalevraagOK, VRAAG_MARKER,
