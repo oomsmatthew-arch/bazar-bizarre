@@ -52,6 +52,12 @@
   .topbar .gear{border:none;background:rgba(255,255,255,.18);color:#fff;font-size:18px;
     width:40px;height:40px;border-radius:10px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto;}
   .topbar .gear:active{transform:translateY(1px);}
+  /* Het vergrootglas (js/zoek.js) krijgt hier geen stijl mee uit css/app.css — die laadt
+     deze pagina niet (zie de uitleg verderop). Zonder dit bleef de knop een onopgemaakt wit
+     vlakje i.p.v. een knop in de stijl van Home/⚙ hierboven. */
+  .topbar .gzoek-btn{border:none;background:rgba(255,255,255,.18);color:#fff;
+    width:40px;height:40px;border-radius:10px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto;}
+  .topbar .gzoek-btn:active{transform:translateY(1px);}
 
   /* ---- menu ---- */
   .menu{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px;}

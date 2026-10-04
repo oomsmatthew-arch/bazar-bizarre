@@ -34,7 +34,8 @@
   .navbtn.home{display:none;}
   .navbtn.home.show{display:block;}
   /* Vergrootglas: enkel het icoon, geen tekst */
-  .gzoek-btn{font-size:18px;line-height:1;padding:9px 12px;}
+  .gzoek-btn{font-size:18px;line-height:1;padding:9px 12px;display:inline-flex;align-items:center;justify-content:center;}
+  .gzoek-btn svg{display:block;}
   /* gsm: compactere balk + Instellingen als tandwiel-icoon i.p.v. het woord */
   @media(max-width:560px){
     .topbar{gap:8px;padding:12px 12px;}

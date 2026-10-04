@@ -141,7 +141,12 @@
     const bar=document.querySelector('.topbar'); if(!bar||document.getElementById('gzoekBtn')) return;
     const btn=document.createElement('button');
     btn.id='gzoekBtn'; btn.className='navbtn gzoek-btn'; btn.title='Zoeken in alles (Ctrl+K)'; btn.setAttribute('aria-label','Zoeken');
-    btn.textContent='🔍';
+    // Een getekend icoon i.p.v. het emoji 🔍: dat laatste heeft op veel toestellen een eigen
+    // wit/lichtgekleurd lensje ingebakken (het is een "volkleur"-emoji, anders dan bv. ⚙ of 🌙),
+    // waardoor de knop een storend wit vlakje leek i.p.v. een knop in de stijl van de balk.
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
+      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+
+      '<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.2" y2="16.2"></line></svg>';
     btn.onclick=openZoek;
     const thema=document.getElementById('themeBtn');
     if(thema) bar.insertBefore(btn,thema); else bar.appendChild(btn);
