@@ -346,6 +346,7 @@ document.querySelectorAll('.hoofdstuk').forEach(b=>{
       document.getElementById('pane-stock').classList.add('active');
     }
     renderActievePane();
+    verversHoofdstukken();
   };
 });
 function renderActievePane(){
@@ -893,7 +894,7 @@ const VV_DAGNAMEN=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag'
 const VV_MAANDEN=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
 const VV_VOLGORDE=[1,2,3,4,5,6,0];   // maandag eerst, zoals een agenda
 const VV_HS={quiz:'Quiz',of:'O&F',algemeen:'Algemeen'};
-let vvKlad=null, vvKladHs='';
+let vvKlad=null, vvKladHs='', vvKladBasis=null;   // klad = wat je aanklikt; basis = de bewaarde regel waar het van vertrok
 function vvDatumVan(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]):null; }
 // "vandaag, woensdag 7 oktober" / "morgen, …" / "woensdag 14 oktober"
 function vvDatumTekst(iso){
@@ -944,7 +945,7 @@ function vvToonStockHint(){
 function renderVastVerbruik(){
   if(isPrizenight()||!document.getElementById('vvVak')) return;
   const r=(BBInv.getVastVerbruik&&BBInv.getVastVerbruik(huidigHoofdstuk))||{aan:false,dagen:[],aantal:1,uit:[]};
-  vvKlad=vvNormaal(r); vvKladHs=huidigHoofdstuk;
+  vvKlad=vvNormaal(r); vvKladBasis=vvNormaal(r); vvKladHs=huidigHoofdstuk;
   document.getElementById('vvHsNaam').textContent=VV_HS[huidigHoofdstuk]||'dit hoofdstuk';
   document.getElementById('vvAan').checked=vvKlad.aan;
   document.getElementById('vvAantal').value=vvKlad.aantal;
@@ -972,6 +973,8 @@ function vvToonKlad(){
     if(volgende) t+='<br>'+(veranderd?'Na bewaren de eerste keer: ':'Volgende keer: ')+esc(vvDatumTekst(volgende))+'.';
   }
   if(veranderd) t+='<br><span class="vvnog">Nog niet bewaard.</span>';
+  // Zonder de gedeelde instellingen blijft een regel op dit ene toestel — dat moet je weten.
+  if(BBInv.isConfigGedeeld&&!BBInv.isConfigGedeeld()) t+='<br><span class="vvnog">Let op: de gedeelde instellingen zijn nu niet bereikbaar — wat je bewaart, staat voorlopig enkel op dit toestel.</span>';
   el.className=cls; el.innerHTML=t;
   document.getElementById('vvBewaar').disabled=!veranderd;
 }
@@ -997,8 +1000,34 @@ document.getElementById('vvBewaar').onclick=async()=>{
   await BBInv.setVastVerbruik(huidigHoofdstuk,vvKlad);
   renderVastVerbruik();
   const volgende=BBInv.volgendeVastVerbruik(huidigHoofdstuk);
-  bbToon(vvKlad.aan&&volgende?'Bewaard. De eerste keer gaat er iets af op '+vvDatumTekst(volgende)+'.':'Bewaard. Er gaat niets meer vanzelf af.');
+  // Eerlijk zeggen of het al op de andere toestellen staat: zonder internet wacht het in de
+  // wachtrij (het ⏳ in de balk) en vertrekt het vanzelf zodra er verbinding is.
+  // Even (hooguit 4 s) wachten tot het verstuurd is: meteen na Bewaren is het nog onderweg.
+  for(let i=0;i<20&&BBInv.pendingCount&&BBInv.pendingCount()>0;i++) await new Promise(r=>setTimeout(r,200));
+  const waar=(BBInv.pendingCount&&BBInv.pendingCount()>0)
+    ?' Het staat op dit toestel en gaat naar de andere toestellen zodra er internet is.'
+    :' Het staat op alle toestellen.';
+  bbToon((vvKlad.aan&&volgende?'Bewaard. De eerste keer gaat er iets af op '+vvDatumTekst(volgende)+'.':'Bewaard. Er gaat niets meer vanzelf af.')+waar);
 };
+// Een regel die op een ander toestel veranderde: overnemen, tenzij je hier zelf iets aan het
+// aanpassen bent — dan blijft jouw klad staan (met "Nog niet bewaard").
+function vvVanElders(){
+  if(!vvKlad||vvKladHs!==huidigHoofdstuk) return;
+  if(vvGelijk(vvKlad,vvKladBasis)) renderVastVerbruik(); else vvToonKlad();
+}
+
+// Terug naar dit scherm (ander tabblad, de app weer naar voren gehaald): de voorraad, de
+// leveringen en de regels van Quiz/O&F/Algemeen opnieuw ophalen — zonder foto's, dus licht.
+// Normaal komt een wijziging van een ander toestel live binnen; dit vangt het op als die
+// verbinding wegviel. En om de twee minuten voor een tablet die hier de hele dag openstaat.
+function verversHoofdstukken(){
+  if(document.hidden||isPrizenight()||!(window.BBInv&&BBInv.ververs)) return;
+  BBInv.ververs('appconfig'); BBInv.ververs('producten'); BBInv.ververs('productleveringen');
+}
+document.addEventListener('visibilitychange',verversHoofdstukken);
+window.addEventListener('focus',verversHoofdstukken);
+window.addEventListener('pageshow',e=>{ if(e&&e.persisted) verversHoofdstukken(); });
+setInterval(verversHoofdstukken,120000);
 
 // ---- Formulieren ----
 // De finalevraag van een formulier. Staat de kolom 'finalevraag' nog niet in de database,
@@ -1308,7 +1337,7 @@ window.bbOnChange=()=>{
   if(!isPrizenight()){
     if(document.getElementById('pane-stock').classList.contains('active')) renderProdStock();
     if(document.getElementById('pane-leveringen').classList.contains('active')) renderProdLeveringen();
-    if(document.getElementById('pane-beheer').classList.contains('active')) vvToonKlad();
+    if(document.getElementById('pane-beheer').classList.contains('active')) vvVanElders();
     return;
   }
   if(document.getElementById('pane-stock').classList.contains('active')){renderInvSum();renderInvStock();}

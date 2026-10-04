@@ -178,5 +178,70 @@ var vvRijen=function(db){ return db.productleveringen.filter(function(l){ return
   await vlot();
   ok(stock(db3,'q1')===10,'pennen blijven op 10 — anders telt elk toestel apart af');
 
+  print('\n— Over alle toestellen: een tablet die al dagen openstaat —');
+  // De instellingen komen niet live binnen. Zet iemand het aftellen uit op zijn gsm, dan mag
+  // een tablet die nog de oude regel kent, toch niet aftellen.
+  var db4=basisDB();
+  zetDag(2026,10,5);
+  var gsm=await toestel(db4);
+  await gsm.setVastVerbruik('quiz',{aan:true,dagen:[3],aantal:1,uit:[]}); await vlot();
+  var tablet=await toestel(db4);                 // opent maandag, blijft de hele week open
+  ok(tablet.getVastVerbruik('quiz').aan,'de tablet kent de regel (aan)');
+  zetDag(2026,10,6);
+  await gsm.setVastVerbruik('quiz',{aan:false,dagen:[3],aantal:1,uit:[]}); await vlot();   // dinsdag: uit op de gsm
+  ok(tablet.getVastVerbruik('quiz').aan,'de tablet kent nog steeds de oude regel (geen live-melding)');
+  zetDag(2026,10,7);
+  ok((await tablet.vastVerbruikInhalen())===0,'woensdag: de tablet haalt eerst de verse regel op en telt NIET af');
+  await vlot();
+  ok(stock(db4,'q1')===10 && vvRijen(db4).length===0,'niets afgeteld, niets geclaimd');
+  ok(tablet.getVastVerbruik('quiz').aan===false,'en de tablet kent nu de regel van de gsm');
+
+  print('\n— Een aangepaste regel op een ander toestel wordt gevolgd —');
+  var db5=basisDB();
+  zetDag(2026,10,5);
+  var a5=await toestel(db5);
+  await a5.setVastVerbruik('quiz',{aan:true,dagen:[3],aantal:1,uit:[]}); await vlot();
+  var b5=await toestel(db5);
+  await a5.setVastVerbruik('quiz',{aan:true,dagen:[3],aantal:3,uit:['q2']}); await vlot();   // 3 per keer, zonder antwoordbladen
+  zetDag(2026,10,7);
+  ok((await b5.vastVerbruikInhalen())===1,'woensdag telt het andere toestel af');
+  await vlot();
+  ok(stock(db5,'q1')===7,'volgens de nieuwe regel: 3 pennen af (10 → 7)');
+  ok(stock(db5,'q2')===5,'en de antwoordbladen, die uitgevinkt werden, blijven op 5');
+
+  print('\n— Een openstaand toestel haalt een nieuwe regel op als je terugkeert —');
+  var db6=basisDB();
+  zetDag(2026,10,5,9);
+  var open6=await toestel(db6);
+  var ander6=await toestel(db6);
+  await ander6.setVastVerbruik('of',{aan:true,dagen:[5],aantal:2,uit:[]}); await vlot();
+  ok(open6.getVastVerbruik('of')===null,'het openstaande toestel weet nog van niets');
+  ok((await open6.ververs('appconfig'))===true,'terug naar het scherm → de instellingen worden opnieuw opgehaald');
+  var r6=open6.getVastVerbruik('of');
+  ok(r6&&r6.aan&&r6.dagen.join()==='5'&&r6.aantal===2,'en nu staat de regel van het andere toestel er (vrijdag, 2)');
+  ok(open6.volgendeVastVerbruik('of')==='2026-10-09','volgende keer: vrijdag 9 oktober');
+
+  print('\n— Na de aftelling van een ander toestel: de nieuwe aantallen ophalen —');
+  zetDag(2026,10,9,9);
+  ok((await ander6.vastVerbruikInhalen())===1,'vrijdag telt het andere toestel af');
+  await vlot();
+  ok(stock(db6,'o1')===18,'ballonnen 20 → 18 in de database');
+  NU+=5000;
+  ok((await open6.ververs('producten'))===true,'het openstaande toestel ververst de voorraad (licht, zonder foto\'s)');
+  var o1=open6.getProducten().filter(function(p){return p.id==='o1';})[0];
+  ok(o1&&o1.stock===18,'en toont nu ook 18 ballonnen');
+  ok((await open6.ververs('productleveringen'))===true,'en de leveringen');
+  ok(open6.getProductleveringen().some(function(l){return l.id==='vv-of-2026-10-09';}),'met de aftelling van vrijdag erbij');
+
+  print('\n— Verversen veegt eigen, nog niet verstuurd werk niet weg —');
+  NU+=5000;
+  navigator.onLine=false;
+  open6.setProductStock('o1',50);               // offline aangepast: staat in de wachtrij
+  navigator.onLine=true;
+  var g=open6.getProducten().filter(function(p){return p.id==='o1';})[0];
+  ok(g.stock===50 && open6.pendingCount()>0,'50 ballonnen, nog te versturen');
+  ok((await open6.ververs('producten'))===false,'verversen wordt overgeslagen zolang dat onderweg is');
+  ok(open6.getProducten().filter(function(p){return p.id==='o1';})[0].stock===50,'de 50 blijft staan');
+
   print('\nRESULTAAT: '+(fouten?fouten+' fout(en)':'alles in orde'));
 })();

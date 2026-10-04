@@ -88,6 +88,13 @@ daardoor dezelfde opslag** op het toestel.
     database aanvaardt die id maar één keer, dus drie tablets die tegelijk opstarten tellen
     samen maar één keer af. Zonder verbinding gebeurt er niets (liever een dag later dan
     dubbel). Op de spelpagina loopt het niet.
+  - **Op alle toestellen hetzelfde.** De regel, de afgetelde dagen en de voorraad staan in de
+    gedeelde database. Een toestel dat al lang openstaat, haalt vóór het aftellen eerst de
+    verse regel op: zette iemand het intussen op een ander toestel uit (of een product uit, of
+    het aantal lager), dan volgt het die nieuwe regel. Wie Quiz/O&F/Algemeen open heeft, krijgt
+    de voorraad, de leveringen en de regel opnieuw binnen zodra hij naar het scherm terugkeert
+    en om de twee minuten — ook als de live-verbinding wegviel. Bij Bewaren zegt de app of het
+    al op alle toestellen staat, of nog wacht op internet.
   - Elke aftelling staat bij **Leveringen** als *🔁 Vast verbruik*, zonder verwijderknop: die
     rij is het bewijs dat de dag gedaan is. Viel de activiteit een keer weg, zet de aantallen
     dan terug onder *Producten & hoeveelheden*.

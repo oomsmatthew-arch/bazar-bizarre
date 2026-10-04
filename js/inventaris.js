@@ -1145,15 +1145,57 @@
   // Niet vaker dan één keer per paar seconden per tabel: 'focus' en 'visibilitychange'
   // vuren vlak na elkaar. Enkel voor tabellen waarvan reloadTable de wachtrij meeneemt.
   const VERVERSBAAR={werkuren:true,bestellingen:true};
+  // Deze drie worden LICHT ververst: zonder de foto's (die blijven staan), en enkel als er
+  // van die tabel niets meer te versturen staat — anders zou de serverlijst je eigen, nog
+  // niet verstuurde wijziging wegvegen. Ze horen bij Quiz/O&F/Algemeen en het vaste verbruik:
+  // een tablet die de hele dag op de inventaris openstaat, moet een aftelling of een regel
+  // die op een ander toestel gebeurde ook zien als de live-verbinding wegviel. (De tabel
+  // appconfig zit niet in de live-verbinding: zonder dit zag een openstaand scherm een nieuwe
+  // regel pas na herladen.)
+  const LICHT_VERVERSBAAR={producten:true,productleveringen:true,appconfig:true};
   const laatstVerverst={};
+  const naloopT={};
   async function ververs(tabel){
-    if(!VERVERSBAAR[tabel] || !sb || !aangemeld || !ready) return false;
+    if(!(VERVERSBAAR[tabel]||LICHT_VERVERSBAAR[tabel]) || !sb || !aangemeld || !ready) return false;
     if(typeof navigator!=='undefined' && navigator.onLine===false) return false;
-    if(Date.now()-(laatstVerverst[tabel]||0)<3000) return false;
+    const sinds=Date.now()-(laatstVerverst[tabel]||0);
+    if(sinds<3000){
+      // Te kort na de vorige keer — maar niet zomaar laten vallen: misschien veranderde er
+      // net iets op een ander toestel. Aan het eind van de pauze nog één keer.
+      if(!naloopT[tabel]) naloopT[tabel]=setTimeout(()=>{ naloopT[tabel]=null; ververs(tabel); },3000-sinds+50);
+      return false;
+    }
     laatstVerverst[tabel]=Date.now();
-    try{ await reloadTable(tabel,true); }catch(e){ noteFout('Verversen van '+tabel,e); return false; }
+    try{
+      if(VERVERSBAAR[tabel]) await reloadTable(tabel,true);
+      else if(!(await lichtVerversen(tabel))) return false;
+    }catch(e){ noteFout('Verversen van '+tabel,e); return false; }
     fire();
     return true;
+  }
+  async function lichtVerversen(tabel){
+    if(outbox.some(o=>o.table===tabel)) return false;      // eigen werk onderweg: niet overschrijven
+    if(tabel==='producten'&&productenOK){
+      const r=await withTimeout(sb.from('producten').select('id,hoofdstuk,naam,stock'),12000);
+      if(!r||r.error||!Array.isArray(r.data)||outbox.some(o=>o.table===tabel)) return false;
+      cache.producten=behoudFotos(cache.producten,r.data.map(mapProduct)); saveProductBackup();
+      return true;
+    }
+    if(tabel==='productleveringen'&&productleveringenOK){
+      const r=await withTimeout(sb.from('productleveringen').select('id,ts,hoofdstuk,datum,product_id,product_naam,aantal,tekst'),12000);
+      if(!r||r.error||!Array.isArray(r.data)||outbox.some(o=>o.table===tabel)) return false;
+      cache.productleveringen=behoudFotos(cache.productleveringen,r.data.map(mapProductLev)); saveProductLevBackup();
+      return true;
+    }
+    if(tabel==='appconfig'&&appconfigOK){
+      const r=await withTimeout(sb.from('appconfig').select('data').eq('id',1).maybeSingle(),12000);
+      if(!r||r.error||outbox.some(o=>o.table===tabel)) return false;
+      cache.appconfig=r.data?(r.data.data||null):null;
+      try{ localStorage.setItem('bb_appconfig',JSON.stringify(cache.appconfig)); }catch(e){}
+      persistCache();
+      return true;
+    }
+    return false;
   }
   function subscribe(){
     try{
@@ -1499,6 +1541,29 @@
       });
     }catch(e){}
   }
+  // DE REGEL VAN DE SERVER, vlak vóór het aftellen. Een tablet die al sinds maandag openstaat,
+  // kent nog de regel van maandag — de instellingen komen niet live binnen. Zette iemand op
+  // dinsdag het aftellen uit (of een product uit, of het aantal lager) op een ander toestel,
+  // dan telde die tablet woensdag toch af volgens de oude regel. Daarom halen we de regels
+  // eerst opnieuw op. Lukt dat niet, dan tellen we niet af: liever later dan volgens een
+  // verouderde regel. Enkel de sleutels van het vaste verbruik; wat dit toestel zelf nog moet
+  // versturen (een regel die je net bewaarde), is nieuwer en blijft staan.
+  async function vvVerseRegels(){
+    if(!appconfigOK) return true;            // geen gedeelde instellingen: de regel is lokaal
+    try{
+      const r=await withTimeout(sb.from('appconfig').select('data').eq('id',1).maybeSingle(),12000);
+      if(!r||r.error) return false;
+      const server=(r.data&&r.data.data&&typeof r.data.data==='object')?r.data.data:{};
+      const eigen={}; outbox.forEach(o=>{ if(o.table==='appconfig'&&o.patch&&typeof o.patch==='object') Object.assign(eigen,o.patch); });
+      const c=Object.assign({},cache.appconfig||{});
+      VV_HOOFDSTUKKEN.forEach(hs=>{
+        const k=vvSleutel(hs), v=Object.prototype.hasOwnProperty.call(eigen,k)?eigen[k]:server[k];
+        if(v===undefined) delete c[k]; else c[k]=v;
+      });
+      cache.appconfig=c;
+      return true;
+    }catch(e){ return false; }
+  }
   async function vvInhalenDoe(){
     if(!ready || !kernOK) return 0;
     const gedeeld=productenOK||productleveringenOK;
@@ -1507,8 +1572,13 @@
       // of zijn we niet aangemeld of offline: niets doen.
       if(!productenOK||!productleveringenOK||!sb||!aangemeld) return 0;
       if(typeof navigator!=='undefined'&&navigator.onLine===false) return 0;
+      // Enkel als er volgens wat we weten iets te doen is, vragen we de verse regel op —
+      // anders kost elke controle een verzoek. (Zette een ander toestel een regel AAN, dan
+      // telt dat toestel zelf af; wij hoeven daar niet op te wachten.)
+      if(!VV_HOOFDSTUKKEN.some(hs=>vvTeDoen(hs).length)) return 0;
+      if(!(await vvVerseRegels())) return 0;
     }
-    let gedaan=0;
+    let gedaan=0, eenAnderWasEerst=false;
     for(const hs of VV_HOOFDSTUKKEN){
       const dagen=vvTeDoen(hs);
       if(!dagen.length) continue;
@@ -1521,7 +1591,7 @@
         if(gedeeld){
           const ok=await vvClaim(rec);
           if(ok===null) return gedaan;   // geen verbinding: alles later opnieuw
-          if(!ok) continue;              // deze dag deed een ander toestel al
+          if(!ok){ eenAnderWasEerst=true; continue; }   // deze dag deed een ander toestel al
         }
         plan.stappen.forEach(st=>{
           st.p.stock=Math.round(st.p.stock||0)-st.af;
@@ -1536,6 +1606,9 @@
       }
     }
     if(gedaan) fire();
+    // Telde een ander toestel af, dan komen zijn nieuwe aantallen normaal live binnen. Valt
+    // die verbinding weg, dan halen we ze zelf even later op — hij moet ze eerst nog versturen.
+    if(eenAnderWasEerst) setTimeout(()=>{ ververs('producten'); ververs('productleveringen'); },5000);
     return gedaan;
   }
   // Mag zo vaak aangeroepen worden als je wil (bij elke wijziging, bij terugkeren naar de
