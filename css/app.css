@@ -294,6 +294,28 @@
   .hoofdstuk{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:800;
     font-size:14px;padding:10px 20px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow);}
   .hoofdstuk.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  /* Vast verbruik (automatische aftelling) — het instelvak onder Beheer bij Quiz/O&F/Algemeen.
+     '.field input' maakt elk veld 100% breed; de vinkjes hieronder horen dat niet te zijn. */
+  .vvvak .vvaan{display:flex;align-items:center;gap:10px;margin:12px 0 2px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;}
+  .vvvak input[type="checkbox"]{width:20px;height:20px;padding:0;margin:0;flex:0 0 auto;accent-color:var(--leaf);}
+  #vvVelden.uit{opacity:.45;}
+  .vvdagen{display:flex;gap:6px;flex-wrap:wrap;}
+  .vvdag{border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-weight:800;font-size:13px;
+    min-width:46px;padding:9px 0;border-radius:999px;cursor:pointer;font-family:inherit;}
+  .vvdag.active{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  .vvproducten{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px 14px;max-height:240px;overflow:auto;
+    padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;}
+  .vvvak .vvproducten label{display:flex;align-items:center;gap:9px;margin:0;font-size:14px;color:var(--text);cursor:pointer;}
+  .vvvak .vvproducten input[type="checkbox"]{width:18px;height:18px;}
+  .vvuitleg{margin-top:14px;padding:11px 13px;border-radius:12px;font-size:14px;line-height:1.55;color:var(--text);
+    background:rgba(74,155,94,.12);border:1px solid rgba(74,155,94,.35);}
+  .vvuitleg.grijs{background:var(--panel2);border-color:var(--line);color:var(--muted);}
+  .vvuitleg.let{background:#fff4e5;border-color:#f0c58a;color:#8a5a12;}
+  [data-theme="dark"] .vvuitleg.let{background:#3a2c17;border-color:#6b4d22;color:#f3c98b;}
+  .vvuitleg .vvnog{font-size:12px;font-weight:800;color:#b8741a;text-transform:uppercase;letter-spacing:.5px;}
+  .vvstock{margin:0 2px 12px;padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.5;color:var(--text);
+    background:rgba(74,155,94,.12);border:1px solid rgba(74,155,94,.35);}
+  .subrec.vv{border-left:4px solid var(--leaf);}
   .invtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 16px;}
   .invtab{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;
     font-size:14px;padding:9px 14px;border-radius:12px;cursor:pointer;box-shadow:var(--shadow);}

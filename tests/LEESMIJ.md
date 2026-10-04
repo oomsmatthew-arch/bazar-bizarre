@@ -29,6 +29,7 @@ $JSC tests/test-werkuren-scherm.js
 $JSC tests/test-ververs.js
 $JSC tests/test-wachtrij-zichtbaar.js
 $JSC tests/test-producten-foto.js
+$JSC tests/test-vast-verbruik.js
 $JSC tests/test-toegangscode.js
 $JSC tests/test-doorgestuurd.js
 ```
@@ -68,6 +69,7 @@ gebruiken — stilletjes door hun Node-tegenhangers.)
 | `test-ververs.js` | Wat je op je ander toestel invulde, komt op dit scherm zonder herladen: `BBInv.ververs(tabel)` haalt een tabel opnieuw op zodra de pagina weer in beeld komt. Nieuwe rijen komen binnen, de pagina krijgt een seintje, je eigen nog-niet-verstuurde werk blijft staan, en het loopt niet vaker dan één keer per paar seconden |
 | `test-opslag.js` | De opslag én het opstarten: één momentopname i.p.v. een kopie per tabel, de verhuizing naar IndexedDB (met een nagemaakte IndexedDB), het geval waarin de opslag al vol zit, "invullen en meteen wegklikken", dat je rol al bekend is vóór de database antwoordt, en dat het laden de offline kopie niet per tabel herschrijft |
 | `test-producten-foto.js` | Foto bij een product (Quiz/O&F/Algemeen): zolang de kolom `foto` nog niet in Supabase bestaat blijft toevoegen gewoon werken (lokaal zichtbaar, niet meegestuurd — net als `finalevraag`), en een gewone voorraad-update (+/-) verstuurt de foto niet telkens opnieuw |
+| `test-vast-verbruik.js` | Vast verbruik (automatische aftelling) bij Quiz/O&F/Algemeen: op de gekozen weekdagen gaat er vanzelf iets af. Twee tablets die tegelijk opstarten tellen samen maar één keer af (de dag wordt geclaimd met een vaste id); een regel telt pas vanaf morgen, nooit terug; gemiste dagen worden ingehaald; wat op 0 staat blijft op 0; zonder verbinding of zonder de tabel `productleveringen` gebeurt er niets |
 | `test-toegangscode.js` | Het toegangscode-scherm: op een wifi zonder internet (het TP-Link-netwerk aan de techniektafel) mag het nooit verschijnen, ook niet als de aanmelding van een uur verlopen is. De app werkt dan lokaal verder, meldt zich stil opnieuw aan zodra het internet terug is en stuurt dan de wachtrij door. Enkel een toestel dat nooit aangemeld was (of echt afgemeld werd) krijgt het scherm, en alleen als de code ook gecontroleerd kán worden. Zonder internet zegt het scherm "geen verbinding" in plaats van "klopt niet" |
 | `test-doorgestuurd.js` | Het "Doorgestuurd"-scherm van het spel: één kader dat rood (nog niet verstuurd), oranje (bezig) of groen (verstuurd) wordt. Op een wifi zonder internet en bij een foutmelding van de server moet het rood worden in plaats van eindeloos "bezig" te blijven, met een knop om meteen opnieuw te proberen; zonder internet of zonder aanmelding ook rood; groen enkel als de wachtrij echt leeg is |
 

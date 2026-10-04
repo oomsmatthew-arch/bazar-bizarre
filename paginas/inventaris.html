@@ -55,6 +55,7 @@
       </div>
       <div class="hsonly hs-andere" hidden>
         <p class="hint" style="margin:0 2px 12px;">Actuele voorraad voor dit hoofdstuk. Aanpassen doe je onder <b>🔒 Beheer</b>.</p>
+        <p class="vvstock" id="vvStockHint" hidden></p>
         <input type="text" id="prodZoek" class="finp zoek" placeholder="Zoek een product…">
         <div class="invlist" id="prodList"></div>
       </div>
@@ -181,6 +182,30 @@
             <img id="prodLevFotoPrev" class="thumb" alt="" style="display:none">
             <button class="btn primary" id="prodLevAdd">Levering toevoegen</button>
           </div>
+        </div>
+        <!-- Vast verbruik: op vaste weekdagen gaat er vanzelf iets af (zie js/inventaris.js). -->
+        <div class="field vvvak" id="vvVak">
+          <div class="h">🔁 Vast verbruik</div>
+          <p class="hint" style="margin:0 0 4px;">Een automatische aftelling: op de dagen die je aanduidt, gaat er vanzelf iets af van de voorraad van <b id="vvHsNaam">dit hoofdstuk</b> — voor wat je elke week verbruikt. Viel de activiteit een keer weg? Zet de aantallen dan gewoon terug hieronder bij <i>Producten &amp; hoeveelheden</i>.</p>
+          <label class="vvaan"><input type="checkbox" id="vvAan"> Automatisch aftellen</label>
+          <div id="vvVelden">
+            <label>Op welke dagen?</label>
+            <div class="vvdagen" id="vvDagen">
+              <button type="button" class="vvdag" data-dag="1">ma</button>
+              <button type="button" class="vvdag" data-dag="2">di</button>
+              <button type="button" class="vvdag" data-dag="3">wo</button>
+              <button type="button" class="vvdag" data-dag="4">do</button>
+              <button type="button" class="vvdag" data-dag="5">vr</button>
+              <button type="button" class="vvdag" data-dag="6">za</button>
+              <button type="button" class="vvdag" data-dag="0">zo</button>
+            </div>
+            <label for="vvAantal">Hoeveel gaat er telkens af, per product?</label>
+            <input type="number" id="vvAantal" min="1" step="1" value="1" inputmode="numeric" style="max-width:120px">
+            <label>Welke producten tellen mee?</label>
+            <div class="vvproducten" id="vvProducten"></div>
+          </div>
+          <div class="vvuitleg" id="vvUitleg"></div>
+          <div class="row" style="margin-top:12px;"><button class="btn primary" id="vvBewaar">Bewaren</button></div>
         </div>
         <div class="field">
           <div class="h">Product toevoegen</div>
@@ -732,6 +757,7 @@ function renderLeveringen(){
 
 // ---- Producten per hoofdstuk (Quiz / O&F / Algemeen): eenvoudige lijst, naam + aantal ----
 function renderProdStock(){
+  vvToonStockHint();
   const list=document.getElementById('prodList'); if(!list) return; list.innerHTML='';
   const q=(document.getElementById('prodZoek').value||'').toLowerCase().trim();
   let items=BBInv.getProducten().filter(p=>p.hoofdstuk===huidigHoofdstuk);
@@ -793,7 +819,7 @@ function renderProdBeheerList(){
   }
   items.forEach(p=>list.appendChild(prodRow(p)));
 }
-function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); }
+function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); renderVastVerbruik(); }
 document.getElementById('prodBeheerZoek').oninput=renderProdBeheerList;
 let prodNewFoto='';
 document.getElementById('prodAddFoto').onclick=()=>chooseFoto(url=>{
@@ -839,6 +865,13 @@ function renderProdLeveringen(){
   wrap.innerHTML='';
   if(!levs.length){wrap.innerHTML='<p class="hint">Nog geen leveringen geregistreerd.</p>';return;}
   levs.forEach(l=>{
+    // Vast verbruik: geen verwijderknop. Die rij is het bewijs dat de dag al afgeteld is —
+    // weg ermee en het volgende toestel telt die dag opnieuw af.
+    if(BBInv.isVastVerbruikRij&&BBInv.isVastVerbruikRij(l)){
+      const v=document.createElement('div'); v.className='subrec vv';
+      v.innerHTML='<div class="meta">'+esc(vvDatumTekst(l.datum)||l.datum||'')+' · automatisch</div><div class="pr">'+esc(l.tekst||'Vast verbruik')+'</div>';
+      wrap.appendChild(v); return;
+    }
     const d=document.createElement('div'); d.className='subrec';
     const parts=[];
     if(l.aantal&&l.product_naam) parts.push('<b>'+l.aantal+'</b>× '+esc(l.product_naam));
@@ -851,6 +884,121 @@ function renderProdLeveringen(){
     wrap.appendChild(d);
   });
 }
+
+// ---- Vast verbruik (automatische aftelling) ----
+// Het instelvak onder 🔒 Beheer. Wat je aanklikt is eerst een klad; pas met Bewaren gaat het
+// naar alle toestellen. De uitleg eronder zegt in gewone taal wat er zal gebeuren, ook vóór
+// het bewaren — zodat je niet hoeft te raden wat "wo + do, 1" precies doet.
+const VV_DAGNAMEN=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+const VV_MAANDEN=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+const VV_VOLGORDE=[1,2,3,4,5,6,0];   // maandag eerst, zoals een agenda
+const VV_HS={quiz:'Quiz',of:'O&F',algemeen:'Algemeen'};
+let vvKlad=null, vvKladHs='';
+function vvDatumVan(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]):null; }
+// "vandaag, woensdag 7 oktober" / "morgen, …" / "woensdag 14 oktober"
+function vvDatumTekst(iso){
+  const d=vvDatumVan(iso); if(!d) return '';
+  const nu=new Date(), vandaag=new Date(nu.getFullYear(),nu.getMonth(),nu.getDate());
+  const morgen=new Date(vandaag); morgen.setDate(morgen.getDate()+1);
+  const voor=d.getTime()===vandaag.getTime()?'vandaag, ':(d.getTime()===morgen.getTime()?'morgen, ':'');
+  return voor+VV_DAGNAMEN[d.getDay()]+' '+d.getDate()+' '+VV_MAANDEN[d.getMonth()];
+}
+// "elke woensdag en donderdag" / "elke maandag, woensdag en vrijdag" / "elke dag"
+function vvDagenTekst(dagen){
+  const l=VV_VOLGORDE.filter(d=>dagen.indexOf(d)>=0).map(d=>VV_DAGNAMEN[d]);
+  if(!l.length) return '';
+  if(l.length===7) return 'elke dag';
+  return 'elke '+(l.length===1?l[0]:l.slice(0,-1).join(', ')+' en '+l[l.length-1]);
+}
+function vvNormaal(r){
+  r=r||{};
+  return {aan:!!r.aan, dagen:(r.dagen||[]).map(Number).slice().sort(), aantal:Math.max(1,Math.round(+r.aantal||1)), uit:(r.uit||[]).slice().sort()};
+}
+const vvGelijk=(a,b)=>JSON.stringify(vvNormaal(a))===JSON.stringify(vvNormaal(b));
+const vvProducten=()=>BBInv.getProducten().filter(p=>p.hoofdstuk===huidigHoofdstuk).slice().sort((a,b)=>a.naam.localeCompare(b.naam));
+// De eerste gekozen weekdag vanaf morgen — waar een regel die je NU bewaart mee begint.
+function vvEersteVanafMorgen(dagen){
+  const d=new Date(); d.setHours(0,0,0,0);
+  for(let i=1;i<=7;i++){ d.setDate(d.getDate()+1); if(dagen.indexOf(d.getDay())>=0) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  return '';
+}
+// De zin die op het Stock-scherm en in het instelvak staat.
+function vvZin(r,producten){
+  const mee=producten.filter(p=>r.uit.indexOf(p.id)<0).length;
+  const wat=r.aantal===1?'gaat er 1 af':'gaan er '+r.aantal+' af';
+  let z=vvDagenTekst(r.dagen).replace(/^./,c=>c.toUpperCase())+' '+wat+' van elk product';
+  if(!producten.length) z+=' (er zijn nog geen producten)';
+  else if(mee===producten.length) z+=' — alle '+producten.length+' tellen mee';
+  else z+=' — '+mee+' van de '+producten.length+' tellen mee';
+  return z+'.';
+}
+function vvToonStockHint(){
+  const el=document.getElementById('vvStockHint'); if(!el) return;
+  const r=BBInv.getVastVerbruik?BBInv.getVastVerbruik(huidigHoofdstuk):null;
+  if(isPrizenight()||!r||!r.aan||!r.dagen.length){ el.hidden=true; return; }
+  const volgende=BBInv.volgendeVastVerbruik(huidigHoofdstuk);
+  el.textContent='🔁 Vast verbruik: '+vvZin(r,vvProducten()).replace(/^./,c=>c.toLowerCase())+(volgende?' Volgende keer: '+vvDatumTekst(volgende)+'.':'');
+  el.hidden=false;
+}
+// Het instelvak opnieuw opbouwen uit wat er bewaard is (bij het openen of wisselen van hoofdstuk).
+function renderVastVerbruik(){
+  if(isPrizenight()||!document.getElementById('vvVak')) return;
+  const r=(BBInv.getVastVerbruik&&BBInv.getVastVerbruik(huidigHoofdstuk))||{aan:false,dagen:[],aantal:1,uit:[]};
+  vvKlad=vvNormaal(r); vvKladHs=huidigHoofdstuk;
+  document.getElementById('vvHsNaam').textContent=VV_HS[huidigHoofdstuk]||'dit hoofdstuk';
+  document.getElementById('vvAan').checked=vvKlad.aan;
+  document.getElementById('vvAantal').value=vvKlad.aantal;
+  const box=document.getElementById('vvProducten');
+  const items=vvProducten();
+  box.innerHTML=items.length
+    ? items.map(p=>'<label><input type="checkbox" data-id="'+esc(p.id)+'"'+(vvKlad.uit.indexOf(p.id)<0?' checked':'')+'> '+esc(p.naam)+'</label>').join('')
+    : '<span class="hint" style="margin:0">Nog geen producten in dit hoofdstuk.</span>';
+  vvToonKlad();
+}
+// Enkel de knoppen en de uitleg bijwerken (het klad blijft staan terwijl je klikt).
+function vvToonKlad(){
+  if(!vvKlad) return;
+  document.querySelectorAll('#vvDagen .vvdag').forEach(b=>b.classList.toggle('active',vvKlad.dagen.indexOf(+b.dataset.dag)>=0));
+  document.getElementById('vvVelden').classList.toggle('uit',!vvKlad.aan);
+  const bewaard=BBInv.getVastVerbruik?BBInv.getVastVerbruik(huidigHoofdstuk):null;
+  const veranderd=!vvGelijk(vvKlad,bewaard||{aan:false,dagen:[],aantal:1,uit:[]});
+  const el=document.getElementById('vvUitleg');
+  let t, cls='vvuitleg';
+  if(!vvKlad.aan){ t='Staat uit — er gaat niets vanzelf af.'; cls+=' grijs'; }
+  else if(!vvKlad.dagen.length){ t='Kies minstens één dag.'; cls+=' let'; }
+  else {
+    t='<b>'+esc(vvZin(vvKlad,vvProducten()))+'</b> Wat al op 0 staat, blijft op 0.';
+    const volgende=veranderd?vvEersteVanafMorgen(vvKlad.dagen):BBInv.volgendeVastVerbruik(huidigHoofdstuk);
+    if(volgende) t+='<br>'+(veranderd?'Na bewaren de eerste keer: ':'Volgende keer: ')+esc(vvDatumTekst(volgende))+'.';
+  }
+  if(veranderd) t+='<br><span class="vvnog">Nog niet bewaard.</span>';
+  el.className=cls; el.innerHTML=t;
+  document.getElementById('vvBewaar').disabled=!veranderd;
+}
+document.getElementById('vvAan').onchange=e=>{ if(!vvKlad) return; vvKlad.aan=e.target.checked; vvToonKlad(); };
+document.getElementById('vvDagen').onclick=e=>{
+  const b=e.target.closest('.vvdag'); if(!b||!vvKlad) return;
+  const d=+b.dataset.dag, i=vvKlad.dagen.indexOf(d);
+  if(i>=0) vvKlad.dagen.splice(i,1); else vvKlad.dagen.push(d);
+  vvToonKlad();
+};
+document.getElementById('vvAantal').oninput=e=>{ if(!vvKlad) return; vvKlad.aantal=Math.max(1,Math.round(+e.target.value||1)); vvToonKlad(); };
+document.getElementById('vvProducten').onchange=e=>{
+  const c=e.target.closest('input[type="checkbox"]'); if(!c||!vvKlad) return;
+  const id=c.dataset.id, i=vvKlad.uit.indexOf(id);
+  if(c.checked&&i>=0) vvKlad.uit.splice(i,1);
+  if(!c.checked&&i<0) vvKlad.uit.push(id);
+  vvToonKlad();
+};
+document.getElementById('vvBewaar').onclick=async()=>{
+  if(!vvKlad||vvKladHs!==huidigHoofdstuk) return;
+  if(vvKlad.aan&&!vvKlad.dagen.length){ bbToon('Kies minstens één dag, of zet het automatisch aftellen uit.'); return; }
+  const knop=document.getElementById('vvBewaar'); knop.disabled=true;
+  await BBInv.setVastVerbruik(huidigHoofdstuk,vvKlad);
+  renderVastVerbruik();
+  const volgende=BBInv.volgendeVastVerbruik(huidigHoofdstuk);
+  bbToon(vvKlad.aan&&volgende?'Bewaard. De eerste keer gaat er iets af op '+vvDatumTekst(volgende)+'.':'Bewaard. Er gaat niets meer vanzelf af.');
+};
 
 // ---- Formulieren ----
 // De finalevraag van een formulier. Staat de kolom 'finalevraag' nog niet in de database,
@@ -1154,6 +1302,15 @@ document.getElementById('saveLowstock').onclick=()=>{
 // ---- opstarten ----
 window.bbStart=()=>{ renderInventaris(); };
 window.bbOnChange=()=>{
+  // Quiz/O&F/Algemeen: de voorraad en de leveringen live bijwerken — ook wanneer het vaste
+  // verbruik net heeft afgeteld. Onder Beheer enkel de uitleg, niet de lijst of het klad,
+  // zodat niets verspringt terwijl je aan het typen of aanklikken bent.
+  if(!isPrizenight()){
+    if(document.getElementById('pane-stock').classList.contains('active')) renderProdStock();
+    if(document.getElementById('pane-leveringen').classList.contains('active')) renderProdLeveringen();
+    if(document.getElementById('pane-beheer').classList.contains('active')) vvToonKlad();
+    return;
+  }
   if(document.getElementById('pane-stock').classList.contains('active')){renderInvSum();renderInvStock();}
   if(document.getElementById('pane-boekjes').classList.contains('active')) renderBoekjes();
   if(document.getElementById('pane-formulieren').classList.contains('active')) renderFormulieren();

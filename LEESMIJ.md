@@ -75,6 +75,24 @@ daardoor dezelfde opslag** op het toestel.
   - **Leveringen** — geleverde boekjes/prijzen registreren → voorraad omhoog.
   - **Formulieren** — alle doorgestuurde inzendingen bekijken.
   - **Import / Export** — CSV exporteren, kopiëren voor Sheets/Excel, of CSV importeren.
+- **Quiz, O&F en Algemeen** (de hoofdstukken bovenaan Inventaris) hebben elk een eigen,
+  eenvoudige productenlijst, los van de Prizenight-prijzen.
+  - **🔁 Vast verbruik** (onder 🔒 Beheer) — een automatische aftelling. Duid de weekdagen
+    aan (bv. woensdag en donderdag) en hoeveel er telkens af gaat (bv. 1). Op die dagen gaat
+    er dan vanzelf zoveel af van elk product dat meetelt; vink uit wat niet verbruikt wordt.
+    Wat al op 0 staat, blijft op 0. Een regel die je bewaart, telt pas **vanaf morgen** —
+    nooit met terugwerkende kracht. Op het Stock-scherm staat wanneer de volgende keer is.
+  - Er draait geen server die dit 's ochtends doet: het **eerste toestel dat de app opent**
+    op of na zo'n dag, telt af — ook voor dagen die gemist werden (tot twee maanden terug).
+    Dat toestel "claimt" de dag eerst met een vaste id in de tabel `productleveringen`; de
+    database aanvaardt die id maar één keer, dus drie tablets die tegelijk opstarten tellen
+    samen maar één keer af. Zonder verbinding gebeurt er niets (liever een dag later dan
+    dubbel). Op de spelpagina loopt het niet.
+  - Elke aftelling staat bij **Leveringen** als *🔁 Vast verbruik*, zonder verwijderknop: die
+    rij is het bewijs dat de dag gedaan is. Viel de activiteit een keer weg, zet de aantallen
+    dan terug onder *Producten & hoeveelheden*.
+  - Geen extra SQL nodig: de regel staat in het gedeelde instellingen-document, de claims in
+    de bestaande tabel `productleveringen` (`docs/hoofdstukken-producten-supabase.sql`).
 - De startlijst komt uit `inventaris-data.js` (gegenereerd uit `_bron/CGT - Inventaris.xlsx`,
   119 kleine + 61 grote prijzen + boekjes). De gedeelde logica staat in `inventaris.js`.
 - Let op: de gegevens leven **op dat toestel**. Gebruik Export/Import om te back-uppen of

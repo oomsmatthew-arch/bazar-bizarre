@@ -1369,6 +1369,205 @@
     if(l) logAct('Levering verwijderd');
   }
 
+  // ---------------- VAST VERBRUIK (automatische aftelling) ----------------
+  // Voor Quiz, O&F en Algemeen: op vaste weekdagen gaat er vanzelf iets af van de voorraad —
+  // bv. elke woensdag en donderdag 1 van elk product, omdat er dan een quiz is.
+  //
+  // De regel staat in het gedeelde instellingen-document (appconfig), met een eigen sleutel
+  // per hoofdstuk: wie Quiz instelt en wie tegelijk O&F instelt, overschrijven elkaar niet.
+  //   vastVerbruik_quiz = {aan:true, dagen:[3,4], aantal:1, uit:['id…'], vanaf:'2026-10-06'}
+  //   dagen  weekdagen zoals JavaScript ze telt: 0 = zondag … 6 = zaterdag
+  //   uit    de producten die NIET meetellen — een nieuw product telt dus vanzelf mee
+  //   vanaf  de eerste dag die mag meetellen: de dag ná het bewaren. Zo telt een regel
+  //          nooit met terugwerkende kracht af.
+  //
+  // Er draait geen server die dit op woensdagochtend doet. Het eerste toestel dat de app
+  // opent (of openhoudt) op of na zo'n dag, telt af — ook voor de dagen die gemist werden.
+  //
+  // HET GEVAAR is dubbel aftellen: drie tablets die woensdagochtend tegelijk opstarten. Daarom
+  // "claimt" een toestel eerst de dag, door in productleveringen één rij te zetten met een
+  // vaste id: vv-quiz-2026-10-07. De database aanvaardt een id maar één keer. Lukt het
+  // invoegen, dan telt DIT toestel af; zegt de database "die bestaat al", dan deed een ander
+  // toestel het al en doen we niets. Die rij is meteen het logboek: ze staat bij Leveringen.
+  // Kunnen we de database niet bereiken, dan doen we ook niets — liever een dag later dan
+  // twee keer. Wie deze rij verwijdert, laat de dag opnieuw aftellen; daarom heeft ze op het
+  // scherm geen verwijderknop.
+  const VV_HOOFDSTUKKEN=['quiz','of','algemeen'];
+  const VV_HSNAAM={quiz:'Quiz',of:'O&F',algemeen:'Algemeen'};
+  const VV_DAGNAAM=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  const VV_MAAND=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  const VV_INHAAL_DAGEN=62;   // wat langer dan twee maanden geleden is, halen we niet meer in
+  const vvSleutel=hs=>'vastVerbruik_'+hs;
+  const vvId=(hs,iso)=>'vv-'+hs+'-'+iso;
+  const isVastVerbruikRij=l=>!!(l&&typeof l.id==='string'&&l.id.indexOf('vv-')===0);
+  const vvIso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  // Zelf ontleden i.p.v. new Date('2026-10-07'): die leest de tekst als wereldtijd en schuift
+  // hier een dag op rond middernacht.
+  function vvDatum(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]):null; }
+  function vvVandaag(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
+  const vvGenomen={};   // dagen die een ander toestel al deed, maar waarvan we de rij nog niet hebben
+  function vvGedaan(id){ return !!vvGenomen[id] || cache.productleveringen.some(l=>l&&l.id===id); }
+
+  function getVastVerbruik(hs){
+    const c=cache.appconfig, r=c&&c[vvSleutel(hs)];
+    if(!r||typeof r!=='object') return null;
+    return {aan:!!r.aan,
+      dagen:(Array.isArray(r.dagen)?r.dagen:[]).map(Number).filter(n=>n>=0&&n<=6),
+      aantal:Math.max(1,Math.round(+r.aantal||1)),
+      uit:Array.isArray(r.uit)?r.uit.slice():[],
+      vanaf:String(r.vanaf||'')};
+  }
+  // De dagen die nog afgeteld moeten worden: van 'vanaf' tot en met vandaag, op een gekozen
+  // weekdag, en nog niet geclaimd. Oudste eerst.
+  function vvTeDoen(hs){
+    const r=getVastVerbruik(hs);
+    if(!r||!r.aan||!r.dagen.length) return [];
+    const vandaag=vvVandaag();
+    const grens=new Date(vandaag); grens.setDate(grens.getDate()-VV_INHAAL_DAGEN);
+    let d=vvDatum(r.vanaf); if(!d) return [];
+    if(d<grens) d=new Date(grens);
+    const uit=[];
+    for(;d<=vandaag;d.setDate(d.getDate()+1)){
+      const iso=vvIso(d);
+      if(r.dagen.indexOf(d.getDay())>=0 && !vvGedaan(vvId(hs,iso))) uit.push(iso);
+    }
+    return uit;
+  }
+  // Wanneer gaat er de volgende keer iets af? Een dag die nog moet (bv. vandaag, als nog geen
+  // toestel opende) telt mee. '' = staat uit of er is geen dag gekozen.
+  function volgendeVastVerbruik(hs){
+    const r=getVastVerbruik(hs);
+    if(!r||!r.aan||!r.dagen.length) return '';
+    const nog=vvTeDoen(hs); if(nog.length) return nog[0];
+    const vandaag=vvVandaag();
+    let d=vvDatum(r.vanaf)||new Date(vandaag); if(d<vandaag) d=new Date(vandaag);
+    for(let i=0;i<15;i++,d.setDate(d.getDate()+1)){
+      const iso=vvIso(d);
+      if(r.dagen.indexOf(d.getDay())>=0 && !vvGedaan(vvId(hs,iso))) return iso;
+    }
+    return '';
+  }
+  // Wat er op één dag afgaat: van elk meetellend product 'aantal', maar nooit onder nul.
+  function vvPlan(hs,regel){
+    const items=cache.producten.filter(p=>p&&p.hoofdstuk===hs&&regel.uit.indexOf(p.id)<0);
+    const stappen=[]; let totaal=0, opNul=0;
+    items.forEach(p=>{
+      const af=Math.min(regel.aantal,Math.max(0,Math.round(p.stock||0)));
+      if(af>0){ stappen.push({p,af}); totaal+=af; } else opNul++;
+    });
+    return {stappen,totaal,opNul};
+  }
+  function vvTekst(iso,regel,plan){
+    const d=vvDatum(iso);
+    return '🔁 Vast verbruik ('+VV_DAGNAAM[d.getDay()]+'): '+regel.aantal+' van elk product — samen '+plan.totaal+' stuks'+
+      (plan.opNul?(' · '+plan.opNul+(plan.opNul===1?' stond':' stonden')+' al op 0'):'');
+  }
+  // De dag claimen. true = gelukt, dit toestel telt af · false = een ander toestel deed het
+  // al · null = de database niet bereikt of een andere fout: later opnieuw proberen.
+  async function vvClaim(rec){
+    let r;
+    try{ r=await withTimeout(sb.from('productleveringen').insert(productLevToRow(rec)),12000); }
+    catch(e){ return null; }
+    if(r&&!r.error) return true;
+    const fout=(r&&r.error)||{};
+    if(String(fout.code)==='23505'||/duplicate|unique|already exists/i.test(fout.message||'')){
+      vvGenomen[rec.id]=1;
+      // Hun rij ophalen, zodat ze meteen in de lijst Leveringen staat.
+      try{
+        const g=await withTimeout(sb.from('productleveringen').select('*').eq('id',rec.id).maybeSingle(),12000);
+        if(g&&g.data&&!cache.productleveringen.some(l=>l.id===rec.id)){ cache.productleveringen.push(mapProductLev(g.data)); saveProductLevBackup(); }
+      }catch(e){}
+      return false;
+    }
+    noteFout('Vast verbruik',fout.message||fout);
+    return null;
+  }
+  // Vlak vóór het aftellen de voorraad van de server, niet die van daarnet: kwam er intussen
+  // op een ander toestel een levering bij, dan tellen we van díe stand af. Wat hier nog in de
+  // wachtrij staat om verstuurd te worden, is nieuwer dan de server — dat laten we staan.
+  async function vvVerseVoorraad(hs){
+    try{
+      const r=await withTimeout(sb.from('producten').select('id,hoofdstuk,naam,stock').eq('hoofdstuk',hs),12000);
+      if(!r||r.error||!Array.isArray(r.data)) return;
+      const wacht={};
+      outbox.forEach(o=>{ if(o.table==='producten'&&(o.op==='upsert'||o.op==='insert'))
+        (Array.isArray(o.payload)?o.payload:[o.payload]).forEach(x=>{ if(x&&x.id) wacht[x.id]=1; }); });
+      r.data.forEach(row=>{
+        const p=cache.producten.find(x=>x.id===row.id);
+        if(!p) cache.producten.push(mapProduct(row));
+        else if(!wacht[row.id]) p.stock=+row.stock||0;
+      });
+    }catch(e){}
+  }
+  async function vvInhalenDoe(){
+    if(!ready || !kernOK) return 0;
+    const gedeeld=productenOK||productleveringenOK;
+    if(gedeeld){
+      // Afspreken wie aftelt kan enkel via de database. Ontbreekt één van de twee tabellen,
+      // of zijn we niet aangemeld of offline: niets doen.
+      if(!productenOK||!productleveringenOK||!sb||!aangemeld) return 0;
+      if(typeof navigator!=='undefined'&&navigator.onLine===false) return 0;
+    }
+    let gedaan=0;
+    for(const hs of VV_HOOFDSTUKKEN){
+      const dagen=vvTeDoen(hs);
+      if(!dagen.length) continue;
+      const regel=getVastVerbruik(hs);
+      if(gedeeld) await vvVerseVoorraad(hs);
+      for(const iso of dagen){
+        const plan=vvPlan(hs,regel);
+        const rec={id:vvId(hs,iso),ts:Date.now(),hoofdstuk:hs,datum:iso,product_id:'',product_naam:'',
+          aantal:-plan.totaal,tekst:vvTekst(iso,regel,plan)};
+        if(gedeeld){
+          const ok=await vvClaim(rec);
+          if(ok===null) return gedaan;   // geen verbinding: alles later opnieuw
+          if(!ok) continue;              // deze dag deed een ander toestel al
+        }
+        plan.stappen.forEach(st=>{
+          st.p.stock=Math.round(st.p.stock||0)-st.af;
+          if(productenOK) dbUpsert('producten',productToRowKaal(st.p));
+        });
+        if(!cache.productleveringen.some(l=>l.id===rec.id)) cache.productleveringen.push(rec);
+        saveProductBackup(); saveProductLevBackup();
+        if(!gedeeld) persistCache();
+        const d=vvDatum(iso);
+        logAct('Vast verbruik '+VV_HSNAAM[hs]+' ('+VV_DAGNAAM[d.getDay()]+' '+d.getDate()+' '+VV_MAAND[d.getMonth()]+'): −'+plan.totaal);
+        gedaan++;
+      }
+    }
+    if(gedaan) fire();
+    return gedaan;
+  }
+  // Mag zo vaak aangeroepen worden als je wil (bij elke wijziging, bij terugkeren naar de
+  // app, om de zoveel minuten): is er niets te doen, dan kijkt het enkel in het geheugen en
+  // stuurt het niets. Twee aanroepen tegelijk worden er één.
+  let vvBezig=null;
+  function vastVerbruikInhalen(){
+    if(vvBezig) return vvBezig;
+    vvBezig=vvInhalenDoe()
+      .catch(e=>{ noteFout('Vast verbruik',e); return 0; })
+      .then(n=>{ vvBezig=null; return n; });
+    return vvBezig;
+  }
+  // Een regel bewaren. Eerst nog aftellen wat er volgens de oude regel moest (bv. vandaag),
+  // daarna telt de nieuwe pas vanaf morgen — nooit met terugwerkende kracht.
+  async function setVastVerbruik(hs,regel){
+    if(VV_HOOFDSTUKKEN.indexOf(hs)<0) return null;
+    try{ await vastVerbruikInhalen(); }catch(e){}
+    const morgen=vvVandaag(); morgen.setDate(morgen.getDate()+1);
+    const g=regel||{};
+    const r={aan:!!g.aan,
+      dagen:Array.from(new Set((Array.isArray(g.dagen)?g.dagen:[]).map(Number).filter(n=>n>=0&&n<=6))).sort(),
+      aantal:Math.max(1,Math.round(+g.aantal||1)),
+      uit:Array.isArray(g.uit)?g.uit.filter(Boolean):[],
+      vanaf:vvIso(morgen), ts:Date.now()};
+    const patch={}; patch[vvSleutel(hs)]=r;
+    saveConfig(patch);
+    logAct('Vast verbruik '+VV_HSNAAM[hs]+' '+(r.aan&&r.dagen.length
+      ?('ingesteld: '+r.dagen.map(n=>VV_DAGNAAM[n]).join(', ')+', telkens '+r.aantal):'uitgezet'));
+    return getVastVerbruik(hs);
+  }
+
   // ---------------- CHECKLISTS (gedeeld) ----------------
   const getChecklisten=()=>cache.checklisten.slice().sort((a,b)=>(a.pos||0)-(b.pos||0)||(a.ts||0)-(b.ts||0));
   function saveChecklistBackup(){ saveBackup('checklisten',K_CHECKLISTEN_BACKUP); }
@@ -2500,6 +2699,8 @@
     STD_KOLOMMEN,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
     getProducten,addProduct,setProductStock,setProductFoto,removeProduct,isProductenGedeeld:()=>productenOK,
+    // Vast verbruik (automatische aftelling) voor Quiz/O&F/Algemeen — zie hierboven.
+    getVastVerbruik,setVastVerbruik,vastVerbruikInhalen,volgendeVastVerbruik,isVastVerbruikRij,
     isProductenFotoGedeeld:()=>productenFotoOK,
     getProductleveringen,addProductLevering,removeProductLevering,isProductleveringenGedeeld:()=>productleveringenOK,
     setActor,getActiviteit,clearActiviteit,logAct,isActiviteitGedeeld:()=>activiteitOK,

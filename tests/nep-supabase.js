@@ -77,7 +77,12 @@ function maakNepSupabase(db,ontbrekend,kolomWeg,weiger){
       return {data:rijen.map(kopie),error:null};
     }
     const lijst=Array.isArray(st.payload)?st.payload:[st.payload];
-    if(st.soort==='insert'){ lijst.forEach(function(r){ t.push(kopie(r)); }); return {data:lijst,error:null}; }
+    if(st.soort==='insert'){
+      // Net als de echte database: een id die al bestaat wordt geweigerd (primaire sleutel).
+      const dubbel=lijst.filter(function(r){ return r&&r.id!=null&&t.some(function(x){ return x.id===r.id; }); })[0];
+      if(dubbel) return {data:null,error:{code:'23505',message:'duplicate key value violates unique constraint "'+st.tabel+'_pkey"'}};
+      lijst.forEach(function(r){ t.push(kopie(r)); }); return {data:lijst,error:null};
+    }
     if(st.soort==='upsert'){
       lijst.forEach(function(r){
         const i=t.findIndex(function(x){return x.id===r.id;});

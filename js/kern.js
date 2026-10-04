@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v8.9';
+const APP_VERSION='v9.1';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1184,8 +1184,21 @@ async function checkForUpdate(){
     if(m && m[1] && m[1]!==APP_VERSION){ updateReady=true; tryReload(); }
   }catch(e){}
 }
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(updateReady) location.reload(); } else { checkForUpdate(); } });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(updateReady) location.reload(); } else { checkForUpdate(); vastVerbruikNakijken(); } });
 window.addEventListener('online',checkForUpdate);
+
+// ---------------- VAST VERBRUIK (automatische aftelling) ----------------
+// Quiz/O&F/Algemeen kunnen op vaste weekdagen vanzelf iets van hun voorraad aftellen (zie
+// js/inventaris.js). Er is geen server die dat 's ochtends doet: het eerste toestel dat de
+// app opent, telt af. Hier kijken we dat na — bij elke wijziging, wanneer je naar de app
+// terugkeert, en om de tien minuten voor een tablet die over middernacht blijft openstaan.
+// Is er niets te doen, dan kijkt het enkel in het geheugen en verstuurt het niets.
+// Dit staat in de kern en niet in de gegevenslaag, zodat het NIET loopt op de spelpagina
+// (die laadt de kern niet): tijdens een spel gebeurt daar niets op de achtergrond.
+function vastVerbruikNakijken(){
+  try{ if(window.BBInv&&BBInv.vastVerbruikInhalen&&BBInv.isReady&&BBInv.isReady()) BBInv.vastVerbruikInhalen(); }catch(e){}
+}
+setInterval(vastVerbruikNakijken,10*60*1000);
 
 // De terugknop wordt geregeld in js/terug.js, dat elke pagina apart inlaadt —
 // ook de pagina's die deze kern niet gebruiken (projecten, ratings).
@@ -1200,6 +1213,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     refreshAuth();  // namenlijst + inlogstatus bijwerken zodra de gedeelde lijst laadt
     if(typeof window.bbOnChange==='function') window.bbOnChange();
     updateSyncBadge();
+    vastVerbruikNakijken();
   });
   if(typeof window.bbStart==='function') window.bbStart();
   // Vóór init(), zodat het seintje al klaarstaat zodra de realtime-verbinding meteen
