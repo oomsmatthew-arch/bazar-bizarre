@@ -569,6 +569,8 @@ function bouwMaandRapportHtml(rev,selectie){
   const tabel=(titel,rows,kop)=> rows.length?('<'+kop+'>'+esc(titel)+'</'+kop+'><table><tr><th>Naam</th><th class="n">Gemiddelde</th><th class="n">Reacties</th></tr>'+
     rows.map(r=>'<tr><td>'+esc(r.naam)+'</td><td class="n '+kl3(r.gem)+'"><b>'+fmtScore(r.gem)+'</b></td><td class="n">'+r.n+'</td></tr>').join('')+'</table>'):'';
   h+=tabel('Per maand',maanden.map(m=>({naam:hoofd(maandLabel(m.key)),gem:m.gem,n:m.n})),'h2');
+  const paTotaal=groepeer(rev,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem||b.n-a.n);
+  h+=tabel('Per activiteit — heel het boekjaar',paTotaal.map(a=>({naam:a.key,gem:a.gem,n:a.n})),'h2');
   maanden.forEach(m=>{
     const mr=rev.filter(r=>maandKey(r.datum)===m.key);
     const pa=groepeer(mr,r=>canonAct(r.activiteit)).sort((a,b)=>b.gem-a.gem||b.n-a.n);
