@@ -75,6 +75,26 @@ daardoor dezelfde opslag** op het toestel.
   - **Leveringen** — geleverde boekjes/prijzen registreren → voorraad omhoog.
   - **Formulieren** — alle doorgestuurde inzendingen bekijken.
   - **Import / Export** — CSV exporteren, kopiëren voor Sheets/Excel, of CSV importeren.
+- **Boekjes = geteld + geleverd − uitgedeeld** (tabblad Boekjes, sinds v9.3). Je telt de
+  boekjes één keer en vult het aantal in onder de uitleg (*Telling bewaren*, met het
+  beheer-wachtwoord). Vanaf dan rekent elk toestel zelf: die telling, plus elke levering
+  daarna, min de boekjes van elk formulier daarna. Het tabblad toont die som stap voor stap;
+  wat vóór de telling gebeurde, staat er grijs bij ("vóór de telling") en telt niet nog eens.
+  - **Waarom:** vroeger stond de voorraad als één los getal in de database, en elk toestel
+    schreef daar een vast getal naartoe ("wat ik weet − 68"). Een tablet met een verouderde
+    kopie — opgestart zonder internet, of een Beheer-scherm dat al uren openstond —
+    overschreef zo de afboekingen van andere toestellen. In oktober 2026 stond de teller op
+    4334 terwijl er in totaal maar 20 pakjes van 192 = 3840 boekjes geleverd waren. De
+    formulieren en leveringen zelf zijn losse rijen; die kan geen toestel overschrijven.
+  - Zolang er niet geteld is, blijft de oude teller gelden, met een oranje uitleg erbij, wat
+    de app zelf geregistreerd heeft (alle leveringen − alle formulieren) en wanneer iemand de
+    teller met de hand aanpaste (uit het activiteitenlogboek).
+  - Een getal intikken bij *Boekjes* onder 🔒 Beheer is ook een nieuwe telling; − en + gaan
+    uit van de stand van nú, niet van het getal dat toevallig nog in het vakje stond.
+  - Verwijder je een formulier of levering van ná de laatste telling, dan gaan die boekjes
+    er weer bij of af (het venster zegt het). Van vóór de telling verandert er niets.
+  - De prijzen werken nog met de oude manier (een vast getal per prijs) en hebben dus
+    hetzelfde risico bij een tablet met een verouderde kopie.
 - **Quiz, O&F en Algemeen** (de hoofdstukken bovenaan Inventaris) hebben elk een eigen,
   eenvoudige productenlijst, los van de Prizenight-prijzen.
   - **🔁 Vast verbruik** (onder 🔒 Beheer) — een automatische aftelling. Duid de weekdagen

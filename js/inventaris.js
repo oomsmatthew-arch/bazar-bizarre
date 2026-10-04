@@ -1337,7 +1337,43 @@
 
   // ---------------- GETTERS (synchroon, uit cache) ----------------
   const getPrijzen=()=>cache.prijzen;
-  const getBoekjes=()=>cache.boekjes;
+  // ---- Boekjes: UITGEREKEND, niet langer een losse teller ----
+  // Vroeger stond de boekjesvoorraad als één getal in de tabel 'boekjes', en elk toestel
+  // schreef daar een VAST getal naartoe: "wat ik weet − 68". Wist dat toestel niet de
+  // laatste stand — een speltablet die op de wifi van het mengpaneel (zonder internet)
+  // opstartte met een kopie van weken oud, of een Beheer-scherm dat al uren openstond —
+  // dan overschreef het de echte stand, en waren de afboekingen van de andere toestellen
+  // weg. Zo stond de teller in oktober 2026 op 4334, terwijl er in totaal maar 20 pakjes van
+  // 192 = 3840 boekjes geleverd waren: hij telde op in plaats van af.
+  //
+  // Nu: je telt de boekjes één keer en vult dat in (de "telling", in het gedeelde
+  // instellingen-document). Vanaf dan rekent elk toestel zelf:
+  //     telling + geleverd sindsdien − uitgedeeld sindsdien
+  // De leveringen en formulieren zijn losse rijen met een eigen id: die kan geen enkel
+  // toestel overschrijven, hoe oud zijn kopie ook is. Een formulier dat een tablet zonder
+  // internet indiende, telt mee zodra het binnenkomt.
+  // Zolang er nog geen telling is, blijft de oude teller gelden (en zegt het scherm dat).
+  const bkGebruikt=f=>{ const b=(f&&f.boekjes)||{}; return (+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0); };
+  function boekjesTelling(){
+    const a=cache.appconfig&&cache.appconfig.boekjesTelling;
+    if(!a||typeof a!=='object'||!isFinite(+a.stock)||!(+a.ts>0)) return null;
+    return {stock:Math.round(+a.stock), ts:+a.ts, door:String(a.door||'')};
+  }
+  // Hoe het getal tot stand komt — het Boekjes-tabblad toont dit stap voor stap.
+  function boekjesOpbouw(){
+    const t=boekjesTelling(), vanaf=t?t.ts:-Infinity;
+    const levs=cache.leveringen.filter(l=>l&&+l.boekjes&&(+l.ts||0)>vanaf);
+    const forms=cache.formulieren.filter(f=>f&&bkGebruikt(f)&&(+f.ts||0)>vanaf);
+    const geleverd=levs.reduce((n,l)=>n+(+l.boekjes||0),0);
+    const uitgedeeld=forms.reduce((n,f)=>n+bkGebruikt(f),0);
+    const teller=Math.round(cache.boekjes.stock||0);
+    return {telling:t, geleverd, nLeveringen:levs.length, uitgedeeld, nFormulieren:forms.length, teller,
+      stock: t ? t.stock+geleverd-uitgedeeld : teller};
+  }
+  const getBoekjes=()=>({stock:boekjesOpbouw().stock});
+  // De oude teller nog bijwerken? Enkel zolang er geen telling is: daarna rekent niemand er
+  // nog mee, en elke vaste schrijfactie zou enkel opnieuw een verkeerd getal opslaan.
+  function bkTellerBewaren(){ if(!boekjesTelling()) dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); }
   const getFormulieren=()=>cache.formulieren;
   const getLeveringen=()=>cache.leveringen;
   const getBestellingen=()=>cache.bestellingen;
@@ -2382,7 +2418,16 @@
     dbUpsert('prijzen',fixed.map(toRowKaal));
     return fixed.length;
   }
-  function setBoekjes(o){ cache.boekjes={stock:Math.round(o.stock||0)}; dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); logAct('Boekjesvoorraad ingesteld op '+cache.boekjes.stock); }
+  // Een aantal boekjes vastleggen ("ik heb geteld: …"). Dat wordt de nieuwe telling, voor
+  // alle toestellen; alles wat er daarna geleverd of uitgedeeld wordt, telt erbij of eraf.
+  // De oude teller krijgt hetzelfde getal mee, voor een toestel dat nog niet bijgewerkt is.
+  function setBoekjes(o){
+    const n=Math.round((o&&o.stock)||0);
+    cache.boekjes={stock:n};
+    saveConfig({boekjesTelling:{stock:n, ts:Date.now(), door:actor||''}});
+    dbUpsert('boekjes',{id:1,stock:n});
+    logAct('Boekjesvoorraad ingesteld op '+n);
+  }
   function addPrijs(cat,naam,stock,foto){
     const s=+stock||0;
     const rec={id:uid(),cat:cat==='groot'?'groot':'klein',naam:naam||'',stock:s,inGebruik:s>0,foto:foto||''};
@@ -2402,7 +2447,7 @@
     cache.formulieren.push(rec);
     const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRowKaal);
     if(rows.length) dbUpsert('prijzen',rows);
-    dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
+    bkTellerBewaren();
     const rij={id:rec.id,ts:rec.ts,namen:rec.namen,kleine:rec.kleine,groot:rec.groot,boekjes:rec.boekjes,opmerking:rec.opmerking,finale:rec.finale};
     // Bestaat de kolom 'finalevraag' al in de database? Zo niet, dan zetten we de vraag
     // achter de finalereeks in het bestaande veld. Meesturen van een onbekende kolom zou
@@ -2417,7 +2462,7 @@
     return rec;
   }
   function addLevering(lev){
-    if(lev.boekjes){ cache.boekjes.stock=(cache.boekjes.stock||0)+(+lev.boekjes||0); dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock}); }
+    if(lev.boekjes){ cache.boekjes.stock=(cache.boekjes.stock||0)+(+lev.boekjes||0); bkTellerBewaren(); }
     const rec={id:uid(),ts:Date.now(),datum:lev.datum||'',boekjes:+lev.boekjes||0,tekst:lev.tekst||''};
     if(lev.foto) rec.foto=lev.foto; // foto enkel meesturen als er een is (kolom 'foto' nodig in tabel leveringen)
     cache.leveringen.push(rec); dbInsert('leveringen',rec);
@@ -2433,7 +2478,7 @@
     cache.boekjes.stock=(cache.boekjes.stock||0)+used;
     const rows=cache.prijzen.filter(p=>changed.has(p.id)).map(toRowKaal);
     if(rows.length) dbUpsert('prijzen',rows);
-    dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
+    bkTellerBewaren();
     dbDelete('formulieren','id',rec.id);
     return rec;
   }
@@ -2491,7 +2536,7 @@
       const verschil=gebruikt(rec.boekjes)-gebruikt(v.boekjes);
       if(verschil) cache.boekjes.stock=(cache.boekjes.stock||0)+verschil;
       rec.boekjes={gereserveerd:+v.boekjes.gereserveerd||0,extra:+v.boekjes.extra||0,gratis:+v.boekjes.gratis||0};
-      if(verschil) dbUpsert('boekjes',{id:1,stock:cache.boekjes.stock});
+      if(verschil) bkTellerBewaren();
     }
 
     if(v.namen!=null)       rec.namen=v.namen||'';
@@ -2591,6 +2636,7 @@
     for(let i=0;i<seed.length;i+=40){ await sb.from('prijzen').insert(seed.slice(i,i+40).map(toRow)); }
     cache.prijzen=seed;
     const bk=(d.boekjesStock)||0; await sb.from('boekjes').upsert({id:1,stock:bk}); cache.boekjes={stock:bk};
+    saveConfig({boekjesTelling:{stock:bk, ts:Date.now(), door:actor||''}});
     logAct('Inventaris hersteld naar de startlijst'); fire();
   }
 
@@ -2752,7 +2798,7 @@
   }
 
   window.BBInv={init,setOnChange:fn=>{onChange=fn;},setOnUpdateSignal:fn=>{onUpdateSignaal=fn;},isReady:()=>ready,
-    seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,
+    seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,boekjesOpbouw,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
     isFinalevraagGedeeld:()=>finalevraagOK, VRAAG_MARKER,
     getBestellingen,isBestelGedeeld,addBestelling,updateBestelling,removeBestelling,resetBestellingen,

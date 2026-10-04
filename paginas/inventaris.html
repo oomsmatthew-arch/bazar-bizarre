@@ -65,7 +65,15 @@
     <div class="invpane" id="pane-boekjes">
       <p class="hint" style="margin:0 2px 12px;">Saldo en historiek van de boekjes. De voorraad past zich automatisch aan door leveringen (+) en doorgestuurde formulieren (−).</p>
       <div class="statgrid" id="boekjesGrid"></div>
-      <p class="hint" style="margin:10px 2px 2px;">Startvoorraad + geleverd − uitgedeeld. Handmatige aanpassingen onder Beheer kunnen het saldo beïnvloeden.</p>
+      <!-- Hoe het getal tot stand komt (telling + geleverd − uitgedeeld), en de telling zelf. -->
+      <div class="bkcontrole" id="bkControle"></div>
+      <div class="bktel" id="bkTel">
+        <label for="bkTelInp" id="bkTelLabel">Hoeveel boekjes zijn er nu echt? (tel ze, inclusief de volle pakjes)</label>
+        <div class="row">
+          <input type="number" id="bkTelInp" class="finp" min="0" step="1" inputmode="numeric" placeholder="aantal">
+          <button class="btn primary" id="bkTelBewaar">Telling bewaren</button>
+        </div>
+      </div>
       <div class="h" style="margin:16px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Historiek</div>
       <div id="boekjesHist"></div>
     </div>
@@ -449,13 +457,16 @@ function prijsRow(p){
 function boekjesRow(){
   const bk=BBInv.getBoekjes();
   const row=document.createElement('div'); row.className='invrow span';
-  row.innerHTML='<div class="nm"><div class="t">Boekjes</div><div class="c">voorraad</div></div>'+
-    '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(bk.stock||0)+'"><button type="button" class="pl">+</button></div>'+
+  row.innerHTML='<div class="nm"><div class="t">Boekjes</div><div class="c">voorraad · een getal hier wordt de nieuwe telling</div></div>'+
+    '<div class="stk"><button type="button" class="min">−</button><input type="number" id="bkBeheerInp" value="'+(bk.stock||0)+'"><button type="button" class="pl">+</button></div>'+
     '<span style="width:36px;flex:0 0 auto;"></span>';
   const inp=row.querySelector('input');
-  const commit=v=>{v=Math.round(v||0);const o=BBInv.getBoekjes();o.stock=v;BBInv.setBoekjes(o);inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
-  row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
-  row.querySelector('.pl').onclick=()=>commit((+inp.value||0)+1);
+  const commit=v=>{v=Math.round(v||0);BBInv.setBoekjes({stock:v});inp.value=v;inp.classList.toggle('neg',v<0);renderInvSum();renderStats();};
+  // − en + vertrekken van de stand van NU. Vroeger van het getal in het vakje — en dat kon
+  // al uren oud zijn als er intussen op een andere tablet een spel werd afgesloten: één tik
+  // en die afboeking was weg.
+  row.querySelector('.min').onclick=()=>commit((BBInv.getBoekjes().stock||0)-1);
+  row.querySelector('.pl').onclick=()=>commit((BBInv.getBoekjes().stock||0)+1);
   inp.onchange=()=>commit(+inp.value||0);
   inp.classList.toggle('neg',(bk.stock||0)<0);
   return row;
@@ -512,24 +523,105 @@ function renderInvStock(){
 }
 // BOEKJES (saldo + historiek)
 function renderBoekjes(){
-  const bk=BBInv.getBoekjes(), levs=BBInv.getLeveringen(), forms=BBInv.getFormulieren();
-  const neg=(bk.stock||0)<0;
+  const o=BBInv.boekjesOpbouw?BBInv.boekjesOpbouw():{stock:BBInv.getBoekjes().stock||0,telling:null};
+  const levs=BBInv.getLeveringen(), forms=BBInv.getFormulieren();
+  const neg=(o.stock||0)<0;
   document.getElementById('boekjesGrid').innerHTML=
-    '<div class="statcard'+(neg?' neg':'')+'"><div class="v">'+(bk.stock||0)+'</div><div class="l">Huidige voorraad</div></div>';
+    '<div class="statcard'+(neg?' neg':'')+'"><div class="v">'+(o.stock||0)+'</div><div class="l">Huidige voorraad</div></div>';
+  renderBkControle(o);
+  const t=o.telling;
   const ev=[];
   levs.forEach(l=>{ if(+l.boekjes) ev.push({ts:l.ts,datum:l.datum,type:'in',n:+l.boekjes,txt:l.tekst||''}); });
   forms.forEach(f=>{const b=f.boekjes||{};const u=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0); if(u) ev.push({ts:f.ts,type:'uit',n:u,txt:f.namen||''}); });
+  if(t) ev.push({ts:t.ts,type:'tel',n:t.stock,txt:t.door||''});
   ev.sort((a,b)=>b.ts-a.ts);
   const wrap=document.getElementById('boekjesHist'); wrap.innerHTML='';
   if(!ev.length){wrap.innerHTML='<p class="hint">Nog geen boekjes-beweging.</p>';return;}
   ev.forEach(e=>{
-    const d=document.createElement('div'); d.className='subrec';
-    const sign=e.type==='in'?'+':'−', col=e.type==='in'?'var(--leaf)':'#c0392b';
-    d.innerHTML='<div class="pr"><b style="color:'+col+';font-size:16px;">'+sign+e.n+'</b> boekjes '+(e.type==='in'?'geleverd':'uitgedeeld')+(e.txt?(' · '+esc(e.txt)):'')+'</div>'+
+    const d=document.createElement('div');
+    // Wat vóór de telling gebeurde, zit al in dat getal: het telt niet nog eens mee.
+    const oud=t&&e.type!=='tel'&&(+e.ts||0)<=t.ts;
+    d.className='subrec'+(e.type==='tel'?' bkteltel':'')+(oud?' bkoud':'');
+    let wat;
+    if(e.type==='tel') wat='<b style="color:var(--forest);font-size:16px;">= '+e.n+'</b> boekjes geteld';
+    else{
+      const sign=e.type==='in'?'+':'−', col=e.type==='in'?'var(--leaf)':'#c0392b';
+      wat='<b style="color:'+col+';font-size:16px;">'+sign+e.n+'</b> boekjes '+(e.type==='in'?'geleverd':'uitgedeeld');
+    }
+    d.innerHTML='<div class="pr">'+wat+(e.txt?(' · '+esc(e.txt)):'')+(oud?' <span class="bkoudtag">vóór de telling</span>':'')+'</div>'+
       '<div class="meta">'+(e.datum?esc(e.datum):bbFmtTs(e.ts))+'</div>';
     wrap.appendChild(d);
   });
 }
+// Telt dit nog mee bovenop de telling? (Wat ervóór gebeurde, zit al in het getelde getal.)
+function bkNaTelling(ts){ const o=BBInv.boekjesOpbouw?BBInv.boekjesOpbouw():null; return !!(o&&o.telling&&(+ts||0)>o.telling.ts); }
+function bkVan(f){ const b=(f&&f.boekjes)||{}; return (+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0); }
+// De handmatige aanpassingen van de boekjes, uit het activiteitenlogboek. Daar zie je wie de
+// teller wanneer op welk getal zette — bv. een sprong omhoog die niet van een levering komt.
+function bkAanpassingen(){
+  const act=(BBInv.getActiviteit?BBInv.getActiviteit():[]);
+  return act.map(a=>{
+    const m=/^Boekjesvoorraad ingesteld op (-?\d+)/.exec(a.actie||'');
+    if(m) return {ts:a.ts,wie:a.wie||'?',txt:'op '+m[1]+' gezet'};
+    if(/^Inventaris hersteld naar de startlijst/.test(a.actie||'')) return {ts:a.ts,wie:a.wie||'?',txt:'alles teruggezet naar de startlijst (boekjes op de startwaarde)'};
+    return null;
+  }).filter(Boolean);
+}
+function renderBkControle(o){
+  const box=document.getElementById('bkControle'); if(!box) return;
+  const rij=(l,w,cls)=>'<div class="'+(cls||'')+'"><span>'+l+'</span><b>'+w+'</b></div>';
+  const mv=(n,een,meer)=>n+' '+(n===1?een:meer);
+  const aanp=bkAanpassingen();
+  const aanpHtml=aanp.length
+    ? '<details class="bkaanp"><summary>De teller werd '+mv(aanp.length,'keer','keer')+' met de hand aangepast — wanneer?</summary><ul>'+
+        aanp.slice(0,12).map(a=>'<li>'+esc(bbFmtTs(a.ts))+' · '+esc(a.wie)+' · '+esc(a.txt)+'</li>').join('')+
+        (aanp.length>12?'<li>… en '+(aanp.length-12)+' keer eerder</li>':'')+'</ul></details>'
+    : '';
+  const t=o.telling;
+  if(t){
+    box.className='bkcontrole';
+    box.innerHTML='<div class="bkrek">'+
+      rij('Geteld op '+esc(bbFmtTs(t.ts))+(t.door?' · '+esc(t.door):''),t.stock)+
+      rij('+ geleverd sindsdien ('+mv(o.nLeveringen,'levering','leveringen')+')','+'+o.geleverd)+
+      rij('− uitgedeeld sindsdien ('+mv(o.nFormulieren,'spel','spellen')+')','−'+o.uitgedeeld)+
+      rij('= huidige voorraad',o.stock,'som')+
+      '</div>'+aanpHtml;
+    document.getElementById('bkTelLabel').textContent='Opnieuw geteld? Vul het echte aantal in — vanaf dan rekent de app vanaf die telling.';
+  } else {
+    // Nog geen telling: de oude teller, met wat de app zelf geregistreerd heeft ernaast.
+    const alleLev=BBInv.getLeveringen().filter(l=>+l.boekjes), alleF=BBInv.getFormulieren().filter(f=>{const b=f.boekjes||{};return (+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);});
+    const geleverd=alleLev.reduce((n,l)=>n+(+l.boekjes||0),0);
+    const uit=alleF.reduce((n,f)=>{const b=f.boekjes||{};return n+(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0);},0);
+    box.className='bkcontrole let';
+    box.innerHTML='<p><b>Tel de boekjes één keer.</b> Het getal hierboven is de oude teller, en die is niet betrouwbaar gebleken: '+
+      'een tablet met een verouderde kopie (bv. opgestart zonder internet) kon de afboekingen van andere toestellen ongedaan maken, '+
+      'waardoor de teller soms optelde in plaats van aftelde. Vul hieronder in hoeveel boekjes er echt zijn. Vanaf dan rekent de app het zelf uit: '+
+      '<b>geteld + geleverd − uitgedeeld</b> — op elk toestel hetzelfde.</p>'+
+      '<div class="bkrek">'+
+      rij('Alle geregistreerde leveringen ('+alleLev.length+')','+'+geleverd)+
+      rij('Alle doorgestuurde formulieren ('+alleF.length+')','−'+uit)+
+      rij('= als álle boekjes via een geregistreerde levering binnenkwamen',geleverd-uit,'som')+
+      rij('De oude teller zegt',o.teller)+
+      '</div>'+aanpHtml;
+    document.getElementById('bkTelLabel').textContent='Hoeveel boekjes zijn er nu echt? (tel ze, inclusief de volle pakjes)';
+  }
+}
+document.getElementById('bkTelBewaar').onclick=async()=>{
+  const inp=document.getElementById('bkTelInp');
+  const v=String(inp.value||'').trim();
+  if(!/^\d+$/.test(v)){ bbToon('Vul het aantal boekjes in dat je geteld hebt (een heel getal).'); inp.focus(); return; }
+  const n=parseInt(v,10);
+  if(!await eisToegang('inventaris','beheren','de boekjes te tellen')) return;
+  if(!await bbBevestig({titel:'Telling bewaren?', okTekst:'Ja, '+n+' boekjes',
+    tekst:'Er zijn nu '+n+' boekjes.\n\nVanaf nu rekent de app voor alle toestellen: '+n+' + wat er geleverd wordt − wat er uitgedeeld wordt.'})) return;
+  BBInv.setBoekjes({stock:n});
+  inp.value='';
+  renderBoekjes(); renderInvSum();
+  for(let i=0;i<20&&BBInv.pendingCount&&BBInv.pendingCount()>0;i++) await new Promise(r=>setTimeout(r,200));
+  bbToon('Telling bewaard: '+n+' boekjes.'+((BBInv.pendingCount&&BBInv.pendingCount()>0)
+    ?' Ze staat op dit toestel en gaat naar de andere toestellen zodra er internet is.'
+    :' Ze staat op alle toestellen.'));
+};
 
 // BEHEER (bewerkbaar)
 function renderBeheer(){
@@ -751,7 +843,7 @@ function renderLeveringen(){
     d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
       '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
     if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
-    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(await bbBevestig({titel:'Levering verwijderen?', tekst:'De stock wordt niet automatisch teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
+    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(await bbBevestig({titel:'Levering verwijderen?', tekst:bkNaTelling(l.ts)&&+l.boekjes?('De '+l.boekjes+' boekjes van deze levering gaan weer van de voorraad af (ze kwamen na de laatste telling binnen).'):'De voorraad verandert niet.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setLeveringen(BBInv.getLeveringen().filter(x=>x.id!==l.id));renderLeveringen();}};
     wrap.appendChild(d);
   });
 }
@@ -1021,8 +1113,10 @@ function vvVanElders(){
 // Normaal komt een wijziging van een ander toestel live binnen; dit vangt het op als die
 // verbinding wegviel. En om de twee minuten voor een tablet die hier de hele dag openstaat.
 function verversHoofdstukken(){
-  if(document.hidden||isPrizenight()||!(window.BBInv&&BBInv.ververs)) return;
-  BBInv.ververs('appconfig'); BBInv.ververs('producten'); BBInv.ververs('productleveringen');
+  if(document.hidden||!(window.BBInv&&BBInv.ververs)) return;
+  BBInv.ververs('appconfig');   // ook de boekjestelling van Prizenight
+  if(isPrizenight()) return;
+  BBInv.ververs('producten'); BBInv.ververs('productleveringen');
 }
 document.addEventListener('visibilitychange',verversHoofdstukken);
 window.addEventListener('focus',verversHoofdstukken);
@@ -1115,7 +1209,7 @@ function renderFormulieren(){
         '<button class="rm" data-id="'+f.id+'">Verwijderen</button>'+
       '</div>';
     d.querySelector('.ed').onclick=async()=>{if(!await eisToegang('inventaris','beheren','het formulier aan te passen'))return;feOpen(f);};
-    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','het formulier te verwijderen'))return;if(await bbBevestig({titel:'Formulier verwijderen?', tekst:'De afgeboekte stock wordt niet teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
+    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','het formulier te verwijderen'))return;if(await bbBevestig({titel:'Formulier verwijderen?', tekst:'De afgeboekte prijzen worden niet teruggezet.'+(bkNaTelling(f.ts)&&bkVan(f)?(' De '+bkVan(f)+' boekjes komen wél terug in de voorraad (het formulier kwam na de laatste telling).'):''), okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setFormulieren(BBInv.getFormulieren().filter(x=>x.id!==f.id));renderFormulieren();}};
     wrap.appendChild(d);
   });
 }
@@ -1344,7 +1438,11 @@ window.bbOnChange=()=>{
   if(document.getElementById('pane-boekjes').classList.contains('active')) renderBoekjes();
   if(document.getElementById('pane-formulieren').classList.contains('active')) renderFormulieren();
   if(document.getElementById('pane-leveringen').classList.contains('active')) renderLeveringen();
-  if(document.getElementById('pane-beheer').classList.contains('active')) renderStats();
+  if(document.getElementById('pane-beheer').classList.contains('active')){
+    renderStats();
+    const bi=document.getElementById('bkBeheerInp');
+    if(bi&&document.activeElement!==bi){ const n=BBInv.getBoekjes().stock||0; bi.value=n; bi.classList.toggle('neg',n<0); }
+  }
 };
 </script>
 </body>
