@@ -675,22 +675,107 @@
   // domeinnaam, dan hoeft dit dus niet mee te veranderen.
   const TEAM_EMAIL='team@entertainment.app';
 
-  async function zorgVoorToegang(){
+  // Waar de Supabase-bibliotheek de aanmelding van dit toestel bewaart. Dezelfde naam als
+  // de bibliotheek zelf kiest: "sb-" + het eerste stuk van het database-adres + "-auth-token".
+  const K_AUTH='sb-'+SUPABASE_URL.split('//')[1].split('.')[0]+'-auth-token';
+  function bewaardeAanmelding(){
+    try{ const t=JSON.parse(localStorage.getItem(K_AUTH)||'null'); return (t&&t.refresh_token)?t:null; }
+    catch(e){ return null; }
+  }
+
+  // Is de database ECHT te bereiken? 'navigator.onLine' zegt enkel of er wifi is, niet of
+  // er internet achter zit. Op het TP-Link-netwerk aan de techniektafel is er wél wifi maar
+  // géén internet — daar zei onLine "ja" en kreeg je de toegangscode voor je neus.
+  // Daarom vragen we de database zelf om een teken van leven, met een korte tijdslimiet.
+  // Het '?_v=' zorgt dat de service worker er niet tussen komt (zie sw.js): die zou anders
+  // een oud "ja" uit zijn bewaarde kopieën kunnen teruggeven terwijl er geen internet is.
+  async function databaseBereikbaar(){
+    if(typeof navigator!=='undefined' && navigator.onLine===false) return false;
+    if(typeof fetch!=='function') return false;
+    let t=null;
+    try{
+      const ctrl=(typeof AbortController==='function') ? new AbortController() : null;
+      if(ctrl) t=setTimeout(()=>ctrl.abort(),5000);
+      const r=await fetch(SUPABASE_URL+'/auth/v1/health?_v='+Date.now(),
+        {headers:{apikey:SUPABASE_KEY},cache:'no-store',signal:ctrl?ctrl.signal:undefined});
+      if(!r||!r.ok) return false;
+      await r.json();        // een router- of wifi-inlogpagina geeft geen JSON → dan telt het niet
+      return true;
+    }catch(e){ return false; }
+    finally{ if(t!==null) clearTimeout(t); }
+  }
+
+  // Is dit toestel aangemeld bij de database? 'magVragen' = mag het toegangscode-scherm
+  // verschijnen. Bij het opstarten wel; bij het stil opnieuw proberen op de achtergrond niet.
+  //
+  // DE REGEL: de toegangscode verschijnt ENKEL als de database bereikbaar is én dit toestel
+  // nog nooit aangemeld was (of echt afgemeld werd). Nooit op een netwerk zonder internet.
+  //
+  // Waarom dat nodig was: een aanmelding is telkens een uur geldig en wordt dan ververst.
+  // Zonder internet lukt dat verversen niet. De bibliotheek houdt de aanmelding dan netjes
+  // bij, maar zegt wel "nu even geen sessie" — en vroeger was dat genoeg om de code te vragen.
+  // Na een uur op het TP-Link-netwerk kreeg je dus bij elke herstart van de pagina het scherm,
+  // en typte je de juiste code in, dan zei het "klopt niet" (het was gewoon geen internet).
+  // Een échte afmelding (code gewijzigd, account weg) herkent de bibliotheek zelf: dán wist
+  // ze de bewaarde aanmelding, en dán vragen we de code opnieuw.
+  async function zorgVoorToegang(magVragen){
+    const bewaard=bewaardeAanmelding();
+    // Staat er een VERLOPEN aanmelding, dan moet de bibliotheek ze verversen — over het
+    // netwerk. Eerst kijken of de database er is: anders blijft ze dat een halve minuut lang
+    // proberen, en zo lang wacht de app. (Nog geldig, of niets bewaard: dat weet ze meteen.)
+    const verlopen=!!bewaard && !(bewaard.expires_at && bewaard.expires_at*1000-Date.now()>60000);
+    if(verlopen && !await databaseBereikbaar()) return false;
     try{
       const {data}=await sb.auth.getSession();
-      if(data&&data.session) return true; // dit toestel is al aangemeld
+      if(data&&data.session) return true;   // aangemeld (eventueel net ververst)
     }catch(e){}
-    if(!navigator.onLine) return false;   // nog nooit aangemeld én geen internet → lokale modus
+    // Er staat nog een aanmelding op dit toestel, maar verversen lukte nu niet: een storing
+    // onderweg, geen echte afmelding. Geen code vragen — later stil opnieuw proberen.
+    if(bewaardeAanmelding()) return false;
+    if(!magVragen) return false;
+    // Nooit aangemeld. Vragen heeft enkel zin als de code ook gecontroleerd kán worden.
+    if(!await databaseBereikbaar()) return false;
     let fout='';
     for(;;){
       const code=await vraagToegangscode(fout);
       if(code===null) return false;       // "Verder zonder internet" gekozen
       if(!code){ fout='Vul de toegangscode in.'; continue; }
-      const {error}=await sb.auth.signInWithPassword({email:TEAM_EMAIL,password:code});
+      let error=null;
+      try{ ({error}=await sb.auth.signInWithPassword({email:TEAM_EMAIL,password:code})); }
+      catch(e){ error={name:'AuthRetryableFetchError',status:0}; }
       if(!error) return true;
-      fout='Deze code klopt niet. Probeer opnieuw.';
+      // Kon de database niet antwoorden, dan zeggen we dat — niet "de code klopt niet".
+      const geenNet = error.name==='AuthRetryableFetchError' || !error.status || error.status>=500;
+      fout = geenNet
+        ? 'Geen verbinding met de database (dit netwerk heeft geen internet?). Tik "Verder zonder internet" — je kan gewoon verder werken.'
+        : 'Deze code klopt niet. Probeer opnieuw.';
     }
   }
+
+  // Niet aangemeld gestart (geen internet, of de code overgeslagen)? Dan stil op de
+  // achtergrond opnieuw proberen: meteen als het toestel terug online komt, en anders elke
+  // minuut. Lukt het, dan haalt de app alles op en vertrekt de wachtrij — zonder herladen.
+  // Het toegangscode-scherm komt hier nooit tussen.
+  let opnieuwT=null, opnieuwBezig=false;
+  function planOpnieuwAanmelden(ms){
+    if(aangemeld||!sb) return;
+    clearTimeout(opnieuwT);
+    opnieuwT=setTimeout(()=>{ opnieuwT=null; probeerOpnieuwAanmelden(); }, ms);
+  }
+  async function probeerOpnieuwAanmelden(){
+    if(aangemeld||opnieuwBezig||!sb||!ready) return;
+    opnieuwBezig=true;
+    let gelukt=false;
+    try{ gelukt=await zorgVoorToegang(false); }catch(e){ gelukt=false; }
+    if(gelukt && !aangemeld){
+      aangemeld=true;
+      bewaarLokaleProjectstand();   // wat er intussen lokaal bijkwam, mee laten inhalen
+      try{ await naAanmelding(); }catch(e){ noteFout('Aanmelden',e); }
+    }
+    opnieuwBezig=false;
+    if(!aangemeld) planOpnieuwAanmelden(60000);
+  }
+  if(typeof window!=='undefined'){ window.addEventListener('online',()=>{ probeerOpnieuwAanmelden(); }); }
 
   // Eigen schermpje in code (geen HTML nodig), zodat het op alle drie de pagina's werkt.
   function vraagToegangscode(fout){
@@ -774,18 +859,25 @@
     libOK=true;
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     subscribeUpdateSignal(); // luistert los van aanmelden/internet-status hierna — werkt ook zonder team-login
-    const toegang=await zorgVoorToegang();
+    const toegang=await zorgVoorToegang(true);
     aangemeld=!!toegang;
     if(!toegang){
-      noteFout('Aanmelden','dit toestel is niet aangemeld bij de database (toegangscode overgeslagen of geen internet)');
+      noteFout('Aanmelden','dit toestel is niet aangemeld bij de database (geen internet, of toegangscode overgeslagen)');
       // Niet aangemeld (offline, of code overgeslagen): we tonen wat er lokaal bewaard staat
       // (hierboven al ingeladen). Schrijfacties wachten in de outbox tot dit toestel weer
-      // aangemeld en online is.
+      // aangemeld en online is — en dat proberen we vanzelf opnieuw (zie hierboven).
       ensureEntAlgemeen();
       autoOpruimen();
       ready=true; fire();
+      planOpnieuwAanmelden(60000);
       return;
     }
+    await naAanmelding();
+  }
+  // Alles wat pas kan zodra dit toestel aangemeld is: de gegevens ophalen, de eenmalige
+  // overzettingen, live meeluisteren en de wachtrij versturen. Bij het opstarten, of later
+  // als het toestel zonder internet startte en het internet terugkwam.
+  async function naAanmelding(){
     await loadAll();
     await migrateIfEmpty();
     await migrateBestelIfNeeded();

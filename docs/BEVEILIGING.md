@@ -32,6 +32,16 @@ Eén gedeelde toegangscode voor het team. Je typt die één keer per tablet of l
 onthoudt het toestel de aanmelding. De database geeft vanaf dan enkel nog gegevens vrij aan wie
 aangemeld is.
 
+**Zonder internet vraagt de app de code nooit** (sinds v8.9). Een aanmelding is telkens een
+uur geldig en wordt dan op de achtergrond ververst. Op een wifi zonder internet — zoals het
+TP-Link-netwerk aan de techniektafel — lukt dat verversen niet. Vroeger verscheen dan bij
+elke herstart van de pagina het scherm "Toegangscode", en zei het "klopt niet" terwijl de
+code juist was. Nu kijkt de app eerst of de database echt bereikbaar is. Is ze dat niet, dan
+werkt ze gewoon lokaal verder; wijzigingen wachten in de wachtrij (⏳). Zodra er weer internet
+is, meldt ze zich stil opnieuw aan en vertrekt de wachtrij, zonder herladen. Het scherm komt
+enkel nog op een toestel dat nooit aangemeld was, of als de toegangscode in Supabase
+gewijzigd werd — en dan alleen met internet.
+
 De namenlijst met pincodes blijft gewoon werken zoals nu — dat blijft de "wie ben ik"-keuze.
 Er komt enkel één grendel vóór de deur.
 
