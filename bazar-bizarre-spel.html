@@ -145,17 +145,27 @@
   .fchip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;
     padding:6px 12px;border-radius:999px;cursor:pointer;}
   .fchip.active{background:var(--gold);color:#1a1a1a;border-color:var(--gold);}
-  .klaarcard{background:var(--panel);border:1px solid var(--ok);border-radius:14px;padding:16px 18px;}
-  .klaarcard h3{margin:0 0 4px;font-family:var(--serif);color:var(--ok);font-size:22px;}
+  /* Het "Doorgestuurd"-scherm: één groot kader dat van kleur én tekst wisselt met de
+     verzendstatus. Rood = nog niet verstuurd, oranje = bezig, groen = verstuurd en gesynct.
+     De kleur zit in drie variabelen; de klasse (rood/oranje/groen) zet ze. Volle donkere
+     achtergronden en geen doorschijnende tint: die mengt met het blauw en dan oogt rood paars. */
+  .klaarcard{--kc:#ff9f43;--kcbg:#5a3510;--kctxt:#ffe2c2;
+    background:var(--kcbg);border:3px solid var(--kc);border-radius:14px;padding:16px 18px;
+    transition:border-color .3s,background-color .3s;}
+  .klaarcard.rood{--kc:#ff4d4d;--kcbg:#5c1420;--kctxt:#ffd6d6;}
+  .klaarcard.oranje{--kc:#ff9f43;--kcbg:#5a3510;--kctxt:#ffe2c2;
+    animation:klaarpuls 1.6s ease-in-out infinite;}
+  .klaarcard.groen{--kc:#34d27b;--kcbg:#0e4a32;--kctxt:#c8f5dc;}
+  @keyframes klaarpuls{50%{box-shadow:0 0 0 6px rgba(255,159,67,.28);}}
+  @media (prefers-reduced-motion:reduce){.klaarcard.oranje{animation:none;}}
+  .klaarcard h3{margin:0 0 4px;font-family:var(--serif);color:var(--kc);font-size:26px;line-height:1.2;}
+  .klaarcard .klaaruitleg{color:var(--kctxt);font-weight:700;font-size:14px;line-height:1.45;margin:0 0 12px;}
+  .klaarcard .klaaropnieuw{margin:-4px 0 12px;border-color:var(--kc);}
   .klaarcard .meta{color:var(--muted);font-size:13px;margin-bottom:10px;}
   .klaarcard .kl{font-size:14px;line-height:1.6;margin-bottom:4px;}
   .klaarcard .kl b{color:var(--gold);}
   .klaarwarn{margin-top:12px;background:rgba(255,93,143,.12);border:1px solid var(--pink);border-radius:12px;
     padding:12px 14px;color:#ffd0db;font-size:14px;line-height:1.5;}
-  .klaarsync{margin-top:12px;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:700;line-height:1.45;}
-  .klaarsync.ok{border:1px solid var(--ok);background:rgba(52,210,123,.12);color:#bff3d6;}
-  .klaarsync.pending{border:1px solid var(--gold);background:rgba(255,210,63,.12);color:#ffe9a8;}
-  .klaarsync.offline{border:1px solid var(--pink);background:rgba(255,93,143,.12);color:#ffd0db;}
 
   /* ---- views ---- */
   .view{display:none;margin-top:16px;}
@@ -1837,7 +1847,7 @@ function updateAll(){
 const titles={menu:"Bazar Bizarre",controle:"Controle lijst",superdeals:"Ronde 1 · Super Deals",
   trolley:"Ronde 2 · Trolley Tunes",howmuch:"Ronde 3 · How Much?",
   coins:"Ronde 4 · Crazy Coins",finale:"Finalespel",admin:"Beheer · Archief",
-  formulier:"Spel afsluiten · Formulier",formulierKlaar:"Doorgestuurd",
+  formulier:"Spel afsluiten · Formulier",formulierKlaar:"Spel afgesloten",
   vragenbeheer:"Finalevragen beheren"};
 function show(view){
   navMelden(view);
@@ -2237,7 +2247,10 @@ function renderFormulierKlaar(rec){
   const negs=[];
   (rec.kleine||[]).concat(rec.groot||[]).forEach(it=>{const p=map[it.id]; if(p&&(p.stock||0)<0) negs.push(esc(p.naam)+' ('+p.stock+')');});
   const b=rec.boekjes||{}; const usedBk=(+b.gereserveerd||0)+(+b.extra||0)+(+b.gratis||0); const bk=BBInv.getBoekjes();
-  let html='<div class="klaarcard"><h3>Doorgestuurd ✓</h3>';
+  // Titel, uitleg en kleur vult updateKlaarSync() in — en houdt ze daarna live bij.
+  let html='<div class="klaarcard oranje" id="klaarCard"><h3 id="klaarTitel"></h3>'+
+    '<div class="klaaruitleg" id="klaarUitleg"></div>'+
+    '<button type="button" class="btn klaaropnieuw" id="klaarOpnieuw" style="display:none">↻ Nu opnieuw proberen</button>';
   if(rec.namen) html+='<div class="meta">'+esc(rec.namen)+'</div>';
   html+='<div class="kl"><b>Kleine prijzen:</b> '+lst(rec.kleine)+'</div>';
   html+='<div class="kl"><b>Grote prijzen:</b> '+lst(rec.groot)+'</div>';
@@ -2245,26 +2258,59 @@ function renderFormulierKlaar(rec){
   if(rec.finalevraag) html+='<div class="kl"><b>Finalevraag:</b> '+esc(rec.finalevraag).replace(/\n/g,'<br>')+'</div>';
   html+='</div>';
   if(negs.length) html+='<div class="klaarwarn">⚠ Let op — onder 0 in voorraad: '+negs.join(', ')+'. Vul aan via Beheer of een levering.</div>';
-  html+='<div class="klaarsync pending" id="klaarSync">⏳ Bezig met versturen…</div>';
   document.getElementById('klaarBody').innerHTML=html;
+  document.getElementById('klaarOpnieuw').onclick=klaarOpnieuwProberen;
   updateKlaarSync();
 }
-// Live sync-status op het "Doorgestuurd"-scherm: is het spel al écht naar de gedeelde lijst verstuurd?
-// Wordt bijgewerkt telkens de wachtrij verandert (BBInv.setOnChange) en bij online/offline.
-function updateKlaarSync(){
-  const el=document.getElementById('klaarSync'); if(!el) return;
-  const pend=window.BBInv?BBInv.pendingCount():0;
-  if(!navigator.onLine){
-    el.className='klaarsync offline';
-    el.textContent='📴 Nog geen internet — wordt automatisch verstuurd zodra je verbonden bent. Je mag de app gerust sluiten.';
-  } else if(pend>0){
-    el.className='klaarsync pending';
-    el.textContent='⏳ Bezig met versturen naar de gedeelde lijst…';
-  } else {
-    el.className='klaarsync ok';
-    el.textContent='✓ Verstuurd en gesynct met de andere toestellen.';
-  }
+// ---- KLAAR-TOESTAND (begin) — tests/test-doorgestuurd.js knipt dit stuk uit ----
+// Welke kleur en tekst hoort bij het net doorgestuurde formulier?
+//   s        = BBInv.getSysteem(): internet, aangemeld, hoeveel er nog wacht, en of de
+//              laatste poging mislukte (wachtrijVast)
+//   probeert = er loopt net een poging die je zelf met "Nu opnieuw proberen" startte
+// GROEN enkel als de wachtrij echt leeg is. ROOD zolang het niet verstuurd is en er nu ook
+// niets onderweg is: geen internet, niet aangemeld, of de vorige poging mislukte (wifi
+// zonder internet zoals het TP-Link-netwerk, of een foutmelding van de server). ORANJE
+// alleen terwijl er echt verstuurd wordt. Vroeger zei het scherm bovenaan altijd
+// "Doorgestuurd ✓" en stond de echte status in een klein kadertje eronder — dat bleef op
+// een wifi zonder internet eindeloos "bezig met versturen" zeggen.
+const KLAAR_NIET='✕ Nog niet doorgestuurd';
+function klaarToestand(s,probeert){
+  if(!(+s.wachtrij>0)) return {kleur:'groen',titel:'✓ Doorgestuurd',
+    uitleg:'Staat in de gedeelde lijst en is gesynct met de andere toestellen.'};
+  if(s.online===false) return {kleur:'rood',titel:KLAAR_NIET,
+    uitleg:'Geen internet. Het formulier staat veilig op dit toestel en vertrekt vanzelf zodra er verbinding is. Je mag de app gerust sluiten.'};
+  const bezig={kleur:'oranje',titel:'⏳ Bezig met doorsturen…',
+    uitleg:'Even geduld: het formulier gaat nu naar de gedeelde lijst.'};
+  if(probeert || !s.klaar) return bezig;
+  if(!s.lib || !s.aangemeld) return {kleur:'rood',titel:KLAAR_NIET,
+    uitleg:'Dit toestel is niet aangemeld bij de gedeelde lijst, wellicht omdat dit netwerk geen internet heeft. '+
+      'Het formulier staat veilig op dit toestel en vertrekt vanzelf zodra de verbinding er is. '+
+      'Blijft dit rood terwijl er wél internet is, herstart dan de app en vul de toegangscode in.'};
+  if(s.wachtrijVast) return {kleur:'rood',titel:KLAAR_NIET,opnieuw:true,
+    uitleg:'Het versturen lukte niet: de gedeelde lijst is niet bereikbaar (wifi zonder internet?) of gaf een foutmelding. '+
+      'Het formulier staat veilig op dit toestel en we proberen het vanzelf opnieuw.'};
+  return bezig;
 }
+// Wordt bijgewerkt telkens de gedeelde opslag iets meldt (BBInv.setOnChange — ook na elke
+// verzendpoging, gelukt of niet) en bij online/offline.
+let klaarProbeert=false;
+function updateKlaarSync(){
+  const card=document.getElementById('klaarCard'); if(!card || !window.BBInv) return;
+  const t=klaarToestand(BBInv.getSysteem(),klaarProbeert);
+  card.className='klaarcard '+t.kleur;
+  document.getElementById('klaarTitel').textContent=t.titel;
+  document.getElementById('klaarUitleg').textContent=t.uitleg;
+  document.getElementById('klaarOpnieuw').style.display=t.opnieuw?'':'none';
+}
+// Meteen opnieuw proberen, zonder de (steeds langere) wachttijd na mislukte pogingen af te
+// wachten. Een rechtstreekse flushOutbox() gaat altijd door; zie js/inventaris.js.
+function klaarOpnieuwProberen(){
+  if(klaarProbeert || !window.BBInv) return;
+  klaarProbeert=true; updateKlaarSync();
+  Promise.resolve().then(()=>BBInv.flushOutbox()).catch(()=>{})
+    .then(()=>{ klaarProbeert=false; updateKlaarSync(); });
+}
+// ---- KLAAR-TOESTAND (einde) ----
 window.addEventListener('online',updateKlaarSync);
 window.addEventListener('offline',updateKlaarSync);
 document.getElementById('klaarMenu').onclick=()=>show('menu');
@@ -2501,7 +2547,7 @@ if(window.BBInv){
 }
 
 // Maak de app installeerbaar (PWA) + toon offline-status en versie
-const APP_VERSION='v3.8';
+const APP_VERSION='v3.9';
 function updateSys(){
   const dot=document.getElementById('sysDot'), txt=document.getElementById('sysStatTxt');
   if(!dot) return;

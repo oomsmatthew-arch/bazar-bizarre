@@ -2372,6 +2372,11 @@
       laatsteSync, laatsteFout, laatsteFoutTs,
       wachtrij: outbox.length,
       wachtrijEerste: eerste?{tabel:eerste.table,actie:eerste.op,pogingen:eerste._tries||0}:null,
+      // Bleef er na de laatste poging iets staan? Dan is het NIET verstuurd en wacht het op
+      // een nieuwe poging: de server was niet te bereiken (wifi zonder internet) of gaf een
+      // foutmelding. Het "Doorgestuurd"-scherm van het spel kleurt hierop rood i.p.v. oranje
+      // — anders bleef het daar eindeloos "bezig met versturen" zeggen.
+      wachtrijVast: outbox.length>0 && (netFailStreak>0 || !!(eerste && eerste._tries)),
       nogTeBewaren: dirty.size,
       tabellen: TABELLEN.map(t=>({tabel:t.tabel,label:t.label,gedeeld:!!t.ok(),aantal:t.tel(),kern:!!t.kern}))
     };

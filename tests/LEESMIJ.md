@@ -30,6 +30,7 @@ $JSC tests/test-ververs.js
 $JSC tests/test-wachtrij-zichtbaar.js
 $JSC tests/test-producten-foto.js
 $JSC tests/test-toegangscode.js
+$JSC tests/test-doorgestuurd.js
 ```
 
 Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
@@ -68,6 +69,7 @@ gebruiken — stilletjes door hun Node-tegenhangers.)
 | `test-opslag.js` | De opslag én het opstarten: één momentopname i.p.v. een kopie per tabel, de verhuizing naar IndexedDB (met een nagemaakte IndexedDB), het geval waarin de opslag al vol zit, "invullen en meteen wegklikken", dat je rol al bekend is vóór de database antwoordt, en dat het laden de offline kopie niet per tabel herschrijft |
 | `test-producten-foto.js` | Foto bij een product (Quiz/O&F/Algemeen): zolang de kolom `foto` nog niet in Supabase bestaat blijft toevoegen gewoon werken (lokaal zichtbaar, niet meegestuurd — net als `finalevraag`), en een gewone voorraad-update (+/-) verstuurt de foto niet telkens opnieuw |
 | `test-toegangscode.js` | Het toegangscode-scherm: op een wifi zonder internet (het TP-Link-netwerk aan de techniektafel) mag het nooit verschijnen, ook niet als de aanmelding van een uur verlopen is. De app werkt dan lokaal verder, meldt zich stil opnieuw aan zodra het internet terug is en stuurt dan de wachtrij door. Enkel een toestel dat nooit aangemeld was (of echt afgemeld werd) krijgt het scherm, en alleen als de code ook gecontroleerd kán worden. Zonder internet zegt het scherm "geen verbinding" in plaats van "klopt niet" |
+| `test-doorgestuurd.js` | Het "Doorgestuurd"-scherm van het spel: één kader dat rood (nog niet verstuurd), oranje (bezig) of groen (verstuurd) wordt. Op een wifi zonder internet en bij een foutmelding van de server moet het rood worden in plaats van eindeloos "bezig" te blijven, met een knop om meteen opnieuw te proberen; zonder internet of zonder aanmelding ook rood; groen enkel als de wachtrij echt leeg is |
 
 `nep-supabase.js` is een nagemaakte database, zodat `test-sync.js` het echte online-gedrag
 kan naspelen zonder internet.
