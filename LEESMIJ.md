@@ -478,6 +478,7 @@ aanpassen aan een onderdeel, dan open je gewoon dat ene bestand — de rest blij
 
 | Kaart | Bestand |
 |---|---|
+| Halloween (volwassentocht The Outbreak) | `paginas/halloween.html` — tekent enkel; de inhoud staat in `js/halloween-data.js` (zones, techniek, checklist) en `js/halloween-bron.js` (planning + scripts, gegenereerd uit de Drive-documenten, foto's in `assets/halloween/`) |
 | Inventaris lijst BB | `paginas/inventaris.html` |
 | Besteloverzicht | `paginas/bestellingen.html` |
 | Projecten | `paginas/projecten.html` |
