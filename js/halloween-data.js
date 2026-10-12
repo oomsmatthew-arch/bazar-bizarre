@@ -24,28 +24,13 @@ window.HW={
     {id:'outbreak',kort:'The Outbreak',titel:'The Outbreak',kicker:'Centrum voor Ziektecontrole · Dossier CZC-2026-67',
      sub:'Volwassentocht · Halloween 2026 · Discovery Bay, Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#2a1a3a,#4b2a63 55%,#e8772e)'},
     {id:'zeven-zeeen',kort:'Zeven zeeën',titel:'Halloween op de zeven zeeën',kicker:'Kindertocht · piratenthema',
-     sub:'Discovery Bay en daarna buiten · Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#0f3b4c,#1f7a8c 55%,#f5b942)',
-     feiten:[['Tijd','16u30 – 19u00'],['Waar','Discovery Bay'],['Thema','Piraten'],['Verantwoordelijke','Lien']],
-     tekst:['Dit jaar is er ook een kindertocht voorzien in piratenthema. De tocht start in de Discovery Bay en gaat daarna verder buiten.','Alle verdere info zoals je rol en je taken staat in het draaiboek van de kindertocht, in een aparte map in de Drive.'],
-     map:'1b90bUPP10aCn6tt6DCdh4ouZ60SuMyvF'},
-    {id:'show',kort:'O&F Halloween show',titel:'O&F Halloween show',kicker:'Entertainment · show',
-     sub:'Halloweenperiode 2026',kleur:'linear-gradient(135deg,#3a1f0f,#8a4b1f 55%,#f5b942)',
-     feiten:[['Verantwoordelijke','Lennert']],
-     tekst:['Over de Halloween show staat nog niets uitgewerkt in de Drive-documenten. Zodra er een draaiboek is, komt het hier.'],
-     leeg:true},
+     sub:'Discovery Bay en daarna buiten · Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#0f3b4c,#1f7a8c 55%,#f5b942)'},
+    {id:'show',kort:'O&F Halloween show',titel:'O&F Halloween show',kicker:'Entertainment · show met Orry en de heks',
+     sub:'Discovery Bay · twee shows per dag, voor de kindertocht',kleur:'linear-gradient(135deg,#3a1f0f,#8a4b1f 55%,#f5b942)'},
     {id:'marktje',kort:'Marktje',titel:'Marktje',kicker:'Halloweenperiode 2026',
-     sub:'Nog uit te werken',kleur:'linear-gradient(135deg,#1f3a1f,#4a7a3a 55%,#e0a24a)',
-     tekst:['Over het marktje staat nog niets uitgewerkt in de Drive-documenten. Zodra er een draaiboek is, komt het hier.'],
-     leeg:true},
+     sub:'Pirates Place · knutselhoek en activiteiten tijdens het wachten',kleur:'linear-gradient(135deg,#1f3a1f,#4a7a3a 55%,#e0a24a)'},
     {id:'of',kort:'O&F programma',titel:'O&F programma',kicker:'Animatie · Halloweenperiode',
-     sub:'Alles in Halloweenthema · O&F-halloweenkleren',kleur:'linear-gradient(135deg,#3a1a4b,#8a3a8c 55%,#ff8fb0)',
-     feiten:[['Kids Disco','16u45 · 17u30'],['Bedtime stories','16u45'],['Waar','Time-Out Podium']],
-     blokken:[
-       {titel:'Kids Disco',rijen:[['Locatie','Time-Out Podium'],['Uren','16u45 – 17u15 en 17u30 – 18u00'],['Kleding','De O&F-halloweenkleren. Oefen de dansjes voordat je het podium op gaat.'],['Liedjes','Minstens twee tot drie Halloweenliedjes per disco; starten en sluiten met het standaard O&F-lied.'],['Materiaal','Dansjes en liedjes: zie Drive, “Halloween periode – 2026 – O&F: Kids Disco”.']],map:'1odVXGRkE1A1W2a5P1ZnxMzGDjLc_roru'},
-       {titel:'Bedtime stories',rijen:[['Locatie','Time-Out Podium'],['Uren','16u45 – 17u00'],['Kleding','Halloweenkleren; de activiteit gebeurt volledig in Halloweenthema.'],['Materiaal','Halloweenverhaal (Drive, “… O&F: bedtime”) en een voorleesboek met Halloweenverhalen.']],map:'1Fo77S5xzTMGOBsvqq8v9rRa7gRLFB5_B'},
-       {titel:'Schminken (Pirates Place)',rijen:[['Wat','Facepaint en glittertattoos: Halloweenschmink. Extra aan te bieden tijdens de workshopmomenten.'],['Materiaal','Schminkmateriaal; voorbeelden in de Drive, “… Bay Griezelsmink”.']],map:'1dvRIBDgBkZ90aY6M_XI1QhtnJZJBeuch'},
-       {titel:'Slijm maken (Pirates Place)',rijen:[['Wat','Knutselworkshop, extra aan te bieden tijdens de workshopmomenten.'],['Materiaal','Manual en benodigdheden: Drive, “… BAY slijm maken”.']],map:'1v6NrxR1f00tGkKVim-evFKEQgt60t_3W'}
-     ]}
+     sub:'Alles in Halloweenthema · O&F-halloweenkleren',kleur:'linear-gradient(135deg,#3a1a4b,#8a3a8c 55%,#ff8fb0)'}
   ],
 
   info:{
@@ -541,4 +526,18 @@ window.HW={
     {titel:'Alles: Halloweenperiode 2026',id:'1PTdTRqa6ZeUv5jxgEispvTEfvfKI4rei',hoofd:true}
   ]
 };
+
+  // Foto's bij de opbouwstappen: zone → stapnummer (vanaf 0) → bestandsnamen.
+  // Zo zie je bij elke stap meteen waar en hoe het eruit moet zien.
+  const OPB={
+    inkom:{0:['inkom-zwarte-doek'],2:['inkom-hek'],4:['inkom-tent'],5:['poster-symptomen','poster-sheep','poster-overcome']},
+    locker:{0:['inkom-zwarte-doek'],2:['inkom-hek'],4:['inkom-tent'],5:['poster-symptomen','poster-sheep','poster-overcome']},
+    sector1:{0:['s1-lint-schip'],2:['s1-lint-trap'],3:['s1-lint-rotsen'],4:['s1-hek-grot'],5:['poster-3-sterker','poster-3-symptomen']},
+    sector2:{0:['s2-hek-grot'],3:['s2-lint-1'],4:['s2-lint-grot-1'],5:['s2-lint-grot-2'],6:['poster-1-overcome','poster-1-symptomen','poster-wanted-ash','poster-we-are-your-friend']},
+    bos:{0:['bos-gang','bos-niet-richting-bay'],1:['bos-lamp-gericht','poster-rechts-oversteken'],2:['bos-straat'],3:['bos-brug'],4:['bos-vogelhut'],5:['bos-lint-1','bos-lint-2'],6:['bos-eindpunt'],7:['poster-9-selena','poster-9-kael']}
+  };
+  HW.zones.forEach(z=>{
+    const kaart={}; z.fotos.forEach(f=>{ kaart[f.src.split('/').pop().replace('.jpg','')]=f.tekst; });
+    z.opbouw=z.opbouw.map((t,i)=>({t:t,fotos:((OPB[z.id]||{})[i]||[]).map(n=>foto(n,kaart[n]||''))}));
+  });
 })();

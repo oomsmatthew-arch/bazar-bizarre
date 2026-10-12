@@ -8,6 +8,9 @@
 globalThis.window=globalThis;
 load('js/halloween-bron.js');
 load('js/halloween-data.js');
+load('js/halloween-kind-bron.js');
+load('js/halloween-kind.js');
+load('js/halloween-of.js');
 
 var fouten=0;
 function ok(v,wat){ if(!v){ fouten++; print('  ✗ '+wat); } else print('  ✓ '+wat); }
@@ -40,8 +43,29 @@ ok(dubbel.length===0,'geen twee identieke punten in dezelfde fase'+(dubbel.lengt
 ok(HW.checklist.length===4,'vier fasen');
 ok(HW.checklist.filter(function(f){ return f.info; }).length===1,'enkel de fase "tijdens de tocht" is zonder vinkjes');
 
+print('— De andere onderdelen —');
+var ACT=globalThis.HW_ACT;
+ok(HW.activiteiten.length===5,'vijf onderdelen met een eigen kop');
+ok(HW.activiteiten.filter(function(a){ return a.id!=='outbreak'; }).every(function(a){ return ACT[a.id]&&ACT[a.id].tabs&&ACT[a.id].tabs.length; }),'elk onderdeel heeft tabbladen');
+var K=ACT['zeven-zeeen'], KS=globalThis.HW_KIND_SCRIPTS, KR={};
+K.zones.forEach(function(z){ z.rollen.forEach(function(r){ KR[r]=(KR[r]||0)+1; }); });
+ok(Object.keys(KR).every(function(r){ return KR[r]===1; }),'kindertocht: elke rol hoort bij precies één post');
+ok(K.data.every(function(d){ return K.nachten[d]&&K.nachten[d].draaiboek.length>=9; }),'kindertocht: elke avond heeft een draaiboek');
+ok(K.data.every(function(d){ return K.nachten[d].afbouw.length>=7; }),'kindertocht: elke avond heeft afbouwtaken');
+var onbekendK=[]; K.data.forEach(function(d){ K.nachten[d].draaiboek.forEach(function(r){ if(!KR[r.karakter]&&r.karakter!=='Reserve') onbekendK.push(d+' '+r.karakter); }); });
+ok(onbekendK.length===0,'kindertocht: elke rol uit het draaiboek hoort bij een post'+(onbekendK.length?' — '+onbekendK.join(', '):''));
+var kk={}; K.zones.forEach(function(z){ z.personages.forEach(function(p){ (p.scripts||[]).forEach(function(s){ kk[s.key]=1; }); }); });
+ok(Object.keys(kk).every(function(k){ return K.scripts[k]&&['nl','de','fr','en'].every(function(t){ return K.scripts[k][t]&&K.scripts[k][t].length; }); }),'kindertocht: elk script bestaat in vier talen');
+ok(K.zones.every(function(z){ return z.opbouw.length&&z.materiaal.length&&z.fotos.length; }),'kindertocht: elke post heeft opbouw, materiaal en foto’s');
+ok(K.zones.every(function(z){ return z.opbouw.some(function(s){ return typeof s!=='string'&&s.fotos&&s.fotos.length; }); }),'kindertocht: elke post heeft foto’s bij de opbouw');
+ok(globalThis.HW.zones.every(function(z){ return z.opbouw.some(function(s){ return s.fotos&&s.fotos.length; }); }),'volwassentocht: elke zone heeft foto’s bij de opbouw');
+var OF=ACT.of; ok(['disco','bedtime','schmink','slijm'].every(function(id){ var t=OF.tabs.find(function(x){ return x.id===id; }); return t&&t.kaarten&&t.kaarten.length; }),'O&F: disco, bedtime, schminken en slijm hebben inhoud');
+var bt=OF.tabs.find(function(x){ return x.id==='bedtime'; }).kaarten.filter(function(k){ return k.talen; });
+ok(bt.length===2&&bt.every(function(k){ return ['nl','de','fr','en'].every(function(t){ return k.talen[t].length===k.talen.nl.length; }); }),'O&F: beide verhalen hebben in elke taal evenveel alinea’s');
+ok(ACT.show.tabs.find(function(x){ return x.id==='cast'; }).kaarten[0].tabel.rijen.length===7,'show: de bezetting staat er voor alle zeven avonden');
+
 print('— Gevoelige gegevens —');
-var alles=JSON.stringify(HW);
+var alles=JSON.stringify(HW)+JSON.stringify(ACT);
 ok(alles.indexOf('BVMOPE')<0,'geen PC-aanmeldgegevens in de pagina');
 ok(alles.indexOf('11968477')<0,'geen lichtpaneelcode in de pagina');
 ok(!/\+\s?3[12]\s?\d/.test(alles),'geen telefoonnummers in de pagina');
@@ -49,6 +73,7 @@ ok(!/\+\s?3[12]\s?\d/.test(alles),'geen telefoonnummers in de pagina');
 print('— Foto’s —');
 var fotos=[];
 (function loop(o){ if(!o||typeof o!=='object') return; if(typeof o.src==='string'&&o.src.indexOf('assets/halloween/')>=0) fotos.push(o.src); Object.keys(o).forEach(function(k){ loop(o[k]); }); })(HW);
+(function loop2(o){ if(!o||typeof o!=='object') return; if(typeof o.src==='string'&&o.src.indexOf('assets/halloween/')>=0) fotos.push(o.src); Object.keys(o).forEach(function(k){ loop2(o[k]); }); })(ACT);
 ok(fotos.length>40,'er zijn foto’s ('+fotos.length+' verwijzingen)');
 if(typeof require==='function'){
   var fs=require('fs'), path=require('path');
