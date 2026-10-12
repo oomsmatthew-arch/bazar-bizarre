@@ -28,6 +28,10 @@
   .hw-hero .hw-kicker{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;opacity:.85;font-weight:700;}
   .hw-hero h2{font-size:clamp(26px,6vw,38px);margin:4px 0 4px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3);}
   .hw-hero .hw-sub{font-size:14px;opacity:.9;margin:0 0 14px;}
+  .hw-acts{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;}
+  .hw-acts::-webkit-scrollbar{display:none;}
+  .hw-act{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-weight:700;font-size:14px;padding:9px 14px;border-radius:99px;cursor:pointer;white-space:nowrap;}
+  .hw-act.actief{background:var(--forest2);border-color:var(--forest2);color:#fff;}
   .hw-hero.compact{padding:12px 16px;margin-bottom:8px;}
   .hw-hero.compact .hw-kicker,.hw-hero.compact .hw-sub,.hw-hero.compact .hw-feiten{display:none;}
   .hw-hero.compact h2{font-size:22px;margin:0;}
@@ -240,8 +244,9 @@
   <script src="../js/topbar.js"></script>
 
   <div class="view paginainhoud hw" id="halloween">
+    <div class="hw-acts" id="hwActs"></div>
     <div class="hw-hero">
-      <div class="hw-kicker">Centrum voor Ziektecontrole · Dossier CZC-2026-67</div>
+      <div class="hw-kicker" id="hwKicker">Centrum voor Ziektecontrole · Dossier CZC-2026-67</div>
       <h2 id="hwTitel">The Outbreak</h2>
       <p class="hw-sub" id="hwOndertitel"></p>
       <div class="hw-feiten" id="hwFeiten"></div>

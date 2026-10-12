@@ -62,7 +62,7 @@ function hash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCode
 function bevestig(opties){ return (typeof bbBevestig==='function') ? bbBevestig(opties) : Promise.resolve(confirm(opties.titel||'Zeker?')); }
 
 // ---------------------------------------------------------------- toestand
-const state={tab:'start',sub:'',sub2:'',datum:null,wie:''};
+const state={act:'outbreak',tab:'start',sub:'',sub2:'',datum:null,wie:''};
 (function init(){
   const lijst=HW.info.data;
   const opgeslagen=lsGet(K_DATUM);
@@ -80,8 +80,10 @@ const state={tab:'start',sub:'',sub2:'',datum:null,wie:''};
 
 function parseHash(){
   const p=(location.hash||'').replace(/^#/,'').split('/').map(decodeURIComponent);
-  state.tab=TABS.some(t=>t.id===p[0])?p[0]:'start';
-  state.sub=p[1]||''; state.sub2=p[2]||'';
+  const andere=HW.activiteiten.find(a=>a.id!=='outbreak'&&a.id===p[0]);
+  state.act=andere?andere.id:'outbreak';
+  state.tab=(!andere&&TABS.some(t=>t.id===p[0]))?p[0]:'start';
+  state.sub=andere?'':(p[1]||''); state.sub2=andere?'':(p[2]||'');
 }
 function ga(pad){
   if(location.hash==='#'+pad) render(true); else location.hash=pad;
@@ -414,6 +416,31 @@ function viewDocs(){
   return h;
 }
 
+// ---------------------------------------------------------------- ANDERE ONDERDELEN
+function viewActiviteit(a){
+  const map=id=>'https://drive.google.com/drive/folders/'+id;
+  let h='';
+  if(a.tekst) h+='<div class="hw-kaart"><h3>Overzicht</h3>'+paragrafen(a.tekst)+'</div>';
+  (a.blokken||[]).forEach(b=>{
+    h+='<div class="hw-kaart"><h3>'+esc(b.titel)+'</h3><dl class="hw-deflijst">'+b.rijen.map(r=>'<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>').join('')+'</dl>'
+      +(b.map?'<div class="hw-knoppen"><a class="btn" href="'+map(b.map)+'" target="_blank" rel="noopener">📁 Drive-map</a></div>':'')+'</div>';
+  });
+  if(a.map) h+='<div class="hw-kaart"><h3>Draaiboek</h3><div class="hw-knoppen" style="margin:0"><a class="btn primary" href="'+map(a.map)+'" target="_blank" rel="noopener">📁 Open de map in Drive</a></div></div>';
+  if(a.leeg) h+='<div class="hw-nota">Nog niet uitgewerkt: dit onderdeel staat al klaar met een eigen kop, de inhoud volgt.</div>';
+  h+='<div class="hw-nota">Alle data en tijden van de Halloweenperiode staan in het overzichtsdraaiboek (Documenten bij The Outbreak).</div>';
+  return h;
+}
+function tekenHero(){
+  const a=HW.activiteiten.find(x=>x.id===state.act)||HW.activiteiten[0];
+  const feiten=a.id==='outbreak'?HW.info.feiten:(a.feiten||[]);
+  $('hwActs').innerHTML=HW.activiteiten.map(x=>'<button type="button" class="hw-act'+(x.id===a.id?' actief':'')+'" data-ga="'+(x.id==='outbreak'?'start':x.id)+'">'+esc(x.kort)+'</button>').join('');
+  const hero=document.querySelector('.hw-hero'); hero.style.background=a.kleur;
+  $('hwKicker').textContent=a.kicker; $('hwTitel').textContent=a.titel; $('hwOndertitel').textContent=a.sub;
+  $('hwFeiten').innerHTML=feiten.map(f=>'<div class="hw-feit"><b>'+esc(f[1])+'</b><span>'+esc(f[0])+'</span></div>').join('');
+  hero.classList.toggle('compact',a.id==='outbreak'&&state.tab!=='start');
+  $('hwTabs').style.display=a.id==='outbreak'?'':'none';
+}
+
 // ---------------------------------------------------------------- tekenen
 const VIEWS={start:viewStart,planning:viewPlanning,tijd:viewTijd,zones:viewZones,techniek:viewTechniek,checklist:viewChecklist,praktisch:viewPraktisch,docs:viewDocs};
 
@@ -424,8 +451,10 @@ function tekenTabs(){
 }
 let vorigeTab=null;
 function render(scroll){
+  tekenHero();
+  const actief=HW.activiteiten.find(x=>x.id===state.act);
+  if(state.act!=='outbreak'){ $('hwInhoud').innerHTML=viewActiviteit(actief); vorigeTab=null; return; }
   tekenTabs();
-  const hero=document.querySelector('.hw-hero'); if(hero) hero.classList.toggle('compact',state.tab!=='start');
   const act=document.querySelector('.hw-tab.actief'), balk=$('hwTabs');
   if(act&&balk) balk.scrollLeft=act.offsetLeft-balk.clientWidth/2+act.clientWidth/2;
   $('hwInhoud').innerHTML=VIEWS[state.tab]();
@@ -486,9 +515,6 @@ document.addEventListener('change',e=>{
 window.addEventListener('hashchange',()=>{ parseHash(); render(true); });
 
 // ---------------------------------------------------------------- start
-$('hwTitel').textContent=HW.info.titel;
-$('hwOndertitel').textContent=HW.info.ondertitel;
-$('hwFeiten').innerHTML=HW.info.feiten.map(f=>'<div class="hw-feit"><b>'+esc(f[1])+'</b><span>'+esc(f[0])+'</span></div>').join('');
 parseHash();
 render(false);
 })();
