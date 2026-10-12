@@ -21,15 +21,15 @@ window.HW={
   // 'outbreak' heeft de volledige uitwerking (tabbladen hieronder); de andere tonen een
   // overzichtspagina met wat in het overzichtsdraaiboek staat.
   activiteiten:[
-    {id:'outbreak',kort:'The Outbreak',titel:'The Outbreak',kicker:'Centrum voor Ziektecontrole · Dossier CZC-2026-67',
+    {id:'outbreak',ic:'🎃',kort:'The Outbreak',titel:'The Outbreak',kicker:'Centrum voor Ziektecontrole · Dossier CZC-2026-67',
      sub:'Volwassentocht · Halloween 2026 · Discovery Bay, Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#2a1a3a,#4b2a63 55%,#e8772e)'},
-    {id:'zeven-zeeen',kort:'Zeven zeeën',titel:'Halloween op de zeven zeeën',kicker:'Kindertocht · piratenthema',
+    {id:'zeven-zeeen',ic:'🏴‍☠️',kort:'Zeven zeeën',titel:'Halloween op de zeven zeeën',kicker:'Kindertocht · piratenthema',
      sub:'Discovery Bay en daarna buiten · Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#0f3b4c,#1f7a8c 55%,#f5b942)'},
-    {id:'show',kort:'O&F Halloween show',titel:'O&F Halloween show',kicker:'Entertainment · show met Orry en de heks',
+    {id:'show',ic:'🎭',kort:'O&F Halloween show',titel:'O&F Halloween show',kicker:'Entertainment · show met Orry en de heks',
      sub:'Discovery Bay · twee shows per dag, voor de kindertocht',kleur:'linear-gradient(135deg,#3a1f0f,#8a4b1f 55%,#f5b942)'},
-    {id:'marktje',kort:'Marktje',titel:'Marktje',kicker:'Halloween atelier · kinderactiviteiten',
+    {id:'marktje',ic:'🛍️',kort:'Marktje',titel:'Marktje',kicker:'Halloween atelier · kinderactiviteiten',
      sub:'Discovery Bay · knuffels, suikerspin, make-over en pompoenen schilderen',kleur:'linear-gradient(135deg,#1f3a1f,#4a7a3a 55%,#e0a24a)'},
-    {id:'of',kort:'O&F programma',titel:'O&F programma',kicker:'Animatie · Halloweenperiode',
+    {id:'of',ic:'🪩',kort:'O&F programma',titel:'O&F programma',kicker:'Animatie · Halloweenperiode',
      sub:'Alles in Halloweenthema · O&F-halloweenkleren',kleur:'linear-gradient(135deg,#3a1a4b,#8a3a8c 55%,#ff8fb0)'}
   ],
 

@@ -139,7 +139,7 @@ window.HW_ACT.marktje={
   stand:'12/10/2026',
   data:['15/10','17/10','22/10','24/10','29/10','31/10','05/11'],
   nachten:N,scripts:{},
-  tabs:[{id:'start',ic:'🛍️',t:'Start'},{id:'planning',ic:'📅',t:'Planning'},{id:'tijd',ic:'⏱️',t:'Uren'},{id:'activiteiten',ic:'🎨',t:'Activiteiten',type:'kaarten'},
+  tabs:[{id:'start',ic:'🛍️',t:'Start'},{id:'planning',ic:'📅',t:'Planning'},{id:'tijd',ic:'⏱️',t:'Uren'},{id:'activiteiten',ic:'🎨',t:'Activiteiten',type:'kaarten',uitleg:'Het aanbod en per post wat je opbouwt, afbouwt en waar je op moet letten.'},
         {id:'checklist',ic:'✅',t:'Checklist'},{id:'praktisch',ic:'⚠️',t:'Praktisch'},{id:'docs',ic:'📎',t:'Documenten'}],
   feiten:[['Opbouw','14u00'],['Atelier','± 14u45 – 19u00'],['Dienst','tot 22u00'],['1e pauze','vanaf 17u00'],['Waar','Discovery Bay']],
   verhaalTitel:'Wat is het marktje?',

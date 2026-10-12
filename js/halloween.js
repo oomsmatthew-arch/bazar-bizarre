@@ -40,6 +40,15 @@ const STD_TABS=[
   {id:'praktisch',ic:'⚠️',t:'Praktisch'},
   {id:'docs',ic:'📎',t:'Documenten'}
 ];
+const UITLEG={
+  planning:'Wie staat op welke avond waar, met de taken bij opbouw en afbouw. Kies bovenaan je avond; kies daaronder je naam om je eigen rijen te zien.',
+  tijd:'Het uurschema van de avond en de tijdsloten van de gasten.',
+  zones:'Kies bovenaan een zone of post en daaronder wat je wil zien: het overzicht, je rol en scripts, de opbouw met foto’s of alle foto’s.',
+  techniek:'Stap voor stap hoe je PC, muziek, licht, rook en portofoons opzet, met foto’s.',
+  checklist:'Vink af per avond. Alles wordt op dit toestel bewaard; je kan de checklist ook afdrukken.',
+  praktisch:'Afspraken en veiligheid: pauzes, nood, kleding en wat je nog moet weten.',
+  docs:'De originele bestanden in de gedeelde Drive.'
+};
 const STD_BALK={start:19*60,eind:23*60+30,segs:[
   ['Ombouw',19*60,19*60+30,'#8a5cc7'],['Pauze',19*60+30,20*60,'#8a9a8e'],['Opbouw',20*60,20*60+25,'#d98a2b'],
   ['',20*60+25,20*60+30,'#7a5a3a'],['Tocht',20*60+30,22*60+20,'#e8772e'],['',22*60+20,22*60+30,'#c0392b'],['Afbouw',22*60+30,23*60+30,'#2f8f9d']],
@@ -257,7 +266,7 @@ function viewPlanning(){
       const z=zoneVoorRol(r.karakter);
       return '<div class="hw-afb'+(isIk(r.naam)?' ik':'')+'" style="--zk:'+kleurVoorRol(r.karakter)+(z?';cursor:pointer':'')+'"'+(z?' data-ga="zones/'+z.id+'"':'')+'>'
         +'<b>'+esc(r.naam||'–')+(isIk(r.naam)?'<span class="hw-ikbadge">jij</span>':'')+'</b>'
-        +'<div class="waar">'+esc(r.karakter)+(r.tijd?' · '+esc(r.tijd):'')+'</div>'
+        +'<div class="waar"><b class="rol">'+esc(r.karakter)+'</b>'+(r.tijd?' · '+esc(r.tijd):'')+'</div>'
         +(r.wat?'<p style="margin:6px 0 0;font-size:14px">'+esc(r.wat)+'</p>':'')+(r.waar?'<div class="waar">📍 '+esc(r.waar)+'</div>':'')+'</div>';
     }).join('')+'</div>';
   }else{
@@ -311,7 +320,7 @@ function viewTijd(){
   const nu=new Date(), nuMin=nu.getHours()*60+nu.getMinutes();
   const toon=a.data&&(state.datum===vandaagStr()) && nuMin>=B.start && nuMin<=B.eind;
   let h='<div class="hw-kaart"><h3>De avond in één oogopslag</h3>'
-    +'<div class="hw-balk">'+B.segs.map(s=>'<div style="width:'+((s[2]-s[1])/tot*100).toFixed(2)+'%;background:'+s[3]+'" title="'+esc(s[0])+'">'+esc(s[0])+'</div>').join('')
+    +'<div class="hw-balk">'+B.segs.map(s=>'<div style="width:'+((s[2]-s[1])/tot*100).toFixed(2)+'%;background:'+s[3]+'" title="'+esc(s[0])+'">'+((s[2]-s[1])/tot>0.1?esc(s[0]):'')+'</div>').join('')
     +(toon?'<span class="hw-nu" style="left:'+((nuMin-B.start)/tot*100).toFixed(2)+'%" title="Nu"></span>':'')+'</div>'
     +'<div class="hw-balkuren">'+B.uren.map(u=>'<span>'+u+'</span>').join('')+'</div>'
     +'<ul class="hw-schema">'+a.uurschema.map(r=>'<li><span class="u">'+esc(r[0])+'</span><span class="t"><b>'+esc(r[1])+'</b>'+(r[2]?'<small>'+esc(r[2])+'</small>':'')+'</span></li>').join('')+'</ul></div>';
@@ -515,11 +524,19 @@ function viewKaarten(tab){
 }
 
 // ---------------------------------------------------------------- hero + tabs
+// "Zones › Kok › Opbouw": waar je nu bent, in de compacte kop.
+function kruimel(){
+  const a=A(); const t=a.tabs.find(x=>x.id===state.tab)||a.tabs[0]; const del=[(t.id==='zones'&&a.zonesTab)?a.zonesTab:t.t];
+  if(t.id==='zones'&&a.zones){ const z=a.zones.find(x=>x.id===state.sub)||a.zones[0]; del.push(z.naam); const sub={overzicht:'Overzicht',rollen:a.rollenTab||'Rollen & scripts',opbouw:'Opbouw & materiaal',fotos:'Foto’s'}[state.sub2]; if(sub) del.push(sub); }
+  if(t.id==='techniek'&&a.techniek){ const b=a.techniek.blokken.find(x=>x.id===state.sub); if(b) del.push(b.titel); }
+  return del.join(' › ');
+}
 function tekenHero(){
   const a=A();
-  $('hwActs').innerHTML=HW.activiteiten.map(x=>'<button type="button" class="hw-act'+(x.id===a.id?' actief':'')+'" data-act="'+x.id+'">'+esc(x.kort)+'</button>').join('');
+  $('hwActs').innerHTML=HW.activiteiten.map(x=>'<button type="button" class="hw-act'+(x.id===a.id?' actief':'')+'" data-act="'+x.id+'"><span class="ic">'+(x.ic||'')+'</span>'+esc(x.kort)+'</button>').join('');
   const hero=document.querySelector('.hw-hero'); hero.style.background=a.kleur;
-  $('hwKicker').textContent=a.kicker; $('hwTitel').textContent=a.titel; $('hwOndertitel').textContent=a.sub;
+  const compact=state.tab!==a.tabs[0].id;
+  $('hwKicker').textContent=compact?kruimel():a.kicker; $('hwTitel').textContent=a.titel; $('hwOndertitel').textContent=a.sub;
   $('hwFeiten').innerHTML=(a.feiten||[]).map(f=>'<div class="hw-feit"><b>'+esc(f[1])+'</b><span>'+esc(f[0])+'</span></div>').join('');
   hero.classList.toggle('compact',state.tab!==a.tabs[0].id);
   $('hwTabs').style.display=a.tabs.length>1?'':'none';
@@ -538,7 +555,8 @@ function render(scroll){
   const tab=a.tabs.find(t=>t.id===state.tab)||a.tabs[0];
   const type=tab.type||tab.id;
   const V={start:viewStart,planning:viewPlanning,tijd:viewTijd,zones:viewZones,techniek:viewTechniek,checklist:viewChecklist,praktisch:viewPraktisch,docs:viewDocs};
-  $('hwInhoud').innerHTML=(V[type]||(()=>viewKaarten(tab)))(tab);
+  const uitleg=tab.uitleg||UITLEG[type]||'';
+  $('hwInhoud').innerHTML=(uitleg?'<p class="hw-uitleg">'+esc(uitleg)+'</p>':'')+(V[type]||(()=>viewKaarten(tab)))(tab);
   if(type==='checklist') updateChecklistVoortgang();
   if(type==='techniek'&&state.sub){ const el=$('tk-'+state.sub); if(el&&scroll!==false) el.scrollIntoView({block:'start'}); }
   const wijzigde=(vorigeTab!==null&&vorigeTab!==state.tab)||(vorigeAct!==null&&vorigeAct!==state.act);

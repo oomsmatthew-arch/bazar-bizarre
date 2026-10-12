@@ -106,7 +106,7 @@ const STAND='12/10/2026';
 // ================================================================ O&F programma
 window.HW_ACT.of={
   stand:STAND,
-  tabs:[{id:'start',ic:'🎭',t:'Start'},{id:'disco',ic:'🪩',t:'Kids Disco',type:'kaarten'},{id:'bedtime',ic:'📖',t:'Bedtime stories',type:'kaarten'},
+  tabs:[{id:'start',ic:'🎭',t:'Start'},{id:'disco',ic:'🪩',t:'Kids Disco',type:'kaarten',uitleg:'Alles over de Halloween disco: uren, de dansjes (met links om te oefenen) en de video’s.'},{id:'bedtime',ic:'📖',t:'Bedtime stories',type:'kaarten',uitleg:'De twee voorleesverhalen, in het Nederlands, Duits, Frans en Engels: kies de taal van de kinderen.'},
         {id:'docs',ic:'📎',t:'Documenten'}],
   feiten:[['Kids Disco','16u45 · 17u30'],['Bedtime stories','16u45'],['Waar','Time-Out Podium'],['Kleding','O&F-halloween']],
   startKaarten:[
@@ -160,7 +160,7 @@ window.HW_ACT.of.tabs.find(t=>t.id==='bedtime').kaarten=[
 // ================================================================ Halloween show
 window.HW_ACT.show={
   stand:STAND,
-  tabs:[{id:'start',ic:'🎭',t:'Start'},{id:'programma',ic:'⏱️',t:'Programma',type:'kaarten'},{id:'cast',ic:'👥',t:'Wie speelt wat',type:'kaarten'},{id:'docs',ic:'📎',t:'Documenten'}],
+  tabs:[{id:'start',ic:'🎭',t:'Start'},{id:'programma',ic:'⏱️',t:'Programma',type:'kaarten',uitleg:'Het dagschema van de show, van de opbouw om 14u15 tot de make-up voor de volwassentocht.'},{id:'cast',ic:'👥',t:'Wie speelt wat',type:'kaarten',uitleg:'Wie Orry en de heks speelt, per avond.'},{id:'docs',ic:'📎',t:'Documenten'}],
   feiten:[['Shows','15u15 · 16u00'],['Duur','2 × 30 min'],['Waar','Discovery Bay'],['Verantw.','Lennert']],
   startKaarten:[
     {titel:'Wat is de show?',p:['Op de dagen van de kindertocht is er voor de tocht een Halloween Show in de Discovery Bay met de figuren Orry en de heks. De show begint om 15u15 en wordt om 16u00 herhaald; daarna spelen Orry (als dief 2) en de heks hun rol op de kindertocht.',
