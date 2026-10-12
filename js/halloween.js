@@ -88,7 +88,8 @@ function zoneVoorRol(karakter){ return (A().zones||[]).find(z=>z.rollen.indexOf(
 function kleurVoorRol(karakter){ const z=zoneVoorRol(karakter); return z?z.kleur:'var(--line)'; }
 function alleNamen(){
   const s=new Set(); const n=A().nachten||{};
-  Object.values(n).forEach(x=>(x.draaiboek||[]).forEach(r=>namenIn(r.naam).forEach(v=>s.add(v))));
+  Object.values(n).forEach(x=>{ (x.draaiboek||[]).forEach(r=>namenIn(r.naam).forEach(v=>s.add(v)));
+    (x.opbouw||[]).concat(x.afbouw||[]).forEach(r=>namenIn(r.naam||(r.namen||[]).join(',')).forEach(v=>s.add(v))); });
   return [...s].sort((a,b)=>a.localeCompare(b,'nl'));
 }
 function tijdTxt(t){ return String(t||'').replace(/(\d+)\.(\d+)/g,'$1u$2').replace('-',' – '); }
@@ -238,12 +239,19 @@ function viewPlanning(){
   h+='<div class="hw-wie"><label for="hwWie"><b>Wie ben jij?</b></label><select id="hwWie"><option value="">— niemand (toon iedereen) —</option>'
     +alleNamen().map(x=>'<option'+(x===state.wie?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'
     +'<span class="hw-muted">Dan lichten jouw rijen op en zie je al je avonden.</span></div>';
-  if(state.wie) h+=mijnAvonden();
+  if(state.wie&&alleNamen().indexOf(state.wie)>=0) h+=mijnAvonden();
 
+  if(n.opbouw&&n.opbouw.length){
+    h+='<div class="hw-kaart"><h3>'+esc(P.opbouwTitel||'Opbouw')+'</h3><div class="hw-afbouw">'+n.opbouw.map(r=>{
+      const ik=isIk(r.naam);
+      return '<div class="hw-afb'+(ik?' ik':'')+'" style="--zk:var(--hw)"><b>'+esc(r.naam)+(ik?'<span class="hw-ikbadge">jij</span>':'')+'</b><div class="waar">'+esc(r.tijd||'')+'</div>'
+        +(r.taken&&r.taken.length?'<ul>'+r.taken.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')+'</div>';
+    }).join('')+'</div></div>';
+  }
   h+='<div class="hw-kaart"><h3>'+esc(P.titel||'Draaiboek')+' · '+dagnaam(d)+' '+d+'</h3>';
   if(n.voorlopig) h+='<div class="hw-nota">Voorlopig: het draaiboek van deze avond is nog niet uitgewerkt. Dit is de rolverdeling uit de manual. De afbouwtaken volgen.</div>';
   if(P.tijdKop&&n.draaiboek[0]) h+='<p class="hw-muted">'+esc(tijdTxt(n.draaiboek[0].tijd))+' · tik een rij om naar de zone te gaan</p>';
-  else h+='<p class="hw-muted">Tik een kaart om naar de post te gaan.</p>';
+  else if(a.zones) h+='<p class="hw-muted">Tik een kaart om naar de post te gaan.</p>';
   if(P.kaarten){
     h+='<div class="hw-afbouw">'+n.draaiboek.map(r=>{
       const z=zoneVoorRol(r.karakter);
@@ -271,7 +279,7 @@ function viewPlanning(){
     h+='<p class="hw-muted">Wie iets afbouwt, heeft het ook opgezet.</p><div class="hw-afbouw">'+n.afbouw.map(r=>{
       const nm=afbouwNaam(r), ik=isIk(nm);
       return '<div class="hw-afb'+(ik?' ik':'')+'" style="--zk:'+kleurVoorRol(r.rol||r.karakter)+'"><b>'+esc(nm)+(ik?'<span class="hw-ikbadge">jij</span>':'')+'</b>'
-        +'<div class="waar">'+esc(r.karakter)+' · '+esc(r.waar)+(r.tijd&&P.afbTijd?' · '+esc(r.tijd):'')+'</div>'
+        +'<div class="waar">'+esc([r.karakter,r.waar,(r.tijd&&P.afbTijd?r.tijd:'')].filter(Boolean).join(' · '))+'</div>'
         +(r.taken&&r.taken.length?'<ul>'+r.taken.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')+'</div>';
     }).join('')+'</div>';
   }

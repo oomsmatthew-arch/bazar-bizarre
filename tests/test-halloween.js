@@ -11,6 +11,7 @@ load('js/halloween-data.js');
 load('js/halloween-kind-bron.js');
 load('js/halloween-kind.js');
 load('js/halloween-of.js');
+load('js/halloween-markt.js');
 
 var fouten=0;
 function ok(v,wat){ if(!v){ fouten++; print('  ✗ '+wat); } else print('  ✓ '+wat); }
@@ -63,6 +64,11 @@ var OF=ACT.of; ok(['disco','bedtime'].every(function(id){ var t=OF.tabs.find(fun
 var bt=OF.tabs.find(function(x){ return x.id==='bedtime'; }).kaarten.filter(function(k){ return k.talen; });
 ok(bt.length===2&&bt.every(function(k){ return ['nl','de','fr','en'].every(function(t){ return k.talen[t].length===k.talen.nl.length; }); }),'O&F: beide verhalen hebben in elke taal evenveel alinea’s');
 ok(ACT.show.tabs.find(function(x){ return x.id==='cast'; }).kaarten[0].tabel.rijen.length===7,'show: de bezetting staat er voor alle zeven avonden');
+
+var M=ACT.marktje;
+ok(M.data.every(function(d){ return M.nachten[d]&&M.nachten[d].opbouw.length>=5&&M.nachten[d].draaiboek.length>=5&&M.nachten[d].afbouw.length>=5; }),'marktje: elke avond heeft opbouw, draaiboek en afbouw');
+ok(M.data.every(function(d){ return M.nachten[d].draaiboek.every(function(r){ return r.naam&&r.karakter&&r.tijd; }); }),'marktje: elke rij heeft naam, activiteit en uren');
+ok(M.checklist.length===3&&M.tabs.find(function(x){ return x.id==='activiteiten'; }).kaarten.length>=6,'marktje: checklist en activiteiten staan erin');
 
 print('— Gevoelige gegevens —');
 var alles=JSON.stringify(HW)+JSON.stringify(ACT);

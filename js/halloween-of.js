@@ -184,21 +184,4 @@ window.HW_ACT.show.tabs.find(t=>t.id==='cast').kaarten=[
   {titel:'Per avond',sub:'Orry speelt ’s middags de show en daarna dief 2 op de kindertocht. Tessy is de heks en staat ’s avonds op de volwassentocht.',tabel:{kop:['Datum','Orry (en dief 2)','Heks','Tessy ’s avonds'],rijen:CAST}}
 ];
 
-// ================================================================ Marktje
-window.HW_ACT.marktje={
-  stand:STAND,
-  tabs:[{id:'start',ic:'🛍️',t:'Start'},{id:'docs',ic:'📎',t:'Documenten'}],
-  feiten:[['Waar','Pirates Place'],['Voor','Wachtende gasten']],
-  leeg:true,
-  startKaarten:[
-    {titel:'Wat we weten',p:['In de Drive staat nog geen apart document over het marktje. Dit komt in de andere documenten over voor:'],
-     l:['Gasten van de kindertocht die nog niet aan de beurt zijn, verwijs je tijdens de ontvangst naar het marktje en de andere activiteiten tot hun tijdslot begint.',
-        'Na de Halloween Show verhuist de knutselhoek (tafels met stiften en materiaal om lampionnen te versieren) naar de Pirates Place.',
-        'Bij het regenalternatief van de kindertocht stuurt de heks de kinderen naar de markt.',
-        'Naast het marktje zijn er workshopmomenten op de Pirates Place.']},
-    {titel:'Nog aan te vullen',sub:'Wat ontbreekt: waar het marktje precies staat, de uren, wie het bemant, wat er te koop of te doen is en het materiaal. Stuur het document of de gegevens door en het wordt op dezelfde manier uitgewerkt als de andere onderdelen.'}
-  ],
-  documenten:[DOC.halloween],
-  mappen:[{titel:'Alles: Halloweenperiode 2026',id:MAP.alles,hoofd:true}]
-};
 })();

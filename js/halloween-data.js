@@ -27,8 +27,8 @@ window.HW={
      sub:'Discovery Bay en daarna buiten · Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#0f3b4c,#1f7a8c 55%,#f5b942)'},
     {id:'show',kort:'O&F Halloween show',titel:'O&F Halloween show',kicker:'Entertainment · show met Orry en de heks',
      sub:'Discovery Bay · twee shows per dag, voor de kindertocht',kleur:'linear-gradient(135deg,#3a1f0f,#8a4b1f 55%,#f5b942)'},
-    {id:'marktje',kort:'Marktje',titel:'Marktje',kicker:'Halloweenperiode 2026',
-     sub:'Pirates Place · knutselhoek en activiteiten tijdens het wachten',kleur:'linear-gradient(135deg,#1f3a1f,#4a7a3a 55%,#e0a24a)'},
+    {id:'marktje',kort:'Marktje',titel:'Marktje',kicker:'Halloween atelier · kinderactiviteiten',
+     sub:'Discovery Bay · knuffels, suikerspin, make-over en pompoenen schilderen',kleur:'linear-gradient(135deg,#1f3a1f,#4a7a3a 55%,#e0a24a)'},
     {id:'of',kort:'O&F programma',titel:'O&F programma',kicker:'Animatie · Halloweenperiode',
      sub:'Alles in Halloweenthema · O&F-halloweenkleren',kleur:'linear-gradient(135deg,#3a1a4b,#8a3a8c 55%,#ff8fb0)'}
   ],
