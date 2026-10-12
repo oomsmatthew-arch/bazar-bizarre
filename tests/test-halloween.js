@@ -59,7 +59,7 @@ ok(Object.keys(kk).every(function(k){ return K.scripts[k]&&['nl','de','fr','en']
 ok(K.zones.every(function(z){ return z.opbouw.length&&z.materiaal.length&&z.fotos.length; }),'kindertocht: elke post heeft opbouw, materiaal en foto’s');
 ok(K.zones.every(function(z){ return z.opbouw.some(function(s){ return typeof s!=='string'&&s.fotos&&s.fotos.length; }); }),'kindertocht: elke post heeft foto’s bij de opbouw');
 ok(globalThis.HW.zones.every(function(z){ return z.opbouw.some(function(s){ return s.fotos&&s.fotos.length; }); }),'volwassentocht: elke zone heeft foto’s bij de opbouw');
-var OF=ACT.of; ok(['disco','bedtime','schmink','slijm'].every(function(id){ var t=OF.tabs.find(function(x){ return x.id===id; }); return t&&t.kaarten&&t.kaarten.length; }),'O&F: disco, bedtime, schminken en slijm hebben inhoud');
+var OF=ACT.of; ok(['disco','bedtime'].every(function(id){ var t=OF.tabs.find(function(x){ return x.id===id; }); return t&&t.kaarten&&t.kaarten.length; }),'O&F: disco en bedtime hebben inhoud');
 var bt=OF.tabs.find(function(x){ return x.id==='bedtime'; }).kaarten.filter(function(k){ return k.talen; });
 ok(bt.length===2&&bt.every(function(k){ return ['nl','de','fr','en'].every(function(t){ return k.talen[t].length===k.talen.nl.length; }); }),'O&F: beide verhalen hebben in elke taal evenveel alinea’s');
 ok(ACT.show.tabs.find(function(x){ return x.id==='cast'; }).kaarten[0].tabel.rijen.length===7,'show: de bezetting staat er voor alle zeven avonden');

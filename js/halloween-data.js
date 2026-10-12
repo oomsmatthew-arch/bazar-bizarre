@@ -519,8 +519,6 @@ window.HW={
   mappen:[
     {titel:'Map: Griezeltocht volwassenen – The Bay Outbreak',id:'17Wt1G_HijMTr8qCffnTxwozfKnKLtLpf'},
     {titel:'Map: Kindertocht',id:'1b90bUPP10aCn6tt6DCdh4ouZ60SuMyvF'},
-    {titel:'Map: BAY – Griezelschmink',id:'1dvRIBDgBkZ90aY6M_XI1QhtnJZJBeuch'},
-    {titel:'Map: BAY – Slijm maken',id:'1v6NrxR1f00tGkKVim-evFKEQgt60t_3W'},
     {titel:'Map: O&F – Bedtime Stories',id:'1Fo77S5xzTMGOBsvqq8v9rRa7gRLFB5_B'},
     {titel:'Map: O&F – Kids Disco',id:'1odVXGRkE1A1W2a5P1ZnxMzGDjLc_roru'},
     {titel:'Alles: Halloweenperiode 2026',id:'1PTdTRqa6ZeUv5jxgEispvTEfvfKI4rei',hoofd:true}

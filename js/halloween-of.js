@@ -2,7 +2,7 @@
 //  HALLOWEEN · O&F-PROGRAMMA, HALLOWEEN SHOW en MARKTJE — de inhoud.
 //
 //  Overgenomen uit de Drive-map "Halloweenperiode 2026": het overzichtsdraaiboek, "Disco concept",
-//  het script "Halloween bedtime stories", "MANUAL – Slijm maken" en de schminkvoorbeelden;
+//  het script "Halloween bedtime stories", en de Drive-map van de Kids Disco;
 //  het schema van de show komt uit het draaiboek van de kindertocht ("Orry en heks").
 //  Voor de Halloween show en het marktje staat er (nog) geen eigen document in de Drive:
 //  daar staat wat in de andere documenten over hen te vinden is. Tekenen doet js/halloween.js.
@@ -15,8 +15,7 @@ const yt=id=>'https://www.youtube.com/watch?v='+id;
 const dfile=id=>'https://drive.google.com/file/d/'+id+'/view';
 const dmap=id=>'https://drive.google.com/drive/folders/'+id;
 
-const MAP={disco:'1odVXGRkE1A1W2a5P1ZnxMzGDjLc_roru',bedtime:'1Fo77S5xzTMGOBsvqq8v9rRa7gRLFB5_B',schmink:'1dvRIBDgBkZ90aY6M_XI1QhtnJZJBeuch',slijm:'1v6NrxR1f00tGkKVim-evFKEQgt60t_3W',
-           alles:'1PTdTRqa6ZeUv5jxgEispvTEfvfKI4rei',kind:'1b90bUPP10aCn6tt6DCdh4ouZ60SuMyvF'};
+const MAP={disco:'1odVXGRkE1A1W2a5P1ZnxMzGDjLc_roru',bedtime:'1Fo77S5xzTMGOBsvqq8v9rRa7gRLFB5_B',alles:'1PTdTRqa6ZeUv5jxgEispvTEfvfKI4rei',kind:'1b90bUPP10aCn6tt6DCdh4ouZ60SuMyvF'};
 const DOC={halloween:{titel:'Draaiboek Halloween 2026',tekst:'Het overzicht van de hele Halloweenperiode (12/10 – 09/11): alle activiteiten, locaties, data en uren.',id:'1qSIK18QpBqPlBt0mP0fWKqy9vuVSIWY4'}};
 
 // ---------------------------------------------------------------- de verhalen (Bedtime stories)
@@ -108,15 +107,13 @@ const STAND='12/10/2026';
 window.HW_ACT.of={
   stand:STAND,
   tabs:[{id:'start',ic:'🎭',t:'Start'},{id:'disco',ic:'🪩',t:'Kids Disco',type:'kaarten'},{id:'bedtime',ic:'📖',t:'Bedtime stories',type:'kaarten'},
-        {id:'schmink',ic:'🎨',t:'Schminken',type:'kaarten'},{id:'slijm',ic:'🧪',t:'Slijm maken',type:'kaarten'},{id:'docs',ic:'📎',t:'Documenten'}],
+        {id:'docs',ic:'📎',t:'Documenten'}],
   feiten:[['Kids Disco','16u45 · 17u30'],['Bedtime stories','16u45'],['Waar','Time-Out Podium'],['Kleding','O&F-halloween']],
   startKaarten:[
     {titel:'Het O&F-programma tijdens de Halloweenperiode',p:['Tijdens de Halloweenperiode (12/10 – 09/11) vinden alle O&F-activiteiten volledig in Halloweenthema plaats. Hiervoor dragen we de O&F-halloweenkleren. Het zijn voorbeelden: er is ruimte om zelf aanpassingen te doen.']},
     {titel:'Wat staat er op het programma?',rijen:[
       ['Kids Disco','Time-Out Podium · 16u45 – 17u15 en 17u30 – 18u00 · 2–3 Halloweendansjes per disco'],
-      ['Bedtime stories','Time-Out Podium · 16u45 – 17u00 · Halloweenverhaal voorlezen'],
-      ['Schminken','Pirates Place · Halloweenschmink (facepaint en glittertattoos), extra aan te bieden tijdens de workshopmomenten'],
-      ['Slijm maken','Pirates Place · knutselworkshop, extra aan te bieden tijdens de workshopmomenten']
+      ['Bedtime stories','Time-Out Podium · 16u45 – 17u00 · Halloweenverhaal voorlezen']
     ],sub:'Tik hierboven op een tabblad voor de details van elke activiteit.'},
     {titel:'Wie is verantwoordelijk?',rijen:[
       ['Algemeen','Marith Weickl'],['Halloween Show','Lennert Lehaen'],['Kindertocht','Lien Ramaekers'],['Griezeltocht (Bay)','Matthew Ooms']
@@ -126,10 +123,9 @@ window.HW_ACT.of={
   documenten:[
     {titel:'Disco concept',tekst:'Het overzicht van de Halloween disco: richtlijn, dansjes en links.',id:'1Pm6lpiBDsRNffJ5L6b6buUlZPwbJjuX4'},
     {titel:'Script Halloween bedtime stories',tekst:'De twee verhalen (De Halloween parade en De wedstrijd) in het Nederlands, Duits, Frans en Engels.',id:'1uOdk-WeKRuUSPJHsG_Z_xJvnNV53exg_'},
-    {titel:'MANUAL – Slijm maken',tekst:'Werkwijze, benodigdheden en de tekeningen om uit te knippen.',id:'1BYR6Ppycsx6RpbApCpYe6APbQWiYu_sP'},
     DOC.halloween
   ],
-  mappen:[{titel:'Map: O&F – Kids Disco',id:MAP.disco},{titel:'Map: O&F – Bedtime Stories',id:MAP.bedtime},{titel:'Map: BAY – Griezelschmink',id:MAP.schmink},{titel:'Map: BAY – Slijm maken',id:MAP.slijm},{titel:'Alles: Halloweenperiode 2026',id:MAP.alles,hoofd:true}]
+  mappen:[{titel:'Map: O&F – Kids Disco',id:MAP.disco},{titel:'Map: O&F – Bedtime Stories',id:MAP.bedtime},{titel:'Alles: Halloweenperiode 2026',id:MAP.alles,hoofd:true}]
 };
 window.HW_ACT.of.tabs.find(t=>t.id==='disco').kaarten=[
   {titel:'Overzicht',rijen:[
@@ -161,33 +157,6 @@ window.HW_ACT.of.tabs.find(t=>t.id==='bedtime').kaarten=[
   {titel:'De wedstrijd',talen:WEDSTRIJD},
   {links:[{t:'📄 Script (PDF in Drive)',url:dfile('1uOdk-WeKRuUSPJHsG_Z_xJvnNV53exg_'),hoofd:true},{t:'📁 Map in Drive',url:dmap(MAP.bedtime)}]}
 ];
-window.HW_ACT.of.tabs.find(t=>t.id==='schmink').kaarten=[
-  {titel:'Overzicht',rijen:[
-    ['Locatie','Pirates Place'],
-    ['Wat','Facepaint en glittertattoos: Halloweenschmink. Dit kan je extra aanbieden tijdens de workshopmomenten.'],
-    ['Thema','De activiteit gebeurt volledig in Halloweenthema. Er zijn voorbeelden voorzien, maar je mag je fantasie de vrije loop laten: denk er wel aan dat het een Halloweenthema is.'],
-    ['Materiaal','Schminkmateriaal en de schminkvoorbeelden (hieronder en in de Drive).']
-  ]},
-  {titel:'Voorbeelden',sub:'Tik een foto om te vergroten; kinderen kunnen er een kiezen.',fotos:[
-    foto('of-schmink-piraat','Enge piraat'),foto('of-schmink-fantasy','Fantasy'),foto('of-schmink-griezel','Griezel'),foto('of-schmink-heks','IJsheks / koningin'),
-    foto('of-schmink-pompoen','Pompoen'),foto('of-schmink-tovenaar','Tovenaar'),foto('of-schmink-vampier','Vampier')],
-   links:[{t:'📁 Map in Drive',url:dmap(MAP.schmink)}]}
-];
-window.HW_ACT.of.tabs.find(t=>t.id==='slijm').kaarten=[
-  {titel:'Slijmmonsters maken',rijen:[['Locatie','Pirates Place'],['Wanneer','Knutselworkshop, extra aan te bieden tijdens de workshopmomenten.'],['Thema','Volledig in Halloweenthema.']]},
-  {titel:'Werkwijze',stappen:[
-    'Neem een half zakje Glibbi slijm en doe dit in een potje.',
-    'Doe er 200 ml (½ groot bekertje) LAUW water bij en roer twee minuten stevig door.',
-    'Draai het deksel erop en laat dit potje 15 minuten staan.',
-    'Tijdens deze 15 minuten kunnen er monstertjes gekleurd worden om op het potje te kleven.',
-    'Laat de deelnemer 2 oogjes, 1 spinnetje en 2 verschillende muntjes kiezen en doe deze bij de slijm in het potje.',
-    'Op het einde mag er nog een kleine Halloweenmaquillage bij (spinnetje, vampiertanden, …).'
-  ]},
-  {titel:'Benodigdheden',l:['Potje met een half zakje slijm erin','Zak/doos met spinnen','Zak/doos met oogjes','Zak/doos met muntjes','Emmer water met bekertje','Verschillende tekeningen waaruit ze kunnen kiezen (uitknippen en op tafel verspreiden: zie de manual in Drive)']},
-  {titel:'Voorbeeld van het slijmpotje',fotos:[foto('of-slijm-voor','Voorbeeld slijmpotje: voorzijde'),foto('of-slijm-achter','Voorbeeld slijmpotje: achterzijde')],
-   links:[{t:'📄 Manual in Drive',url:dfile('1BYR6Ppycsx6RpbApCpYe6APbQWiYu_sP'),hoofd:true},{t:'📁 Map in Drive',url:dmap(MAP.slijm)}]}
-];
-
 // ================================================================ Halloween show
 window.HW_ACT.show={
   stand:STAND,
@@ -226,7 +195,7 @@ window.HW_ACT.marktje={
      l:['Gasten van de kindertocht die nog niet aan de beurt zijn, verwijs je tijdens de ontvangst naar het marktje en de andere activiteiten tot hun tijdslot begint.',
         'Na de Halloween Show verhuist de knutselhoek (tafels met stiften en materiaal om lampionnen te versieren) naar de Pirates Place.',
         'Bij het regenalternatief van de kindertocht stuurt de heks de kinderen naar de markt.',
-        'Naast het marktje zijn er workshopmomenten op de Pirates Place met Halloweenschmink en slijm maken (zie O&F programma).']},
+        'Naast het marktje zijn er workshopmomenten op de Pirates Place.']},
     {titel:'Nog aan te vullen',sub:'Wat ontbreekt: waar het marktje precies staat, de uren, wie het bemant, wat er te koop of te doen is en het materiaal. Stuur het document of de gegevens door en het wordt op dezelfde manier uitgewerkt als de andere onderdelen.'}
   ],
   documenten:[DOC.halloween],
