@@ -126,6 +126,16 @@ BBInv.setContractMinuten('u1',2310);
 ok(BBInv.getContractMinuten('u1')===2310,'aanpassen overschrijft, het maakt geen tweede instelling');
 ok(BBInv.getContractMinuten('u3')===0,'wie niets instelde, heeft niets staan (de pagina neemt dan 38u)');
 
+print('\n— Een week afvinken als nagekeken —');
+BBInv.setControle('u1','2026-08-31',930);
+ok(BBInv.getControles('u1')['2026-08-31']===930,'de week van 31 aug staat als nagekeken, met het weektotaal van dat moment');
+ok(Object.keys(BBInv.getControles('u2')).length===0,'Laura ziet het vinkje van Matthew niet');
+ok(BBInv.getWerkuren('u1').length===2,'het vinkje duikt niet op als een ingevulde dag');
+BBInv.setControle('u1','2026-08-31',960);
+ok(Object.keys(BBInv.getControles('u1')).length===1 && BBInv.getControles('u1')['2026-08-31']===960,'opnieuw afvinken overschrijft, het maakt geen tweede vinkje');
+BBInv.removeControle('u1','2026-08-31');
+ok(Object.keys(BBInv.getControles('u1')).length===0,'het vinkje weghalen werkt');
+
 print('\n— Aanpassen en verwijderen —');
 var eigen=BBInv.getWerkuren('u1').find(function(w){return w.datum==='2026-09-01';});
 BBInv.updateWerkuur(eigen.id,{einde:'18:00',minuten:510});

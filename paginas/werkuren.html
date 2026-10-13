@@ -331,8 +331,8 @@ function rijHtml(w){
 
 // ---------------- KALENDER ----------------
 // Een gewone maandkalender, maandag links. In elk dagvakje staat wat je die dag invulde;
-// rechts van elke week het weektotaal. Tik op een leeg vakje om die dag in te vullen, of
-// op een ingevulde balk om ze aan te passen.
+// rechts van elke week het weektotaal, met eronder het vinkje "nagekeken". Tik op een leeg
+// vakje om die dag in te vullen, of op een ingevulde balk om ze aan te passen.
 // Wat er in zo'n balk past is klein, dus: bij 'gewerkt' enkel de uren, bij de andere
 // soorten de afkorting erbij ("JV 8u"). Het dagtotaal komt er enkel bij als je die dag
 // meer dan één ding invulde — anders staat hetzelfde getal er twee keer.
@@ -348,6 +348,42 @@ function kalTitel(w){
   if(w.opmerking) stuk.push(w.opmerking);
   return stuk.join(' · ');
 }
+// ---------------- NAGEKEKEN ----------------
+// Het overzicht van wat je gewerkt hebt komt pas een paar weken later. Naast elk
+// weektotaal staat daarom een vakje dat je aanvinkt zodra je die week ertegen hebt
+// nagekeken. Het weektotaal van dat moment gaat mee in het vinkje: pas je daarna nog
+// een dag in die week aan, dan wordt het vinkje oranje — je controle klopt dan niet meer.
+function controleStand(maandag,wtot,controles){
+  if(!Object.prototype.hasOwnProperty.call(controles,maandag)) return 'open';
+  return controles[maandag]===wtot ? 'ok' : 'gewijzigd';
+}
+function controleKnop(maandag,wtot,controles){
+  const stand=controleStand(maandag,wtot,controles);
+  const titel = stand==='ok' ? 'Nagekeken ('+fmtDuur(wtot)+'). Tik om het vinkje weg te halen.'
+    : stand==='gewijzigd' ? 'Aangepast nadat je deze week nakeek: toen '+fmtDuur(controles[maandag])+', nu '+fmtDuur(wtot)+'. Tik om opnieuw af te vinken.'
+    : 'Nog niet nagekeken. Tik zodra deze week klopt met je overzicht.';
+  return '<button class="wu-ok '+stand+'" data-controle="'+esc(maandag)+'" title="'+esc(titel)+'" aria-label="'+esc(titel)+'">'+
+    (stand==='ok'?'✓':stand==='gewijzigd'?'!':'')+'</button>';
+}
+const mijnControles=()=>{ const u=mijnPersoon(); return u?BBInv.getControles(u.id):{}; };
+async function wisselControle(maandag){
+  if(!await eisToegang('werkuren','gebruiken','je uren na te kijken')) return;
+  const persoon=mijnPersoon(); if(!persoon) return;
+  const wtot=heleWeekMinuten(maandag);
+  const nr=weekNr(datumVan(maandag));
+  if(controleStand(maandag,wtot,mijnControles())==='ok'){
+    BBInv.removeControle(persoon.id,maandag);
+    bbToon('Week '+nr+': vinkje weggehaald.');
+  } else {
+    BBInv.setControle(persoon.id,maandag,wtot);
+    bbToon('Week '+nr+' nagekeken ✓ ('+fmtDuur(wtot)+')');
+  }
+  renderAlles();
+}
+function koppelControles(box){
+  box.querySelectorAll('.wu-ok').forEach(b=>b.onclick=()=>wisselControle(b.getAttribute('data-controle')));
+}
+
 function renderKalender(){
   const box=document.getElementById('wuKalender');
   const j=toonMaand.getFullYear(), m=toonMaand.getMonth();
@@ -357,6 +393,7 @@ function renderKalender(){
   const perDag={}; const alles=mijnUren();
   alles.forEach(w=>{ (perDag[w.datum]||(perDag[w.datum]=[])).push(w); });
   const vandaag=isoVan(new Date());
+  const controles=mijnControles();
 
   let html='<div class="kalgrid">';
   ['ma','di','wo','do','vr','za','zo'].forEach(d=>html+='<div class="kal-kop">'+d+'</div>');
@@ -383,14 +420,17 @@ function renderKalender(){
     // vorige of volgende maand vallen — anders klopt het getal niet in de randweken.
     const weekZo=isoVan(new Date(d.getFullYear(),d.getMonth(),d.getDate()-1));
     const wtot=somMinuten(alles.filter(w=>w.datum>=weekMa&&w.datum<=weekZo));
-    html+='<div class="kal-wk" title="Week '+weekNr(datumVan(weekMa))+'">'+
-      '<b>'+esc(wtot?fmtDuur(wtot):'—')+'</b><i>w'+weekNr(datumVan(weekMa))+'</i></div>';
+    const stand=controleStand(weekMa,wtot,controles);
+    html+='<div class="kal-wk'+(stand!=='open'?' '+stand:'')+'" title="Week '+weekNr(datumVan(weekMa))+'">'+
+      '<b>'+esc(wtot?fmtDuur(wtot):'—')+'</b><i>w'+weekNr(datumVan(weekMa))+'</i>'+
+      controleKnop(weekMa,wtot,controles)+'</div>';
   }
   html+='</div>';
   box.innerHTML=html;
 
   box.querySelectorAll('.kal-item').forEach(b=>b.onclick=()=>openForm(b.getAttribute('data-id')));
   box.querySelectorAll('.kal-nr').forEach(b=>b.onclick=()=>nieuweDag(b.getAttribute('data-nieuw')));
+  koppelControles(box);
 }
 
 function renderLijst(){
@@ -404,6 +444,7 @@ function renderLijst(){
   // loopt tonen we hier maar half — daarom zetten we het volledige weektotaal erbij
   // zodra dat verschilt, anders zou je denken dat je die week te weinig werkte.
   const alles=mijnUren();
+  const controles=mijnControles();
   const groepen=new Map();
   maand.forEach(w=>{
     const d=datumVan(w.datum); if(!d) return;
@@ -423,6 +464,7 @@ function renderLijst(){
         '<span class="wk">Week '+weekNr(ma)+'</span>'+
         '<span class="wd">'+esc(weekBereik(ma))+(heleWeek!==totaal?(' · hele week '+fmtDuur(heleWeek)):'')+'</span>'+
         '<span class="wt">'+fmtDuur(totaal)+'</span>'+
+        controleKnop(sleutel,heleWeek,controles)+
       '</div>'+
       rijen.map(rijHtml).join('')+
     '</div>';
@@ -431,6 +473,7 @@ function renderLijst(){
   box.querySelectorAll('.wurij').forEach(b=>{
     b.onclick=()=>openForm(b.getAttribute('data-id'));
   });
+  koppelControles(box);
 }
 
 // ---------------- HET VENSTER ----------------

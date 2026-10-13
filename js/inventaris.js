@@ -1732,10 +1732,11 @@
   // Bewust GEEN logAct(): wanneer jij gewerkt hebt, hoort niet in het gedeelde
   // activiteitenoverzicht thuis dat elke vaste medewerker kan openen.
   const WU_INSTELLING='instelling';   // aparte rij per persoon: je contracturen per week
+  const WU_CONTROLE='controle';       // aparte rij per persoon per week: "deze week nagekeken"
   function saveWuBackup(){ saveBackup('werkuren',null); }
   // Nieuwste dag bovenaan; twee rijen op dezelfde dag op startuur.
   const getWerkuren=gebruiker=>cache.werkuren
-    .filter(w=>w&&w.soort!==WU_INSTELLING&&(!gebruiker||w.gebruiker===gebruiker))
+    .filter(w=>w&&w.soort!==WU_INSTELLING&&w.soort!==WU_CONTROLE&&(!gebruiker||w.gebruiker===gebruiker))
     .slice().sort((a,b)=>String(b.datum||'').localeCompare(String(a.datum||''))
                        ||String(a.start||'').localeCompare(String(b.start||'')));
   function addWerkuur(w){
@@ -1773,6 +1774,28 @@
     r.minuten=Math.round(+minuten||0); r.ts=Date.now(); saveWuBackup();
     inhaalSchrijf('werkuren',werkurenOK,uurToRow(r),r.id);
     return r;
+  }
+  // Weken die je hebt nagekeken tegen het overzicht dat je achteraf krijgt. Eén rij per
+  // persoon per week, op de maandag; 'minuten' onthoudt het weektotaal op het moment van
+  // aanvinken, zodat de pagina kan zien dat er nadien nog iets veranderd is.
+  // Geeft {maandag: minuten} terug.
+  function getControles(gebruiker){
+    const uit={};
+    cache.werkuren.forEach(x=>{ if(x&&x.soort===WU_CONTROLE&&x.gebruiker===gebruiker&&x.datum) uit[x.datum]=+x.minuten||0; });
+    return uit;
+  }
+  function setControle(gebruiker,maandag,minuten){
+    if(!gebruiker||!maandag) return null;
+    const id='wu-ok-'+gebruiker+'-'+maandag;
+    let r=cache.werkuren.find(x=>x&&x.id===id);
+    if(!r){ r={id,gebruiker,naam:'',datum:maandag,soort:WU_CONTROLE,start:'',einde:'',pauze:true,minuten:0,opmerking:'',ts:0}; cache.werkuren.push(r); }
+    r.minuten=Math.round(+minuten||0); r.ts=Date.now(); saveWuBackup();
+    inhaalSchrijf('werkuren',werkurenOK,uurToRow(r),r.id);
+    return r;
+  }
+  function removeControle(gebruiker,maandag){
+    if(!gebruiker||!maandag) return;
+    removeWerkuur('wu-ok-'+gebruiker+'-'+maandag);
   }
 
   // ---------------- PROJECTEN (gedeeld) — bord met taken + bespreking ----------------
@@ -2807,7 +2830,7 @@
     setChkMedia,getChkMedia,delChkMedia,
     getLogboek,addLog,updateLog,removeLog,isLogboekGedeeld:()=>logboekOK,
     getWerkuren,addWerkuur,updateWerkuur,removeWerkuur,
-    getContractMinuten,setContractMinuten,isWerkurenGedeeld:()=>werkurenOK,
+    getContractMinuten,setContractMinuten,getControles,setControle,removeControle,isWerkurenGedeeld:()=>werkurenOK,
     getProjecten,getProject,addProject,updateProject,removeProject,
     getTaken,addTaak,updateTaak,removeTaak,reorderTaken,verplaatsTaken,
     getBerichten,addBericht,updateBericht,removeBericht,

@@ -79,6 +79,25 @@ ok(kal.indexOf('<b>—</b>')>=0,'een lege week toont een streepje i.p.v. 0u00');
 ok(el('wuLijst').style.display==='none','de lijst staat verborgen zolang de kalender aan is');
 ok(el('wuStats').innerHTML.indexOf('25u00')>=0,'maandtotaal 25u00');
 
+print('\n— Een week afvinken als nagekeken —');
+ok(tel(/class="wu-ok open"/g)===5,'naast elk weektotaal staat een leeg vakje');
+ok(kal.indexOf('data-controle="2026-08-31"')>=0,'het vakje hoort bij de maandag van die week');
+BBInv.setControle('u1','2026-08-31',930);
+renderAlles(); kal=el('wuKalender').innerHTML;
+ok(kal.indexOf('class="kal-wk ok"')>=0 && tel(/class="wu-ok ok"/g)===1,'week 36 staat groen afgevinkt');
+ok(tel(/class="wu-ok open"/g)===4,'de andere vier weken staan nog open');
+BBInv.addWerkuur({gebruiker:'u1',naam:'Matthew',datum:'2026-09-03',soort:'gewerkt',start:'09:00',einde:'12:00',pauze:true,minuten:180});
+renderAlles(); kal=el('wuKalender').innerHTML;
+ok(kal.indexOf('class="kal-wk gewijzigd"')>=0 && kal.indexOf('toen 15u30, nu 18u30')>=0,'een dag erbij na het afvinken: het vinkje wordt oranje en zegt wat er veranderde');
+BBInv.removeWerkuur(BBInv.getWerkuren('u1').find(function(w){return w.datum==='2026-09-03';}).id);
+renderAlles(); kal=el('wuKalender').innerHTML;
+ok(tel(/class="wu-ok ok"/g)===1,'weer terug op het afgevinkte totaal: weer groen');
+zetWeergave('lijst'); renderAlles();
+ok(el('wuLijst').innerHTML.indexOf('class="wu-ok ok"')>=0,'ook de lijst toont het vinkje');
+BBInv.removeControle('u1','2026-08-31');
+zetWeergave('kalender'); renderAlles(); kal=el('wuKalender').innerHTML;
+ok(tel(/class="wu-ok open"/g)===5,'vinkje weggehaald: alle weken weer open');
+
 print('\n— Terug naar de lijst —');
 zetWeergave('lijst'); renderAlles();
 ok(el('wuKalender').style.display==='none','de kalender verdwijnt');

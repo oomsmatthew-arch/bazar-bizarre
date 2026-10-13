@@ -148,7 +148,7 @@ create table if not exists public.werkuren (
   gebruiker text default '',            -- id uit de tabel 'gebruikers': van wie deze rij is
   naam      text default '',
   datum     text default '',            -- JJJJ-MM-DD
-  soort     text default 'gewerkt',     -- gewerkt / overuren / jv / bf / instelling
+  soort     text default 'gewerkt',     -- gewerkt / overuren / jv / bf / instelling / controle
   start     text default '',            -- HH:MM (enkel bij 'gewerkt')
   einde     text default '',            -- HH:MM (enkel bij 'gewerkt')
   pauze     boolean default true,       -- is er pauze genomen? (false = niet aftrekken)
@@ -158,6 +158,8 @@ create table if not exists public.werkuren (
 );
 -- 'instelling' is een aparte rij per persoon met de contracturen per week (in minuten),
 -- nodig om een BF uit te rekenen. Die rij verschijnt nooit in het overzicht.
+-- 'controle' is een rij per persoon per week (datum = de maandag): "deze week nagekeken",
+-- met het weektotaal van dat moment in 'minuten'. Ook die verschijnt nooit als dag.
 create index if not exists werkuren_gebruiker_idx on public.werkuren (gebruiker, datum);
 
 -- ---------------------------------------------------------------------------

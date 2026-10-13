@@ -1091,6 +1091,22 @@
     background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0 4px;}
   .kal-wk b{font-size:12px;font-weight:800;color:var(--forest);}
   .kal-wk i{font-style:normal;font-size:10px;color:var(--muted);}
+  /* Nagekeken weken kleuren mee, zodat je in één oogopslag ziet welke nog open staan. */
+  .kal-wk.ok{background:#e7f6ec;border-color:#a8d8b8;}
+  .kal-wk.gewijzigd{background:#fdf3e3;border-color:#ecc88f;}
+  [data-theme="dark"] .kal-wk.ok{background:#16301f;border-color:#2c5c3c;}
+  [data-theme="dark"] .kal-wk.gewijzigd{background:#33281a;border-color:#6a4f25;}
+
+  /* het vinkje "deze week nagekeken" — naast het weektotaal in kalender én lijst */
+  .wu-ok{flex:0 0 auto;width:24px;height:24px;margin-top:5px;padding:0;border-radius:7px;
+    border:2px solid var(--muted);background:var(--panel);cursor:pointer;opacity:.7;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-family:inherit;font-size:14px;font-weight:900;line-height:1;color:var(--panel);}
+  .wu-ok:hover{border-color:var(--leaf);opacity:1;}
+  .wu-ok:active{transform:translateY(1px);}
+  .wu-ok.ok{background:var(--leaf);border-color:var(--leaf);opacity:1;}
+  .wu-ok.gewijzigd{background:#c97516;border-color:#c97516;opacity:1;}
+  .wuweekkop .wu-ok{margin-top:0;align-self:center;}
 
   /* Op een gsm moet er nog altijd een volle week naast elkaar passen: kleinere vakjes,
      kleinere letters, en een smallere weekkolom. */
@@ -1102,6 +1118,7 @@
     .kal-nr .n{font-size:11px;} .kal-nr .t{font-size:10px;}
     .kal-item{font-size:10px;padding:2px 1px;border-radius:6px;}
     .kal-wk b{font-size:11px;} .kal-wk i{font-size:9px;}
+    .kal-wk{padding:0 2px;} .kal-wk .wu-ok{width:22px;height:22px;margin-top:4px;font-size:13px;}
   }
 
   /* het invulvenster */
