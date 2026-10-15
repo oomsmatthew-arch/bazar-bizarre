@@ -178,12 +178,26 @@ function scriptHtml(key,uid){
   const s=(A().scripts||{})[key]; if(!s) return '<p class="hw-muted">Geen script.</p>';
   return talenHtml(s,uid);
 }
+// Wie haalt welke fiets op, per avond: rol · fiets · de naam op elke speelavond.
+function fietsMatrixHtml(rollen){
+  const a=A(); const data=a.data||[];
+  let h='<div style="overflow-x:auto"><table class="hw-matrix"><thead><tr><th>Rol</th><th>Fiets</th>'
+    +data.map(d=>'<th'+(d===state.datum?' style="color:var(--hw)"':'')+'>'+d+'</th>').join('')+'</tr></thead><tbody>';
+  rollen.forEach(r=>{
+    h+='<tr><td>'+esc(r[0])+'</td><td>'+esc(r[2])+'</td>'+data.map(d=>{
+      const n=(a.nachten||{})[d]; const x=n&&(n.draaiboek||[]).find(z=>z.karakter===r[1]);
+      return '<td'+(x&&isIk(x.naam)?' style="background:var(--hw-bg);font-weight:700"':'')+'>'+(x&&x.naam?esc(x.naam):'<span class="hw-muted">–</span>')+'</td>';
+    }).join('')+'</tr>';
+  });
+  return h+'</tbody></table></div>';
+}
 // Een vrije kaart: titel + (tekst | lijst | rijen | stappen | tabel | foto's | tekst in talen | links | nota)
 function kaartHtml(k){
   let h='<div class="hw-kaart'+(k.nood?' hw-nood':'')+'">'+(k.titel?'<h3>'+esc(k.titel)+'</h3>':'');
   if(k.sub) h+='<p class="hw-muted">'+esc(k.sub)+'</p>';
   if(k.p) h+=paragrafen(k.p);
   if(k.html) h+='<p class="hw-muted" style="margin:0">'+k.html+'</p>';
+  if(k.fietsMatrix) h+=fietsMatrixHtml(k.fietsMatrix);
   if(k.tabel) h+='<div style="overflow-x:auto"><table class="hw-matrix" style="min-width:0"><thead><tr>'+k.tabel.kop.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'
     +k.tabel.rijen.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
   if(k.l) h+=lijst(k.l);

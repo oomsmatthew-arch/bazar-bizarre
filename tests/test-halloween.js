@@ -62,7 +62,7 @@ ok(K.zones.every(function(z){ return z.opbouw.some(function(s){ return typeof s!
 ok(globalThis.HW.zones.every(function(z){ return z.opbouw.some(function(s){ return s.fotos&&s.fotos.length; }); }),'volwassentocht: elke zone heeft foto’s bij de opbouw');
 ok(K.fiets&&Object.keys(K.fiets).length===6&&K.zones.every(function(z){ return ['schutter','kok','dronkaard','heks','dief'].indexOf(z.id)<0||z.aandacht.some(function(x){ return /fiets/i.test(x); }); }),'kindertocht: bij elke post met een fiets staat welke fiets en waar je hem haalt');
 ok(K.data.every(function(d){ var n=K.nachten[d]; var arr=K.nachtExtra(n,d); return Array.isArray(arr)&&arr.some(function(k){ return /Fietsen/.test(k.titel)&&k.rijen.length>=4; }); }),'kindertocht: elke avond toont wie een fiets ophaalt');
-ok(K.startKaartenVoor.some(function(k){ return /Fietsen/.test(k.titel); }),'kindertocht: de startpagina zegt wie een fiets ophaalt');
+ok(K.startKaartenVoor.some(function(k){ return /Fietsen/.test(k.titel)&&k.fietsMatrix&&k.fietsMatrix.length===6; }),'kindertocht: de startpagina zegt wie een fiets ophaalt');
 ok([HW,K,ACT.marktje].every(function(a){ return JSON.stringify(a.praktisch).indexOf('Evergreens')>=0; }),'eten in de Evergreens staat bij beide tochten en het marktje');
 var OF=ACT.of; ok(['disco','bedtime'].every(function(id){ var t=OF.tabs.find(function(x){ return x.id===id; }); return t&&t.kaarten&&t.kaarten.length; }),'O&F: disco en bedtime hebben inhoud');
 var bt=OF.tabs.find(function(x){ return x.id==='bedtime'; }).kaarten.filter(function(k){ return k.talen; });
