@@ -19,7 +19,6 @@ const DAGSCHEMA=[
   ['15u15 – 16u30','Orry & Friends Halloween show (15u15 en 16u00)','Halloween show'],
   ['16u15 – 16u40','Ontvangst naar de Pirates Place; het eerste tijdslot (lampion versieren) start om 16u25','Kindertocht'],
   ['16u40 – 18u25','Kindertocht: om het kwartier een groep, 8 groepen','Kindertocht'],
-  ['16u45 – 18u00','Kids Disco (16u45 en 17u30) en Bedtime stories (16u45) op het Time-Out Podium, volgens rooster','O&F programma'],
   ['19u00 – 19u30','Ombouw van de Bay: van de kindertocht naar de volwassentocht','Ombouw per dag'],
   ['19u30 – 20u00','Pauze','—'],
   ['20u00 – 20u25','Portofoons ophalen en testen, eindcontrole, opbouw van de volwassentocht, omkleden','Volwassentocht'],
@@ -47,13 +46,13 @@ window.HW_ACT.overzicht={
     {nood:true,titel:'Belangrijk voor iedereen',l:['Zorg dat je echt op de afgesproken tijd aanwezig bent voor de briefing: marktje om 14u00 in het atelier, kindertocht om 15u00 onder het schip, volwassentocht vanaf 19u00 (ombouw).','Je staat buiten of op je post: zorg voor voldoende warme (onder)kleding en eventueel handschoenen. Bij je rol staat welke kleding je zelf moet voorzien.','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Vragen? Meld ze zo snel mogelijk aan Marith en niet pas op de dag zelf.']}
   ],
   startKaarten:[
-    {titel:'De Halloweenperiode',p:['Van 12/10 tot en met 5/11 (volgens het overzichtsdraaiboek tot 9/11) is er in Center Parcs De Vossemeren Halloween-animatie. De tochten en het marktje lopen op 7 avonden: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11. De O&F-activiteiten (Kids Disco en Bedtime stories) volgen het rooster in het overzichtsdraaiboek.']},
+    {titel:'De Halloweenperiode',p:['Van 12/10 tot en met 5/11 (volgens het overzichtsdraaiboek tot 9/11) is er in Center Parcs De Vossemeren Halloween-animatie. De tochten en het marktje lopen op 7 avonden: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11. Het O&F-programma (Kids Disco en Bedtime stories) loopt op de andere dagen volgens het rooster in het overzichtsdraaiboek; op de tochtdagen is er geen O&F-programma.']},
     {titel:'De onderdelen',sub:'Tik een knop voor alle details van dat onderdeel.',rijen:[
       ['The Outbreak','Volwassentocht (vanaf 10 jaar) · 20u30 – 22u30 · Discovery Bay'],
       ['Zeven zeeën','Kindertocht (2 – 12 jaar) · 16u40 – 19u00 · € 3 · start in de Discovery Bay'],
       ['Halloween show','Orry & de heks · 15u15 en 16u00 · Discovery Bay'],
       ['Marktje','Halloween-kinderactiviteiten (atelier) · ± 14u45/15u00 – 19u00 · Discovery Bay'],
-      ['O&F programma','Kids Disco en Bedtime stories · Time-Out Podium']],
+      ['O&F programma','Kids Disco en Bedtime stories · Time-Out Podium · niet op de tochtdagen']],
      links:[{t:'🎃 The Outbreak',url:'#start'},{t:'🏴‍☠️ Zeven zeeën',url:'#zeven-zeeen'},{t:'🎭 Halloween show',url:'#show'},{t:'🛍️ Marktje',url:'#marktje'},{t:'🪩 O&F programma',url:'#of'}]},
     {titel:'Wie is verantwoordelijk?',rijen:[['Algemeen','Marith Weickl (medeverantwoordelijke voor het Halloweenproject)'],['Griezeltocht (Bay)','Matthew Ooms'],['Kindertocht','Lien Ramaekers'],['Halloween show','Lennert Lehaen']],
      nota:'Per dag zijn er daarnaast aanspreekpunten bij het marktje (zie Planning per dag). Telefoonnummers staan in Contacten en in het overzichtsdraaiboek.'}
@@ -68,7 +67,7 @@ window.HW_ACT.overzicht={
      tabel:{kop:['Groep','Vertrek'],rijen:GROEPEN.map((t,i)=>['Groep '+(i+1),t])}},
     {titel:'Volwassentocht: de tijdsloten',sub:'Gasten schrijven in per tijdslot van 10 minuten, met 20 personen per tijdslot. Er vertrekt om de 5–8 minuten een groep van max 8–10 personen. Laatste vertrek 22:20.',
      p:['Tijdsloten: '+SLOTS.join(' · ')]},
-    {titel:'O&F programma',rijen:[['Kids Disco','16u45 – 17u15 en 17u30 – 18u00 (Time-Out Podium)'],['Bedtime stories','16u45 – 17u00 (Time-Out Podium)']],nota:'Volgens het rooster in het overzichtsdraaiboek.'}
+    {titel:'O&F programma',rijen:[['Kids Disco','16u45 – 17u15 en 17u30 – 18u00 (Time-Out Podium)'],['Bedtime stories','16u45 – 17u00 (Time-Out Podium)']],nota:'Op de tochtdagen (donderdag en zaterdag: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11) is er geen O&F-programma. Op de andere dagen volgt het rooster in het overzichtsdraaiboek.'}
   ],
   praktisch:[
     {titel:'Op tijd zijn',rijen:[

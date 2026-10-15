@@ -116,7 +116,7 @@ window.HW_ACT.of={
     {titel:'Wat staat er op het programma?',rijen:[
       ['Kids Disco','Time-Out Podium · 16u45 – 17u15 en 17u30 – 18u00 · 2–3 Halloweendansjes per disco'],
       ['Bedtime stories','Time-Out Podium · 16u45 – 17u00 · Halloweenverhaal voorlezen']
-    ],sub:'Tik hierboven op een tabblad voor de details van elke activiteit.'},
+    ],sub:'Tik hierboven op een tabblad voor de details van elke activiteit.',nota:'Op de tochtdagen (donderdag en zaterdag: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11) is er geen O&F-programma. Op de andere dagen volgt het rooster in het overzichtsdraaiboek.'},
     {titel:'Wie is verantwoordelijk?',rijen:[
       ['Algemeen','Marith Weickl'],['Halloween Show','Lennert Lehaen'],['Kindertocht','Lien Ramaekers'],['Griezeltocht (Bay)','Matthew Ooms']
     ],nota:'Voor vragen of opmerkingen kan je altijd contact opnemen met een van de verantwoordelijken. Telefoonnummers staan in Contacten en in het overzichtsdraaiboek.'},
@@ -132,7 +132,7 @@ window.HW_ACT.of={
 window.HW_ACT.of.tabs.find(t=>t.id==='disco').kaarten=[
   {titel:'Overzicht',rijen:[
     ['Locatie','Time-Out Podium'],
-    ['Uren','16u45 – 17u15 en 17u30 – 18u00'],
+    ['Uren','16u45 – 17u15 en 17u30 – 18u00 (niet op de tochtdagen: donderdag en zaterdag)'],
     ['Wat','De Kids Disco doen we echt in thema: tijdens ELKE disco doen we minstens 2 Halloweendansjes (de richtlijn is 2–3). De dansjes staan in de Drive: studeer ze allemaal goed van tevoren in!'],
     ['Verwachting','Iedereen die een disco heeft tijdens de Halloweenperiode kent de dansjes. Bekijk dus goed je rooster en bereid je voor als je een discoshift hebt: oefen ze vanuit je woonkamer met de links hieronder.'],
     ['Liedjes','Minstens twee tot drie Halloweenliedjes per disco, en starten en sluiten met het standaard O&F-lied.'],
@@ -150,7 +150,7 @@ window.HW_ACT.of.tabs.find(t=>t.id==='disco').kaarten=[
 ];
 window.HW_ACT.of.tabs.find(t=>t.id==='bedtime').kaarten=[
   {titel:'Overzicht',rijen:[
-    ['Locatie','Time-Out Podium'],['Uren','16u45 – 17u00'],
+    ['Locatie','Time-Out Podium'],['Uren','16u45 – 17u00 (niet op de tochtdagen: donderdag en zaterdag)'],
     ['Kleding','De Halloweenkledij van je karakter: cape (Orry), hoed (Bing), weerwolvenjack (Rep) of masker (Woops). Schmink mag altijd, maar is geen must.'],
     ['Wat','Het verhaaltje doen we echt in thema: je neemt het Halloweenboek mee naar boven en leest 1 van deze 2 verhaaltjes.'],
     ['Materiaal','Het Halloweenboek en het script in de Drive. Er zijn voorlopig geen attributen of techniek voor bepaald: dit is naar eigen invulling, maak er iets leuks van!'],
