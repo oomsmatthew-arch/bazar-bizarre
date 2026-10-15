@@ -258,6 +258,12 @@ een eigen account krijgen, maar maar één ding mogen zien. Een extern account z
 op dit moment enkel **Halloween** — wat er bij Toegangen ook ingesteld staat, en ook al
 staat dat onderdeel daar op *Iedereen*. Zelfs **Instellingen** blijft dan weg.
 
+Er staat al een kant-en-klaar gedeeld account klaar: **Extern**, bovenaan bij het inloggen
+naast *ENT algemeen* — net als dat account zonder pincode (tik en je bent binnen) en
+vergrendeld in de namenlijst (geen rol- of verwijderknop). Nieuwe collega's hoeven dus niet
+apart aangemaakt te worden om het Extern-vinkje te gebruiken; dat kan ook, voor wie wél een
+eigen naam en code moet hebben.
+
 Is iemand óók Vaste mdw of Admin, dan telt dat zwaarder: die ziet gewoon alles, zelfs met
 het vinkje Extern aan. Zo kan dat vinkje nooit per ongeluk een eigen collega buitensluiten.
 De algemene zoekfunctie (het vergrootglas) geeft voor een extern account geen resultaten —

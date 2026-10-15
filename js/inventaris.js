@@ -851,7 +851,7 @@
       // Schrijfacties wachten in de outbox tot er weer verbinding is.
       console.warn('Supabase-bibliotheek niet geladen — lokale (offline) modus.');
       noteFout('Opstarten','de Supabase-bibliotheek is niet geladen');
-      ensureEntAlgemeen();
+      ensureVasteAccounts();
       autoOpruimen();
       ready=true; fire();
       return;
@@ -866,7 +866,7 @@
       // Niet aangemeld (offline, of code overgeslagen): we tonen wat er lokaal bewaard staat
       // (hierboven al ingeladen). Schrijfacties wachten in de outbox tot dit toestel weer
       // aangemeld en online is — en dat proberen we vanzelf opnieuw (zie hierboven).
-      ensureEntAlgemeen();
+      ensureVasteAccounts();
       autoOpruimen();
       ready=true; fire();
       planOpnieuwAanmelden(60000);
@@ -883,7 +883,7 @@
     await migrateBestelIfNeeded();
     await topUpBestelDefaults();
     await migrateSharedLists();
-    ensureEntAlgemeen(); // gedeeld account "ENT algemeen" (zonder pincode) altijd beschikbaar
+    ensureVasteAccounts(); // gedeelde accounts (ENT algemeen, Extern) altijd beschikbaar
     if(appconfigOK){
       zaaiFinalevragen();    // eenmalig de startlijst met finalevragen plaatsen
       leerUitFormulieren();  // tellers bijwerken met wat er al ingezonden is
@@ -1990,7 +1990,9 @@
   // ---------------- GEBRUIKERS (gedeeld) — namenlijst + persoonlijke pincode ----------------
   // 'pin' bevat een gehashte code (zie entertainment.html); nooit de code zelf zichtbaar.
   const getGebruikers=()=>cache.gebruikers.slice().sort((a,b)=>{
-    if(a.id==='entalg') return -1; if(b.id==='entalg') return 1; // "ENT algemeen" altijd bovenaan
+    const w=u=>u.id==='entalg'?0:(u.id==='extern'?1:2); // de gedeelde accounts altijd bovenaan
+    const wa=w(a), wb=w(b);
+    if(wa!==wb) return wa-wb;
     return (a.naam||'').localeCompare(b.naam||'');
   });
   function saveGebrBackup(){ saveBackup('gebruikers',K_GEBRUIKERS_BACKUP); }
@@ -2045,12 +2047,23 @@
     fire();
   }
 
-  // Vast gedeeld account "ENT algemeen" zonder pincode (vaste id → nooit dubbel, self-healing).
-  function ensureEntAlgemeen(){
-    if(cache.gebruikers.some(u=>u.id==='entalg')) return;
-    const rec={id:'entalg',naam:'ENT algemeen',pin:'',rol:'algemeen',foto:'',ts:Date.now()};
-    cache.gebruikers.push(rec); saveGebrBackup();
-    if(gebruikersOK) dbUpsert('gebruikers',gebrToRow(rec)); else persistCache();
+  // Gedeelde, vaste accounts zonder pincode die altijd beschikbaar moeten zijn (vaste id's
+  // → nooit dubbel, self-healing) — ongeacht wat er in de database staat. Nieuw zo'n account
+  // nodig? Zet het hier gewoon bij; de rest (vergrendeld in de namenlijst, bovenaan bij het
+  // inloggen) volgt vanzelf via het id.
+  const VASTE_ACCOUNTS=[
+    {id:'entalg', naam:'ENT algemeen', rol:'algemeen'},
+    {id:'extern', naam:'Extern',       rol:'extern'}
+  ];
+  // Eén verzamel-upsert i.p.v. één per ontbrekend account: anders schrijft elk account apart
+  // de offline kopie weg bij het opstarten (zie test-opslag.js — dat mag gebundeld blijven).
+  function ensureVasteAccounts(){
+    const nieuw=VASTE_ACCOUNTS.filter(v=>!cache.gebruikers.some(u=>u.id===v.id))
+      .map(v=>({id:v.id,naam:v.naam,pin:'',rol:v.rol,foto:'',ts:Date.now()}));
+    if(!nieuw.length) return;
+    nieuw.forEach(rec=>cache.gebruikers.push(rec));
+    saveGebrBackup();
+    if(gebruikersOK) dbUpsert('gebruikers',nieuw.map(gebrToRow)); else persistCache();
   }
 
   // ---------------- MANUALS (gedeelde mappenboom + bestand-upload) ----------------

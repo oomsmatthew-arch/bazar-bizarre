@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.19';
+const APP_VERSION='v9.20';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -775,8 +775,8 @@ function renderLoginNames(){
     return b;
   };
   const groep=arr=>{ const g=document.createElement('div'); g.className='name-grid'; arr.forEach(u=>g.appendChild(maakTegel(u))); return g; };
-  const algemeen=users.filter(u=>u.id==='entalg');   // vast gedeeld account bovenaan
-  const rest=users.filter(u=>u.id!=='entalg');
+  const algemeen=users.filter(u=>u.id==='entalg'||u.id==='extern');   // gedeelde accounts bovenaan
+  const rest=users.filter(u=>u.id!=='entalg'&&u.id!=='extern');
   if(algemeen.length){
     grid.appendChild(groep(algemeen));
     if(rest.length){ const sep=document.createElement('div'); sep.className='name-sep'; grid.appendChild(sep); }
@@ -926,14 +926,14 @@ function renderGebrList(){
   if(!users.length){ box.innerHTML='<div class="login-empty">Nog geen collega\'s. Voeg er hierboven een toe.</div>'; return; }
   users.forEach(u=>{
     const row=document.createElement('div'); row.className='gebr-row';
-    const locked = u.id==='entalg';   // vast gedeeld account: niet verwijderen/wijzigen
+    const locked = u.id==='entalg'||u.id==='extern';   // gedeelde accounts: niet verwijderen/wijzigen
     const vast = BBInv.heeftRol(u,'vast');
     const admin = BBInv.heeftRol(u,'admin');
     const extern = BBInv.heeftRol(u,'extern');
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
       (locked
-        ? '<span class="rol">🔒 vast account · geen code</span>'
+        ? '<span class="rol">🔒 '+(u.id==='extern'?'extern':'vast')+' account · geen code</span>'
         : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'✓ Vaste mdw':'Vaste mdw')+'</button>'+
           '<button class="admin'+(admin?' on':'')+(magAdminUitdelen()?'':' uit')+'" title="'+
             (magAdminUitdelen()?'Mag Systeem en Activiteit bekijken en de Toegangen beheren'
