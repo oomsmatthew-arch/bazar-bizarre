@@ -32,6 +32,23 @@
 
   function bevat(q,...vals){ return vals.some(v=>v&&String(v).toLowerCase().indexOf(q)>=0); }
 
+  // Zelfstandige rolcheck (geen afhankelijkheid van kern.js, zie de uitleg bovenaan dit
+  // bestand — dit script draait ook op pagina's zonder kern.js). Een extern account (bv.
+  // een gids) mag hier niets terugvinden: geen van de secties hieronder gaat over Halloween,
+  // en dat is net het enige wat zo'n account hoort te zien (zie EXTERN_TOEGANG in kern.js).
+  function isExternHier(){
+    try{
+      const cu=JSON.parse(localStorage.getItem('bb_current_user')||'null');
+      if(!cu) return false;
+      let lijst=[]; try{ lijst=JSON.parse(localStorage.getItem('bb_gebruikers')||'[]')||[]; }catch(e){}
+      if(!lijst.length){ try{ const c=JSON.parse(localStorage.getItem('bb_cache_v1')||'null'); if(c&&Array.isArray(c.gebruikers)) lijst=c.gebruikers; }catch(e){} }
+      let u=lijst.find(x=>x&&x.id===cu.id);
+      if(!u){ const naam=String(cu.naam||'').trim().toLowerCase(); if(naam) u=lijst.find(x=>String((x&&x.naam)||'').trim().toLowerCase()===naam); }
+      const tags=String(((u||cu)&&(u||cu).rol)||'').split(',').map(s=>s.trim()).filter(Boolean);
+      return tags.indexOf('extern')>=0 && tags.indexOf('vast')<0 && tags.indexOf('admin')<0;
+    }catch(e){ return false; }
+  }
+
   // Doorzoekt de manuals-boom (mappen + bestanden) recursief.
   function zoekManuals(node,q,pad,out){
     if(!node) return;
@@ -48,6 +65,7 @@
   function zoekAlles(q){
     q=(q||'').toLowerCase().trim();
     const groepen=[]; const B=window.BBInv; if(!q||!B) return groepen;
+    if(isExternHier()) return groepen;
     const LIM=8;
     const voegtoe=(titel,page,rijen)=>{ if(rijen.length) groepen.push({titel,page,rijen:rijen.slice(0,LIM),meer:Math.max(0,rijen.length-LIM)}); };
     const veilig=fn=>{ try{ return fn()||[]; }catch(e){ return []; } };

@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.18';
+const APP_VERSION='v9.19';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -230,6 +230,17 @@ function toegangRegel(cat,niveau){
   const t=getToegangen()[cat];
   return (t&&t[niveau])||_toegangStd(cat)[niveau];
 }
+// Externe accounts (rol 'extern', bv. voor gidsen of andere buitenstaanders) zien enkel
+// deze categorieën — ongeacht wat er bij Instellingen → Toegangen staat. Dit weegt zwaarder
+// dan de normale toegangen, want anders zou "Iedereen" (de meest gebruikte instelling) een
+// extern account alsnog overal binnenlaten. Wil je dat een externe gebruiker ook een ander
+// onderdeel mag zien, voeg de key hier toe.
+const EXTERN_TOEGANG=['halloween'];
+// Vaste medewerkers en admins zijn altijd eigen mensen — ook als ze ooit per ongeluk mee
+// 'extern' aangevinkt raakten, mogen zij gewoon alles blijven zien.
+function externGeblokkeerd(cat){
+  return isExtern() && !(isVasteMdw()||isAdmin()) && EXTERN_TOEGANG.indexOf(cat)<0;
+}
 // 'wie:id1,id2' — enkel de aangevinkte medewerkers mogen dit, ongeacht hun rol.
 function toegWieMag(r){
   const u=fullCurrentUser(); if(!u) return false;
@@ -245,6 +256,7 @@ function toegLabel(r){
 // Mag ik dit, zonder iets te vragen? 'beheer' geldt als toegestaan zodra het wachtwoord
 // deze sessie al is ingetikt (of je vaste mdw / admin bent).
 function magToegang(cat,niveau){
+  if(externGeblokkeerd(cat)) return false;
   const r=toegangRegel(cat,niveau);
   if(r==='iedereen') return true;
   if(r==='vast')     return isVasteMdw()||isAdmin();
@@ -255,6 +267,10 @@ function magToegang(cat,niveau){
 }
 // Mag ik dit, en zo niet: vraag het wachtwoord of zeg waarom niet.
 async function eisToegang(cat,niveau,actie){
+  if(externGeblokkeerd(cat)){
+    bbToon('Daar heb je geen toegang toe.');
+    return false;
+  }
   const r=toegangRegel(cat,niveau);
   if(r==='beheer') return await eisBeheer(actie);
   if(magToegang(cat,niveau)) return true;
@@ -607,6 +623,8 @@ function heeftRol(tag){ const u=fullCurrentUser(); return !!(window.BBInv&&BBInv
 function isVasteMdw(){ return heeftRol('vast'); }
 // Admin = mag het Systeem-scherm en de Activiteit bekijken.
 function isAdmin(){ return heeftRol('admin'); }
+// Extern = een buitenstaander (bv. een gids): ziet enkel EXTERN_TOEGANG, zie magToegang().
+function isExtern(){ return heeftRol('extern'); }
 // Toegang tot een beheerdeel: waar voor een vaste mdw of admin, anders het wachtwoord
 // vragen. Admins horen er ook zonder wachtwoord in — ze beheren toch de Toegangen zelf,
 // dus hen dat laten typen is schijnbeveiliging. Dit sluit ook aan bij magToegang().
@@ -749,6 +767,7 @@ function renderLoginNames(){
       const r=[];
       if(BBInv.heeftRol(u,'admin')) r.push('Admin');
       if(BBInv.heeftRol(u,'vast')) r.push('Vaste mdw');
+      if(BBInv.heeftRol(u,'extern')) r.push('Extern');
       if(r.length) sub='<span class="nopin vast">'+r.join(' · ')+'</span>';
     }
     b.innerHTML='<span class="av">'+avatarInner(u)+'</span><span>'+esc(u.naam)+sub+'</span>';
@@ -910,6 +929,7 @@ function renderGebrList(){
     const locked = u.id==='entalg';   // vast gedeeld account: niet verwijderen/wijzigen
     const vast = BBInv.heeftRol(u,'vast');
     const admin = BBInv.heeftRol(u,'admin');
+    const extern = BBInv.heeftRol(u,'extern');
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
       (locked
@@ -919,6 +939,9 @@ function renderGebrList(){
             (magAdminUitdelen()?'Mag Systeem en Activiteit bekijken en de Toegangen beheren'
                                :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
             (admin?'✓ Admin':'Admin')+'</button>'+
+          '<button class="extern'+(extern?' on':'')+'" title="Buitenstaander (bv. een gids): ziet enkel '+
+            esc(EXTERN_TOEGANG.map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', '))+
+            ' — ongeacht de andere toegangen">'+(extern?'✓ Extern':'Extern')+'</button>'+
           '<button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
     if(!locked){
       row.querySelector('.vast').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'vast',!vast)}); renderGebrList(); refreshAuth(); };
@@ -928,6 +951,7 @@ function renderGebrList(){
         if(!magAdminUitdelen()){ meldGeenAdmin(); return; }
         BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'admin',!admin)}); renderGebrList(); refreshAuth();
       };
+      row.querySelector('.extern').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'extern',!extern)}); renderGebrList(); refreshAuth(); };
       row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
       row.querySelector('.rst').onclick=async()=>{
         // De code van een admin resetten = als die admin kunnen inloggen. Dus enkel een
@@ -1075,7 +1099,7 @@ async function bewaakPaginaDoe(){
     if(magToegang(cat,'bekijken')) return;
     if(cat==='systeem' && heeftNoodSysteem()) return;   // via de noodingang binnengekomen
     const r=toegangRegel(cat,'bekijken');
-    if(r==='beheer' && await eisBeheer('deze pagina te openen')) return;
+    if(r==='beheer' && !externGeblokkeerd(cat) && await eisBeheer('deze pagina te openen')) return;
     bbToon('Je hebt geen toegang tot deze pagina.\n\nEen admin kan dat wijzigen via Instellingen → Toegangen.');
   }else{
     if(nodig==='admin' ? isAdmin() : (isAdmin()||isVasteMdw())) return;

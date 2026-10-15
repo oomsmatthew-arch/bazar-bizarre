@@ -15,10 +15,11 @@ globalThis.localStorage={
 var fouten=0;
 function ok(v,wat){ if(!v){ fouten++; print('  ✗ '+wat); } else print('  ✓ '+wat); }
 
-// Wie er nu ingelogd is, bootsen we na met twee schakelaars.
-var IK={vast:false, admin:false, ontgrendeld:false};
+// Wie er nu ingelogd is, bootsen we na met wat schakelaars.
+var IK={vast:false, admin:false, ontgrendeld:false, extern:false};
 globalThis.isVasteMdw=function(){ return IK.vast; };
 globalThis.isAdmin=function(){ return IK.admin; };
+globalThis.isExtern=function(){ return IK.extern; };
 globalThis.isOntgrendeld=function(){ return IK.ontgrendeld; };
 globalThis.eisBeheer=function(){ return IK.vast||IK.admin||IK.ontgrendeld; };
 // 'Bepaalde medewerkers…' kijkt naar fullCurrentUser().id — hier ook na te bootsen.
@@ -45,6 +46,8 @@ function laadToegangen(){
     'globalThis.magToegang=magToegang;'+
     'globalThis.eisToegang=eisToegang;'+
     'globalThis.toegLabel=toegLabel;'+
+    'globalThis.EXTERN_TOEGANG=EXTERN_TOEGANG;'+
+    'globalThis.externGeblokkeerd=externGeblokkeerd;'+
     'globalThis.TOEGANG_CATEGORIEEN=TOEGANG_CATEGORIEEN;'+
     'globalThis.TOEGANG_NIVEAUS=TOEGANG_NIVEAUS;'+
     'globalThis.TOEGANG_KEUZES=TOEGANG_KEUZES;');
@@ -108,6 +111,21 @@ function verse(){ Object.keys(store).forEach(function(k){ delete store[k]; }); }
   ok(magToegang('logboek','bekijken')===true,'een admin ook');
   IK={vast:false,admin:false,ontgrendeld:false};
   ok(magToegang('logboek','bekijken')===false,'iemand zonder rol niet');
+
+  print('\n— Een extern account ziet enkel EXTERN_TOEGANG, wat de instelling ook zegt —');
+  verse();
+  ok(EXTERN_TOEGANG.indexOf('halloween')>=0,'Halloween staat op de lijst (pas deze test aan als dat ooit verandert)');
+  IK={vast:false,admin:false,ontgrendeld:false,extern:true};
+  ok(magToegang('halloween','bekijken')===true,'Halloween mag, die staat standaard op "iedereen"');
+  ok(magToegang('inventaris','bekijken')===false,'Inventaris niet, al staat dat ook op "iedereen"');
+  ok(magToegang('spel','bekijken')===false,'en Bazar Bizarre zelf ook niet');
+  setToegangen({inventaris:{bekijken:'beheer'}});
+  ok(magToegang('inventaris','bekijken')===false,'ook niet via het wachtwoord-achterpoortje');
+  IK={vast:true,admin:false,ontgrendeld:false,extern:true};
+  ok(magToegang('inventaris','bekijken')===true,'tenzij diezelfde persoon ook vaste medewerker is — dat weegt zwaarder');
+  setToegangen({}); // de 'beheer'-instelling hierboven was enkel om het achterpoortje te testen
+  IK={vast:false,admin:false,ontgrendeld:false,extern:false};
+  ok(magToegang('inventaris','bekijken')===true,'een gewone collega (niet extern) blijft gewoon overal bij kunnen, zoals voorheen');
 
   print('\n— "Bepaalde medewerkers…" laat enkel de aangevinkte mensen door —');
   verse();

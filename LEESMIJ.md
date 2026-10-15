@@ -236,8 +236,8 @@ ziet alles. Om die reden komt er ook **niets over je werkuren in het activiteite
 
 ## Rollen: Vaste mdw en Admin
 
-Bij elke naam (⚙ Instellingen → *Namenlijst beheren*) staan twee knopjes. Iemand kan beide
-tegelijk hebben, of geen van beide.
+Bij elke naam (⚙ Instellingen → *Namenlijst beheren*) staan twee knopjes (een derde,
+**Extern**, staat hieronder apart). Iemand kan er meerdere tegelijk hebben, of geen van alle.
 
 - **Vaste mdw** — komt zonder wachtwoord in alle beheerschermen (inventaris, bestellingen,
   het financieel overzicht, projecten aanmaken…).
@@ -249,6 +249,22 @@ alles openzetten. Om dezelfde reden kan enkel een admin de pincode van een ander
 resetten of een admin verwijderen. Uitzondering: zolang er nog **geen enkele** admin is,
 mag wie in de namenlijst kan de eerste aanduiden — anders is die rol na een verse
 installatie nooit meer toe te kennen.
+
+## Rol: Extern
+
+Een derde knopje naast Vaste mdw en Admin, voor buitenstaanders (bv. een gids) die wel
+een eigen account krijgen, maar maar één ding mogen zien. Een extern account ziet
+**enkel** de kaarten uit een vaste lijst in de code (`EXTERN_TOEGANG` in `js/kern.js`) —
+op dit moment enkel **Halloween** — wat er bij Toegangen ook ingesteld staat, en ook al
+staat dat onderdeel daar op *Iedereen*. Zelfs **Instellingen** blijft dan weg.
+
+Is iemand óók Vaste mdw of Admin, dan telt dat zwaarder: die ziet gewoon alles, zelfs met
+het vinkje Extern aan. Zo kan dat vinkje nooit per ongeluk een eigen collega buitensluiten.
+De algemene zoekfunctie (het vergrootglas) geeft voor een extern account geen resultaten —
+die doorzoekt toch enkel onderdelen die ze niet mogen zien.
+
+Wil je dat externen later ook iets anders mogen zien, voeg de categorie toe aan
+`EXTERN_TOEGANG` in `js/kern.js` (een regel code, geen instelling in de app).
 
 ## Toegangen: wie mag wat
 

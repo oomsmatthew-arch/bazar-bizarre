@@ -808,6 +808,8 @@
   .gebr-row .vast.on{background:var(--forest);color:#fff;border-color:var(--forest);}
   .gebr-row .admin{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
   .gebr-row .admin.on{background:#5b7fb0;color:#fff;border-color:#5b7fb0;}
+  .gebr-row .extern{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  .gebr-row .extern.on{background:var(--sun);color:#3a2a06;border-color:var(--sun);}
   [data-theme="dark"] .gebr-row .del{background:#3a2020;color:#f0a0a0;}
   .gebradd{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:16px;}
   .gebradd .h{font-weight:800;margin-bottom:10px;color:var(--forest);}
