@@ -21,6 +21,8 @@ window.HW={
   // 'outbreak' heeft de volledige uitwerking (tabbladen hieronder); de andere tonen een
   // overzichtspagina met wat in het overzichtsdraaiboek staat.
   activiteiten:[
+    {id:'overzicht',ic:'🗓️',kort:'Overzicht',titel:'Overzicht',kicker:'Halloweenperiode 2026 · 12/10 – 09/11',
+     sub:'Alles op één plek: informatie, planning per dag, ombouw, tijdsloten en praktische afspraken',kleur:'linear-gradient(135deg,#2a1a3a,#5a2f7a 50%,#e8772e)'},
     {id:'outbreak',ic:'🎃',kort:'The Outbreak',titel:'The Outbreak',kicker:'Centrum voor Ziektecontrole · Dossier CZC-2026-67',
      sub:'Volwassentocht · Halloween 2026 · Discovery Bay, Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#2a1a3a,#4b2a63 55%,#e8772e)'},
     {id:'zeven-zeeen',ic:'🏴‍☠️',kort:'Zeven zeeën',titel:'Halloween op de zeven zeeën',kicker:'Kindertocht · piratenthema',

@@ -12,6 +12,7 @@ load('js/halloween-kind-bron.js');
 load('js/halloween-kind.js');
 load('js/halloween-of.js');
 load('js/halloween-markt.js');
+load('js/halloween-overzicht.js');
 
 var fouten=0;
 function ok(v,wat){ if(!v){ fouten++; print('  ✗ '+wat); } else print('  ✓ '+wat); }
@@ -46,7 +47,7 @@ ok(HW.checklist.filter(function(f){ return f.info; }).length===1,'enkel de fase 
 
 print('— De andere onderdelen —');
 var ACT=globalThis.HW_ACT;
-ok(HW.activiteiten.length===5,'vijf onderdelen met een eigen kop');
+ok(HW.activiteiten.length===6,'zes onderdelen met een eigen kop (overzicht + vijf)');
 ok(HW.activiteiten.filter(function(a){ return a.id!=='outbreak'; }).every(function(a){ return ACT[a.id]&&ACT[a.id].tabs&&ACT[a.id].tabs.length; }),'elk onderdeel heeft tabbladen');
 var K=ACT['zeven-zeeen'], KS=globalThis.HW_KIND_SCRIPTS, KR={};
 K.zones.forEach(function(z){ z.rollen.forEach(function(r){ KR[r]=(KR[r]||0)+1; }); });
@@ -69,6 +70,9 @@ var bt=OF.tabs.find(function(x){ return x.id==='bedtime'; }).kaarten.filter(func
 ok(bt.length===2&&bt.every(function(k){ return ['nl','de','fr','en'].every(function(t){ return k.talen[t].length===k.talen.nl.length; }); }),'O&F: beide verhalen hebben in elke taal evenveel alinea’s');
 ok(ACT.show.tabs.find(function(x){ return x.id==='cast'; }).kaarten[0].tabel.rijen.length===7,'show: de bezetting staat er voor alle zeven avonden');
 
+var Z=ACT.overzicht;
+ok(Z&&Z.dagschema.length>=12&&Z.tabs.some(function(x){ return x.type==='ombouw'; })&&Z.tabs.some(function(x){ return x.type==='dagplanning'; }),'overzicht: dagschema, planning per dag en ombouw per dag');
+ok(ACT['zeven-zeeen'].data.every(function(d){ return ACT['zeven-zeeen'].nachten[d].afbouw.some(function(r){ return /inkom/i.test(r.waar); })&&ACT['zeven-zeeen'].nachten[d].afbouw.some(function(r){ return /techniek|buiten|sector/i.test(r.waar); }); }),'overzicht: elke avond heeft ombouwtaken per zone');
 var M=ACT.marktje;
 ok(M.data.every(function(d){ return M.nachten[d]&&M.nachten[d].opbouw.length>=5&&M.nachten[d].draaiboek.length>=5&&M.nachten[d].afbouw.length>=5; }),'marktje: elke avond heeft opbouw, draaiboek en afbouw');
 ok(M.data.every(function(d){ return M.nachten[d].draaiboek.every(function(r){ return r.naam&&r.karakter&&r.tijd; }); }),'marktje: elke rij heeft naam, activiteit en uren');
