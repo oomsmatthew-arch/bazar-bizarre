@@ -65,7 +65,7 @@ const ACT={};
       Object.assign(a,{
         data:HW.info.data,jaar:HW.info.jaar,feiten:HW.info.feiten,verhaal:HW.verhaal,stappen:HW.stappen,code:HW.code,
         uurschema:HW.uurschema,tijdsloten:HW.tijdsloten,zones:HW.zones,techniek:HW.techniek,checklist:HW.checklist,
-        rapport:HW.rapport,praktisch:HW.praktisch,documenten:HW.documenten,mappen:HW.mappen,
+        rapport:HW.rapport,praktisch:HW.praktisch,documenten:HW.documenten,mappen:HW.mappen,startKaartenVoor:HW.startKaartenVoor,
         nachten:window.HW_NACHTEN||{},scripts:window.HW_SCRIPTS||{},balk:STD_BALK,tabs:STD_TABS,
         planning:{kolommen:[['karakter','Karakter'],['naam','Naam'],['waar','Waar']],tijdKop:true},
         noodkaart:{titel:'🚨 Code 10',p:['Raakt iemand in paniek, valt die of wil hij/zij stoppen? Meld het via de portofoon met “Code 10” en je locatie. Speel niet verder en blijf bij de persoon tot er hulp is. De verantwoordelijke of mdw 2 gaat ter plaatse.'],
@@ -184,10 +184,10 @@ function kaartHtml(k){
   if(k.sub) h+='<p class="hw-muted">'+esc(k.sub)+'</p>';
   if(k.p) h+=paragrafen(k.p);
   if(k.html) h+='<p class="hw-muted" style="margin:0">'+k.html+'</p>';
-  if(k.l) h+=lijst(k.l);
-  if(k.rijen) h+=deflijst(k.rijen);
   if(k.tabel) h+='<div style="overflow-x:auto"><table class="hw-matrix" style="min-width:0"><thead><tr>'+k.tabel.kop.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'
     +k.tabel.rijen.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+  if(k.l) h+=lijst(k.l);
+  if(k.rijen) h+=deflijst(k.rijen);
   if(k.stappen) h+='<ol class="hw-stappenlijst">'+k.stappen.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>';
   if(k.talen) h+=talenHtml(k.talen,nieuwUid());
   if(k.fotos) h+=fotoGalerij(k.fotos);
@@ -267,7 +267,8 @@ function viewPlanning(){
       return '<div class="hw-afb'+(isIk(r.naam)?' ik':'')+'" style="--zk:'+kleurVoorRol(r.karakter)+(z?';cursor:pointer':'')+'"'+(z?' data-ga="zones/'+z.id+'"':'')+'>'
         +'<b>'+esc(r.naam||'–')+(isIk(r.naam)?'<span class="hw-ikbadge">jij</span>':'')+'</b>'
         +'<div class="waar"><b class="rol">'+esc(r.karakter)+'</b>'+(r.tijd?' · '+esc(r.tijd):'')+'</div>'
-        +(r.wat?'<p style="margin:6px 0 0;font-size:14px">'+esc(r.wat)+'</p>':'')+(r.waar?'<div class="waar">📍 '+esc(r.waar)+'</div>':'')+'</div>';
+        +(r.wat?'<p style="margin:6px 0 0;font-size:14px">'+esc(r.wat)+'</p>':'')+(r.waar?'<div class="waar">📍 '+esc(r.waar)+'</div>':'')
+        +(a.fiets&&a.fiets[r.karakter]?'<div class="waar">🚲 Fiets '+esc(a.fiets[r.karakter])+' ophalen (inklokken bij de check-in)</div>':'')+'</div>';
     }).join('')+'</div>';
   }else{
     h+='<table class="hw-tabel"><thead><tr>'+P.kolommen.map(k=>'<th>'+esc(k[1])+'</th>').join('')+'</tr></thead><tbody>'
@@ -279,7 +280,7 @@ function viewPlanning(){
   }
   h+='</div>';
 
-  if(a.nachtExtra){ const x=a.nachtExtra(n,d); if(x) h+=kaartHtml(x); }
+  if(a.nachtExtra){ const x=a.nachtExtra(n,d); (Array.isArray(x)?x:[x]).filter(Boolean).forEach(k=>{ h+=kaartHtml(k); }); }
 
   h+='<div class="hw-kaart"><h3>'+esc(P.afbouwTitel||'Afbouw · 22u30 – 23u30')+'</h3>';
   if(!n.afbouw.length){

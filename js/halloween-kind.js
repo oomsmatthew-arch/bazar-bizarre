@@ -14,6 +14,15 @@ const NACHTEN=window.HW_KIND_NACHTEN||{};
 // Bij de afbouw staat de eigen post vooraan ("Dronkaard/CZC mdw 1"): die bepaalt bij welke post de taak hoort.
 Object.values(NACHTEN).forEach(n=>{ (n.afbouw||[]).forEach(r=>{ r.rol=String(r.karakter||'').split('/')[0].trim(); }); });
 
+// Wie een fiets ophaalt (en dus mag inklokken bij de check-in) — volgens de laatste briefing van Marith.
+const FIETS={'Schutter':'met laadbak','Kok':'met laadbak','Dronkaard':'met laadbak','Dief 1':'met laadbak','Dief 2':'zonder laadbak','Heks':'zonder laadbak'};
+const SC=window.HW_KIND_SCRIPTS=window.HW_KIND_SCRIPTS||{};
+SC['kapitein-samen']={nl:['Blijf altijd samen! Volg de lampjes!'],de:['Bleibt immer zusammen! Folge den Lichtern!'],fr:['Restez ensemble! Suivez les lumières!'],en:['Stay together! Follow the lights!']};
+
+const VOORBEREIDEN=[
+  ['Draaiboek','Per dag een gestructureerd schema: de tijdsplanning, welke rol je die dag hebt en wat je taak is voor, tijdens en na de tocht. Vooral handig op de dag zelf (zie Planning).'],
+  ['Manual','Een uitgebreide uitleg van de hele tocht. Belangrijk: bekijk de pagina’s met praktische informatie en die van je eigen rol, en studeer de teksten in de 4 talen in. De rest van de manual mag je lezen, maar is geen must.'],
+  ['Vragen?','Heb je na de briefing nog vragen, meld ze dan zo snel mogelijk aan Marith en niet pas op de dag zelf.']];
 const K={ ontvangst:'#8a5cc7', kapitein:'#4a63c0', dronkaard:'#d98a2b', schutter:'#e2683f', kok:'#4a9b5e', heks:'#8a3a8c', dief:'#2f6b70' };
 
 const route=(n,t)=>foto('kind-route-'+n,t);
@@ -62,7 +71,7 @@ const ZONES=[
        kleding:[kledij(['Kledij van Pablo: paarse gestreepte broek, paarse blouse, piratenlaarzen, kapiteinshoed, riem','Paarse accessoires','Eventueel een geweer of zwaard']),makeup(['Donkere ogen','Littekens','Eventueel baard of snor']),
                 {t:'Attributen',items:['Bingokaartjes (voor elk kind 1) — 120-tal','Potloodjes (voor elk kind 1) — 120-tal']}],
        fotos:[foto('kind-pablo','Voorbeeld van de make-up van de kapitein')],
-       scripts:[{t:'Intro (aan de nooddeur)',key:'kapitein'},{t:'Bij regenalternatief',key:'kapitein-regen'}],
+       scripts:[{t:'Intro (aan de nooddeur)',key:'kapitein'},{t:'Laatste zin voor de groep vertrekt',key:'kapitein-samen'},{t:'Bij regenalternatief',key:'kapitein-regen'}],
        tip:'Bij regen loopt Pablo vrij rond in de Bay. Hij is vriendelijk tegen iedereen en roept regelmatig erg luid “Ahoy!”.'}
     ],
     materiaal:[{groep:'Voor de start',items:['Bingokaartjes (120)','Potloodjes (120)','Kaartjes met kenmerken (120 per tocht)']},{groep:'Algemeen',items:['EHBO-kit','3 lantaarns','Muziekboxen (neem je pas mee bij aanvang tocht)']}],
@@ -76,7 +85,7 @@ const ZONES=[
     id:'dronkaard',naam:'Dronkaard',kleur:K.dronkaard,rollen:['Dronkaard'],kort:'Post 3 · Stop 3 (Nature Lodge)',
     plattegrond:foto('kind-plattegrond','Plattegrond van het park met de route'),
     wat:['Deze piraat heeft veel te veel rum gedronken, daardoor kan hij amper nog recht lopen. De kinderen moeten laten zien hoe een echte piraat over het schip loopt.'],
-    aandacht:['Dit is de eerste post waar de groepen passeren.','Let op: de fles is van glas.','Stempel bij regenalternatief steeds op de achterkant van het bingokaartje af.'],
+    aandacht:['Fiets met laadbak: klok in bij de check-in en haal hem op bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip, zodat je je spullen er makkelijk in kan zetten.','Dit is de eerste post waar de groepen passeren.','Let op: de fles is van glas.','Stempel bij regenalternatief steeds op de achterkant van het bingokaartje af.'],
     extra:[
       {titel:'Opdracht',p:['Het piratenparcours doorlopen terwijl ze een lepel vasthouden met daarop een knikker. De knikker mag niet vallen. Valt de knikker, laat ze dan eventueel opnieuw starten.']},
       {titel:'Locatie',p:['De dronkaard staat in het grasveldje links naast de Nature Lodge. Het parcours dat daar al ligt wordt gebruikt met wat extra attributen. De hoepels mag je tussendoor leggen: daar moeten ze dan volledig doorheen.']},
@@ -88,14 +97,14 @@ const ZONES=[
        wie:['Dit karakter heeft iets te veel rum gedronken; je hebt ook een fles vast (let op: glas). Daardoor denkt hij dat de grond beweegt, bomen praten en zijn schip voortdurend schommelt. Hij is nooit gemeen of eng: gewoon heel verward en ontzettend grappig.'],
        blokken:[trekjes(['Wankelt voortdurend','Verliest soms zijn evenwicht','Vergeet continu wat hij zei','Praat tegen objecten','Kijkt af en toe scheel','Probeert soms een ton, boom of paaltje te begroeten alsof het een persoon is']),
                 uitspraken(['“Wacht eens... waren jullie er daarnet ook al?”','“Waarom draait de lucht?”','“Praatte die boom nu tegen mij?”','“Of ben ik dat?”'])],
-       kleding:[kledij(['Zwarte piratenbroek','Wit piratenhemd','Piratenvest','Scheve hoed','Grote lege doodskopfles','Verschillende riemen en touwen die slordig hangen','Ooglapje']),makeup(['Rode wangetjes en neus','Donkere ogen','Eventueel wat gekke accenten'])],
+       kleding:[kledij(['Zwarte piratenbroek','Wit piratenhemd','Piratenvest','Scheve hoed','Grote doodskopfles','Verschillende riemen en touwen die slordig hangen (kijk wat haalbaar is)','Ooglapje (in je kist met materiaal)']),makeup(['Rode wangetjes en neus','Donkere ogen','Eventueel wat gekke accenten'])],
        scripts:[{t:'Intro',key:'dronkaard'},{t:'Tip voor de kinderen (de bandana)',key:'dronkaard-tip'}]}
     ],
     materiaal:[{groep:'Parcours',items:['2 hoepels','15 lepels','15 knikkers']},{groep:'Sfeer',items:['Spinnenweb-deco (op een plek naar keuze)','Muziekbox','Doodshoofd-fles']}],
     opbouw:[{t:'Parcours neerleggen op het grasveldje links naast de Nature Lodge (Stop 3). Het parcours dat er al ligt wordt gebruikt met extra attributen.',fotos:[route(1,'Route 1/4: stap 3 (post dronkaard)')]},
             'Hoepels tussendoor leggen: de kinderen moeten er volledig doorheen.',
             'Spinnenweb-deco ophangen op een plek naar keuze.',
-            'Benodigdheden van de heks klaarleggen in de fiets en op de mediva-tafel onder het schip: die gaan later naar Stop 10 (vlindertuin).',
+            'Benodigdheden van de heks klaarleggen in de fiets en op de mediva-tafel onder het schip (tafel met heksenketel met snoep en deco-spin, daarnaast de extra kist): die gaan later naar Stop 10 (vlindertuin).',
             'Muziekbox pas meenemen bij aanvang van de tocht.'],
     fotos:[foto('kind-route-1','Route 1/4: nooduitgang, splitsing en Nature Lodge')]
   },
@@ -103,7 +112,7 @@ const ZONES=[
     id:'schutter',naam:'Schutter',kleur:K.schutter,rollen:['Schutter'],kort:'Post 5 · Stop 5 (cottage 236–237)',
     plattegrond:foto('kind-plattegrond','Plattegrond van het park met de route'),
     wat:['De Schutter staat bekend als de beste scherpschutter van alle piraten. Helaas is hij de laatste tijd zo zenuwachtig dat hij voortdurend staat te trillen. Hij heeft geprobeerd enkele blikken van zijn schietkraam omver te gooien, maar raakt zelf niets meer.'],
-    aandacht:['Het bord is te groot om met de fiets mee te nemen: dit doe je met de e-car.','Stempel bij regenalternatief steeds op de achterkant af.'],
+    aandacht:['Fiets met laadbak: klok in bij de check-in en haal hem op bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip, zodat je je spullen er makkelijk in kan zetten.','Het bord is te groot om met de fiets mee te nemen: dit doe je met de e-car.','Stempel bij regenalternatief steeds op de achterkant af.'],
     extra:[
       {titel:'Opdracht',p:['Elk kind krijgt 3 ringen. Ze moeten proberen zoveel mogelijk ringen om de haken te krijgen. Laat ze telkens per 2 of 3 tegelijk gooien en maak zo rijtjes van 4 à 5 kinderen. Je mag kiezen of je de kinderen 1 ring per keer laat gooien of alle 3 na elkaar.']},
       {titel:'Locatie',p:['De Schutter staat op het verharde stukje tegenover cottage 236–237. Hier kan je de kinderen mooi op een rij zetten en het bord plaatsen. Het camouflagenet en de spinnenweb-deco mag je op een plek naar keuze hangen.']},
@@ -115,10 +124,10 @@ const ZONES=[
        wie:['Jack(y) was ooit een legendarische scherpschutter. Niemand kon beter mikken dan hij. Maar sinds zijn laatste zeereis is hij ontzettend zenuwachtig: zijn handen trillen voortdurend en daardoor mist hij zelfs doelen van dichtbij. Hij is eigenlijk heel vriendelijk, maar maakt zich constant zorgen.'],
        blokken:[trekjes(['Trillende handen','Praat erg snel','Schrikt van alles','Overdrijft zijn mislukte schoten','Probeert constant iets te richten terwijl zijn arm overdreven heen en weer beweegt']),
                 uitspraken(['“Oei, oei, oei!”','“Dat ging bijna goed!”','“Ik had hem bijna geraakt!”','“Vroeger was ik écht goed hoor!”'])],
-       kleding:[kledij(['Broek en blouse (Francesco)','Bandana','Riem met pistolen','Ooglapje']),makeup(['Donkere ogen','Littekens'])],
+       kleding:[kledij(['Broek en blouse (Francesco)','Bandana','Riem met pistolen (in de mand met materiaal)','Ooglapje (in de mand met materiaal)']),makeup(['Donkere ogen','Littekens'])],
        scripts:[{t:'Intro',key:'schutter'},{t:'Tip voor de kinderen (de mond)',key:'schutter-tip'}]}
     ],
-    materiaal:[{groep:'Spel',items:['30 werpringen (zoveel mogelijk)','Spelbord / bord met haken','Camouflagenet']},{groep:'Sfeer',items:['Spinnenweb-deco','Muziekbox']}],
+    materiaal:[{groep:'Spel',items:['2 dozen werpringen','Spelbord / bord met haken','Camouflagenet']},{groep:'Sfeer',items:['Spinnenweb-deco','Muziekbox']}],
     opbouw:[{t:'Benodigdheden klaarleggen en naar Stop 5 (cottage 236–237) rijden met de fiets; het bord gaat mee met de e-car.',fotos:[route(2,'Route 2/4: stap 5 (post schutter)')]},
             'Het bord met haken op het verharde stukje tegenover de cottage plaatsen, zo dat je de kinderen op een rij kan zetten.',
             'Camouflagenet en spinnenweb-deco ophangen op een plek naar keuze.',
@@ -130,7 +139,7 @@ const ZONES=[
     id:'kok',naam:'Kok',kleur:K.kok,rollen:['Kok'],kort:'Post 7 · Stop 7 (cottage 317–318)',
     plattegrond:foto('kind-plattegrond','Plattegrond van het park met de route'),
     wat:['De Kok wilde pompoensoep maken voor Halloween. Maar terwijl hij even weg was, hebben hongerige ratten zijn ajuinen overal verstopt om op te eten. Hij heeft hulp nodig om de ajuinen terug te vinden!'],
-    aandacht:['Rol het lint na gebruik netjes terug op, zo kunnen we het hergebruiken.','Bij regenalternatief wordt de opdracht kleiner: minder ajuinen zoeken (bv. elk kind 3, 4 of 5 stuks).','Stempel bij regenalternatief steeds op de achterkant af.'],
+    aandacht:['Fiets met laadbak: klok in bij de check-in en haal hem op bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip, zodat je je spullen er makkelijk in kan zetten.','Rol het lint na gebruik netjes terug op, zo kunnen we het hergebruiken.','Bij regenalternatief wordt de opdracht kleiner: minder ajuinen zoeken (bv. elk kind 3, 4 of 5 stuks).','Stempel bij regenalternatief steeds op de achterkant af.'],
     extra:[
       {titel:'Opdracht',p:['Ajuinen zoeken over een afgebakend terrein. Er liggen ook tennisballen verstopt: die heeft de kok natuurlijk niet nodig. De kinderen mogen alle ajuinen in een grote kookpot stoppen.']},
       {titel:'Locatie',p:['De kok staat ter hoogte van cottage 317–318. Hier is een veldje rechts van de weg waar je de groep kan verzamelen en de opdracht doen. De ajuinen verstop je best aan de overkant van de weg, daar is veel ruimte. Hang lint rond de 2 bomen waartussen je de ajuinen verstopt, zo is er een duidelijke grens. Welke bomen dit zijn, bepaal je zelf.']},
@@ -142,7 +151,7 @@ const ZONES=[
        wie:['Chef Alfons is de scheepskok. Hij is trots op zijn beroemde Halloween-pompoensoep, maar vergeet voortdurend waar hij zijn ingrediënten heeft gelegd. Hij is er heilig van overtuigd dat de scheepsratten hem telkens saboteren.'],
        blokken:[trekjes(['Ruikt aan alles','Roert voortdurend in zijn kookpot','Praat over eten','Klaagt over ratten','Laat af en toe een ajuin uit zijn zak vallen zonder dat hij het doorheeft']),
                 uitspraken(['“Geen soep zonder ajuinen!”','“Die ratten weer!”','“Dat ruikt heerlijk!”','“Een kok zonder ajuinen is als een schip zonder kapitein!”'])],
-       kleding:[kledij(['Witte koksmuts','Wit schort met vlekken','Piratenbroek / koksbroek','Houten lepel','Ooglapje','Ajuinen in zijn zakken']),makeup(['Getekende rimpels','Wallen','Eventueel snor of baard'])],
+       kleding:[kledij(['Witte koksmuts','Witte schort','Piratenbroek / koksbroek (wat jou past)','Ooglapje (in de ketel met materiaal)','Ajuinen in zijn zakken']),makeup(['Getekende rimpels','Wallen','Eventueel snor of baard'])],
        scripts:[{t:'Intro',key:'kok'},{t:'Tip voor de kinderen (de ogen)',key:'kok-tip'}]}
     ],
     materiaal:[{groep:'Spel',items:['60-tal ajuinen','10-tal tennisballen','1 kookpot','1 rol afbakenlint','1 roerlepel']},{groep:'Sfeer',items:['Spinnenweb-deco','Muziekbox']}],
@@ -158,7 +167,7 @@ const ZONES=[
     plattegrond:foto('kind-plattegrond','Plattegrond van het park met de route'),
     wat:['De heks reconstrueert samen met de kinderen het gezicht van de dief, om te ontdekken wie de dief is. Ze heeft blanco gezichten met velcro en alle kenmerken van de bingokaartjes. Ze legt om de beurt kenmerken op de gezichten; het is aan de kinderen te zeggen wat wel of niet klopt.',
          'Is de identiteit gevormd, dan doet de heks een spreuk en tovert ze plots het kompas terug! Elk kind krijgt daarna nog een snoepje.'],
-    aandacht:['De groene appelringen zijn glutenvrij: houd 1 zak apart. We hebben geen halal-snoep.','Bouw je post niet te vroeg op: we willen dit materiaal niet in het zicht van de gasten laten staan. Neem je kar mee naar je post; dief 2 / Orry helpt bij de opbouw.','De laatste tocht is rond 19u15 bij de heks. Is de groep voorbij je post, dan ruim je op en ga je terug naar de Discovery Bay.'],
+    aandacht:['Fiets zonder laadbak: klok in bij de check-in en haal hem op bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip.','De groene appelringen zijn glutenvrij: houd 1 zak apart. We hebben geen halal-snoep.','Bouw je post niet te vroeg op: we willen dit materiaal niet in het zicht van de gasten laten staan. Neem je kar en de kist met materiaal mee naar je post; dief 2 / Orry helpt je bij het vervoer en de opbouw.','De laatste tocht is rond 19u15 bij de heks. Is de groep voorbij je post, dan ruim je op en ga je terug naar de Discovery Bay.'],
     extra:[
       {titel:'Locatie',p:['De heks staat helemaal op het einde van het parcours, op het verhoogde deel in de vlindertuin, bij haar heksentafel. Rondom haar staan led-kaarsjes: dat is ineens ook een duidelijke afbakening waar de gasten kunnen gaan staan. Je hebt de heksentafel met kookpot en nog heel wat leuke attributen: maak er zelf iets leuks van, op en rond de tafel.']},
       {titel:'Route naar deze post',p:['Direct nadat ze zijn overgestoken, staat de heks op een verhoogd stuk aan de linkerkant. Is de post van de heks afgelopen, dan stuurt deze hen richting de Bay: de gasten kiezen zelf welke richting ze uit gaan.'],fotos:[route(4,'Route 4/4: stap 10 (post heks in de vlindertuin)')]},
@@ -173,13 +182,13 @@ const ZONES=[
        tip:'Bij de toverspreuk laat je de kinderen “Zim, Zam, Zoom!” meerdere keren roepen, steeds luider en luider. Wanneer het voor jou oké is, tover je het kompas terug!',
        scripts:[{t:'Intro',key:'heks'},{t:'Wanneer het gezicht klaar is',key:'heks-klaar'},{t:'Afsluiting',key:'heks-afsluiting'}]}
     ],
-    materiaal:[{groep:'Tafel',items:['1 mediva-tafel','1 heksenketel met mist','Deco: spinnenwebben, rat','20-tal led-kaarsen','1 rookmachine','1 spreukenboek']},
-               {groep:'Spel',items:['1 magisch kompas','1 groot voorbeeldgezicht (+1 reserve)','1 set kenmerken met velcro (+1 reserve)','1 heksenketel met snoep','Spinnenweb-deco']}],
-    opbouw:[{t:'Benodigdheden klaarleggen in de fiets en op de mediva-tafel onder het schip (de dronkaard legt dit klaar). Bouw de post nog niet meteen op: het materiaal mag niet in het zicht van de gasten staan.'},
-            {t:'Met de kar naar Stop 10 (vlindertuin), op het verhoogde deel bij het zebrapad en daar de post opbouwen met dief 2 / Orry.',fotos:[route(4,'Route 4/4: stap 10 (post heks)')]},
-            'Heksentafel met kookpot, spinnenwebben, rat en spreukenboek neerzetten.',
-            'Led-kaarsjes (20-tal) rondom plaatsen als afbakening voor de gasten.',
-            'Rookmachine, heksenketel met mist en het magische kompas klaarzetten; de ketel met snoep binnen handbereik.',
+    materiaal:[{groep:'Op de mediva-tafel',items:['1 mediva-tafel','1 heksenketel met snoep','Deco-spin','1 spreukenboek']},
+               {groep:'In de extra kist',items:['30-tal led-kaarsen','Deco: spinnenwebben, rat, grote spin, heksenketels','1 magische bol','1 vogelkooi met kraai','1 kompas','1 groot voorbeeldgezicht (+1 reserve)','1 set kenmerken met velcro (+1 reserve)']}],
+    opbouw:[{t:'Benodigdheden klaarleggen in de fiets en op de mediva-tafel onder het schip: de heksenketel met snoep en de deco-spin op de tafel, de rest in de extra kist (de dronkaard legt dit klaar). Bouw de post nog niet meteen op: het materiaal mag niet in het zicht van de gasten staan.'},
+            {t:'Met de kar en de kist naar Stop 10 (vlindertuin), op het verhoogde deel bij het zebrapad en daar de post opbouwen met dief 2 / Orry.',fotos:[route(4,'Route 4/4: stap 10 (post heks)')]},
+            'Heksentafel neerzetten met de heksenketel met snoep, de deco-spin en het spreukenboek.',
+            'Led-kaarsjes (30-tal) rondom plaatsen als afbakening voor de gasten.',
+            'Uit de extra kist: deco (spinnenwebben, rat, grote spin, heksenketels), de magische bol, de vogelkooi met kraai en het kompas klaarzetten.',
             'Voorbeeldgezicht en de set kenmerken met velcro klaarleggen.'],
     fotos:[foto('kind-route-4','Route 4/4: post van de heks in de vlindertuin')]
   },
@@ -187,15 +196,16 @@ const ZONES=[
     id:'dief',naam:'Dieven',kleur:K.dief,rollen:['Dief 1','Dief 2'],kort:'Dief 1 & 2 · lopen rond',
     plattegrond:foto('kind-route-kaart','De route op de kaart'),
     wat:['Er zijn altijd 2 dieven die elk een deel van het parcours voor hun rekening nemen. Ze proberen elke groep minstens 1 keer gehad te hebben. Sommige tochten zijn er 3 dieven: dief 3 vlindert dan wat over het parcours.',
+         'Tijdens de opbouw ben jij (dief 1) verantwoordelijk om de lampjes op de splitsingen te plaatsen, zodat de groepen weten waar ze heen moeten, en om bij elke splitsing met stoepkrijt een pijl op de weg te tekenen.',
          'De dief is vervloekt: hij kan niets zien, enkel horen. Als de dief bij een groep komt, moeten de kinderen muisstil blijven staan.'],
-    aandacht:['Je kondigt je komst steeds aan met de bel, zodat dit ook voor spanning zorgt.','Aangekomen bij de groep loop je door de groep heen (die normaal stilstaat) en maak je af en toe gromgeluiden. Maakt iemand lawaai, dan mag je daar gerust even aandacht aan besteden.','Bij regenalternatief loop je doorheen de hele Bay.'],
+    aandacht:['Fiets: dief 1 (overhead) neemt een fiets MET laadbak, dief 2 (Orry) een fiets ZONDER laadbak. Klok in bij de check-in, haal hem op bij de fietsenstalling van de Housekeeping (achter de loods) en zet hem bij de nooddeur onder het schip.','Je kondigt je komst steeds aan met de bel, zodat dit ook voor spanning zorgt.','Aangekomen bij de groep loop je door de groep heen (die normaal stilstaat) en maak je af en toe gromgeluiden. Maakt iemand lawaai, dan mag je daar gerust even aandacht aan besteden.','Bij regenalternatief loop je doorheen de hele Bay.'],
     personages:[
       {naam:'De Dief',sub:'Volledig gemaskerd, met bel en lantaarn',wieTitel:'Wat doe je',
        wie:['Je loopt rond met je bel en je lantaarn, doorheen je deel van het parcours, en laat de kinderen stilstaan wanneer je langskomt. Je bent volledig gemaskerd en spreekt niet: je gromt.'],
-       kleding:[kledij(['Lange groene mantel met kap','Volledig masker','Zwarte handschoenen','Donkere broek en schoenen']),{t:'Attributen',items:['Handbel (2)','Lantaarn (2)']}]}
+       kleding:[kledij(['Lange groene mantel met kap','Volledig masker','Zwarte handschoenen (worden voorzien)','Donkere broek en schoenen (zelf voorzien)']),{t:'Attributen',items:['Handbel','Lantaarn']}]}
     ],
-    materiaal:[{groep:'Dief',items:['2 handbellen','2 lantaarns']},{groep:'Dief 1 — voor de opbouw',items:['6 paddenstoelenlampjes','AA-batterijen']}],
-    opbouw:[{t:'Paddenstoelenlampjes plaatsen (dief 1, 15u10–15u50), op 6 plaatsen: 1 splitsing bij de nooduitgang van de Bay (linkerkant); 2 splitsing bij het hotel (rechterkant in de bocht); 3 splitsing bij de dronkaard (rechterkant); 4 splitsing na de schutter (rechterkant); 5 grindpad (net op het grindpad zelf); 6 vlindertuin (vlak na het zebrapad).',fotos:[foto('kind-route-kaart','De route op de kaart: de 6 plaatsen volg je langs het pad')]},
+    materiaal:[{groep:'Dief',items:['3 handbellen','3 lantaarns']},{groep:'Dief 1 — voor de opbouw',items:['6 paddenstoelenlampjes, inclusief AA-batterijen','Stoepkrijt']}],
+    opbouw:[{t:'Lampjes plaatsen en pijlen met stoepkrijt tekenen (dief 1, 15u10–15u50), op 6 plaatsen: 1 splitsing bij de nooduitgang van de Bay (linkerkant); 2 splitsing bij het hotel (rechterkant in de bocht); 3 splitsing bij de dronkaard (rechterkant); 4 splitsing na de schutter (rechterkant); 5 grindpad (net op het grindpad zelf); 6 vlindertuin (vlak na het zebrapad). Leg de lampjes op de grond of op de struiken: het is niet nodig om de stokjes of kopjes erop te steken. Teken ook op elke splitsing die ze moeten nemen een pijl in de juiste richting met stoepkrijt.',fotos:[foto('kind-route-kaart','De route op de kaart: de 6 plaatsen volg je langs het pad')]},
             'Dief 1 en de kapitein ruimen om 16u30–16u40 de show op (Pirates Place naar onder het schip).',
             'Dief 2 loopt vanaf 16u50 rond met bel en lantaarn tot 19u00 (zie plattegrond); dief 1 vanaf 16u40.'],
     fotos:[foto('kind-route-kaart','De route op de kaart')]
@@ -205,14 +215,15 @@ const ZONES=[
 // ---------------------------------------------------------------- checklist
 const CHECK=[
   {id:'f1',nr:1,titel:'Opbouw',tijd:'15u00 – 15u50',protocol:'Briefing om 15u00 onder het schip, opbouw vanaf 15u10. Klaar om 15u50, daarna make-up en kledij.',groepen:[
-    {naam:'Briefing',items:['Iedereen aanwezig voor de briefing (15u00, onder het schip)','Wie op reserve staat weet dat hij inspringt bij ziekte, anders helpt bij de ontvangst of als dief']},
-    {naam:'Algemeen materiaal',items:['EHBO-kit klaar','Lantaarns (3) klaar','4 muziekboxen opgeladen','Fietsen met laadbak (4) en fietsen (2) klaar onder het schip','AA-batterijen (240 per tocht) bij de hand','PDA opgeladen en betaalterminal klaar','Stempels voor het regenalternatief (3) klaar','Spinnenweb-deco (4) klaar']},
+    {naam:'Fietsen & inklokken',items:['Schutter, kok, dronkaard en dief 1 (overhead): ingeklokt bij de check-in en een fiets MET laadbak opgehaald bij de fietsenstalling van de Housekeeping (achter de loods)','Dief 2 (Orry) en heks: ingeklokt bij de check-in en een fiets ZONDER laadbak opgehaald','De fiets bij de nooddeur onder het schip gezet, zodat je de spullen er makkelijk in kan zetten']},
+    {naam:'Briefing',items:['Iedereen aanwezig voor de briefing (15u00, onder het schip): de verplaatsing met de fiets zelf ingecalculeerd','Wie op reserve staat weet dat hij inspringt bij ziekte, anders helpt bij de ontvangst of als dief']},
+    {naam:'Algemeen materiaal',items:['EHBO-kit klaar','Lantaarns (3) klaar','4 muziekboxen opgeladen (3 grote en 1 JBL)','Fietsen: 4 met laadbak en 2 zonder laadbak, bij de nooddeur onder het schip','AA-batterijen (240 per tocht) bij de hand','PDA opgeladen en betaalterminal klaar','Stempels voor het regenalternatief (3) klaar','Spinnenweb-deco (4) klaar']},
     {naam:'Kapitein',items:['Bingokaarten (120) klaargelegd','Potloden (120) klaargelegd','Kaartjes met kenmerken (120) klaar','Techniek van de show klaargelegd in de hut']},
     {naam:'Dronkaard (Stop 3, Nature Lodge)',items:['Parcours neergelegd','Hoepels (2), lepels (15) en knikkers (15) klaar','Spinnenweb-deco opgehangen','Doodshoofd-fles klaar (let op: glas)','Muziekbox klaar (meenemen bij aanvang tocht)']},
-    {naam:'Schutter (Stop 5, cottage 236–237)',items:['Werpringen (30) en spelbord klaar (bord met de e-car)','Camouflagenet en spinnenweb-deco opgehangen','Bord met haken geplaatst','Muziekbox klaar (meenemen bij aanvang tocht)','Klaar met je eigen post? Help de kok']},
+    {naam:'Schutter (Stop 5, cottage 236–237)',items:['Werpringen (2 dozen) en spelbord klaar (bord met de e-car)','Camouflagenet en spinnenweb-deco opgehangen','Bord met haken geplaatst','Muziekbox klaar (meenemen bij aanvang tocht)','Klaar met je eigen post? Help de kok']},
     {naam:'Kok (Stop 7, cottage 317–318)',items:['Ajuinen (60-tal) en tennisballen (10-tal) verspreid in het afgebakende gebied','Lint rond de 2 bomen gehangen','Kookpot, roerlepel en spinnenweb-deco klaar','Muziekbox klaar (meenemen bij aanvang tocht)']},
-    {naam:'Dief 1: paddenstoelenlampjes',items:['Lampje 1: splitsing bij de nooduitgang van de Bay (linkerkant)','Lampje 2: splitsing bij het hotel (rechterkant in de bocht)','Lampje 3: splitsing bij de dronkaard (rechterkant)','Lampje 4: splitsing na de schutter (rechterkant)','Lampje 5: grindpad (net op het pad zelf)','Lampje 6: vlindertuin (vlak na het zebrapad)','Lampjes aan, batterijen in orde']},
-    {naam:'Heks (nog niet opbouwen)',items:['Materiaal klaargelegd in de fiets en op de mediva-tafel, uit het zicht van de gasten','Heksenketel met mist, spinnenwebben, rat en spreukenboek op de mediva-tafel','Heksenketel met snoep, led-kaarsen (20-tal), rookmachine','Magisch kompas, voorbeeldgezicht (+1 reserve) en kenmerken met velcro (+1 set reserve)','Glutenvrije appelringen: 1 zak apart']},
+    {naam:'Dief 1: lampjes en pijlen',items:['Lampje 1: splitsing bij de nooduitgang van de Bay (linkerkant)','Lampje 2: splitsing bij het hotel (rechterkant in de bocht)','Lampje 3: splitsing bij de dronkaard (rechterkant)','Lampje 4: splitsing na de schutter (rechterkant)','Lampje 5: grindpad (net op het pad zelf)','Lampje 6: vlindertuin (vlak na het zebrapad)','Lampjes op de grond of op de struiken gelegd (stokjes en kopjes zijn niet nodig)','Op elke splitsing een pijl met stoepkrijt in de juiste richting getekend','Lampjes aan, batterijen in orde']},
+    {naam:'Heks (nog niet opbouwen)',items:['Materiaal klaargelegd in de fiets en op de mediva-tafel, uit het zicht van de gasten','Mediva-tafel met de heksenketel met snoep, de deco-spin en het spreukenboek','Extra kist met led-kaarsen (30-tal), deco (spinnenwebben, rat, grote spin, heksenketels), magische bol, vogelkooi met kraai, kompas, voorbeeldgezicht (+1 reserve) en kenmerken met velcro (+1 set reserve)','Glutenvrije appelringen: 1 zak apart']},
     {naam:'Ontvangst (Pirates Place)',items:['PDA/computertje en betaalterminal klaargezet','Doos met lampionpakketjes klaar (120 per dag)','Lampionnen zonder batterijen apart gehouden en gevuld waar mogelijk','Tafels met stiften en ander materiaal om te versieren klaar (na de show)']}
   ]},
   {id:'f2',nr:2,titel:'Voor de start',tijd:'15u50 – 16u40',protocol:'Make-up en kledij, ontvangst naar de Pirates Place, iedereen naar zijn post.',groepen:[
@@ -227,7 +238,7 @@ const CHECK=[
     {naam:'Veiligheid',items:['De tocht is ongeveer 2 km lang en mogelijk voor rolstoelgebruikers','Geen kinderen alleen laten: de groepen lopen samen met hun begeleiders','De heks sluit af: de laatste groep is rond 19u15 bij haar']}
   ]},
   {id:'f4',nr:4,titel:'Afbouw',tijd:'vanaf 18u25',protocol:'Zodra de laatste groep bij jou voorbij is, mag je opruimen.',groepen:[
-    {naam:'Eigen post',items:['Laatste groep (18u25) gepasseerd: materiaal opgeruimd en terug naar de Bay gebracht','Lint netjes opgerold (kok)','Fiets, kar en muziekbox teruggebracht','Paddenstoelenlampjes opgehaald (dief 1)']},
+    {naam:'Eigen post',items:['Laatste groep (18u25) gepasseerd: materiaal opgeruimd en terug naar de Bay gebracht','Lint netjes opgerold (kok)','Fiets (terug naar de fietsenstalling van de Housekeeping), kar en muziekbox teruggebracht','Paddenstoelenlampjes opgehaald (dief 1)']},
     {naam:'Heks & Orry',items:['Post van de heks opgeruimd en terug naar de Discovery Bay (19u15–19u30)','Omkleden en make-up eraf (19u30–19u45)','Pauze 19u45–20u15; daarna omkleden en make-up voor de volwassentocht (20u15–20u25)']},
     {naam:'Ombouw voor de volwassentocht (19u00 – 19u30)',items:['Je taak voor de ombouw staat bij Planning, per avond: kijk naar je eigen naam','Inkom, locker & ingang, sector 1 en 2, buitenbos en techniek zijn verdeeld over de medewerkers']},
     {naam:'Materiaal & rapport',items:['Tekorten (lint, tape, batterijen) genoteerd','Ontbrekend of kapot materiaal gemeld','Rapport ingevuld']}
@@ -245,6 +256,15 @@ window.HW_ACT['zeven-zeeen']={
   zonesTab:'Posten',zonesUitleg:'Ontvangst, kapitein en de vier posten: karakter, scripts, opbouw en foto’s.',rollenTab:'Karakter & scripts',
   opbouwTitel:'Opbouw (vanaf 15u10)',materiaalUitleg:'De shifttijd begint om 15u. Elke piraat met een post neemt zijn materiaal dat klaarligt onder het schip en rijdt met de fiets naar zijn post. Leg het materiaal zoveel mogelijk nog uit het zicht van de gasten.',
   snelkaarten:true,
+  fiets:FIETS,
+  startKaartenVoor:[
+    {nood:true,titel:'Belangrijk',l:['Je staat de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je post staat welke kleding je zelf moet voorzien.','Zorg dat je echt op de afgesproken tijd onder het schip bent voor de briefing (15u00).','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Heb je vragen? Meld ze zo snel mogelijk aan Marith, niet pas op de dag zelf.']},
+    {titel:'🚲 Fietsen: wie haalt er een op?',p:['Deze rollen nemen een fiets en mogen daarvoor bij de check-in inklokken. Alleen deze medewerkers klokken bij de check-in in.'],
+     tabel:{kop:['Rol','Fiets'],rijen:[['Schutter','Met laadbak'],['Kok','Met laadbak'],['Dronkaard','Met laadbak'],['Dief 1 / overhead','Met laadbak'],['Dief 2 / Orry','Zonder laadbak'],['Heks','Zonder laadbak']]},
+     l:['Ophalen: bij de fietsenstalling van de Housekeeping, achter de loods.','Zet je fiets bij de nooddeur onder het schip, zodat je de spullen er makkelijk in kan zetten.','Zorg dat je om 15u00 onder het schip bent voor de briefing: bedenk zelf hoeveel tijd je nodig hebt voor de verplaatsing.','Wie dat is op welke avond, staat bij Planning (blok “Fietsen”) en bij je rol in de kaarten.'],
+     nota:'Kapitein, ontvangst en reserve staan niet in dit lijstje: zij halen geen fiets op.'},
+    {titel:'Wat moet je voorbereiden?',rijen:VOORBEREIDEN}
+  ],
   feiten:[['Tocht','16u40 – 19u00'],['Leeftijd','2 – 12 jaar'],['Duur','± 45 min · 2 km'],['Prijs','€ 3'],['Groep','10–15 kinderen'],['Verantw.','Lien']],
   verhaalTitel:'Het verhaal',
   verhaal:['Kapitein Pablo heeft jaren geleden een magisch kompas gekocht bij de heks. Dat is zopas gestolen door een dief! Maar omdat het een magisch kompas is, is de dief nu vervloekt. Pablo weet niet wie het deed, want hij lag te slapen. Een aantal piraten heeft wel iets gezien, maar wil het niet aan Pablo vertellen. Daarom heeft hij de kinderen nodig.',
@@ -282,7 +302,8 @@ window.HW_ACT['zeven-zeeen']={
      fotos:[foto('kind-pablo','Make-up voorbeeld: kapitein Pablo'),foto('kind-schmink-piraat-vrouw','Make-up voorbeeld: piraat (vrouw)'),foto('kind-schmink-piraat-man','Make-up voorbeeld: piraat (man)')]}
   ],
   uurschema:[
-    ['15u00','Briefing','Iedereen onder het schip in de Discovery Bay.'],
+    ['Vóór 15u00','Inklokken en fiets ophalen','Alleen schutter, kok, dronkaard, dief 1/overhead (fiets met laadbak) en dief 2/Orry en heks (fiets zonder laadbak): inklokken bij de check-in en een fiets halen bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip.'],
+    ['15u00','Briefing','Iedereen onder het schip in de Discovery Bay. Wees echt op tijd.'],
     ['15u10','Opbouw','Elke piraat met een post neemt zijn materiaal onder het schip en fietst naar zijn post. De heks bouwt nog niet op: dat materiaal mag niet in het zicht van de gasten staan.'],
     ['15u50','Opbouw klaar','Daarna afspraak voor make-up en kledij.'],
     ['16u15','Ontvangst naar de Pirates Place','Zij vertrekken al om 16u15, want om 16u25 start het eerste tijdslot.'],
@@ -310,12 +331,30 @@ window.HW_ACT['zeven-zeeen']={
       ['Duur','Wandelen duurt een 30-tal minuten, met de opdrachten zeker 45 minuten. De tocht is net geen 2 km.']
     ]},
   planning:{titel:'Draaiboek tocht',kaarten:true,afbTijd:true,afbouwTitel:'Af- en ombouw · 19u00 – 19u30'},
-  nachtExtra:(n)=>(n&&(n.orry||n.heks))?{titel:'Orry & de heks · de show',sub:'Dit geldt voor Orry en de heks. Wie in de middag Orry is, volgt vanaf 19u00 het draaiboek van de andere medewerkers.',
-    rijen:[['Orry (en dief 2)',n.orry||'—'],['Heks',n.heks||'—'],['Tessy ’s avonds',n.tessy||'—'],['Shows','15u15 – 15u45 en 16u00 – 16u30 (zie het onderdeel O&F Halloween show)'],['Op post','16u50 – 19u15; de laatste tocht is rond 19u15 bij de heks']]}:null,
+  nachtExtra:(n,datum)=>{
+    if(!n) return null; const uit=[];
+    const fr=(n.draaiboek||[]).filter(r=>FIETS[r.karakter]);
+    if(fr.length) uit.push({titel:'🚲 Fietsen op '+datum,sub:'Zij klokken in bij de check-in en halen een fiets op bij de fietsenstalling van de Housekeeping (achter de loods); ze zetten hem bij de nooddeur onder het schip.',
+      rijen:fr.map(r=>[r.naam+' — '+r.karakter,'Fiets '+FIETS[r.karakter]])});
+    if(n.orry||n.heks) uit.push({titel:'Orry & de heks · de show',sub:'Dit geldt voor Orry en de heks. Wie in de middag Orry is, volgt vanaf 19u00 het draaiboek van de andere medewerkers.',
+      rijen:[['Orry (en dief 2)',n.orry||'—'],['Heks',n.heks||'—'],['Tessy ’s avonds',n.tessy||'—'],['Shows','15u15 – 15u45 en 16u00 – 16u30 (zie het onderdeel O&F Halloween show)'],['Op post','16u50 – 19u15; de laatste tocht is rond 19u15 bij de heks']]});
+    return uit;
+  },
   zones:ZONES,
   checklist:CHECK,
   rapport:['Incidenten','Ontbrekend of kapot materiaal','Opmerkingen voor de volgende avond'],
   praktisch:[
+    {titel:'Wat moet je voorbereiden?',rijen:VOORBEREIDEN},
+    {titel:'Fietsen & inklokken',rijen:[
+      ['Wie','Schutter, kok, dronkaard en dief 1 / overhead nemen een fiets MET laadbak; dief 2 / Orry en heks nemen een fiets ZONDER laadbak.'],
+      ['Waar ophalen','Bij de fietsenstalling van de Housekeeping, achter de loods. Zet je fiets bij de nooddeur onder het schip, zodat je de spullen er makkelijk in kan zetten.'],
+      ['Inklokken','Alleen deze medewerkers mogen bij de check-in inklokken.'],
+      ['Op tijd','Zorg dat je om 15u00 onder het schip bent voor de briefing: bedenk zelf hoeveel tijd je nodig hebt voor deze verplaatsing.']]},
+    {titel:'Kleding, eten en nood',rijen:[
+      ['Warm aankleden','Afhankelijk van je rol sta je de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je post staat welke kleding je zelf moet voorzien.'],
+      ['Eten','Er is geen ruimte voor speling: eten in de Evergreens tijdens de dagen van de Halloweentochten is niet echt mogelijk. Neem dus eigen eten mee voor de pauze. Ga je toch in de Evergreens eten, houd er dan rekening mee dat bestellen tijd kost, zeker met de drukte op dat uur.'],
+      ['Nationaliteiten','Een overzicht van de nationaliteiten per dag staat in de bijlage van de mail van Marith (niet in de app): zo weet je welke talen welke dagen extra belangrijk zijn. Op de dag zelf staan we er ook kort bij stil tijdens de briefing.'],
+      ['EHBO / veiligheid','Gebeurt er tijdens je dienst iets ernstigs of is er een EHBO-geval, dan volgen we dezelfde procedures als op de werkvloer. Elk van jullie heeft een telefoon bij met het noodnummer van CP: dat bel je alleen in echte noodgevallen (het nummer staat bewust niet op deze pagina). Kleine EHBO’s kunnen in de Bay door onze medewerkers zelf verzorgd worden; bij twijfel val je terug op de DUTY en/of je leidinggevende.']]},
     {titel:'De tocht',rijen:[
       ['Verloop','Kinderen met begeleiders trekken het park in om de identiteit van de vervloekte dief te achterhalen. Door als groep opdrachten te doen bij de verschillende piraten krijgen ze tips. Lukt het alle tips te verzamelen en bij de heks het magische kompas terug te toveren?'],
       ['Beloning','Wie alle opdrachten tot een goed einde brengt, ontvangt aan het einde een snoepje. Groene appelringen zijn glutenvrij; houd 1 zak apart. We hebben geen halal-snoep.'],
@@ -324,8 +363,8 @@ window.HW_ACT['zeven-zeeen']={
     ]},
     {titel:'Materiaal (algemeen)',rijen:[
       ['Per tocht','120 potloodjes · 120 kaartjes met kenmerken · 120 lampionnen · 120 lampionlampjes · 240 batterijen AA'],
-      ['Eén of enkele','1 EHBO-kit · 1 PDA · 3 lantaarns · 4 muziekboxen · 4 spinnenweb-deco'],
-      ['Vervoer','4 fietsen met laadbak en 2 fietsen; het schuttersbord gaat mee met de e-car'],
+      ['Eén of enkele','1 EHBO-kit · 1 PDA · 3 lantaarns · 4 muziekboxen (3 grote en 1 JBL) · 4 spinnenweb-deco'],
+      ['Vervoer','4 fietsen met laadbak en 2 fietsen zonder laadbak (zie Fietsen op Start); het schuttersbord gaat mee met de e-car'],
       ['Regenalternatief','3 stempels']
     ]},
     {titel:'Regenalternatief',rijen:[
@@ -342,8 +381,9 @@ window.HW_ACT['zeven-zeeen']={
     ]}
   ],
   documenten:[
-    {titel:'Manual kindertocht – 2026',tekst:'Het volledige handboek: rolverdeling, wandeling, materialen, thema en per post het karakter, de intro in 4 talen, de opdracht en de tip.',id:'1M9Y-_Zxvlfr9oVR6utjN3uTDmnhTJeR2'},
-    {titel:'Draaiboek kindertocht',tekst:'Per avond wie op welke post staat, de opbouw, de af- en ombouw en het schema voor Orry en de heks.',id:'1i9njdvvqUj3_eDf6295WjPWMtoPfgAkg'},
+    {titel:'Manual kindertocht – 2026',tekst:'De uitgebreide uitleg van de hele tocht. Verplicht: de pagina’s met praktische informatie en die van je eigen rol, en de teksten in 4 talen instuderen. De rest is leesvoer.',id:'1M9Y-_Zxvlfr9oVR6utjN3uTDmnhTJeR2'},
+    {titel:'Draaiboek kindertocht',tekst:'Per dag een schema met de tijdsplanning, je rol en je taak voor, tijdens en na de tocht (vooral handig op de dag zelf), plus het schema voor Orry en de heks.',id:'1i9njdvvqUj3_eDf6295WjPWMtoPfgAkg'},
+    {titel:'Geluidsbestand (mp3) bij de kindertocht',tekst:'Een mp3 in de Drive-map van de kindertocht (de naam is hier niet leesbaar: open de map als je het zoekt).',id:'1XVzUAIeJrhzxo7rS0Y7yC3BGhQ4dHDqh'},
     {titel:'Draaiboek Halloween 2026',tekst:'Het overzicht van de hele Halloweenperiode (12/10 – 09/11).',id:'1qSIK18QpBqPlBt0mP0fWKqy9vuVSIWY4'}
   ],
   mappen:[{titel:'Map: Kindertocht',id:'1b90bUPP10aCn6tt6DCdh4ouZ60SuMyvF',hoofd:true},{titel:'Alles: Halloweenperiode 2026',id:'1PTdTRqa6ZeUv5jxgEispvTEfvfKI4rei'}]

@@ -120,7 +120,7 @@ window.HW={
       ['Telefoonnummers','Staan in Contacten en in het Drive-draaiboek (bewust niet in deze pagina).']
     ]},
     {titel:'Faciliteiten',rijen:[
-      ['Water','Achter de bar staan flesjes water: één à twee per persoon.'],
+      ['Water','In de kleedkamer staan flesjes water: één à twee per persoon.'],
       ['Omkleden en schminken','Boven, in de kleedkamers.'],
       ['Eigen spullen','Laat je spullen achter in de kleedkamers.'],
       ['Gsm','Mag niet mee tijdens de tocht.'],
@@ -158,7 +158,7 @@ window.HW={
             'Je geeft nooit de indruk dat de mensen hier mogelijk voor terminatie worden vastgehouden, maar probeert ze gerust te stellen. Alles is onder controle, er is geen reden tot paniek. Je weet echter dat personen met duidelijke symptomen in quarantaine worden geplaatst en mogelijk worden opgegeven voor terminatie.',
             'Je controleert de mensen die zich aanmelden, neemt hun temperatuur en stuurt hen door naar de wachtruimte. Je behandelt ieder gezelschap apart. Je zegt de gasten ook duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.'],
        tip:'Het is belangrijk deze tekst in het Nederlands en het Engels te kennen. De tekst is een leidraad, je mag creatief met de tekst omgaan.',
-       zelf:['Wandelschoenen','Zwarte (thermische) onderkleding'],cp:['Witte overall','Gasmasker','Handschoenen latex'],
+       zelf:['Wandelschoenen','Zwarte (thermische) onderkleding'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],
        attr:['Warmtecamera (scanner)','PDA','Betaalterminal','Tikkaart'],
        fotos:[foto('czc-pak','Het CZC-pak met gasmasker')]},
       {naam:'CZC-medewerker 2',sub:'Scanner / patrouille',script:'czc2',
@@ -166,7 +166,7 @@ window.HW={
             'Doordat je al lange tijd in het besmette gebied rondloopt, begin je zelf vreemd gedrag te vertonen. Misschien werkt dat gasmasker toch niet zo goed… Je patrouilleert door The Bay en bewaakt het onderzoeksgebied. De gasten proberen ongezien langs jou te geraken.',
             'Je verrast de gasten door plots in beeld te komen, rent achter ze aan en keert daarna terug. Je bent onvoorspelbaar en griezelig. Je hebt geen vaste tekst, maar schreeuwt en roept wel.'],
        tip:'Onder het witte pak draag je overleverskledij, zodat je makkelijk van rol kunt wisselen als er hulp nodig is.',
-       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker','Handschoenen latex'],
+       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],
        attr:['Warmtecamera (scanner)','PDA','Betaalterminal','Tikkaart']}
     ],
     materiaal:[
@@ -177,9 +177,9 @@ window.HW={
     ],
     opbouw:[
       'Zwarte doek achter de schuifdeur. Er hangen bevestigingspunten rechts en links.',
-      'Zet de schuifdeur ook op open wanneer we gaan starten, zodat ze niet dichtgaat.',
+      'Zet de schuifdeur ook op “open” wanneer we gaan starten, zodat ze niet dichtgaat.',
       'Er komt een hek te staan zodat gasten niet naar links kunnen maar naar rechts gestuurd worden.',
-      'De lamp mag aan het hek gehangen worden. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
+      'De lamp mag aan het hek gehangen worden, met de haak. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
       'Stel de tent vooraan op. Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven.',
       'Zowel aan de tent, de wachtruimte als de lockerruimte mogen posters hangen met ductape.'
     ],
@@ -212,7 +212,7 @@ window.HW={
             'Jij bepaalt wie wanneer aan de tocht begint. Er moet ongeveer om de 5–8 minuten een groep vertrekken. Zijn er kleinere gezelschappen, deel ze dan logisch in. Groepen van 8 personen of meer splits je indien mogelijk op.'],
        tip:'Je moet er overtuigend uitzien als overlever. In de kast hangen verkleedspullen; gebruik vooral alles wat je vindt.',
        zelf:['Zwarte (thermische) onderkleding','Bruine broek (lang of kort)','Wandelschoenen','Dikke handschoenen'],
-       cp:['Beige/grijs T-shirt','Militaire jas','Gasmasker'],attr:['Walkietalkie','Geweer'],
+       cp:['Beige/grijs T-shirt','Militaire jas, zwarte jas, …','Gasmasker / mondmasker'],attr:['Walkietalkie (portofoon)','Geweer'],
        fotos:[foto('kostuum-overlever','Voorbeeld van de overleverskledij')]}
     ],
     materiaal:[
@@ -222,9 +222,9 @@ window.HW={
     ],
     opbouw:[
       'Zwarte doek achter de schuifdeur. Er hangen bevestigingspunten rechts en links.',
-      'Zet de schuifdeur ook op open wanneer we gaan starten, zodat ze niet dichtgaat.',
+      'Zet de schuifdeur ook op “open” wanneer we gaan starten, zodat ze niet dichtgaat.',
       'Er komt een hek te staan zodat gasten niet naar links kunnen maar naar rechts gestuurd worden.',
-      'De lamp mag aan het hek gehangen worden. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
+      'De lamp mag aan het hek gehangen worden, met de haak. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
       'Stel de tent vooraan op. Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven.',
       'Zowel aan de tent, de wachtruimte als de lockerruimte mogen posters hangen met ductape.'
     ],
@@ -257,13 +257,13 @@ window.HW={
             'Zijn de cijfers correct, dan mogen ze The Bay verlaten. Je legt hen uit dat ze de route door het bos moeten volgen en dat ze onderweg het laatste cijfer van de code vinden. Aan het einde van die route ligt de Safezone, waar de kist met het vrijstelling staat.'],
        tip:'Je moet er overtuigend uitzien als overlever. In de kast hangen verkleedspullen; gebruik vooral alles wat je vindt.',
        zelf:['Zwarte (thermische) onderkleding','Bruine of zwarte broek (lang of kort)','Wandelschoenen','Dikke handschoenen'],
-       cp:['Beige/grijs T-shirt','Militaire jas','Gasmasker'],attr:['Walkietalkie','Geweer','Stok'],
+       cp:['Beige/grijs T-shirt','Militaire jas, zwarte jas, …','Gasmasker / mondmasker'],attr:['Walkietalkie','Geweer','Stok'],
        fotos:[foto('jas-bruin','Overleversjas'),foto('jas-bont','Overleversjas met bont'),foto('kostuum-overlever','Voorbeeld van de overleverskledij')]},
       {naam:'Overlever / CZC',sub:'Wisselrol: extractiepunt én patrouille',script:'overlever2',scriptExtra:'czc2',
        wie:['Als overlever sta je aan het extractiepunt en doe je hetzelfde als Overlever 2 (zie hierboven). Tegelijk ben je ook een CZC en kan je uithelpen op plaatsen als dat nodig is.',
             'Als CZC ben je The Bay ingestuurd om onderzoek te doen naar de vreemde paddenstoelen en om achtergebleven personen op te sporen. Naargelang de drukte help je ook aan de inkom als scanner. Doordat je al lange tijd in het besmette gebied rondloopt, begin je zelf vreemd gedrag te vertonen. Je patrouilleert door The Bay en bewaakt het onderzoeksgebied; de gasten proberen ongezien langs jou te geraken. Je verrast de gasten door plots in beeld te komen, rent achter ze aan en keert daarna terug. Je hebt geen vaste tekst, maar schreeuwt en roept wel.'],
        tip:'Onder het witte pak draag je overleverskledij, zodat je makkelijk van rol kunt wisselen. Het script is hetzelfde als dat van Overlever 2; als CZC gebruik je de roepteksten van CZC-medewerker 2.',
-       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker','Handschoenen latex'],
+       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],
        attr:['Warmtecamera (scanner)','PDA','Betaalterminal','Tikkaart']}
     ],
     materiaal:[
@@ -308,7 +308,7 @@ window.HW={
             'Je beweegt je vrij binnen je eigen zone langs het afgebakende pad. Je verstopt je, loert en komt dan plots in beeld om de gasten te laten schrikken. Je achtervolgt en jaagt ze op, maar je blijft altijd binnen je zone en verdeelt je met de andere mutanten, zodat de gasten op meerdere plekken verrast worden. Je raakt de gasten nooit aan en laat je ook niet door hen aanraken.',
             'Sta je in de zone van de rookmachine, dan bedien jij ze met de drukknop. Gebruik de rook om je te verstoppen en kom er plots uit tevoorschijn. Geef korte stoten, zodat het pad zichtbaar en veilig blijft. Je hebt geen vaste tekst, maar communiceert via gegrom, gekreun, gesis en losse woorden.'],
        tip:'De witte pakken zijn vooraf bewerkt met bloed en scheuren. Werk daarnaast met schmink zodat je er duidelijk besmet uitziet. Deze kledij geldt voor alle mutanten, in The Bay en in het bos.',
-       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker','Handschoenen latex'],
+       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],
        attr:['Drukknop rookmachine (indien in jouw zone)'],
        fotos:[foto('czc-pak','Het CZC-pak met gasmasker')]}
     ],
@@ -357,14 +357,14 @@ window.HW={
             'Je beweegt je vrij binnen je eigen zone langs het afgebakende pad. Je verstopt je, loert en komt dan plots in beeld om de gasten te laten schrikken. Je achtervolgt en jaagt ze op, maar je blijft altijd binnen je zone en verdeelt je met de andere mutanten. Je raakt de gasten nooit aan en laat je ook niet door hen aanraken.',
             'Je hebt geen vaste tekst, maar communiceert via gegrom, gekreun, gesis en losse woorden.'],
        tip:'De witte pakken zijn vooraf bewerkt met bloed en scheuren. Werk daarnaast met schmink zodat je er duidelijk besmet uitziet.',
-       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker','Handschoenen latex'],attr:[]},
+       zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],attr:[]},
       {naam:'Overlever 3',sub:'Safezone',script:'overlever3',
        wie:['Jij bent een overlever en staat aan het einde van de tocht, in de Safezone. De gasten hebben The Bay verlaten, de route door het bos gevolgd en onderweg het laatste cijfer van de code gevonden.',
             'In de Safezone staat de afgesloten kist met het vrijstelling. De gasten geven hier de volledige code in: 7139. Lukt het na enkele pogingen niet, dan krijg je via je oortje te horen dat een andere overlever het ontbrekende cijfer gevonden heeft, en help je de groep verder. Is de code correct, dan gaat de kist open.',
             'Als beloning krijgt iedere gast één polsbandje met daarop: “I SURVIVED HALLOWEEN – CENTER PARCS DE VOSSEMEREN”. Op 15/10 en 17/10 zijn er nog geen polsbandjes; dan krijgen de gasten enkel een vrijstellingskaart. Je zorgt ervoor dat de gasten het gevoel krijgen dat ze het gehaald hebben en nu veilig zijn.'],
        tip:'Je moet er overtuigend uitzien als overlever. In de kast hangen verkleedspullen; gebruik vooral alles wat je vindt.',
        zelf:['Zwarte (thermische) onderkleding','Bruine of zwarte broek (lang of kort)','Wandelschoenen','Dikke handschoenen'],
-       cp:['Beige/grijs T-shirt','Militaire jas','Gasmasker'],attr:['Walkietalkie','Geweer','Stok','Safezone-kist'],
+       cp:['Beige/grijs T-shirt','Militaire jas, zwarte jas, …','Gasmasker / mondmasker'],attr:['Walkietalkie','Geweer, stok, …','Safezone-kist'],
        fotos:[foto('jas-bruin','Overleversjas'),foto('jas-bont','Overleversjas met bont')]}
     ],
     materiaal:[
@@ -464,7 +464,8 @@ window.HW={
       {id:'portofoons',titel:'Portofoons',stappen:[
         'De portofoons steek je in de opladers.',
         'Selecteer kanaal 1 en pas het volume aan.',
-        'Neem een oortje en doe een radiotest: kan iedereen jou horen, en jij iedereen?'],fotos:[]}
+        'Neem een oortje en doe een radiotest: kan iedereen jou horen, en jij iedereen?',
+        'De portofoons vind je in de hut, links wanneer je binnenkomt. Onderaan staat een doos met oortjes.'],fotos:[]}
     ]
   },
 
@@ -476,7 +477,7 @@ window.HW={
       {naam:'In de hut',items:['PC en techniektafel','Lichtpaneel','Tablets (blauw en groen) en muziekboxen, opgeladen','Portofoons en oortjes liggen opgeladen klaar','Warmtecamera, 2 PDA’s, 2 betaalterminals']},
       {naam:'Onder het schip',items:['Ledbars uit de lader','Rookmachine, drukknop, groene DMX-kabel, vloeistof','Lichtstatief achter de zwarte doek (Piraat disco)','Zwarte doeken (voor de deur)','Verlengkabels en ductape']},
       {naam:'Kleedkamer (boven)',items:['Witte pakken geprept, één met de 7','Overleverkledij: T-shirts, militaire jassen','Gasmaskers, latex handschoenen, mondmaskers','Geweren, stokken, walkietalkies','Schmink en bloed aangevuld']},
-      {naam:'Bar, Safezone & dozen',items:['Flesjes water achter de bar (1–2 p.p.)','Safezone-kist (flightcase) met slot','Bandjes uit de Halloweenkast (15/10 en 17/10: kaartjes)','4 zonedozen compleet: lint, plakband, posters, paddenstoelen, cijfers','Partytent, voetstukken, hekken, betonblokken bereikbaar']},
+      {naam:'Kleedkamer, Safezone & dozen',items:['Flesjes water in de kleedkamer (1–2 p.p.)','Safezone-kist (flightcase) met slot','Bandjes uit de Halloweenkast (15/10 en 17/10: kaartjes)','4 zonedozen compleet: lint, plakband, posters, paddenstoelen, cijfers','Partytent, voetstukken, hekken, betonblokken bereikbaar']},
       {naam:'Inkom & locker',items:['Partytent op voetstukken, wachtrij afgezet met lint','Zwarte doeken aan schuifdeur en poortjes','Posters in tent, wachtruimte en vestiaire','Hek met betonblokken, lamp aangesloten','Warmtecamera, PDA’s en betaalterminals getest']},
       {naam:'Sector 1',items:['Linten: bootje, klimrek, trappenhal, trap strand, wiebelbrug, trap schip','Hek voor de grot staat','Paddenstoelen en posters verspreid, poster met de 3']},
       {naam:'Sector 2',items:['Hek tussen extractiepunt en aquaria','Linten: ingang schip, watergrot, trap rivier, trapje Pirate Place','Tafels en stoelen door elkaar voor de bar','Paddenstoelen en posters verspreid']},
@@ -485,7 +486,7 @@ window.HW={
     ]},
     {id:'f2',nr:2,titel:'Eindcontrole',tijd:'20u00 – 20u25',protocol:'Zone vrijgeven',groepen:[
       {naam:'Briefing 20u00',items:['Rollen en zones van vanavond overlopen','Nationaliteiten: welke talen zijn vanavond belangrijk','Code 10 en “niet aanraken” herhaald','Schrikvrije punten: straat, trappen, bruggen']},
-      {naam:'Bay vrij',items:['KIC-activiteiten en silent disco afgebouwd','Geen gasten meer in The Bay of op de route','Personeelsingang dicht voor gasten']},
+      {naam:'Bay vrij',items:['KIC-activiteiten en silent disco afgebouwd','Geen gasten meer in The Bay of op de route']},
       {naam:'Verbinding',items:['Portofoons uit de hut, iedereen op kanaal 1','Radiotest met elke zone, in beide richtingen','Oortjes bij extractiepunt en Safezone','Verantwoordelijke heeft gsm met CP-noodnummer']},
       {naam:'Licht, geluid, rook',items:['Muziek speelt in The Bay (repeat) en in het bos (loop)','Lichtpaneel, ledbars, lamp inkom en lichtstatief branden','Rookmachine getest met de voetknop']},
       {naam:'Code 7139',items:['Posters met de 1 en de 3 hangen langs het pad','Mutant in The Bay draagt het pak met de 7','De 9 hangt langs de bosroute','Slot van de Safezone-kist opent met 7139']},
@@ -511,8 +512,8 @@ window.HW={
 
   // -------------------------------------------------------------- documenten
   documenten:[
-    {titel:'Manual volwassentocht',tekst:'Het volledige handboek: verhaal, rolverdeling, alle zones met scripts, opbouw en techniek (Word, groot bestand met foto’s).',id:'1sFecCdFjW1JKQqfk8Qyo0yvDo23EkusG',type:'Word'},
-    {titel:'Draaiboek volwassentocht',tekst:'Per avond wie waar staat en wie wat afbouwt.',id:'10YlhLUovoTlozitdnusfXJs9dKkcNuYg',type:'Word'},
+    {titel:'Manual volwassentocht',tekst:'De uitgebreide uitleg van de hele tocht (Word, groot bestand met foto’s). Verplicht: de pagina’s met praktische informatie en die van je eigen rol, en de teksten in 4 talen instuderen. De rest is leesvoer.',id:'1sFecCdFjW1JKQqfk8Qyo0yvDo23EkusG',type:'Word'},
+    {titel:'Draaiboek volwassentocht',tekst:'Per avond een schema met de tijdsplanning, je rol en je taak voor, tijdens en na de tocht (vooral handig op de dag zelf).',id:'10YlhLUovoTlozitdnusfXJs9dKkcNuYg',type:'Word'},
     {titel:'Checklist verantwoordelijke',tekst:'De afdrukbare checklist voor de verantwoordelijke van de avond.',id:'1TiNG_IsYA_s-LOmST9r-U2ExZnLxrKwr',type:'Word'},
     {titel:'Draaiboek Halloween 2026',tekst:'Het overzicht van de hele Halloweenperiode (12/10 – 09/11): alle activiteiten, data en uren.',id:'1qSIK18QpBqPlBt0mP0fWKqy9vuVSIWY4',type:'Word'}
   ],
@@ -538,4 +539,20 @@ window.HW={
     const kaart={}; z.fotos.forEach(f=>{ kaart[f.src.split('/').pop().replace('.jpg','')]=f.tekst; });
     z.opbouw=z.opbouw.map((t,i)=>({t:t,fotos:((OPB[z.id]||{})[i]||[]).map(n=>foto(n,kaart[n]||''))}));
   });
+
+  // ---- aanvullende briefing van Marith (mail van 13–15/10): voorbereiden, eten, nationaliteiten, EHBO
+  const VOORBEREIDEN=[
+    ['Draaiboek','Per avond een gestructureerd schema: de tijdsplanning, welke rol je die avond hebt en wat je taak is voor, tijdens en na de tocht. Vooral handig op de dag zelf (zie Planning).'],
+    ['Manual','Een uitgebreide uitleg van de hele tocht. Belangrijk: bekijk de pagina’s met praktische informatie en die van je eigen rol, en studeer de teksten in de 4 talen in. De rest van de manual mag je lezen, maar is geen must.'],
+    ['Vragen?','Heb je na de briefing nog vragen, meld ze dan zo snel mogelijk aan Marith en niet pas op de dag zelf.']];
+  HW.startKaartenVoor=[
+    {nood:true,titel:'Belangrijk',l:['Je staat de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je rol staat welke kleding je zelf moet voorzien.','Zorg dat je echt op de afgesproken tijd onder het schip bent voor de briefing (zie het uurschema bij Tijdsloten).','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Heb je vragen? Meld ze zo snel mogelijk aan Marith, niet pas op de dag zelf.']},
+    {titel:'Wat moet je voorbereiden?',rijen:VOORBEREIDEN}
+  ];
+  HW.praktisch.unshift({titel:'Wat moet je voorbereiden?',rijen:VOORBEREIDEN});
+  HW.praktisch.find(x=>x.titel==='Faciliteiten').rijen.push(['Eten','Er is geen ruimte voor speling: eten in de Evergreens tijdens de dagen van de Halloweentochten is niet echt mogelijk. Neem dus eigen eten mee voor de pauze. Ga je toch in de Evergreens eten, houd er dan rekening mee dat bestellen tijd kost, zeker met de drukte op dat uur.']);
+  HW.praktisch.find(x=>x.titel==='Veiligheid & nood').rijen.push(
+    ['Warm aankleden','Afhankelijk van je rol sta je de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen.'],
+    ['Nationaliteiten','Een overzicht van de nationaliteiten per dag staat in de bijlage van de mail van Marith (niet in de app): zo weet je welke talen welke dagen extra belangrijk zijn. Op de dag zelf staan we er ook kort bij stil tijdens de briefing.'],
+    ['EHBO','Gebeurt er tijdens je dienst iets ernstigs of is er een EHBO-geval, dan volgen we dezelfde procedures als op de werkvloer. Elk van jullie heeft een telefoon bij met het noodnummer van CP: dat bel je alleen in echte noodgevallen. Kleine EHBO’s kunnen in de Bay door onze medewerkers zelf verzorgd worden; bij twijfel val je terug op de DUTY en/of je leidinggevende.']);
 })();

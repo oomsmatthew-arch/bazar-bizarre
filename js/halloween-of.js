@@ -110,7 +110,8 @@ window.HW_ACT.of={
         {id:'docs',ic:'📎',t:'Documenten'}],
   feiten:[['Kids Disco','16u45 · 17u30'],['Bedtime stories','16u45'],['Waar','Time-Out Podium'],['Kleding','O&F-halloween']],
   startKaarten:[
-    {titel:'Het O&F-programma tijdens de Halloweenperiode',p:['Tijdens de Halloweenperiode (12/10 – 09/11) vinden alle O&F-activiteiten volledig in Halloweenthema plaats. Hiervoor dragen we de O&F-halloweenkleren. Het zijn voorbeelden: er is ruimte om zelf aanpassingen te doen.']},
+    {nood:true,titel:'Belangrijk: kledij van de karakters',p:['Tijdens de Halloweenperiode (vanaf 12/10 t/m 5/11) dragen de karakters hun Halloweenkledij gedurende alle activiteiten: een cape voor Orry, een hoed voor Bing, een weerwolvenjack voor Rep en een masker voor Woops. Schmink mag altijd, maar is geen must.']},
+    {titel:'Het O&F-programma tijdens de Halloweenperiode',p:['Alle O&F-activiteiten vinden volledig in Halloweenthema plaats. De Kids Disco en het verhaaltje doen we echt in thema (zie de tabbladen). Voor attributen en techniek is voorlopig niets bepaald: dit is naar eigen invulling, maak er iets leuks van!']},
     {titel:'Wat staat er op het programma?',rijen:[
       ['Kids Disco','Time-Out Podium · 16u45 – 17u15 en 17u30 – 18u00 · 2–3 Halloweendansjes per disco'],
       ['Bedtime stories','Time-Out Podium · 16u45 – 17u00 · Halloweenverhaal voorlezen']
@@ -131,11 +132,11 @@ window.HW_ACT.of.tabs.find(t=>t.id==='disco').kaarten=[
   {titel:'Overzicht',rijen:[
     ['Locatie','Time-Out Podium'],
     ['Uren','16u45 – 17u15 en 17u30 – 18u00'],
-    ['Wat','Tijdens de Halloweenperiode doen we Halloweendansjes. De richtlijn is 2–3 dansjes per disco; er zijn dansjes uitgewerkt.'],
+    ['Wat','De Kids Disco doen we echt in thema: tijdens ELKE disco doen we minstens 2 Halloweendansjes (de richtlijn is 2–3). De dansjes staan in de Drive: studeer ze allemaal goed van tevoren in!'],
     ['Verwachting','Iedereen die een disco heeft tijdens de Halloweenperiode kent de dansjes. Bekijk dus goed je rooster en bereid je voor als je een discoshift hebt: oefen ze vanuit je woonkamer met de links hieronder.'],
     ['Liedjes','Minstens twee tot drie Halloweenliedjes per disco, en starten en sluiten met het standaard O&F-lied.'],
     ['Achtergronden','Gebruik de Halloweenachtergronden op de pc.'],
-    ['Kleding','De O&F-halloweenkleren. Oefen de dansjes voordat je het podium op gaat.']
+    ['Kleding','De Halloweenkledij van je karakter: cape (Orry), hoed (Bing), weerwolvenjack (Rep) of masker (Woops). Schmink mag altijd, maar is geen must. Oefen de dansjes voordat je het podium op gaat.']
   ]},
   {titel:'De dansjes (YouTube)',sub:'Tik een titel om het dansje te bekijken en te oefenen.',links:[
     {t:'🧟 Zombiedans',url:yt('gQ5llnOUjZ4')},{t:'👾 Grote groene griezelmonster',url:yt('6b4ySlTARAI')},{t:'🎃 Ben niet bang',url:yt('4YWy8MLsK5g')},
@@ -149,8 +150,9 @@ window.HW_ACT.of.tabs.find(t=>t.id==='disco').kaarten=[
 window.HW_ACT.of.tabs.find(t=>t.id==='bedtime').kaarten=[
   {titel:'Overzicht',rijen:[
     ['Locatie','Time-Out Podium'],['Uren','16u45 – 17u00'],
-    ['Kleding','Halloweenkleren: de activiteit gebeurt volledig in Halloweenthema.'],
-    ['Materiaal','Het Halloweenverhaal (script in de Drive) en een voorleesboek met Halloweenverhalen.'],
+    ['Kleding','De Halloweenkledij van je karakter: cape (Orry), hoed (Bing), weerwolvenjack (Rep) of masker (Woops). Schmink mag altijd, maar is geen must.'],
+    ['Wat','Het verhaaltje doen we echt in thema: je neemt het Halloweenboek mee naar boven en leest 1 van deze 2 verhaaltjes.'],
+    ['Materiaal','Het Halloweenboek en het script in de Drive. Er zijn voorlopig geen attributen of techniek voor bepaald: dit is naar eigen invulling, maak er iets leuks van!'],
     ['Verhalen','Twee verhalen met Orry, Bing, Rep en Woops: “De Halloween parade” en “De wedstrijd”. Elk verhaal staat hieronder in het Nederlands, Duits, Frans en Engels: kies de taal van de kinderen.']
   ]},
   {titel:'De Halloween parade',talen:PARADE},
@@ -169,6 +171,7 @@ window.HW_ACT.show={
       ['Verantwoordelijke','Lennert Lehaen (Halloween Show)'],
       ['Waar','Discovery Bay (DB); verkleden in de AR, daarna met headsets naar de DB'],
       ['Wie','Orry (iemand per avond, zie “Wie speelt wat”) en de heks (Tessy)'],
+      ['Kledij','Tijdens de Halloweenperiode dragen de karakters hun Halloweenkledij gedurende alle activiteiten: een cape voor Orry, een hoed voor Bing, een weerwolvenjack voor Rep en een masker voor Woops. Schmink mag altijd, maar is geen must.'],
       ['Techniek','Gebeurt normaal door Bay-medewerkers (in de rolverdeling van de kindertocht staat Lennert als “techniek”)'],
       ['Schema','Zie het tabblad Programma: van opbouw om 14u15 tot make-up voor de volwassentocht om 20u25']
     ],nota:'Een eigen script of draaiboek van de show staat nog niet in de Drive. Zodra het er is, kan het hier bijgevoegd worden.'},

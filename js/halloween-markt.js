@@ -182,7 +182,9 @@ window.HW_ACT.marktje={
       ['Ruilen','Onderling ruilen van activiteiten kan, maar bespreek dit altijd even met de verantwoordelijke van die avond.'],
       ['Kleding','Voorzie zwarte kleding (je kan hier nog kleding lenen om erover aan te doen) of een leuke Halloweenoutfit.'],
       ['Stagiaires','Namen met een (s) zijn stagiaires van Kosh die ondersteuning bieden. Leg de werkzaamheden goed uit, zodat zij tijdens pauzes zelfstandig gasten kunnen helpen.'],
-      ['Pauze','Wie zes uur of langer werkt, heeft recht op pauze. Stem onderling af wie wanneer pauze neemt. De eerste pauze start vanaf 17u00, zodat iedereen vóór 19u00 pauze heeft gehad.']
+      ['Pauze','Wie zes uur of langer werkt, heeft recht op pauze. Stem onderling af wie wanneer pauze neemt. De eerste pauze start vanaf 17u00, zodat iedereen vóór 19u00 pauze heeft gehad.'],
+      ['Eten','Eten in de Evergreens is tijdens de dagen van de Halloweentochten niet echt mogelijk (geen ruimte voor speling): neem eigen eten mee voor de pauze. Ga je toch in de Evergreens eten, houd er dan rekening mee dat bestellen tijd kost, zeker met de drukte op dat uur.'],
+      ['Op tijd','Zorg dat je echt op de afgesproken tijd in het atelier bent voor de briefing.']
     ]},
     {titel:'Betalen en boeken',rijen:[
       ['Betalend','Knuffels maken, glittertattoo, bubble braid, scrunchies, hairbeads, pompoenen schilderen'],
