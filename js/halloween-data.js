@@ -21,17 +21,17 @@ window.HW={
   // 'outbreak' heeft de volledige uitwerking (tabbladen hieronder); de andere tonen een
   // overzichtspagina met wat in het overzichtsdraaiboek staat.
   activiteiten:[
-    {id:'overzicht',ic:'🗓️',kort:'Overzicht',titel:'Overzicht',kicker:'Halloweenperiode 2026 · 12/10 – 09/11',
-     sub:'Alles op één plek: informatie, planning per dag, ombouw, tijdsloten en praktische afspraken',kleur:'linear-gradient(135deg,#2a1a3a,#5a2f7a 50%,#e8772e)'},
-    {id:'outbreak',ic:'🎃',kort:'The Outbreak',titel:'The Outbreak',kicker:'Centrum voor Ziektecontrole · Dossier CZC-2026-67',
+    {id:'overzicht',ic:'🗓️',kort:'Overzicht',titel:'Overzicht',kicker:'Halloweenperiode 2026 · 12/10 – 09/11',acc:'#3b74d8',
+     sub:'Alles op één plek: informatie, planning per dag, ombouw, tijdsloten en praktische afspraken',kleur:'linear-gradient(135deg,#0c1b3d,#1f4b94 55%,#7fb2f0)'},
+    {id:'outbreak',ic:'🎃',acc:'#e8772e',kort:'The Outbreak',titel:'The Outbreak',kicker:'Centrum voor Ziektecontrole · Dossier CZC-2026-67',
      sub:'Volwassentocht · Halloween 2026 · Discovery Bay, Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#2a1a3a,#4b2a63 55%,#e8772e)'},
-    {id:'zeven-zeeen',ic:'🏴‍☠️',kort:'Zeven zeeën',titel:'Halloween op de zeven zeeën',kicker:'Kindertocht · piratenthema',
+    {id:'zeven-zeeen',ic:'🏴‍☠️',acc:'#1f8a9c',kort:'Zeven zeeën',titel:'Halloween op de zeven zeeën',kicker:'Kindertocht · piratenthema',
      sub:'Discovery Bay en daarna buiten · Center Parcs De Vossemeren',kleur:'linear-gradient(135deg,#0f3b4c,#1f7a8c 55%,#f5b942)'},
-    {id:'show',ic:'🎭',kort:'O&F Halloween show',titel:'O&F Halloween show',kicker:'Entertainment · show met Orry en de heks',
+    {id:'show',ic:'🎭',acc:'#c0782a',kort:'O&F Halloween show',titel:'O&F Halloween show',kicker:'Entertainment · show met Orry en de heks',
      sub:'Discovery Bay · twee shows per dag, voor de kindertocht',kleur:'linear-gradient(135deg,#3a1f0f,#8a4b1f 55%,#f5b942)'},
-    {id:'marktje',ic:'🛍️',kort:'Marktje',titel:'Marktje',kicker:'Halloween atelier · kinderactiviteiten',
+    {id:'marktje',ic:'🛍️',acc:'#4f8a3e',kort:'Marktje',titel:'Marktje',kicker:'Halloween atelier · kinderactiviteiten',
      sub:'Discovery Bay · knuffels, suikerspin, make-over en pompoenen schilderen',kleur:'linear-gradient(135deg,#1f3a1f,#4a7a3a 55%,#e0a24a)'},
-    {id:'of',ic:'🪩',kort:'O&F programma',titel:'O&F programma',kicker:'Animatie · Halloweenperiode',
+    {id:'of',ic:'🪩',acc:'#b0409e',kort:'O&F programma',titel:'O&F programma',kicker:'Animatie · Halloweenperiode',
      sub:'Alles in Halloweenthema · O&F-halloweenkleren',kleur:'linear-gradient(135deg,#3a1a4b,#8a3a8c 55%,#ff8fb0)'}
   ],
 
@@ -55,8 +55,8 @@ window.HW={
 
   // Zo verloopt de tocht, per gast. 'zone' verwijst naar een zone-id.
   stappen:[
-    {nr:1,zone:'inkom',titel:'Aankomst & controle',tekst:'Een CZC-medewerker in overall en gasmasker begroet de gasten, scant de bandjes, neemt per gezelschap de temperatuur en plaatst iedereen “in quarantaine”.'},
-    {nr:2,zone:'locker',titel:'Quarantaine & de kist',tekst:'Overlever 1 komt de groep halen, waarschuwt voor terminatie en vertelt over de kist met het vrijstelling. Om de 5–8 minuten vertrekt er een groep van max 8–10.'},
+    {nr:1,zone:'inkom',titel:'Aankomst & controle',tekst:'Een CZC-medewerker in overall en gasmasker begroet de gasten, scant de bandjes, neemt per gezelschap de temperatuur en stuurt iedereen meteen naar de quarantainezone (de lockers).'},
+    {nr:2,zone:'locker',titel:'Quarantainezone & de kist',tekst:'In de quarantainezone (de lockers) wachten de gasten op verdere instructies. Overlever 1 waarschuwt hen voor terminatie, vertelt over de kist met het vrijstelling en stuurt de groepen één voor één het pad door The Bay op. Om de 5–8 minuten vertrekt er een groep van max 8–10.'},
     {nr:3,zone:'sector2',titel:'Doorheen The Bay',tekst:'Op een afgebakend pad zoeken de gasten de cijfers 1, 3 en 7. Mutanten laten hen schrikken, achtervolgen en opjagen. De CZC-medewerker patrouilleert: zij mogen niet gezien worden.'},
     {nr:4,zone:'sector1',titel:'Extractiepunt',tekst:'Overlever 2 vraagt naar de eerste 3 cijfers. Fout of niets gevonden? Terug The Bay in. Juist? Dan mogen ze naar buiten.'},
     {nr:5,zone:'bos',titel:'Het bos',tekst:'Via de straatoversteek en de brug volgen ze een route door het bos. Onderweg vinden ze het laatste cijfer (9) en komen ze mutanten 4 en 5 tegen.'},
@@ -145,11 +145,11 @@ window.HW={
     plattegrond:foto('plattegrond-inkom','Plattegrond inkom, locker & ingang'),
     wat:[
       'De gasten komen aan bij The Bay en worden opgevangen door het CZC. Via doeken (en paars licht, tussen de 2 schuifdeuren) worden ze naar de lockers geleid. Daar staat een hek dat de rest van de inkom afschermt.',
-      'CZC-medewerker 1 neemt per gezelschap de temperatuur, legt uit dat de gasten in quarantaine moeten en zegt duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.',
+      'CZC-medewerker 1 neemt per gezelschap de temperatuur, legt uit dat de gasten in quarantaine moeten, stuurt ze meteen naar de quarantainezone (de lockers) en zegt duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.',
       'CZC-medewerker 2 helpt naargelang de drukte als scanner aan de inkom of patrouilleert in The Bay. Je scant de bandjes en kijkt of ze hun toegangsticket hebben; hebben ze dit niet, dan moeten ze dit nog kopen via de betaalterminal.'
     ],
     aandacht:[
-      'Gasten schrijven in per tijdslot van 10 minuten, met 20 personen per tijdslot. Overlever 1 komt de groep halen en brengt ze naar de lockers. Daar vertrekken ongeveer om de 5 minuten de groepen, een groep is max 8–10 personen.',
+      'Gasten schrijven in per tijdslot van 10 minuten, met 20 personen per tijdslot. Na de controle gaan de gasten meteen naar de quarantainezone (de lockers): er is geen aparte wachtruimte. Daar is Overlever 1 en vertrekken ongeveer om de 5 minuten de groepen, een groep is max 8–10 personen.',
       'Je komt NOOIT in contact met de overlever die het na jou overneemt; jullie zien of erkennen elkaar niet. Althans: de gasten zien niet dat jullie in contact komen.',
       'Noodgeval: meld je via de portofoon met “Code 10” en je locatie. De verantwoordelijke van de avond is bereikbaar via de portofoon.'
     ],
@@ -158,7 +158,7 @@ window.HW={
        wie:['Jij bent het eerste contact met de gasten en je straalt orde en discipline uit. Er wordt naar je geluisterd, of je zorgt er wel voor dat de gasten luisteren. Het is immers jouw taak om de controle en quarantaine van mogelijke geïnfecteerden vlot te laten verlopen.',
             'Doorheen de dag zijn er in The Bay verschillende vreemde paddenstoelen vastgesteld. Het CZC heeft het gebied afgesloten en iedereen die mogelijk in contact is gekomen met de besmetting moet gecontroleerd worden.',
             'Je geeft nooit de indruk dat de mensen hier mogelijk voor terminatie worden vastgehouden, maar probeert ze gerust te stellen. Alles is onder controle, er is geen reden tot paniek. Je weet echter dat personen met duidelijke symptomen in quarantaine worden geplaatst en mogelijk worden opgegeven voor terminatie.',
-            'Je controleert de mensen die zich aanmelden, neemt hun temperatuur en stuurt hen door naar de wachtruimte. Je behandelt ieder gezelschap apart. Je zegt de gasten ook duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.'],
+            'Je controleert de mensen die zich aanmelden, neemt hun temperatuur en stuurt hen meteen door naar de quarantainezone (de lockers). Je behandelt ieder gezelschap apart. Je zegt de gasten ook duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.'],
        tip:'Het is belangrijk deze tekst in het Nederlands en het Engels te kennen. De tekst is een leidraad, je mag creatief met de tekst omgaan.',
        zelf:['Wandelschoenen','Zwarte (thermische) onderkleding'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],
        attr:['Warmtecamera (scanner)','PDA','Betaalterminal','Tikkaart'],
@@ -183,7 +183,7 @@ window.HW={
       'Er komt een hek te staan zodat gasten niet naar links kunnen maar naar rechts gestuurd worden.',
       'De lamp mag aan het hek gehangen worden, met de haak. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
       'Stel de tent vooraan op. Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven.',
-      'Zowel aan de tent, de wachtruimte als de lockerruimte mogen posters hangen met ductape.'
+      'Zowel aan de tent als in de quarantainezone (de lockers) en de vestiaire mogen posters hangen met ductape.'
     ],
     fotos:[
       foto('inkom-tent','De partytent aan de inkom, met de wachtrij'),
@@ -199,7 +199,8 @@ window.HW={
     kort:'Overlever 1',
     plattegrond:foto('plattegrond-inkom','Plattegrond inkom, locker & ingang'),
     wat:[
-      'In de quarantainezone wachten de gasten op verdere instructies. Overlever 1 komt binnen en neemt hen mee naar de lockerruimte ernaast. Hier waarschuwt hij/zij hen voor terminatie en vertelt over de kist met het vrijstelling. Daarna stuurt hij de groepen één voor één het pad door The Bay op.'
+      'Gasten gaan na de inkom meteen naar de quarantainezone (de lockers). Er is dus geen aparte wachtruimte meer.',
+      'In de quarantainezone (lockers) wachten de gasten op verdere instructies. Hier waarschuwt hij/zij hen voor terminatie en vertelt over de kist met het vrijstelling. Daarna stuurt hij de groepen één voor één het pad door The Bay op.'
     ],
     aandacht:[
       'Ongeveer om de 5 minuten vertrekt er een groep. Groepen van 8 tot max 10 personen mogen vertrekken. Behoud families en gezinnen samen, maar splits de groep van 20.',
@@ -228,7 +229,7 @@ window.HW={
       'Er komt een hek te staan zodat gasten niet naar links kunnen maar naar rechts gestuurd worden.',
       'De lamp mag aan het hek gehangen worden, met de haak. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
       'Stel de tent vooraan op. Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven.',
-      'Zowel aan de tent, de wachtruimte als de lockerruimte mogen posters hangen met ductape.'
+      'Zowel aan de tent als in de quarantainezone (de lockers) en de vestiaire mogen posters hangen met ductape.'
     ],
     fotos:[
       foto('inkom-zwarte-doek','Zwarte doek achter de schuifdeur'),
@@ -480,7 +481,7 @@ window.HW={
       {naam:'Onder het schip',items:['Ledbars uit de lader','Rookmachine, drukknop, groene DMX-kabel, vloeistof','Lichtstatief achter de zwarte doek (Piraat disco)','Zwarte doeken (voor de deur)','Verlengkabels en ductape']},
       {naam:'Kleedkamer (boven)',items:['Witte pakken geprept, één met de 7','Overleverkledij: T-shirts, militaire jassen','Gasmaskers, latex handschoenen, mondmaskers','Geweren, stokken, walkietalkies','Schmink en bloed aangevuld']},
       {naam:'Kleedkamer, Safezone & dozen',items:['Flesjes water in de kleedkamer (1–2 p.p.)','Safezone-kist (flightcase) met slot','Bandjes uit de Halloweenkast (15/10 en 17/10: kaartjes)','4 zonedozen compleet: lint, plakband, posters, paddenstoelen, cijfers','Partytent, voetstukken, hekken, betonblokken bereikbaar']},
-      {naam:'Inkom & locker',items:['Partytent op voetstukken, wachtrij afgezet met lint','Zwarte doeken aan schuifdeur en poortjes','Posters in tent, wachtruimte en vestiaire','Hek met betonblokken, lamp aangesloten','Warmtecamera, PDA’s en betaalterminals getest']},
+      {naam:'Inkom & locker',items:['Partytent op voetstukken, wachtrij afgezet met lint','Zwarte doeken aan schuifdeur en poortjes','Posters in tent, quarantainezone (lockers) en vestiaire','Hek met betonblokken, lamp aangesloten','Warmtecamera, PDA’s en betaalterminals getest']},
       {naam:'Sector 1',items:['Linten: bootje, klimrek, trappenhal, trap strand, wiebelbrug, trap schip','Hek voor de grot staat','Paddenstoelen en posters verspreid, poster met de 3']},
       {naam:'Sector 2',items:['Hek tussen extractiepunt en aquaria','Linten: ingang schip, watergrot, trap rivier, trapje Pirate Place','Tafels en stoelen door elkaar voor de bar','Paddenstoelen en posters verspreid']},
       {naam:'Buiten bos & Safezone',items:['Signalisatie straatoversteek geplaatst','Lint bij straatoversteek en door het bos','2 ledbars aan en gericht','Muziekbox en tablet onder de vogelhut','Safezone-kist op zijn plek, genoeg bandjes']},

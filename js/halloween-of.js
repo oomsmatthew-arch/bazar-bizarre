@@ -82,6 +82,7 @@ const WEDSTRIJD={
 
 // ---------------------------------------------------------------- het schema van de show
 const SHOW=[
+  ['Eerst: vóór 14u15','Fiets zonder laadbak ophalen bij de Housekeeping (achter de loods) en inklokken bij de check-in (Orry en heks). Zet de fiets bij de nooddeur onder het schip.'],
   ['14u15 – 14u30','Opbouw van de act in de Discovery Bay (DB) en de techniek. De techniek gebeurt normaal door Bay-medewerkers.'],
   ['14u30 – 14u35','Verplaatsen naar de AR.'],
   ['14u35 – 15u05','Omkleden tot karakter.'],

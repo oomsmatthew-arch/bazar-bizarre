@@ -261,7 +261,7 @@ window.HW_ACT['zeven-zeeen']={
     {nood:true,titel:'Belangrijk',l:['Je staat de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je post staat welke kleding je zelf moet voorzien.','Zorg dat je echt op de afgesproken tijd onder het schip bent voor de briefing (15u00).','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Heb je vragen? Meld ze zo snel mogelijk aan Marith, niet pas op de dag zelf.']},
     {titel:'🚲 Fietsen: wie haalt er een op?',p:['Deze rollen nemen een fiets en mogen daarvoor bij de check-in inklokken. Alleen deze medewerkers klokken bij de check-in in.'],
      fietsMatrix:[['Schutter','Schutter','Met laadbak'],['Kok','Kok','Met laadbak'],['Dronkaard','Dronkaard','Met laadbak'],['Dief 1 / overhead','Dief 1','Met laadbak'],['Dief 2 / Orry','Dief 2','Zonder laadbak'],['Heks','Heks','Zonder laadbak']],
-     l:['Ophalen: bij de fietsenstalling van de Housekeeping, achter de loods.','Zet je fiets bij de nooddeur onder het schip, zodat je de spullen er makkelijk in kan zetten.','Zorg dat je om 15u00 onder het schip bent voor de briefing: bedenk zelf hoeveel tijd je nodig hebt voor de verplaatsing.','De namen per avond staan in de tabel hierboven en bij Planning (blok “Fietsen”).'],
+     l:['Ophalen: bij de fietsenstalling van de Housekeeping, achter de loods.','Zet je fiets bij de nooddeur onder het schip, zodat je de spullen er makkelijk in kan zetten.','Dit doe je eerst, vóór al het andere. Orry en de heks halen hun fiets op vóór 14u15 (opbouw van de show); de anderen zorgen dat ze om 15u00 onder het schip zijn voor de briefing. Bedenk zelf hoeveel tijd je nodig hebt voor de verplaatsing.','De namen per avond staan in de tabel hierboven en bij Planning (blok “Fietsen”).'],
      nota:'Kapitein, ontvangst en reserve staan niet in dit lijstje: zij halen geen fiets op.'},
     {titel:'Wat moet je voorbereiden?',rijen:VOORBEREIDEN}
   ],
@@ -302,7 +302,7 @@ window.HW_ACT['zeven-zeeen']={
      fotos:[foto('kind-pablo','Make-up voorbeeld: kapitein Pablo'),foto('kind-schmink-piraat-vrouw','Make-up voorbeeld: piraat (vrouw)'),foto('kind-schmink-piraat-man','Make-up voorbeeld: piraat (man)')]}
   ],
   uurschema:[
-    ['Vóór 15u00','Inklokken en fiets ophalen','Alleen schutter, kok, dronkaard, dief 1/overhead (fiets met laadbak) en dief 2/Orry en heks (fiets zonder laadbak): inklokken bij de check-in en een fiets halen bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip.'],
+    ['Eerst: vóór 15u00','Inklokken en fiets ophalen','Dit komt vóór al het andere. Alleen schutter, kok, dronkaard, dief 1/overhead (fiets met laadbak) en dief 2/Orry en heks (fiets zonder laadbak): inklokken bij de check-in en een fiets halen bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip. Orry en de heks doen dit vóór 14u15, voor de opbouw van de show.'],
     ['15u00','Briefing','Iedereen onder het schip in de Discovery Bay. Wees echt op tijd.'],
     ['15u10','Opbouw','Elke piraat met een post neemt zijn materiaal onder het schip en fietst naar zijn post. De heks bouwt nog niet op: dat materiaal mag niet in het zicht van de gasten staan.'],
     ['15u50','Opbouw klaar','Daarna afspraak voor make-up en kledij.'],

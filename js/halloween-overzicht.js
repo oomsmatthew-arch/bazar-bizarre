@@ -11,6 +11,7 @@
 'use strict';
 
 const DAGSCHEMA=[
+  ['Eerst: vóór 14u15 of 15u00','Fiets ophalen bij de Housekeeping (achter de loods) en inklokken bij de check-in. Alleen voor schutter, kok, dronkaard, dief 1/overhead (met laadbak) en dief 2/Orry en heks (zonder laadbak). Wie ook in de show staat, doet dit vóór 14u15.','Kindertocht'],
   ['14u00 – 15u00','Klaarzetten van de Halloween-kinderactiviteiten (atelier)','Marktje'],
   ['14u15','Opbouw van de show en de techniek','Halloween show'],
   ['15u00','Briefing onder het schip; opbouw van de kindertocht vanaf 15u10. Fiets ophalen en inklokken (voor wie een fiets neemt) vóór 15u00.','Kindertocht'],

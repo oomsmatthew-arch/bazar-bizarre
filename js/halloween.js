@@ -543,7 +543,12 @@ function jouwDag(d){
   if(M){ (M.opbouw||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Marktje · opbouw'));
     (M.draaiboek||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Marktje · '+r.karakter));
     (M.afbouw||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Marktje · afbouw')); }
-  if(K){ (K.draaiboek||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Kindertocht · '+r.karakter+(ACT['zeven-zeeen'].fiets&&ACT['zeven-zeeen'].fiets[r.karakter]?' (🚲 fiets '+ACT['zeven-zeeen'].fiets[r.karakter]+')':'')));
+  if(K){
+    // Wie een fiets nodig heeft, haalt die eerst op: vóór de show (Orry en heks) of vóór de briefing van 15u00.
+    const fietsRol=(K.draaiboek||[]).find(r=>ik(r.naam)&&ACT['zeven-zeeen'].fiets&&ACT['zeven-zeeen'].fiets[r.karakter]);
+    if(fietsRol){ const metShow=ik(K.orry)||ik(K.heks); const t=metShow?'Vóór 14u15':'Vóór 15u00';
+      lijst.push({tijd:t,wat:'🚲 Eerst: fiets '+ACT['zeven-zeeen'].fiets[fietsRol.karakter]+' ophalen bij de Housekeeping (achter de loods) en inklokken bij de check-in',m:metShow?14*60+14:14*60-1}); }
+    (K.draaiboek||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Kindertocht · '+r.karakter+(ACT['zeven-zeeen'].fiets&&ACT['zeven-zeeen'].fiets[r.karakter]?' (🚲 fiets '+ACT['zeven-zeeen'].fiets[r.karakter]+')':'')));
     (K.afbouw||[]).filter(r=>ik(afbouwNaam(r))).forEach(r=>voeg(r.tijd,'Ombouw · '+r.waar));
     if(ik(K.orry)) voeg('14u15 – 16u50','Show · Orry (daarna dief 2)'); if(ik(K.heks)) voeg('14u15 – 16u30','Show · heks'); }
   if(O){ (O.draaiboek||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Volwassentocht · '+r.karakter+' ('+r.waar+')'));
@@ -635,6 +640,8 @@ function tekenHero(){
   const a=A();
   $('hwActs').innerHTML=HW.activiteiten.map(x=>'<button type="button" class="hw-act'+(x.id===a.id?' actief':'')+'" data-act="'+x.id+'"><span class="ic">'+(x.ic||'')+'</span>'+esc(x.kort)+'</button>').join('');
   const hero=document.querySelector('.hw-hero'); hero.style.background=a.kleur;
+  // Elk onderdeel heeft zijn eigen accentkleur: knop, tabbladen, datums en markeringen volgen die kleur.
+  $('halloween').style.setProperty('--hw',a.acc||'#e8772e');
   const compact=state.tab!==a.tabs[0].id;
   $('hwKicker').textContent=compact?kruimel():a.kicker; $('hwTitel').textContent=a.titel; $('hwOndertitel').textContent=a.sub;
   $('hwFeiten').innerHTML=(a.feiten||[]).map(f=>'<div class="hw-feit"><b>'+esc(f[1])+'</b><span>'+esc(f[0])+'</span></div>').join('');
