@@ -6,6 +6,7 @@
 //  het schema van de show komt uit het draaiboek van de kindertocht ("Orry en heks").
 //  Voor de Halloween show en het marktje staat er (nog) geen eigen document in de Drive:
 //  daar staat wat in de andere documenten over hen te vinden is. Tekenen doet js/halloween.js.
+//  Het showschema is aangevuld met de afspraak van 17/10: Orry helpt de heks bij de op- en afbouw.
 // =====================================================================
 (function(){
 'use strict';
@@ -91,9 +92,9 @@ const SHOW=[
   ['15u45 – 16u00','Pauze'],
   ['16u00 – 16u30','Show 2'],
   ['16u30 – 16u45','Orry: omkleden tot dief 2 in de Bay. Heks: fellere make-up in de Bay.'],
-  ['16u45 – 16u50','Samen verplaatsen naar je post, fiets meenemen en de post klaarzetten. Daarna gaat dief 2 rondlopen.'],
-  ['16u50 – 19u15','Op post. De laatste tocht zal rond 19u15 bij de heks zijn. Is de groep voorbij je post, dan ga je opruimen en terug naar de DB.'],
-  ['19u15 – 19u30','Teruglopen en opruimen.'],
+  ['16u45 – 16u50','Samen verplaatsen naar de post van de heks, fiets meenemen en de post samen klaarzetten: de heks bouwt niet alleen op. Daarna gaat dief 2 rondlopen.'],
+  ['16u50 – 19u15','Op post. De laatste tocht zal rond 19u15 bij de heks zijn; de heks maakt duidelijk dat de tocht bij haar stopt. Is de groep voorbij je post, dan ga je opruimen en terug naar de DB.'],
+  ['19u15 – 19u30','Samen de post van de heks afbouwen (de kok helpt ook), teruglopen en opruimen. Geen hulp op tijd? Meld het bij Marith.'],
   ['19u30 – 19u45','Omkleden en make-up eraf.'],
   ['19u45 – 20u15','Pauze'],
   ['20u15 – 20u25','Omkleden en make-up voor de volwassentocht.']

@@ -78,6 +78,19 @@ ok(M.data.every(function(d){ return M.nachten[d]&&M.nachten[d].opbouw.length>=5&
 ok(M.data.every(function(d){ return M.nachten[d].draaiboek.every(function(r){ return r.naam&&r.karakter&&r.tijd; }); }),'marktje: elke rij heeft naam, activiteit en uren');
 ok(M.checklist.length===3&&M.tabs.find(function(x){ return x.id==='activiteiten'; }).kaarten.length>=6,'marktje: checklist en activiteiten staan erin');
 
+print('— Afspraken na de eerste avond (17/10) —');
+// Twee identieke punten in dezelfde fase delen één vinkje (de id is fase + tekst).
+var dubbelAlle=[];
+[['volwassentocht',HW],['kindertocht',K],['marktje',M]].forEach(function(x){ x[1].checklist.forEach(function(f){ var gezien={}; f.groepen.forEach(function(g){ g.items.forEach(function(it){ if(gezien[it]) dubbelAlle.push(x[0]+' '+f.id+': '+it); gezien[it]=1; }); }); }); });
+ok(dubbelAlle.length===0,'geen twee identieke checklistpunten in dezelfde fase, in geen enkel onderdeel'+(dubbelAlle.length?' — '+dubbelAlle.join(', '):''));
+var dief=K.zones.find(function(z){ return z.id==='dief'; });
+ok(!/door de groep heen/.test(JSON.stringify(dief))&&dief.aandacht.some(function(x){ return /van achteren/.test(x); }),'kindertocht: dieven benaderen de groep van achteren, niet erdoor');
+var heks=K.zones.find(function(z){ return z.id==='heks'; });
+ok(heks.personages[0].scripts.some(function(s){ return s.key==='heks-einde'; }),'kindertocht: de heks heeft een slotzin die zegt dat de tocht stopt');
+ok(/E-car/.test(JSON.stringify(dief))&&/E-car/.test(JSON.stringify(K.zones.find(function(z){ return z.id==='schutter'; }))),'kindertocht: het bord van de schutter gaat met de E-car (dief 1)');
+ok(JSON.stringify(M).indexOf('heks met boek buiten')<0&&/Berta/.test(JSON.stringify(M.nachten)),'marktje: Berta de heks komt in de grot, niet meer buiten');
+ok(/platform van Janneke/.test(JSON.stringify(K.zones[0]))&&/ingang van de Bay/.test(JSON.stringify(HW.zones[0])),'start van beide tochten staat juist');
+
 print('— Gevoelige gegevens —');
 var alles=JSON.stringify(HW)+JSON.stringify(ACT);
 ok(alles.indexOf('BVMOPE')<0,'geen PC-aanmeldgegevens in de pagina');

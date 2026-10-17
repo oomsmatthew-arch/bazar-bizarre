@@ -595,7 +595,8 @@ function nettenTaken(taken){
 function viewOmbouw(){
   const d=state.datum, K=ACT['zeven-zeeen'].nachten[d], M=ACT.marktje.nachten[d];
   let h=datumKnoppen();
-  h+=kaartHtml({titel:'Ombouw · '+dagnaam(d)+' '+d+' · 19u00 – 19u30',p:['Om 19u00 stopt de kindertocht en de Bay wordt omgebouwd tot de volwassentocht. Wie een eigen post van de kindertocht had, bouwt die eerst af en helpt daarna mee met de ombouw. Hieronder per zone wie er staat en wat er moet gebeuren.'],
+  h+=kaartHtml({titel:'Ombouw · '+dagnaam(d)+' '+d+' · 19u00 – 19u30',p:['Om 19u00 stopt de kindertocht en de Bay wordt omgebouwd tot de volwassentocht. Wie een eigen post van de kindertocht had, bouwt die eerst af en helpt daarna mee met de ombouw. Hieronder per zone wie er staat en wat er moet gebeuren.',
+    'Na de kindertocht gaat er iemand een ronde door de hele Bay doen om achtergebleven decoratie op te ruimen (de Kidsclub kan dit doen). Berta de heks (de pop in de eerste grot na de ingang) wordt afgebouwd voor de volwassentocht.'],
     nota:'Het volledige draaiboek met foto’s per zone staat bij The Outbreak → Zones → Opbouw & materiaal.'});
   if(!K||!(K.afbouw||[]).length){ return h+'<p class="hw-muted">Voor deze avond staat de ombouw nog niet in het draaiboek.</p>'; }
   OMBOUW_ZONES.forEach(z=>{
@@ -614,7 +615,8 @@ function viewOmbouw(){
       +'<div class="hw-knoppen"><a class="btn" href="#'+z.link+'">Opbouw met foto’s →</a></div></div>';
   });
   if(M){ const namen=[...new Set((M.draaiboek||[]).flatMap(r=>namenIn(r.naam)))];
-    h+=kaartHtml({titel:'Hulp van het marktje (19u00 – 19u30)',p:['Wie bij het marktje (atelier) staat, doet eerst snel de spullen in de bolderkar en brengt die samen met tafels en stoelen onder het schip. Daarna helpt die tot 19u30 mee met de ombouw van de volwassentocht: meld je direct bij Marith of iemand van Entertainment.'],
+    h+=kaartHtml({titel:'Hulp van het marktje (19u00 – 19u30)',p:['Wie bij het marktje (atelier) staat, doet eerst snel de spullen in de bolderkar en brengt die samen met tafels en stoelen onder het schip. Daarna helpt die eerst Entertainment met de opbouw van de tochten, tot 19u30.',
+      'Als eerste zetten de ateliermedewerkers samen de grote kar voor Entertainment klaar: tentframe, zwarte bache, spandoek, posters en lint. De tent komt tegen de ingang van Discovery Bay. In de bak op de kar zit een handleiding; vraag Marith om uitleg als iets niet duidelijk is. Dit moet snel gebeuren en vóór de gasten aankomen. Meld je daarna bij Marith of iemand van Entertainment.'],
       l:namen});
   }
   return h;

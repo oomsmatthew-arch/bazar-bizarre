@@ -9,6 +9,10 @@
 //  Met opzet NIET overgenomen: het wachtwoord van de PC, de code van het lichtpaneel en
 //  de telefoonnummers. De site is openbaar bereikbaar; die staan in het Drive-draaiboek en
 //  in Contacten.
+//
+//  Aangevuld met de werkpunten na de eerste avond (mail van het Halloween team, 17/10/2026):
+//  start aan de tent bij de ingang van de Bay, meer schrikeffect, vaste plek voor de rook,
+//  buitenroute met telefoonzaklamp, struikelgevaar, extra hek, slot Safezone, KIC als griezels.
 // =====================================================================
 (function(){
 'use strict';
@@ -55,12 +59,12 @@ window.HW={
 
   // Zo verloopt de tocht, per gast. 'zone' verwijst naar een zone-id.
   stappen:[
-    {nr:1,zone:'inkom',titel:'Aankomst & controle',tekst:'Een CZC-medewerker in overall en gasmasker begroet de gasten, scant de bandjes, neemt per gezelschap de temperatuur en stuurt iedereen meteen naar de quarantainezone (de lockers).'},
+    {nr:1,zone:'inkom',titel:'Aankomst & controle',tekst:'Vooraan bij de ingang van de Bay, aan de tent, begroet een CZC-medewerker in overall en gasmasker de gasten, scant de bandjes, neemt per gezelschap de temperatuur en stuurt iedereen meteen naar de quarantainezone (de lockers).'},
     {nr:2,zone:'locker',titel:'Quarantainezone & de kist',tekst:'In de quarantainezone (de lockers) wachten de gasten op verdere instructies. Overlever 1 waarschuwt hen voor terminatie, vertelt over de kist met het vrijstelling en stuurt de groepen één voor één het pad door The Bay op. Om de 5–8 minuten vertrekt er een groep van max 8–10.'},
     {nr:3,zone:'sector2',titel:'Doorheen The Bay',tekst:'Op een afgebakend pad zoeken de gasten de cijfers 1, 3 en 7. Mutanten laten hen schrikken, achtervolgen en opjagen. De CZC-medewerker patrouilleert: zij mogen niet gezien worden.'},
     {nr:4,zone:'sector1',titel:'Extractiepunt',tekst:'Overlever 2 vraagt naar de eerste 3 cijfers. Fout of niets gevonden? Terug The Bay in. Juist? Dan mogen ze naar buiten.'},
     {nr:5,zone:'bos',titel:'Het bos',tekst:'Via de straatoversteek en de brug volgen ze een route door het bos. Onderweg vinden ze het laatste cijfer (9) en komen ze mutanten 4 en 5 tegen.'},
-    {nr:6,zone:'bos',titel:'Safezone',tekst:'Overlever 3 bewaakt de kist. Met de juiste code gaat ze open en krijgt elke gast één polsbandje: “I SURVIVED HALLOWEEN – CENTER PARCS DE VOSSEMEREN”.'}
+    {nr:6,zone:'bos',titel:'Safezone',tekst:'Overlever 3 bewaakt de kist. Met de juiste code gaat ze open (het slot zit vast: Overlever 3 trekt de ketting gewoon van de kist) en krijgt elke gast één polsbandje: “I SURVIVED HALLOWEEN – CENTER PARCS DE VOSSEMEREN”.'}
   ],
 
   code:{
@@ -118,7 +122,12 @@ window.HW={
       ['Noodgeval: “Code 10”','Raakt iemand in paniek, valt die of wil hij/zij stoppen? Meld het via de portofoon met “Code 10” en je locatie. Speel niet verder en blijf bij de persoon tot er hulp is.'],
       ['Verantwoordelijke','De verantwoordelijke van de avond is bereikbaar via de portofoon.'],
       ['Toilet','Kan tussendoor, op de gebruikelijke plaats in Discovery Bay. Laat je collega’s wel even weten dat je gaat.'],
-      ['Schrikmomenten','Geen schrikmomenten bij de straatoversteek, trappen, bruggen of andere risicopunten.'],
+      ['Schrikmomenten','Geen schrikmomenten bij de straatoversteek, trappen, bruggen of andere risicopunten. In de rest van The Bay willen we juist meer schrikeffect en minder zombiestijl.'],
+      ['Struikelgevaar','Houd rekening met risicovolle stukken: laat gasten voorzichtig lopen en beperk schrikeffecten op moeilijke punten.'],
+      ['Buitenroute','Bij de nooduitgang vraag je de gasten om voor de buitenroute hun telefoonzaklamp aan te zetten, en waarschuw je voor boomstronken.'],
+      ['Extra hek','In de grot bij de trap naar Atkins staat een extra hek in plaats van linten, zodat de doorgang mogelijk blijft.'],
+      ['Trap waterlabyrint','Daar komt extra verlichting. Er is nog geen bon voor aangemaakt in Leviy: die moet aangemaakt en opgevolgd worden.'],
+      ['Poortje en nooddeuren','Bewaking of TD opent en sluit ze dagelijks; normaal is dat al geregeld. Is het niet gebeurd, dan meldt de medewerker aan de voorpoort dit bij de verantwoordelijke van de avond. Zo nodig contact opnemen met het meldpunt, TD of de duty.'],
       ['Telefoonnummers','Staan in Contacten en in het Drive-draaiboek (bewust niet in deze pagina).']
     ]},
     {titel:'Faciliteiten',rijen:[
@@ -131,8 +140,11 @@ window.HW={
     {titel:'Ombouw & afbouw',rijen:[
       ['Materiaal','Elke zone heeft een eigen IKEA-doos. Wat erin zit, staat per zone onder “Materiaal & afbouw”.'],
       ['Wie doet wat','Wie iets afbouwt, heeft het ook opgezet. Wie welke taak doet, staat per avond bij Planning.'],
-      ['KIC-medewerkers','Je krijgt hulp van de KIC-medewerkers: zet hun hulp goed in.'],
-      ['Rookmachine','Zet ze bij de afbouw eerst uit en laat ze afkoelen voor ze weggezet wordt.']
+      ['Tent','Om 19u00 zetten de ateliermedewerkers als eerste samen de grote kar voor Entertainment klaar: tentframe, zwarte bache, spandoek, posters en lint. De tent staat tegen de ingang van Discovery Bay. In de bak op de kar zit een handleiding; vraag Marith om uitleg als iets niet duidelijk is. Dit moet snel en vóór de gasten aankomen.'],
+      ['Berta de heks','De pop in de eerste grot na de ingang staat er tijdens de kindertocht en wordt bij de volwassentocht afgebouwd.'],
+      ['KIC-medewerkers','Je krijgt hulp van de KIC-medewerkers: zet hun hulp goed in. Zodra ze klaar zijn met opruimen en schoonmaken, komen ze via de personeelsingang binnen en melden ze zich bij Marith. Tot 21u50 kunnen ze meehelpen als griezels in de Bay, voor extra beleving.'],
+      ['Rookmachine','Krijgt een vaste locatie (vraag Marith waar). Zet ze bij de afbouw eerst uit en laat ze afkoelen voor ze weggezet wordt.'],
+      ['Na de tocht','Doe een ronde door de hele Bay om achtergebleven decoratie op te ruimen. Breng gebruikte en ongebruikte verlengsnoeren terug onder het schip. De laatste medewerker controleert bij vertrek of de nooddeuren gesloten zijn; lukt dat niet, bel dan guestservice. Breng de vuile was weg en laat de kleedkamers netjes achter.']
     ]}
   ],
 
@@ -144,12 +156,14 @@ window.HW={
     kort:'CZC-medewerker 1 & 2',
     plattegrond:foto('plattegrond-inkom','Plattegrond inkom, locker & ingang'),
     wat:[
-      'De gasten komen aan bij The Bay en worden opgevangen door het CZC. Via doeken (en paars licht, tussen de 2 schuifdeuren) worden ze naar de lockers geleid. Daar staat een hek dat de rest van de inkom afschermt.',
+      'De volwassentocht start vooraan bij de ingang van de Bay, waar ook de tent staat. Daar komen de gasten aan en worden ze opgevangen door het CZC. Via doeken (en paars licht, tussen de 2 schuifdeuren) worden ze naar de lockers geleid. Daar staat een hek dat de rest van de inkom afschermt.',
       'CZC-medewerker 1 neemt per gezelschap de temperatuur, legt uit dat de gasten in quarantaine moeten, stuurt ze meteen naar de quarantainezone (de lockers) en zegt duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.',
       'CZC-medewerker 2 helpt naargelang de drukte als scanner aan de inkom of patrouilleert in The Bay. Je scant de bandjes en kijkt of ze hun toegangsticket hebben; hebben ze dit niet, dan moeten ze dit nog kopen via de betaalterminal.'
     ],
     aandacht:[
       'Gasten schrijven in per tijdslot van 10 minuten, met 20 personen per tijdslot. Na de controle gaan de gasten meteen naar de quarantainezone (de lockers): er is geen aparte wachtruimte. Daar is Overlever 1 en vertrekken ongeveer om de 5 minuten de groepen, een groep is max 8–10 personen.',
+      'Staat er een wachtrij? Dan kan de ontvangstmedewerker de wachtenden alvast entertainen, bijvoorbeeld door hun temperatuur en ‘symptomen’ te controleren.',
+      'Poortje en nooddeuren: bewaking of TD opent ze dagelijks (normaal is dat al geregeld). Is het niet gebeurd, meld het dan bij de verantwoordelijke van de avond; zo nodig meldpunt, TD of duty.',
       'Je komt NOOIT in contact met de overlever die het na jou overneemt; jullie zien of erkennen elkaar niet. Althans: de gasten zien niet dat jullie in contact komen.',
       'Noodgeval: meld je via de portofoon met “Code 10” en je locatie. De verantwoordelijke van de avond is bereikbaar via de portofoon.'
     ],
@@ -158,7 +172,8 @@ window.HW={
        wie:['Jij bent het eerste contact met de gasten en je straalt orde en discipline uit. Er wordt naar je geluisterd, of je zorgt er wel voor dat de gasten luisteren. Het is immers jouw taak om de controle en quarantaine van mogelijke geïnfecteerden vlot te laten verlopen.',
             'Doorheen de dag zijn er in The Bay verschillende vreemde paddenstoelen vastgesteld. Het CZC heeft het gebied afgesloten en iedereen die mogelijk in contact is gekomen met de besmetting moet gecontroleerd worden.',
             'Je geeft nooit de indruk dat de mensen hier mogelijk voor terminatie worden vastgehouden, maar probeert ze gerust te stellen. Alles is onder controle, er is geen reden tot paniek. Je weet echter dat personen met duidelijke symptomen in quarantaine worden geplaatst en mogelijk worden opgegeven voor terminatie.',
-            'Je controleert de mensen die zich aanmelden, neemt hun temperatuur en stuurt hen meteen door naar de quarantainezone (de lockers). Je behandelt ieder gezelschap apart. Je zegt de gasten ook duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.'],
+            'Je controleert de mensen die zich aanmelden, neemt hun temperatuur en stuurt hen meteen door naar de quarantainezone (de lockers). Je behandelt ieder gezelschap apart. Je zegt de gasten ook duidelijk dat ze de collega’s/onderzoekers onderweg niet mogen aanraken.',
+            'Staat er een wachtrij aan de tent, dan hou je de wachtenden alvast bezig: controleer hun temperatuur en kijk of ze ‘symptomen’ vertonen.'],
        tip:'Het is belangrijk deze tekst in het Nederlands en het Engels te kennen. De tekst is een leidraad, je mag creatief met de tekst omgaan.',
        zelf:['Wandelschoenen','Zwarte (thermische) onderkleding'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],
        attr:['Warmtecamera (scanner)','PDA','Betaalterminal','Tikkaart'],
@@ -172,7 +187,7 @@ window.HW={
        attr:['Warmtecamera (scanner)','PDA','Betaalterminal','Tikkaart']}
     ],
     materiaal:[
-      {groep:'Inkom & aankleding',items:['Partytent','Posters (doos)','Zwarte doek voor de schuifdeur (doos)','Zwarte doek voor de poortjes (doos)','Posters in de vestiaire (doos)']},
+      {groep:'Inkom & aankleding',items:['Partytent (grote kar: tentframe, zwarte bache, spandoek, posters en lint)','Posters (doos)','Zwarte doek voor de schuifdeur (doos)','Zwarte doek voor de poortjes (doos)','Posters in de vestiaire (doos)']},
       {groep:'Hekken & licht',items:['Hek met twee betonblokken','Lamp aan het hek bij de doorgang (doos)']},
       {groep:'Afsluiten',items:['Checken dat het poortje dicht is']},
       {groep:'Backoffice',items:['2× PDA (ligt in de hut)','2× betaalterminal (ligt in de hut)','Eigen tikkaart']}
@@ -182,7 +197,7 @@ window.HW={
       'Zet de schuifdeur ook op “open” wanneer we gaan starten, zodat ze niet dichtgaat.',
       'Er komt een hek te staan zodat gasten niet naar links kunnen maar naar rechts gestuurd worden.',
       'De lamp mag aan het hek gehangen worden, met de haak. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
-      'Stel de tent vooraan op. Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven.',
+      'De tent staat vooraan, tegen de ingang van Discovery Bay. Om 19u00 zetten de ateliermedewerkers als eerste de grote kar klaar: tentframe, zwarte bache, spandoek, posters en lint (in de bak op de kar zit een handleiding; vraag Marith als iets niet duidelijk is). Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven. Dit moet snel en vóór de gasten aankomen.',
       'Zowel aan de tent als in de quarantainezone (de lockers) en de vestiaire mogen posters hangen met ductape.'
     ],
     fotos:[
@@ -219,7 +234,7 @@ window.HW={
        fotos:[foto('kostuum-overlever','Voorbeeld van de overleverskledij')]}
     ],
     materiaal:[
-      {groep:'Inkom & aankleding',items:['Partytent','Posters (doos)','Zwarte doek voor de schuifdeur (doos)','Zwarte doek voor de poortjes (doos)','Posters in de vestiaire (doos)']},
+      {groep:'Inkom & aankleding',items:['Partytent (grote kar: tentframe, zwarte bache, spandoek, posters en lint)','Posters (doos)','Zwarte doek voor de schuifdeur (doos)','Zwarte doek voor de poortjes (doos)','Posters in de vestiaire (doos)']},
       {groep:'Hekken & licht',items:['Hek met twee betonblokken','Lamp aan het hek bij de doorgang']},
       {groep:'Toegangspoortjes',items:['Checken dat het poortje open kan en blijft staan, anders melden aan de verantwoordelijke']}
     ],
@@ -228,7 +243,7 @@ window.HW={
       'Zet de schuifdeur ook op “open” wanneer we gaan starten, zodat ze niet dichtgaat.',
       'Er komt een hek te staan zodat gasten niet naar links kunnen maar naar rechts gestuurd worden.',
       'De lamp mag aan het hek gehangen worden, met de haak. Leg dan stroom tot bij het tweede hek aan het vlot: tussen de planten links heb je een stopcontact.',
-      'Stel de tent vooraan op. Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven.',
+      'De tent staat vooraan, tegen de ingang van Discovery Bay. Om 19u00 zetten de ateliermedewerkers als eerste de grote kar klaar: tentframe, zwarte bache, spandoek, posters en lint (in de bak op de kar zit een handleiding; vraag Marith als iets niet duidelijk is). Zet met afzetlint de buitenkant af, zodat gasten een route hebben om aan te schuiven. Dit moet snel en vóór de gasten aankomen.',
       'Zowel aan de tent als in de quarantainezone (de lockers) en de vestiaire mogen posters hangen met ductape.'
     ],
     fotos:[
@@ -250,14 +265,16 @@ window.HW={
     ],
     aandacht:[
       'De eerste 3 cijfers van de code zijn 7, 1 en 3. De 1 en de 3 hangen langs het pad, de 7 staat op het pak van een van de mutanten.',
-      'In sector 1/2 staat een rookmachine (exacte plek nog te bepalen). De mutant in die zone bedient ze met een drukknop.',
+      'Wie de gasten bij de nooduitgang naar buiten stuurt: vraag hen om voor de buitenroute hun telefoonzaklamp aan te zetten en waarschuw voor boomstronken.',
+      'In sector 1/2 staat een rookmachine. Ze krijgt een vaste locatie, zodat ze elke avond op dezelfde plek staat (vraag Marith waar). De mutant in die zone bedient ze met een drukknop.',
       'Noodgeval: meld je via de portofoon met “Code 10” en je locatie. De verantwoordelijke van de avond is bereikbaar via de portofoon.'
     ],
     personages:[
       {naam:'Overlever 2',sub:'Extractiepunt',script:'overlever2',
        wie:['Jij staat aan het einde van het parcours door The Bay, aan het extractiepunt. Je maakt deel uit van het extractieteam van de overlevenden. De gasten hebben onderweg de eerste 3 cijfers van de code moeten zoeken: 7, 1 en 3.',
             'Zie je gasten aankomen, dan lok je ze naar je toe en vraag je naar de 3 cijfers die ze gevonden hebben. Hebben ze de cijfers niet gevonden of zijn ze fout, dan stuur je hen terug The Bay in om opnieuw te zoeken. Je opent het hek en ze mogen de route opnieuw doen.',
-            'Zijn de cijfers correct, dan mogen ze The Bay verlaten. Je legt hen uit dat ze de route door het bos moeten volgen en dat ze onderweg het laatste cijfer van de code vinden. Aan het einde van die route ligt de Safezone, waar de kist met het vrijstelling staat.'],
+            'Zijn de cijfers correct, dan mogen ze The Bay verlaten. Je legt hen uit dat ze de route door het bos moeten volgen en dat ze onderweg het laatste cijfer van de code vinden. Aan het einde van die route ligt de Safezone, waar de kist met het vrijstelling staat.',
+            'Gaan de gasten via de nooduitgang naar buiten, vraag hen dan om voor de buitenroute hun telefoonzaklamp aan te zetten en waarschuw voor boomstronken.'],
        tip:'Je moet er overtuigend uitzien als overlever. In de kast hangen verkleedspullen; gebruik vooral alles wat je vindt.',
        zelf:['Zwarte (thermische) onderkleding','Bruine of zwarte broek (lang of kort)','Wandelschoenen','Dikke handschoenen'],
        cp:['Beige/grijs T-shirt','Militaire jas, zwarte jas, …','Gasmasker / mondmasker'],attr:['Walkietalkie','Geweer','Stok'],
@@ -300,7 +317,9 @@ window.HW={
       'Dit is het hart van The Bay. De mutanten bewegen zich elk vrij binnen hun eigen zone langs het pad en laten de gasten schrikken, achtervolgen en opjagen. Onderweg zoeken de gasten de eerste 3 cijfers van de code: de 1 en de 3 hangen langs het pad, de 7 staat op het pak van een van de mutanten.'
     ],
     aandacht:[
-      'In sector 1/2 staat een rookmachine (exacte plek nog te bepalen). De mutant in die zone bedient ze met een drukknop. Geef korte stoten, zodat het pad zichtbaar en veilig blijft.',
+      'Meer schrikeffect en minder zombiestijl in de Bay.',
+      'Houd rekening met risicovolle stukken: laat gasten voorzichtig lopen en beperk schrikeffecten op moeilijke punten.',
+      'In sector 1/2 staat een rookmachine. Ze krijgt een vaste locatie, zodat ze elke avond op dezelfde plek staat (vraag Marith waar). De mutant in die zone bedient ze met een drukknop. Geef korte stoten, zodat het pad zichtbaar en veilig blijft.',
       'Eén mutant in The Bay draagt elke avond het pak met de 7. Raak de gasten nooit aan en laat je ook niet door hen aanraken.',
       'Noodgeval: meld je via de portofoon met “Code 10” en je locatie. De verantwoordelijke van de avond is bereikbaar via de portofoon.'
     ],
@@ -310,7 +329,7 @@ window.HW={
             'Eén van de pakken heeft een 7 op de rug of borst: dat is een cijfer van de code. Het maakt niet uit wie het draagt, maar een mutant in The Bay moet het elke avond aan hebben.',
             'Je beweegt je vrij binnen je eigen zone langs het afgebakende pad. Je verstopt je, loert en komt dan plots in beeld om de gasten te laten schrikken. Je achtervolgt en jaagt ze op, maar je blijft altijd binnen je zone en verdeelt je met de andere mutanten, zodat de gasten op meerdere plekken verrast worden. Je raakt de gasten nooit aan en laat je ook niet door hen aanraken.',
             'Sta je in de zone van de rookmachine, dan bedien jij ze met de drukknop. Gebruik de rook om je te verstoppen en kom er plots uit tevoorschijn. Geef korte stoten, zodat het pad zichtbaar en veilig blijft. Je hebt geen vaste tekst, maar communiceert via gegrom, gekreun, gesis en losse woorden.'],
-       tip:'De witte pakken zijn vooraf bewerkt met bloed en scheuren. Werk daarnaast met schmink zodat je er duidelijk besmet uitziet. Deze kledij geldt voor alle mutanten, in The Bay en in het bos.',
+       tip:'Afspraak na de eerste avond: meer schrikeffect en minder zombiestijl in de Bay. De witte pakken zijn vooraf bewerkt met bloed en scheuren. Werk daarnaast met schmink zodat je er duidelijk besmet uitziet. Deze kledij geldt voor alle mutanten, in The Bay en in het bos.',
        zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],
        attr:['Drukknop rookmachine (indien in jouw zone)'],
        fotos:[foto('czc-pak','Het CZC-pak met gasmasker')]}
@@ -350,8 +369,9 @@ window.HW={
     ],
     aandacht:[
       'Lukt de code na enkele pogingen niet, dan hoort Overlever 3 via het oortje dat een andere overlever het ontbrekende cijfer gevonden heeft en kan hij één van de cijfers geven.',
+      'Het slot van de Safezone-kist zit vast: trek de ketting gewoon van de kist af.',
       'Elke gast krijgt één polsbandje; de kist ligt vol voor de hele avond. Op 15/10 en 17/10 zijn er nog geen bandjes: dan krijgen de gasten een vrijstelling.',
-      'Geen schrikmomenten bij de straatoversteek.',
+      'Geen schrikmomenten bij de straatoversteek. Buiten is er struikelgevaar (boomstronken): de gasten lopen met hun telefoonzaklamp aan; laat ze voorzichtig lopen en beperk schrikeffecten op moeilijke punten.',
       'Noodgeval: meld je via de portofoon met “Code 10” en je locatie. De verantwoordelijke van de avond is bereikbaar via de portofoon.'
     ],
     personages:[
@@ -363,7 +383,7 @@ window.HW={
        zelf:['Wandelschoenen'],cp:['Witte overall','Gasmasker / mondmasker','Handschoenen latex'],attr:[]},
       {naam:'Overlever 3',sub:'Safezone',script:'overlever3',
        wie:['Jij bent een overlever en staat aan het einde van de tocht, in de Safezone. De gasten hebben The Bay verlaten, de route door het bos gevolgd en onderweg het laatste cijfer van de code gevonden.',
-            'In de Safezone staat de afgesloten kist met het vrijstelling. De gasten geven hier de volledige code in: 7139. Lukt het na enkele pogingen niet, dan krijg je via je oortje te horen dat een andere overlever het ontbrekende cijfer gevonden heeft, en help je de groep verder. Is de code correct, dan gaat de kist open.',
+            'In de Safezone staat de afgesloten kist met het vrijstelling. De gasten geven hier de volledige code in: 7139. Lukt het na enkele pogingen niet, dan krijg je via je oortje te horen dat een andere overlever het ontbrekende cijfer gevonden heeft, en help je de groep verder. Is de code correct, dan gaat de kist open: het slot zit vast, dus je trekt de ketting gewoon van de kist af.',
             'Als beloning krijgt iedere gast één polsbandje met daarop: “I SURVIVED HALLOWEEN – CENTER PARCS DE VOSSEMEREN”. Op 15/10 en 17/10 zijn er nog geen polsbandjes; dan krijgen de gasten enkel een vrijstellingskaart. Je zorgt ervoor dat de gasten het gevoel krijgen dat ze het gehaald hebben en nu veilig zijn.'],
        tip:'Je moet er overtuigend uitzien als overlever. In de kast hangen verkleedspullen; gebruik vooral alles wat je vindt.',
        zelf:['Zwarte (thermische) onderkleding','Bruine of zwarte broek (lang of kort)','Wandelschoenen','Dikke handschoenen'],
@@ -373,7 +393,7 @@ window.HW={
     materiaal:[
       {groep:'Lint (doos)',items:['Lint doorheen het bos']},
       {groep:'Licht & geluid',items:['2 ledbars','Muziekbox en tablet']},
-      {groep:'Safezone (aparte doos, flightcase)',items:['Safezone-kist (check dat er voldoende bandjes in zitten, anders bijvullen: te vinden in de Halloweenkast)']},
+      {groep:'Safezone (aparte doos, flightcase)',items:['Safezone-kist (check dat er voldoende bandjes in zitten, anders bijvullen: te vinden in de Halloweenkast). Het slot zit vast: de ketting gaat er gewoon af.']},
       {groep:'Terugbrengen',items:['Het materiaal uit het buitenbos samen binnenbrengen']}
     ],
     opbouw:[
@@ -451,7 +471,7 @@ window.HW={
         'De volgende nummers mogen uitgezet worden: 60, 62, 65, 68, 77, 78.',
         'Bij de afbouw zet je de lampen terug aan.'],fotos:[]},
       {id:'rook',titel:'Rookmachine + drukknop',stappen:[
-        'Kies de locatie uit. Bouw alles veilig op en zorg dat de kabels niet in de weg liggen.',
+        'Zet de machine op haar vaste locatie (vraag Marith waar, als je het niet weet). Bouw alles veilig op en zorg dat de kabels niet in de weg liggen.',
         'Opbouw machine: aan de linkerkant gaat de voeding in, de andere kant mag in de stroom. Zet daarna meteen de machine aan. Bij “DMX IN” mag de groene kabel in.',
         'Opbouw voetdruk: idem, de stroom mag meteen in de voeding. De groene kabel mag hier in “DMX OUT”; rol de kabel indien nodig af.',
         'Testen (kan nadat de machine is opgewarmd, ongeveer 5 min): duw met de voet op de knop. Is hij opgewarmd, dan schiet er een rookpluim de lucht in.',
@@ -476,37 +496,37 @@ window.HW={
   // De checklist van de verantwoordelijke. fase 3 is enkel ter info (geen vinkjes).
   checklist:[
     {id:'f1',nr:1,titel:'Ombouw',tijd:'19u00',protocol:'Quarantainezone inrichten',groepen:[
-      {naam:'Team',items:['Materiaal kindertocht opgeruimd','Draaiboek van de avond hangt onder het schip','Iedereen kent zijn zone en opbouwtaak','KIC-medewerkers hebben een duidelijke taak']},
+      {naam:'Team',items:['Materiaal kindertocht opgeruimd','Ronde door de Bay na de kindertocht: achtergebleven decoratie opgeruimd','Berta de heks (pop in de eerste grot) afgebouwd','Draaiboek van de avond hangt onder het schip','Iedereen kent zijn zone en opbouwtaak','KIC-medewerkers hebben een duidelijke taak']},
       {naam:'In de hut',items:['PC en techniektafel','Lichtpaneel','Tablets (blauw en groen) en muziekboxen, opgeladen','Portofoons en oortjes liggen opgeladen klaar','Warmtecamera, 2 PDA’s, 2 betaalterminals']},
       {naam:'Onder het schip',items:['Ledbars uit de lader','Rookmachine, drukknop, groene DMX-kabel, vloeistof','Lichtstatief achter de zwarte doek (Piraat disco)','Zwarte doeken (voor de deur)','Verlengkabels en ductape']},
       {naam:'Kleedkamer (boven)',items:['Witte pakken geprept, één met de 7','Overleverkledij: T-shirts, militaire jassen','Gasmaskers, latex handschoenen, mondmaskers','Geweren, stokken, walkietalkies','Schmink en bloed aangevuld']},
       {naam:'Kleedkamer, Safezone & dozen',items:['Flesjes water in de kleedkamer (1–2 p.p.)','Safezone-kist (flightcase) met slot','Bandjes uit de Halloweenkast (15/10 en 17/10: kaartjes)','4 zonedozen compleet: lint, plakband, posters, paddenstoelen, cijfers','Partytent, voetstukken, hekken, betonblokken bereikbaar']},
-      {naam:'Inkom & locker',items:['Partytent op voetstukken, wachtrij afgezet met lint','Zwarte doeken aan schuifdeur en poortjes','Posters in tent, quarantainezone (lockers) en vestiaire','Hek met betonblokken, lamp aangesloten','Warmtecamera, PDA’s en betaalterminals getest']},
+      {naam:'Inkom & locker',items:['Grote kar door de ateliermedewerkers klaargezet: tent tegen de ingang van Discovery Bay, wachtrij afgezet met lint','Zwarte doeken aan schuifdeur en poortjes','Posters in tent, quarantainezone (lockers) en vestiaire','Hek met betonblokken, lamp aangesloten','Warmtecamera, PDA’s en betaalterminals getest']},
       {naam:'Sector 1',items:['Linten: bootje, klimrek, trappenhal, trap strand, wiebelbrug, trap schip','Hek voor de grot staat','Paddenstoelen en posters verspreid, poster met de 3']},
       {naam:'Sector 2',items:['Hek tussen extractiepunt en aquaria','Linten: ingang schip, watergrot, trap rivier, trapje Pirate Place','Tafels en stoelen door elkaar voor de bar','Paddenstoelen en posters verspreid']},
       {naam:'Buiten bos & Safezone',items:['Signalisatie straatoversteek geplaatst','Lint bij straatoversteek en door het bos','2 ledbars aan en gericht','Muziekbox en tablet onder de vogelhut','Safezone-kist op zijn plek, genoeg bandjes']},
-      {naam:'Techniek',items:['PC en techniektafel aangesloten','Lichtpaneel opgestart, load 13','Lichtstatief aan de nooddeur, kabel ligt veilig','Rookmachine in sector 2 aangesloten, aan het opwarmen','Atkins-lampen 60, 62, 65, 68, 77, 78 uit']}
+      {naam:'Techniek',items:['PC en techniektafel aangesloten','Lichtpaneel opgestart, load 13','Lichtstatief aan de nooddeur, kabel ligt veilig','Rookmachine op haar vaste locatie aangesloten, aan het opwarmen','Atkins-lampen 60, 62, 65, 68, 77, 78 uit']}
     ]},
     {id:'f2',nr:2,titel:'Eindcontrole',tijd:'20u00 – 20u25',protocol:'Zone vrijgeven',groepen:[
-      {naam:'Briefing 20u00',items:['Rollen en zones van vanavond overlopen','Nationaliteiten: welke talen zijn vanavond belangrijk','Code 10 en “niet aanraken” herhaald','Schrikvrije punten: straat, trappen, bruggen']},
+      {naam:'Briefing 20u00',items:['Rollen en zones van vanavond overlopen','Nationaliteiten: welke talen zijn vanavond belangrijk','Code 10 en “niet aanraken” herhaald','Schrikvrije punten: straat, trappen, bruggen; struikelgevaar: gasten voorzichtig laten lopen','Meer schrikeffect, minder zombiestijl in de Bay','Nooduitgang: gasten zetten hun telefoonzaklamp aan voor de buitenroute, waarschuwen voor boomstronken']},
       {naam:'Bay vrij',items:['KIC-activiteiten en silent disco afgebouwd','Geen gasten meer in The Bay of op de route']},
       {naam:'Verbinding',items:['Portofoons uit de hut, iedereen op kanaal 1','Radiotest met elke zone, in beide richtingen','Oortjes bij extractiepunt en Safezone','Verantwoordelijke heeft gsm met CP-noodnummer']},
-      {naam:'Licht, geluid, rook',items:['Muziek speelt in The Bay (repeat) en in het bos (loop)','Lichtpaneel, ledbars, lamp inkom en lichtstatief branden','Rookmachine getest met de voetknop']},
-      {naam:'Code 7139',items:['Posters met de 1 en de 3 hangen langs het pad','Mutant in The Bay draagt het pak met de 7','De 9 hangt langs de bosroute','Slot van de Safezone-kist opent met 7139']},
-      {naam:'Route & veiligheid',items:['Pad volledig afgesloten, geen losse linten','Geen kabels over het pad','Schuifdeur vast op open, poortje open','Weercheck: bij onweer is het extractiepunt het einde']},
+      {naam:'Licht, geluid, rook',items:['Halloweenmuziek zo vroeg mogelijk aan (staat ze niet aan: Marith verwittigen)','Muziek speelt in The Bay (repeat) en in het bos (loop)','Lichtpaneel, ledbars, lamp inkom en lichtstatief branden','Rookmachine getest met de voetknop']},
+      {naam:'Code 7139',items:['Posters met de 1 en de 3 hangen langs het pad','Mutant in The Bay draagt het pak met de 7','De 9 hangt langs de bosroute','Safezone-kist: het slot zit vast, Overlever 3 weet dat hij de ketting er gewoon af trekt']},
+      {naam:'Route & veiligheid',items:['Pad volledig afgesloten, geen losse linten','Extra hek in de grot bij de trap naar Atkins (geen linten), doorgang blijft mogelijk','Verlichting bij de trap van het waterlabyrint (bon in Leviy aangemaakt en opgevolgd)','Geen kabels over het pad','Schuifdeur vast op open, poortje open (bewaking of TD gebeld; anders meldpunt of duty)','Weercheck: bij onweer is het extractiepunt het einde']},
       {naam:'Team',items:['Bezetting gecontroleerd, zones herverdeeld bij minder mdw','Iedereen in kostuum, geschminkt, warm aangekleed','Gsm’s liggen in de kleedkamer','Inkom heeft tikkaart en tijdsloten van vanavond','20u25: iedereen op post, gemeld via portofoon','Startsein door Marith of Matthew']}
     ],kader:'Portofoon · “Code 10” + locatie: speler stopt en blijft bij de gast; verantwoordelijke of mdw 2 gaat ter plaatse. Vaste oproepen: “Groep vertrokken” · “Laatste groep” · “Pauze”. Echte noodgevallen: zie Contacten of het Drive-draaiboek.'},
     {id:'f3',nr:3,titel:'Tijdens de tocht',tijd:'20u30 – 22u20',protocol:'Uitbraak onder controle · ter info, geen vinkjes',info:true,groepen:[
       {naam:'Doorstroom',items:['Om de 5–8 min vertrekt een groep van max 8–10','Families samen, groepen van 20 splitsen','Geen opstopping aan extractiepunt of Safezone','Zit een groep vast: hint via het oortje','Loop minstens één ronde langs elke zone']},
       {naam:'Veiligheid',items:['Je bent altijd bereikbaar op de portofoon','Code 10: verantwoordelijke of mdw 2 gaat ter plaatse en noteert','Uitstapper: de verantwoordelijke begeleidt de gast naar buiten','Niemand raakt gasten aan','Rook in korte stoten, het pad blijft zichtbaar','Straatoversteek: geen schrikmomenten, groepen steken veilig over']},
-      {naam:'Team & materiaal',items:['Gebruik de vaste oproepen (zie kader bij de eindcontrole)','Toiletpauzes worden gemeld en opgevangen','Buitenposten: warm genoeg, water gehad','Bandjes of kaartjes in de kist bijvullen indien nodig','Let op de batterijen van portofoons, ledbars en box']},
+      {naam:'Team & materiaal',items:['Gebruik de vaste oproepen (zie kader bij de eindcontrole)','KIC-medewerkers die zich melden (via de personeelsingang, bij Marith) helpen tot 21u50 als griezel in de Bay','Toiletpauzes worden gemeld en opgevangen','Buitenposten: warm genoeg, water gehad','Bandjes of kaartjes in de kist bijvullen indien nodig','Let op de batterijen van portofoons, ledbars en box']},
       {naam:'Weer & einde',items:['Bij onweer: bos dicht, extractiepunt is het einde','Stilleggen enkel op beslissing van Marith of Matthew','22u20: laatste vertrek melden via de portofoon','Volg de laatste groep tot in de Safezone']}
     ]},
     {id:'f4',nr:4,titel:'Afbouw & afsluiten',tijd:'22u30 – 23u30',protocol:'Zone ontsmet',groepen:[
-      {naam:'Zones',items:['Laatste groep buiten, The Bay is leeg','Inkom: tent, doeken, posters, hek, lamp weg, poortje dicht','Sector 1 & 2: linten, hekken, paddenstoelen, posters weg','Tafels en stoelen terug op hun plaats','Bos leeg: lint, ledbars, box, tablet, kist binnen','Signalisatie straatoversteek weggehaald']},
-      {naam:'Techniek',items:['Rookmachine uit, 10 min afgekoeld, opgeruimd','Muziek en PC uit, techniektafel dicht','Lichtpaneel normaal/uit','Lichtstatief terug op A6.11, achter de zwarte doek','Nooddeur dicht','Atkins-lampen terug aan']},
-      {naam:'Materiaal',items:['Ledbars, tablets en box aan de lader','Portofoons geteld en aan de lader','Warmtecamera, PDA’s en betaalterminals terug in de hut','Zonedozen compleet, tekorten (lint, tape) genoteerd','Kist aangevuld met bandjes voor de volgende avond']},
-      {naam:'Kostuums',items:['Witte pakken en overleverkledij terug opgehangen','Gasmaskers schoongemaakt','Kleedruimte opgeruimd']},
+      {naam:'Zones',items:['Laatste groep buiten, The Bay is leeg','Ronde door de hele Bay: achtergebleven decoratie opgeruimd','Inkom: tent, doeken, posters, hek, lamp weg, poortje dicht','Sector 1 & 2: linten, hekken, paddenstoelen, posters weg','Tafels en stoelen terug op hun plaats','Bos leeg: lint, ledbars, box, tablet, kist binnen','Signalisatie straatoversteek weggehaald']},
+      {naam:'Techniek',items:['Rookmachine uit, 10 min afgekoeld, opgeruimd','Muziek en PC uit, techniektafel dicht','Lichtpaneel normaal/uit','Lichtstatief terug op A6.11, achter de zwarte doek','Nooddeuren dicht: de laatste medewerker controleert (lukt het niet: guestservice bellen)','Atkins-lampen terug aan']},
+      {naam:'Materiaal',items:['Verlengsnoeren (gebruikt en ongebruikt) terug onder het schip','Ledbars, tablets en box aan de lader','Portofoons geteld en aan de lader','Warmtecamera, PDA’s en betaalterminals terug in de hut','Zonedozen compleet, tekorten (lint, tape) genoteerd','Kist aangevuld met bandjes voor de volgende avond']},
+      {naam:'Kostuums',items:['Witte pakken en overleverkledij terug opgehangen','Gasmaskers schoongemaakt','Vuile was weggebracht','Kleedkamers netjes achtergelaten']},
       {naam:'Afsluiten',items:['Eindronde: niets achtergebleven, deuren dicht','Hut afgesloten','Rapport ingevuld en in de map in de hut']}
     ]}
   ],
@@ -545,11 +565,19 @@ window.HW={
 
   // ---- aanvullende briefing van Marith (mail van 13–15/10): voorbereiden, eten, nationaliteiten, EHBO
   const VOORBEREIDEN=[
-    ['Draaiboek','Per avond een gestructureerd schema: de tijdsplanning, welke rol je die avond hebt en wat je taak is voor, tijdens en na de tocht. Vooral handig op de dag zelf (zie Planning).'],
+    ['Draaiboek','Per avond een gestructureerd schema: de tijdsplanning, welke rol je die avond hebt en wat je taak is voor, tijdens en na de tocht. Vooral handig op de dag zelf (zie Planning). De draaiboeken liggen in de kleedkamer en worden ook gedeeld in de WhatsAppgroepen.'],
     ['Manual','Een uitgebreide uitleg van de hele tocht. Belangrijk: bekijk de pagina’s met praktische informatie en die van je eigen rol, en studeer de teksten in de 4 talen in. De rest van de manual mag je lezen, maar is geen must.'],
-    ['Vragen?','Heb je na de briefing nog vragen, meld ze dan zo snel mogelijk aan Marith en niet pas op de dag zelf.']];
+    ['Vragen?','Lees je draaiboek goed na en stel je vragen zoveel mogelijk vóór je dienst begint: meld ze zo snel mogelijk aan Marith en niet pas op de dag zelf.']];
   HW.startKaartenVoor=[
     {nood:true,titel:'Belangrijk',l:['Je staat de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je rol staat welke kleding je zelf moet voorzien.','Zorg dat je echt op de afgesproken tijd onder het schip bent voor de briefing (zie het uurschema bij Tijdsloten).','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Heb je vragen? Meld ze zo snel mogelijk aan Marith, niet pas op de dag zelf.']},
+    {titel:'🆕 Nieuw na de eerste avond',sub:'Werkpunten en afspraken uit de mail van het Halloween team (17/10). Ze staan ook uitgewerkt bij de zones, Praktisch en de checklist.',l:[
+      'De tocht start vooraan bij de ingang van de Bay, waar de tent staat. De ateliermedewerkers zetten om 19u00 als eerste de grote kar voor de tent klaar (tentframe, zwarte bache, spandoek, posters en lint).',
+      'Staat er een wachtrij, dan kan de ontvangstmedewerker die alvast entertainen, bijvoorbeeld door temperatuur en ‘symptomen’ te controleren.',
+      'Meer schrikeffect en minder zombiestijl in de Bay. De rookmachine krijgt een vaste locatie.',
+      'Bij de nooduitgang vragen we de gasten om voor de buitenroute hun telefoonzaklamp aan te zetten, en waarschuwen we voor boomstronken. Laat gasten voorzichtig lopen en beperk schrikeffecten op moeilijke punten.',
+      'In de grot bij de trap naar Atkins staat een extra hek in plaats van linten. Bij de trap van het waterlabyrint komt extra verlichting (bon in Leviy nog aanmaken en opvolgen).',
+      'Het slot van de Safezone-kist zit vast: trek de ketting gewoon van de kist af.',
+      'Berta de heks (pop) wordt bij de volwassentocht afgebouwd. KIC-medewerkers die klaar zijn, melden zich bij Marith en helpen tot 21u50 als griezels in de Bay.']},
     {titel:'Wat moet je voorbereiden?',rijen:VOORBEREIDEN}
   ];
   HW.praktisch.unshift({titel:'Wat moet je voorbereiden?',rijen:VOORBEREIDEN});

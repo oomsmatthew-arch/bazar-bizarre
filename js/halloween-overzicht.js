@@ -4,27 +4,32 @@
 //  Het overzicht heeft geen eigen planning: de dagplanning en de ombouw per dag worden bij het
 //  tekenen samengesteld uit de planningen van de andere onderdelen (js/halloween.js).
 //  Hier staat enkel wat vast is: het dagschema, de tijdsloten, de informatie en het praktische.
-//  Bronnen: het overzichtsdraaiboek, de briefings en de mails van Marith, stand 15/10/2026.
+//  Bronnen: het overzichtsdraaiboek, de briefings en de mails van Marith, stand 15/10/2026,
+//  en de werkpunten en afspraken na de eerste avond (mail van het Halloween team, 17/10/2026).
 //  Met opzet geen telefoonnummers of noodnummer: de site is openbaar (zie Contacten).
 // =====================================================================
 (function(){
 'use strict';
 
 const DAGSCHEMA=[
+  ['13u30','De Discovery Bay sluit even. Leg flyers op de tafels, zodat de gasten zien dat we even sluiten (Office voorziet ze ook in het Duits en het Engels).','Discovery Bay'],
+  ['13u30 – 14u00','De piraten spoelen, trekken het water bij de ingang en de waterval weg en ruimen Pirate Place op. Dit is voortaan standaard.','Discovery Bay'],
+  ['14u00','Briefing van de Kidsclub. De piraten sluiten indien mogelijk aan (of later als ze nog bezig zijn) en helpen daarna met opstart, decoratie en activiteiten.','Discovery Bay'],
   ['Eerst: vóór 14u15 of 15u00','Fiets ophalen bij de Housekeeping (achter de loods) en inklokken bij de check-in. Alleen voor schutter, kok, dronkaard, dief 1/overhead (met laadbak) en dief 2/Orry en heks (zonder laadbak). Wie ook in de show staat, doet dit vóór 14u15.','Kindertocht'],
-  ['14u00 – 15u00','Klaarzetten van de Halloween-kinderactiviteiten (atelier)','Marktje'],
+  ['14u00 – 15u00','Klaarzetten van de Halloween-kinderactiviteiten (atelier). De bolderkarren worden voortaan vooraf onder het schip gezet; de suikerspin staat om 14u00 meteen klaar.','Marktje'],
   ['14u15','Opbouw van de show en de techniek','Halloween show'],
   ['15u00','Briefing onder het schip; opbouw van de kindertocht vanaf 15u10. Fiets ophalen en inklokken (voor wie een fiets neemt) vóór 15u00.','Kindertocht'],
   ['± 14u45/15u00 – 19u00','Halloween-kinderactiviteiten in de Bay','Marktje'],
   ['15u15 – 16u30','Orry & Friends Halloween show (15u15 en 16u00)','Halloween show'],
   ['16u15 – 16u40','Ontvangst naar de Pirates Place; het eerste tijdslot (lampion versieren) start om 16u25','Kindertocht'],
   ['16u40 – 18u25','Kindertocht: om het kwartier een groep, 8 groepen','Kindertocht'],
-  ['19u00 – 19u30','Ombouw van de Bay: van de kindertocht naar de volwassentocht','Ombouw per dag'],
+  ['19u00 – 19u30','Ombouw van de Bay: van de kindertocht naar de volwassentocht. Het marktje zet eerst de grote kar voor de tent van Entertainment klaar. Na de kindertocht een ronde door de hele Bay voor achtergebleven decoratie (de Kidsclub kan dit doen); Berta de heks wordt afgebouwd.','Ombouw per dag'],
   ['19u30 – 20u00','Pauze','—'],
   ['20u00 – 20u25','Portofoons ophalen en testen, eindcontrole, opbouw van de volwassentocht, omkleden','Volwassentocht'],
-  ['20u30 – 22u20','Volwassentocht: tijdsloten van 10 minuten, laatste vertrek om 22u20','Volwassentocht'],
+  ['20u30 – 22u20','Volwassentocht: tijdsloten van 10 minuten, laatste vertrek om 22u20. Start vooraan bij de ingang van de Bay, aan de tent.','Volwassentocht'],
+  ['Tot 21u50','KIC-medewerkers die klaar zijn met opruimen en schoonmaken, komen via de personeelsingang binnen, melden zich bij Marith en helpen als griezels in de Bay.','Volwassentocht'],
   ['22u00','Einde van de dienst voor het marktje','Marktje'],
-  ['22u30 – 23u30','Afbouw van de volwassentocht','Volwassentocht']
+  ['22u30 – 23u30','Afbouw van de volwassentocht, met een ronde door de hele Bay voor achtergebleven decoratie. De laatste medewerker controleert of de nooddeuren dicht zijn.','Volwassentocht']
 ];
 
 // de 12 tijdsloten van de volwassentocht
@@ -43,7 +48,14 @@ window.HW_ACT.overzicht={
   feiten:[['Marktje','vanaf 14u00'],['Kindertocht','16u40'],['Ombouw','19u00'],['Volwassentocht','20u30'],['Speeldata','7 avonden']],
   dagschema:DAGSCHEMA,
   startKaartenVoor:[
-    {nood:true,titel:'Belangrijk voor iedereen',l:['Zorg dat je echt op de afgesproken tijd aanwezig bent voor de briefing: marktje om 14u00 in het atelier, kindertocht om 15u00 onder het schip, volwassentocht vanaf 19u00 (ombouw).','Je staat buiten of op je post: zorg voor voldoende warme (onder)kleding en eventueel handschoenen. Bij je rol staat welke kleding je zelf moet voorzien.','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Vragen? Meld ze zo snel mogelijk aan Marith en niet pas op de dag zelf.']}
+    {nood:true,titel:'Belangrijk voor iedereen',l:['Zorg dat je echt op de afgesproken tijd aanwezig bent voor de briefing: marktje om 14u00 in het atelier, kindertocht om 15u00 onder het schip, volwassentocht vanaf 19u00 (ombouw).','Je staat buiten of op je post: zorg voor voldoende warme (onder)kleding en eventueel handschoenen. Bij je rol staat welke kleding je zelf moet voorzien.','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Vragen? Meld ze zo snel mogelijk aan Marith en niet pas op de dag zelf.']},
+    {titel:'🆕 Nieuw na de eerste avond',sub:'De belangrijkste werkpunten en afspraken uit de mail van het Halloween team (17/10). Ze staan ook uitgewerkt bij het onderdeel waar ze horen.',rijen:[
+      ['Algemeen','Zet de Halloweenmuziek eerder aan (staat ze niet aan: meld het bij Marith). Vrij moment of weet je niet wat te doen? Vraag Marith welke taak je kunt oppakken. Na elke tocht een ronde door de hele Bay voor achtergebleven decoratie.'],
+      ['Berta de heks','De pop komt in de eerste grot na de ingang, aangesloten links naast de deur (Nikki weet waar). Extra griezel tijdens de kindertocht; bij de volwassentocht wordt ze afgebouwd.'],
+      ['Marktje','Bolderkarren vooraf onder het schip. Beneden op het strandje de betalende activiteiten en de maskers, op de eerste verdieping van het schip de suikerspin, op de tweede verdieping bij het roer het schminken. Om 19u00 eerst de grote kar voor de tent van Entertainment klaarzetten.'],
+      ['Kindertocht','Start op Pirate Place, beneden op het platform van Janneke. Enkel het tijdslot dat vertrekt staat op Pirate Place. Laat kinderen niet alleen vertrekken. Dieven benaderen groepen van achteren. Bij de heks is duidelijk dat de tocht daar stopt.'],
+      ['Volwassentocht','Start vooraan bij de ingang van de Bay, aan de tent. Meer schrikeffect, minder zombiestijl. Gasten zetten hun telefoonzaklamp aan voor de buitenroute. Het slot van de Safezone zit vast: trek de ketting van de kist.']],
+     links:[{t:'🛍️ Marktje',url:'#marktje'},{t:'🏴‍☠️ Kindertocht',url:'#zeven-zeeen'},{t:'🎃 Volwassentocht',url:'#start'},{t:'⚠️ Alle afspraken',url:'#overzicht/praktisch',hoofd:true}]}
   ],
   startKaarten:[
     {titel:'De Halloweenperiode',p:['Van 12/10 tot en met 5/11 (volgens het overzichtsdraaiboek tot 9/11) is er in Center Parcs De Vossemeren Halloween-animatie. De tochten en het marktje lopen op 7 avonden: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11. Het O&F-programma (Kids Disco en Bedtime stories) loopt op de andere dagen volgens het rooster in het overzichtsdraaiboek; op de tochtdagen is er geen O&F-programma.']},
@@ -71,10 +83,38 @@ window.HW_ACT.overzicht={
   ],
   praktisch:[
     {titel:'Op tijd zijn',rijen:[
-      ['Marktje','14u00 in het atelier voor de korte briefing; daarna de bolderkarren naar de Bay.'],
+      ['Marktje','14u00 in het atelier voor de korte briefing; daarna naar de Bay. De bolderkarren worden voortaan vooraf onder het schip gezet.'],
       ['Kindertocht','15u00 onder het schip voor de briefing. Wie een fiets neemt (schutter, kok, dronkaard, dief 1 en 2, heks) klokt eerst in bij de check-in en haalt een fiets bij de Housekeeping, achter de loods.'],
-      ['Ombouw','19u00 – 19u30: eerst je eigen post afbouwen, dan helpen met de ombouw (zie Ombouw per dag).'],
+      ['Ombouw','19u00 – 19u30: eerst je eigen post afbouwen, dan helpen met de ombouw (zie Ombouw per dag). Het marktje zet als eerste de grote kar voor de tent van Entertainment klaar.'],
       ['Volwassentocht','20u00 portofoon ophalen en testen, 20u25 iedereen op post, 20u30 start.']]},
+    {titel:'Voorbereiding en opbouw',rijen:[
+      ['Vooraf voorbereiden','Pak alles wat vooraf kan zo vroeg mogelijk op. Als iedereen een steentje bijdraagt, verloopt het evenement een stuk vlotter.'],
+      ['Briefing op wisseldagen','De ateliermedewerkers van donderdag en zaterdag krijgen een briefing met wat vooraf kan gebeuren, inclusief decoratie.'],
+      ['Decoratie Discovery Bay','Discovery Bay-medewerkers mogen waar mogelijk vooraf decoratie ophangen.'],
+      ['Sluiting Bay om 13u30','Leg flyers op de tafels, zodat de gasten zien dat we even sluiten. Office voorziet ze ook in het Duits en het Engels.'],
+      ['Piraten vóór 14u00','Na de sluiting van de Bay spoelen de piraten, trekken ze het water bij de ingang en de waterval weg en ruimen ze Pirate Place op. Dit is voortaan standaard. Vanaf 14u00 sluiten ze indien mogelijk aan bij de Kidsclub-briefing (of later als ze nog bezig zijn) en helpen ze daarna met opstart, decoratie en activiteiten.'],
+      ['Sneller openen','Brief de Kidsclub-medewerkers duidelijk over welke taken zij kunnen overnemen, zodat Entertainment zich op de tochten kan focussen.'],
+      ['Berta de heks (pop)','Komt in de eerste grot na de ingang en wordt links naast de deur aangesloten; Nikki weet waar. Tijdens de kindertocht is Berta een extra griezel: extra beleving zonder extra personeel. Bij de volwassentocht wordt ze afgebouwd.'],
+      ['NEON bij de ingang','Laurent en Niels hebben de NEON opgehangen. Laurent heeft hem in de garderobe om de hoek gezet, met een laddertje erbij. De stroomvoorziening hangt veilig en kan opnieuw gebruikt worden.']]},
+    {titel:'Tijdens het evenement',rijen:[
+      ['Omkleden','Iedereen krijgt tijd om zich om te kleden en te schminken, vóór de dienst of om de beurt tussendoor. Zo is iedereen herkenbaar in thema.'],
+      ['Muziek en sfeer','Zet de Halloweenmuziek eerder aan: dat maakt meteen veel verschil. Staat de muziek nog niet aan, meld het bij Marith.'],
+      ['Silent disco','De dj draait Halloweenmuziek in plaats van algemene muziek.'],
+      ['Taakverdeling','Marith voert minder zelf uit en verdeelt meer taken. Heb je een vrij moment of weet je niet wat je kunt doen? Vraag Marith welke taak je kunt oppakken.'],
+      ['Poortje en nooddeuren','Bewaking of TD moet dagelijks gebeld worden om het poortje en de nooddeuren te openen en te sluiten. Normaal is dat al geregeld. Is het niet gebeurd, dan meldt de medewerker aan de voorpoort dit bij de verantwoordelijke van die dag. Neem zo nodig contact op met het meldpunt, TD of de duty.'],
+      ['Stiften','Er zijn extra stiften besteld. Tot ze er zijn, mag je indien nodig extra stiften uit het atelier gebruiken.'],
+      ['Boekingen','Die blijven verder open; dat is in orde.'],
+      ['KIC als griezels','Zodra de KIC-medewerkers klaar zijn met opruimen en schoonmaken, komen ze via de personeelsingang binnen en melden ze zich bij Marith. Tot 21u50 kunnen ze meehelpen als griezels in de Bay, voor extra beleving.']]},
+    {titel:'Afsluiten en netheid',rijen:[
+      ['Decoratie opruimen','Doe na zowel de kinder- als de avondtocht een ronde door de hele Bay om achtergebleven decoratie op te ruimen. Na de kindertocht kan de Kidsclub dit doen. Spreek elkaar erop aan als iets vergeten wordt.'],
+      ['Verlengsnoeren','Breng gebruikte en ongebruikte verlengsnoeren aan het einde van je shift terug onder het schip: we delen ze met meerdere afdelingen.'],
+      ['Nooddeuren','De laatste medewerker controleert bij vertrek of de nooddeuren gesloten zijn. Lukt dat niet, bel dan even guestservice.'],
+      ['Was en kleedkamers','Breng de vuile was weg en laat de kleedkamers netjes achter.'],
+      ['Algemene netheid','Let allemaal goed op de algemene netheid.']]},
+    {titel:'Draaiboeken en feedback',rijen:[
+      ['Waar','De draaiboeken liggen in de kleedkamer en worden ook gedeeld in de WhatsAppgroepen.'],
+      ['Vooraf','Lees je draaiboek goed na en stel je vragen zoveel mogelijk vóór je dienst begint.'],
+      ['Feedback','Stuur feedback gerust via mail, of geef ze meteen aan Marith als je haar ziet. Vanaf de week van 19/10 komen er ook feedbackfiles binnen.']]},
     {titel:'Kleding, eten en weer',rijen:[
       ['Warm aankleden','Afhankelijk van je rol sta je de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je rol staat welke kleding je zelf moet voorzien.'],
       ['Eten','Eten in de Evergreens is tijdens de dagen van de Halloweentochten niet echt mogelijk. Neem eigen eten mee voor de pauze. Ga je toch in de Evergreens eten, houd er dan rekening mee dat bestellen tijd kost.'],
