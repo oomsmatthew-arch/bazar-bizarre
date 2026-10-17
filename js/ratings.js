@@ -261,7 +261,7 @@ let _data=null; let _boekjaar=''; let _boekjaarInit=false; // gekozen boekjaar (
 // Een activiteit kan in meerdere thema's vallen (bv. "Orry & Vrienden Pieten Disco" = O&F én Sint).
 const ACT_CATS=[
   {key:'of',label:'O&F',re:/orry|o\s*&\s*f|vrienden|freunde|friends/i},
-  {key:'avond',label:'Avond',re:/quiz|prize night|crazy game|dr[oô]les?\s*de\s*jeux|live[\s-]*mu|musique live|chill tunes|concert|bingo|pirate|piraat/i},
+  {key:'avond',label:'Avond',re:/quiz|prize night|crazy game|family\s*game|silent\s*disco|dr[oô]les?\s*de\s*jeux|live[\s-]*mu|musique live|chill tunes|concert|bingo|pirate|piraat/i},
   {key:'sint',label:'Sint',re:/sint|piet|nikolaus|ruprecht|knecht|pepernot|nicolas|soulier|pierre/i},
   {key:'halloween',label:'Halloween',re:/hallow|griezel|grusel/i},
   {key:'kerst',label:'Kerst',re:/kerst|christmas|weihnacht|noe?l|santa|kerstman/i},
