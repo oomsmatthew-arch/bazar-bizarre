@@ -264,6 +264,27 @@ vergrendeld in de namenlijst (geen rol- of verwijderknop). Nieuwe collega's hoev
 apart aangemaakt te worden om het Extern-vinkje te gebruiken; dat kan ook, voor wie wél een
 eigen naam en code moet hebben.
 
+### De deellink: entertainmentvm.be/extern
+
+Voor een gids of andere buitenstaander: stuur hem **https://entertainmentvm.be/extern**. Wie
+die opent, is meteen binnen als het account **Extern** en komt op Halloween terecht —
+**zonder toegangscode en zonder naam te kiezen**. Opent hij de app later opnieuw (ook
+zonder de link), dan blijft hij Extern. De link kopieer je ook in de namenlijst: bij het
+account Extern staat een knop **🔗 Deellink kopiëren**.
+
+Waarom dat veilig kan: een Extern-toestel krijgt de toegangscode nooit en is dus niet
+aangemeld bij de database — het kan er niets uit lezen of in schrijven, ook geen namen van
+collega's. Halloween heeft de database ook niet nodig: alles staat in de code van de pagina,
+die toch al openbaar op de website staat. De startpagina toont zo'n toestel enkel de kaart
+Halloween — geen mededelingen, geen voorraadmeldingen, geen tandwiel naar Instellingen.
+
+Is er op het toestel al een collega ingelogd (bv. jij, om de link te testen), dan blijft die
+ingelogd en ga je gewoon naar Halloween. Wil een collega later op een Extern-toestel met
+zijn eigen naam werken, dan wisselt hij via het naamknopje en typt hij één keer de
+toegangscode. Komt er later iets bij in `EXTERN_TOEGANG` dat wél gegevens uit de database
+nodig heeft, dan toont dat op een Extern-toestel leeg — dat vraagt dan een aparte, beperkte
+aanmelding in Supabase.
+
 Is iemand óók Vaste mdw of Admin, dan telt dat zwaarder: die ziet gewoon alles, zelfs met
 het vinkje Extern aan. Zo kan dat vinkje nooit per ongeluk een eigen collega buitensluiten.
 De algemene zoekfunctie (het vergrootglas) geeft voor een extern account geen resultaten —

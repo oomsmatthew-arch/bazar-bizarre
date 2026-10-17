@@ -803,6 +803,7 @@
   .gebr-row .rol.vastbadge{background:var(--forest);color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;}
   .gebr-row button{border:none;border-radius:10px;padding:8px 10px;font-weight:700;cursor:pointer;font-size:13px;}
   .gebr-row .rst{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  .gebr-row .deellink{background:var(--panel2);color:var(--forest);border:1px solid var(--line);}
   .gebr-row .del{background:#fdecec;color:#b23b3b;}
   .gebr-row .vast{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
   .gebr-row .vast.on{background:var(--forest);color:#fff;border-color:var(--forest);}

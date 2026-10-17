@@ -678,6 +678,16 @@
   // Waar de Supabase-bibliotheek de aanmelding van dit toestel bewaart. Dezelfde naam als
   // de bibliotheek zelf kiest: "sb-" + het eerste stuk van het database-adres + "-auth-token".
   const K_AUTH='sb-'+SUPABASE_URL.split('//')[1].split('.')[0]+'-auth-token';
+  // Is op dit toestel het gedeelde account "Extern" ingelogd (bv. via de deellink
+  // entertainmentvm.be/extern)? Dan vragen we NOOIT de toegangscode: een extern account ziet
+  // enkel Halloween, en dat haalt niets uit de database. De gids krijgt de code dus niet te
+  // zien en heeft ze ook niet nodig — en dit toestel kan niets uit de database lezen of erin
+  // schrijven. Stond er al een aanmelding op het toestel (een collega typte de code ooit in),
+  // dan blijft die gewoon gelden.
+  function isExternToestel(){
+    try{ const u=JSON.parse(localStorage.getItem('bb_current_user')||'null'); return !!(u&&u.id==='extern'); }
+    catch(e){ return false; }
+  }
   function bewaardeAanmelding(){
     try{ const t=JSON.parse(localStorage.getItem(K_AUTH)||'null'); return (t&&t.refresh_token)?t:null; }
     catch(e){ return null; }
@@ -859,17 +869,19 @@
     libOK=true;
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     subscribeUpdateSignal(); // luistert los van aanmelden/internet-status hierna — werkt ook zonder team-login
-    const toegang=await zorgVoorToegang(true);
+    const extern=isExternToestel();
+    const toegang=await zorgVoorToegang(!extern);
     aangemeld=!!toegang;
     if(!toegang){
-      noteFout('Aanmelden','dit toestel is niet aangemeld bij de database (geen internet, of toegangscode overgeslagen)');
+      // Bij het Extern-account is "niet aangemeld" geen fout maar de bedoeling.
+      if(!extern) noteFout('Aanmelden','dit toestel is niet aangemeld bij de database (geen internet, of toegangscode overgeslagen)');
       // Niet aangemeld (offline, of code overgeslagen): we tonen wat er lokaal bewaard staat
       // (hierboven al ingeladen). Schrijfacties wachten in de outbox tot dit toestel weer
       // aangemeld en online is — en dat proberen we vanzelf opnieuw (zie hierboven).
       ensureVasteAccounts();
       autoOpruimen();
       ready=true; fire();
-      planOpnieuwAanmelden(60000);
+      if(!extern) planOpnieuwAanmelden(60000);
       return;
     }
     await naAanmelding();

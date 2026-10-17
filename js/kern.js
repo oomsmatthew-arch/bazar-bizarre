@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.22';
+const APP_VERSION='v9.23';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -625,6 +625,9 @@ function isVasteMdw(){ return heeftRol('vast'); }
 function isAdmin(){ return heeftRol('admin'); }
 // Extern = een buitenstaander (bv. een gids): ziet enkel EXTERN_TOEGANG, zie magToegang().
 function isExtern(){ return heeftRol('extern'); }
+// De link voor externen (zie extern/index.html): wie ze opent, is meteen binnen als het
+// gedeelde account Extern, zonder toegangscode.
+function externDeellink(){ try{ return new URL(bbUrl('extern/'),location.href).href; }catch(e){ return 'https://entertainmentvm.be/extern/'; } }
 // Toegang tot een beheerdeel: waar voor een vaste mdw of admin, anders het wachtwoord
 // vragen. Admins horen er ook zonder wachtwoord in — ze beheren toch de Toegangen zelf,
 // dus hen dat laten typen is schijnbeveiliging. Dit sluit ook aan bij magToegang().
@@ -933,7 +936,8 @@ function renderGebrList(){
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
       (locked
-        ? '<span class="rol">🔒 '+(u.id==='extern'?'extern':'vast')+' account · geen code</span>'
+        ? '<span class="rol">🔒 '+(u.id==='extern'?'extern':'vast')+' account · geen code</span>'+
+          (u.id==='extern'?'<button class="deellink" title="De link waarmee een gids meteen binnen is als Extern — zonder toegangscode">🔗 Deellink kopiëren</button>':'')
         : '<button class="vast'+(vast?' on':'')+'" title="Standaard toegang tot alle beheer (geen wachtwoord nodig)">'+(vast?'✓ Vaste mdw':'Vaste mdw')+'</button>'+
           '<button class="admin'+(admin?' on':'')+(magAdminUitdelen()?'':' uit')+'" title="'+
             (magAdminUitdelen()?'Mag Systeem en Activiteit bekijken en de Toegangen beheren'
@@ -943,6 +947,14 @@ function renderGebrList(){
             esc(EXTERN_TOEGANG.map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', '))+
             ' — ongeacht de andere toegangen">'+(extern?'✓ Extern':'Extern')+'</button>'+
           '<button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
+    const dl=row.querySelector('.deellink');
+    if(dl) dl.onclick=()=>{
+      const link=externDeellink();
+      const klaar=()=>bbToon('Link gekopieerd: '+link+'\n\nWie die opent, is meteen binnen als Extern en ziet enkel '+
+        EXTERN_TOEGANG.map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', ')+' — zonder toegangscode.');
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(klaar,()=>bbToon('Kopiëren niet gelukt. De link is:\n'+link));
+      else bbToon('De link is:\n'+link);
+    };
     if(!locked){
       row.querySelector('.vast').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'vast',!vast)}); renderGebrList(); refreshAuth(); };
       row.querySelector('.admin').onclick=()=>{

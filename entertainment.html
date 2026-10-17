@@ -203,8 +203,18 @@ function startRotation(){
   }
 }
 
+// Een extern account (bv. een gids via de deellink) krijgt de interne meldingen niet te zien:
+// de mededelingen zijn voor het team, en de voorraadmelding ("boekjes bijna op — nog 0")
+// klopt daar niet eens — zo'n toestel haalt niets uit de database.
+function alleenExtern(){ return isExtern() && !(isVasteMdw()||isAdmin()); }
 function renderHome(){
-  medList=getMededelingen();
+  const ext=alleenExtern();
+  medList=ext?[]:getMededelingen();
+  // Ook het lege mededelingenvak ("Voeg er een toe via Instellingen") en het tandwiel naar
+  // Instellingen horen niet bij een gids: daar kan hij toch niet in.
+  // (style.display i.p.v. 'hidden': de opmaak van .navbtn en .mededeling zet zelf een display.)
+  const med=document.querySelector('.mededeling'); if(med) med.style.display=ext?'none':'';
+  const gear=document.getElementById('gearBtn'); if(gear) gear.style.display=ext?'none':'';
   computeLowstock();
   startRotation();
   updateKaarten();
@@ -218,6 +228,7 @@ function renderHome(){
 //   • rood  (bijna op) : totaal ≤ rode drempel, of boekjes ≤ boekjes-drempel
 //   • oranje (aandacht): rode drempel < totaal ≤ oranje drempel
 function computeLowstock(){
+  if(alleenExtern()){ bannerActive.red=bannerActive.org=false; return; }
   const dK=getDrempel(), dA=getDrempel2(), dBk=getDrempelBoekjes();
   let totaal=0;
   BBInv.getPrijzen().forEach(p=>{ if(p.inGebruik){ const s=p.stock||0; if(s>0) totaal+=s; } });

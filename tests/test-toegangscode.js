@@ -193,5 +193,39 @@ function aangemeld(){ return !!BBInv.getSysteem().aangemeld; }
   await klaar;
   ok(aangemeld(),'met de nieuwe code: aangemeld');
 
+  print('\n— De deellink voor externen: het account "Extern", mét internet —');
+  // Een gids opent entertainmentvm.be/extern op zijn eigen gsm. Die zet het gedeelde account
+  // Extern als ingelogd. Daar hoort NOOIT het toegangscode-scherm bij.
+  store={'bb_current_user':JSON.stringify({id:'extern',naam:'Extern'})}; internet=true;
+  klaar=start(basisDB());
+  await rust();
+  ok(schermen.length===0,'geen toegangscode-scherm voor Extern');
+  if(schermen.length) antwoord(schermen[0],null);   // anders blijft de opstart op een antwoord wachten
+  await klaar;
+  ok(!aangemeld(),'niet aangemeld bij de database: dit toestel kan er niets lezen of schrijven');
+  ok(BBInv.isReady(),'de app is klaar en toont de pagina');
+  var ext=BBInv.getGebruikers().filter(function(u){return u.id==='extern';})[0];
+  ok(ext && BBInv.heeftRol(ext,'extern'),'het Extern-account staat lokaal klaar, mét de rol extern (dus enkel Halloween)');
+  ok(BBInv.getGebruikers().every(function(u){return u.id==='extern'||u.id==='entalg';}),'geen namen van collega\'s op dit toestel');
+  ok(BBInv.pendingCount()===0,'en er staat niets klaar om naar de database te sturen');
+  ok(!/Aanmelden/.test(String(BBInv.getSysteem().laatsteFout||'')),'"niet aangemeld" staat niet als fout in het Systeem-scherm');
+  draaiTimers(60000); await rust();
+  ok(schermen.length===0 && healthVragen===0,'en ook later wordt het niet opnieuw geprobeerd of gevraagd');
+
+  print('\n— Extern op een toestel dat al aangemeld was —');
+  store={'bb_current_user':JSON.stringify({id:'extern',naam:'Extern'})}; internet=true;
+  zetAanmelding(60);
+  await start(basisDB());
+  ok(schermen.length===0 && aangemeld(),'een bestaande aanmelding blijft gewoon gelden');
+
+  print('\n— Wie geen Extern is, krijgt de code nog steeds —');
+  store={'bb_current_user':JSON.stringify({id:'u1',naam:'Matthew'})}; internet=true;
+  klaar=start(basisDB());
+  await rust();
+  ok(schermen.length===1,'een collega op een nieuw toestel: het scherm verschijnt');
+  antwoord(schermen[0],CODE);
+  await klaar;
+  ok(aangemeld(),'en met de code is hij aangemeld');
+
   print('\n'+(fouten?'RESULTAAT: '+fouten+' fout(en)':'RESULTAAT: alles in orde'));
 })().catch(function(e){ print('CRASH: '+e+'\n'+(e&&e.stack)); print('RESULTAAT: crash'); });
