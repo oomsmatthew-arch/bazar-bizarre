@@ -268,7 +268,7 @@ const ACT_CATS=[
   {key:'nieuwjaar',label:'Nieuwjaar',re:/nieuwjaar|new year|neujahr|nouvel an|silvester|oud.{0,4}nieuw/i},
   {key:'valentijn',label:'Valentijn',re:/valentij?n|valentine|valentin/i},
   {key:'carnaval',label:'Carnaval',re:/carnaval|carnival|fasching|karneval/i},
-  {key:'pasen',label:'Pasen',re:/pasen|paas|easter|ostern|p[aâ]ques/i},
+  {key:'pasen',label:'Pasen',re:/pasen|paas|easter|oster|p[aâ]ques/i},
   {key:'zomer',label:'Zomer',re:/zomer|summer|sommer|beach|strand/i}
 ];
 // Taalvarianten van dezelfde activiteit samenvoegen tot één naam (NL/DE/EN/FR).
@@ -277,7 +277,9 @@ const ACT_CANON=[
   {naam:'O&F: Pieten Spelshow', re:/pieten\s*spel-?show|spiel-?show\s*mit\s*ruprecht/i},
   {naam:'O&F: Pieten Disco', re:/pieten\s*disco/i},
   {naam:'O&F: Carnaval Disco', re:/carnaval\s*disco/i},
-  {naam:'Pieten bezoek Cottage', re:/(pieten|ruprecht|knecht)[^,]{0,30}cottage|cottage[^,]{0,30}(ruprecht|knecht)/i},
+  {naam:'O&F: Halloween Disco', re:/halloween\s*disco/i},
+  // "Cott+age": de Duitse export schrijft "Cotttage".
+  {naam:'Pieten bezoek Cottage', re:/(pieten|ruprecht|knecht)[^,]{0,30}cott+age|cott+age[^,]{0,30}(ruprecht|knecht)/i},
   {naam:'Meet & Greet Sinterklaas', re:/meet\s*&\s*greet[^,]{0,40}(nikolaus|nicolas|sinterklaas|piet|pierre)|(nikolaus|sinterklaas)[^,]{0,40}meet\s*&\s*greet/i},
   {naam:'Schoen zetten (Sint)', re:/nikolausstiefel|petit\s*soulier|schoen\s*zetten/i},
   {naam:'Wannabe Pepernotenpiet', re:/pepernot/i},
@@ -286,15 +288,20 @@ const ACT_CANON=[
   {naam:'O&F: Kids Disco', re:/kids\s*disco/i},
   {naam:'O&F: Pool Party', re:/(pool|paul)\s*party/i},
   {naam:'O&F: op taxibezoek', re:/taxi/i},
-  {naam:'O&F: bij je cottage', re:/orry[^,]{0,30}(cottage|ferienhaus)/i},
-  {naam:'O&F: Voorleesverhaaltjes', re:/voorlees|bedtime|gute\s*nacht|raconte|histoire/i},
+  // Sinds september 2026 heet het cottagebezoek "Bezoek van Orry & Vrienden".
+  {naam:'O&F: bij je cottage', re:/orry[^,]{0,30}(cottage|ferienhaus)|bezoek\s*van\s*orry/i},
+  {naam:'O&F: Voorleesverhaaltjes', re:/voorlees|vorlese|bedtime|gute\s*nacht|raconte|histoire/i},
   {naam:'O&F: verjaardagsfeest', re:/geburtstag|birthday|verjaardag/i},
   {naam:'O&F: Meet & Greet', re:/orry[^,]{0,25}meet\s*&\s*greet/i},
-  {naam:'O&F: Show', re:/orry[^,]{0,25}:\s*show\s*$/i},
+  {naam:'O&F: Show', re:/orry\s*&\s*(seine\s*)?(vrienden|freunde|friends|ses\s*amis)[\s:-]*show\s*$/i},
   {naam:'Family Quiz Night', re:/quiz/i},
   {naam:'Crazy Game Time', re:/crazy\s*game|dr[oô]les?\s*de\s*jeux/i},
   {naam:'Live muziek / Chill Tunes', re:/live[\s-]*mu|musique\s*live|chill\s*tunes/i},
-  {naam:'Halloween griezeltocht', re:/griezeltocht|grusellauf|halloween[^,]{0,30}(griezel|grusel|promenade|magique|zauber)|promenade[^,]{0,30}halloween/i}
+  // De magische wandeling (2025) liep op dezelfde dagen als de griezeltocht: een aparte tocht.
+  {naam:'Magische Halloween Wandeling', re:/(magisch|magical|magique|zauber)[^,]{0,30}halloween|halloween[^,]{0,30}(magisch|magical|magique|zauber)/i},
+  {naam:'Halloween griezeltocht', re:/griezeltocht|grusellauf|halloween[^,]{0,30}(griezel|grusel|scary|spooky|terrifiante)|promenade[^,]{0,30}halloween/i},
+  {naam:'Paaseieren zoektocht', re:/paaseieren|easter\s*egg|oster(eier)?suche|chasse\s*aux\s*(œ|oe)ufs/i},
+  {naam:'Paasarrangement', re:/paas\s*arrangement|easter\s*package|oster\s*pac?ke?t|forfait\s*de\s*p[aâ]ques/i}
 ];
 function canonAct(naam){ const n=String(naam||''); for(let i=0;i<ACT_CANON.length;i++){ if(ACT_CANON[i].re.test(n)) return ACT_CANON[i].naam; } return n; }
 let _perAct=[]; let _actCat='';
