@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.24';
+const APP_VERSION='v9.25';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -625,9 +625,9 @@ function isVasteMdw(){ return heeftRol('vast'); }
 function isAdmin(){ return heeftRol('admin'); }
 // Extern = een buitenstaander (bv. een gids): ziet enkel EXTERN_TOEGANG, zie magToegang().
 function isExtern(){ return heeftRol('extern'); }
-// De link voor externen (zie extern/index.html): wie ze opent, is meteen binnen als het
+// De link voor externen (zie extern.html): wie ze opent, is meteen binnen als het
 // gedeelde account Extern, zonder toegangscode.
-function externDeellink(){ try{ return new URL(bbUrl('extern/'),location.href).href; }catch(e){ return 'https://entertainmentvm.be/extern/'; } }
+function externDeellink(){ try{ return new URL(bbUrl('extern'),location.href).href; }catch(e){ return 'https://entertainmentvm.be/extern'; } }
 // Toegang tot een beheerdeel: waar voor een vaste mdw of admin, anders het wachtwoord
 // vragen. Admins horen er ook zonder wachtwoord in — ze beheren toch de Toegangen zelf,
 // dus hen dat laten typen is schijnbeveiliging. Dit sluit ook aan bij magToegang().

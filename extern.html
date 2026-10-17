@@ -6,9 +6,13 @@
 <title>Halloween · Entertainment</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#2f6450">
-<link rel="icon" href="../assets/logo-cp.png">
+<link rel="icon" href="assets/logo-cp.png">
 <script>
 // ---------------- DE DEELLINK VOOR EXTERNEN: entertainmentvm.be/extern ----------------
+// Bewust een gewoon bestand (extern.html) en geen map (extern/index.html): GitHub Pages
+// serveert /extern dan rechtstreeks. Een map gaf eerst een doorverwijzing /extern → /extern/,
+// en die loopt op een toestel dat de app al kent via de offline-laag (sw.js). In Opera GX
+// gaf /extern toen een lege pagina; vermoedelijk die doorverwijzing — zonder valt ze weg.
 // Voor gidsen en andere buitenstaanders. Wie deze link opent, is meteen binnen als het
 // gedeelde account "Extern" en komt op Halloween terecht — zonder toegangscode, zonder
 // naam te kiezen.
@@ -34,11 +38,11 @@
       localStorage.setItem('bb_laatst_actief',String(Date.now()));
     }
   }catch(e){}
-  location.replace('../paginas/halloween.html');
+  location.replace('paginas/halloween.html');
 })();
 </script>
 </head>
 <body style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#eef3ec;color:#1d2e22;padding:24px">
-  <p>Even geduld… <a href="../paginas/halloween.html">Naar Halloween</a></p>
+  <p>Even geduld… <a href="paginas/halloween.html">Naar Halloween</a></p>
 </body>
 </html>

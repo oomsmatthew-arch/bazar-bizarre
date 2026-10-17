@@ -1,12 +1,12 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v9.24';
+const CACHE = 'bazar-bizarre-v9.25';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
 // Sinds v4.0 is elke kaart een eigen pagina; sinds v4.6 staan die samen in paginas/.
 // Ze staan hier allemaal in zodat de app volledig offline blijft werken.
 const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel.html','./manifest.json','./manuals.json',
-  './extern/','./paginas/inventaris.html','./paginas/bestellingen.html','./paginas/checklists.html',
+  './extern','./paginas/inventaris.html','./paginas/bestellingen.html','./paginas/checklists.html',
   './paginas/contacten.html','./paginas/logboek.html','./paginas/manuals.html',
   './paginas/werkuren.html',
   './paginas/instellingen.html','./paginas/activiteit.html','./paginas/systeem.html',

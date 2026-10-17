@@ -266,7 +266,8 @@ eigen naam en code moet hebben.
 
 ### De deellink: entertainmentvm.be/extern
 
-Voor een gids of andere buitenstaander: stuur hem **https://entertainmentvm.be/extern**. Wie
+Voor een gids of andere buitenstaander: stuur hem **https://entertainmentvm.be/extern**
+(zonder schuine streep op het eind — de pagina is `extern.html`). Wie
 die opent, is meteen binnen als het account **Extern** en komt op Halloween terecht —
 **zonder toegangscode en zonder naam te kiezen**. Opent hij de app later opnieuw (ook
 zonder de link), dan blijft hij Extern. De link kopieer je ook in de namenlijst: bij het
