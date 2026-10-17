@@ -91,6 +91,17 @@ ok(/E-car/.test(JSON.stringify(dief))&&/E-car/.test(JSON.stringify(K.zones.find(
 ok(JSON.stringify(M).indexOf('heks met boek buiten')<0&&/Berta/.test(JSON.stringify(M.nachten)),'marktje: Berta de heks komt in de grot, niet meer buiten');
 ok(/platform van Janneke/.test(JSON.stringify(K.zones[0]))&&/ingang van de Bay/.test(JSON.stringify(HW.zones[0])),'start van beide tochten staat juist');
 
+print('— Drive 16/10 en de wissel van 17/10 (Laura ziek) —');
+var K17=K.nachten['17/10'], O17=NACHTEN['17/10'];
+var naamVan=function(n,kar){ var r=n.draaiboek.find(function(x){ return x.karakter===kar; }); return r&&r.naam; };
+ok(naamVan(K17,'Dief 2')==='Nick'&&/te bepalen/i.test(naamVan(K17,'Kapitein'))&&/^Matthew/.test(K17.orry),'kindertocht 17/10: Nick is dief 2, de kapitein is nog te bepalen, Matthew speelt Orry');
+ok(naamVan(O17,'Overlever 3')==='Nick'&&/te bepalen/i.test(naamVan(O17,'CZC mutant 4'))&&O17.afbouw.some(function(r){ return r.karakter==='Overlever 3'&&r.naam==='Nick'; }),'volwassentocht 17/10: Nick is Overlever 3 (ook bij de afbouw), CZC-mutant 4 is nog te bepalen');
+var namen17=[]; [K17.draaiboek,K17.afbouw,O17.draaiboek,O17.afbouw].forEach(function(l){ l.forEach(function(r){ namen17=namen17.concat(r.namen&&r.namen.length?r.namen:[r.naam]); }); });
+ok(!namen17.some(function(x){ return /Laura/.test(String(x).replace(/\(.*?\)/g,'')); })&&K17.wijziging.length&&O17.wijziging.length,'17/10: Laura staat nergens meer ingepland en er is een melding');
+ok(K17.opbouw&&K17.opbouw.some(function(r){ return r.karakter==='Dief 1'&&r.naam==='Nick'&&/E-car/.test(r.taken.join(' ')); }),'kindertocht 17/10: de opbouw uit het draaiboek staat erin (Nick doet dief 1, bord met de E-car)');
+ok(['nl','de','fr','en'].every(function(t){ return /soep maken|Suppe kochen|faire de la soupe|make soup/.test(KS.kok[t][0]); }),'kindertocht: het intro van de kok is dat van de manual van 16/10');
+ok(!NACHTEN['24/10'].afbouw.some(function(r){ return r.taken[0]==='En'; }),'volwassentocht 24/10: geen losse "En" bij de afbouwtaken');
+
 print('— Gevoelige gegevens —');
 var alles=JSON.stringify(HW)+JSON.stringify(ACT);
 ok(alles.indexOf('BVMOPE')<0,'geen PC-aanmeldgegevens in de pagina');

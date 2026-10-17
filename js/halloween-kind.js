@@ -18,6 +18,28 @@ const NACHTEN=window.HW_KIND_NACHTEN||{};
 // Bij de afbouw staat de eigen post vooraan ("Dronkaard/CZC mdw 1"): die bepaalt bij welke post de taak hoort.
 Object.values(NACHTEN).forEach(n=>{ (n.afbouw||[]).forEach(r=>{ r.rol=String(r.karakter||'').split('/')[0].trim(); }); });
 
+// ---------------------------------------------------------------- wissels voor één avond
+// Zieken en last-minute wissels, bovenop het Drive-draaiboek. Ze verschijnen als melding bovenaan
+// die avond (Start, Planning, Ombouw). Haal ze weg zodra het draaiboek in de Drive zelf is bijgewerkt.
+//   rollen: karakter in het draaiboek → nieuwe naam · ombouw: oude naam → vervanging · orry: wie de show speelt
+const TE_BEPALEN='Nog te bepalen';
+const WISSELS={
+  '17/10':{
+    melding:['Laura is ziek. Nick neemt dief 2 over (16u50 – 19u00, fiets zonder laadbak) en Matthew speelt Orry in de show.',
+             'De kapitein tijdens de tocht (16u40 – 18u30) is daardoor nog te bepalen. Volgens het draaiboek doet Nick wel nog de opbouw van de kapitein en dief 1 (15u10 – 15u50).',
+             'De ombouwtaken van Laura, en de ombouw die Nick als kapitein vanaf 18u30 zou doen, zijn nog te bepalen. Nick is dief 2 tot 19u00.'],
+    rollen:{'Dief 2':'Nick','Kapitein':TE_BEPALEN+' (Nick is dief 2)'},
+    ombouw:{'Laura':TE_BEPALEN+' (Laura is ziek)','Nick':TE_BEPALEN+' (Nick is dief 2)'},
+    orry:'Matthew (voor Laura)',
+    showNota:'17/10: Laura is ziek. Matthew speelt Orry in de show, Nick is dief 2.'}
+};
+Object.keys(WISSELS).forEach(d=>{
+  const n=NACHTEN[d], w=WISSELS[d]; if(!n) return;
+  n.wijziging=w.melding; if(w.showNota) n.showNota=w.showNota; if(w.orry) n.orry=w.orry;
+  (n.draaiboek||[]).forEach(r=>{ if(w.rollen&&w.rollen[r.karakter]) r.naam=w.rollen[r.karakter]; });
+  (n.afbouw||[]).forEach(r=>{ if(w.ombouw&&r.namen) r.namen=r.namen.map(x=>w.ombouw[x]||x); });
+});
+
 // Wie een fiets ophaalt (en dus mag inklokken bij de check-in) — volgens de laatste briefing van Marith.
 const FIETS={'Schutter':'met laadbak','Kok':'met laadbak','Dronkaard':'met laadbak','Dief 1':'met laadbak','Dief 2':'zonder laadbak','Heks':'zonder laadbak'};
 const SC=window.HW_KIND_SCRIPTS=window.HW_KIND_SCRIPTS||{};
@@ -267,7 +289,7 @@ const CHECK=[
 // ---------------------------------------------------------------- de activiteit
 window.HW_ACT=window.HW_ACT||{};
 window.HW_ACT['zeven-zeeen']={
-  stand:'12/10/2026',
+  stand:'16/10/2026',
   data:['15/10','17/10','22/10','24/10','29/10','31/10','05/11'],
   nachten:NACHTEN,scripts:window.HW_KIND_SCRIPTS||{},
   tabs:[{id:'start',ic:'🏴‍☠️',t:'Start'},{id:'planning',ic:'📅',t:'Planning'},{id:'tijd',ic:'⏱️',t:'Tijdsloten'},{id:'zones',ic:'🗺️',t:'Posten'},
@@ -359,14 +381,17 @@ window.HW_ACT['zeven-zeeen']={
       ['Kinderen alleen','Laat kinderen niet alleen vertrekken. Komen er toch kinderen alleen, scan dan hun bandjes en neem contact op met de ouders. Je kan hiervoor ook altijd de receptie bellen.'],
       ['Duur','Wandelen duurt een 30-tal minuten, met de opdrachten zeker 45 minuten. De tocht is net geen 2 km.']
     ]},
-  planning:{titel:'Draaiboek tocht',kaarten:true,afbTijd:true,afbouwTitel:'Af- en ombouw · 19u00 – 19u30'},
+  planning:{titel:'Draaiboek tocht',kaarten:true,afbTijd:true,opbouwTitel:'Opbouw · na de briefing van 15u00',afbouwTitel:'Af- en ombouw · 19u00 – 19u30'},
   nachtExtra:(n,datum)=>{
     if(!n) return null; const uit=[];
     const fr=(n.draaiboek||[]).filter(r=>FIETS[r.karakter]);
     if(fr.length) uit.push({titel:'🚲 Fietsen op '+datum,sub:'Zij klokken in bij de check-in en halen een fiets op bij de fietsenstalling van de Housekeeping (achter de loods); ze zetten hem bij de nooddeur onder het schip.',
       rijen:fr.map(r=>[r.naam+' — '+r.karakter,'Fiets '+FIETS[r.karakter]])});
+    // Normaal is Orry daarna ook dief 2; bij een wissel (zie WISSELS) kunnen dat twee mensen zijn.
+    const vn=s=>String(s||'').replace(/\(.*?\)/g,'').trim(), d2=(n.draaiboek||[]).find(r=>r.karakter==='Dief 2');
+    const orry=!d2||vn(d2.naam)===vn(n.orry)?[['Orry (en dief 2)',n.orry||'—']]:[['Orry (show)',n.orry||'—'],['Dief 2',d2.naam]];
     if(n.orry||n.heks) uit.push({titel:'Orry & de heks · de show',sub:'Dit geldt voor Orry en de heks. Wie in de middag Orry is, volgt vanaf 19u00 het draaiboek van de andere medewerkers.',
-      rijen:[['Orry (en dief 2)',n.orry||'—'],['Heks',n.heks||'—'],['Tessy ’s avonds',n.tessy||'—'],['Shows','15u15 – 15u45 en 16u00 – 16u30 (zie het onderdeel O&F Halloween show)'],['Op post','16u50 – 19u15; de laatste tocht is rond 19u15 bij de heks']]});
+      rijen:orry.concat([['Heks',n.heks||'—'],['Tessy ’s avonds',n.tessy||'—'],['Shows','15u15 – 15u45 en 16u00 – 16u30 (zie het onderdeel O&F Halloween show)'],['Op post','16u50 – 19u15; de laatste tocht is rond 19u15 bij de heks']])});
     return uit;
   },
   zones:ZONES,

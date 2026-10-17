@@ -186,7 +186,8 @@ window.HW_ACT.show.tabs.find(t=>t.id==='programma').kaarten=[
   {titel:'Schema van de show-dag',sub:'Dit schema geldt voor Orry en de heks. Wie in de middag Orry is, volgt vanaf 19u00 het draaiboek van alle andere medewerkers (zie Planning bij de kindertocht).',tabel:{kop:['Tijd','Wat'],rijen:SHOW}}
 ];
 window.HW_ACT.show.tabs.find(t=>t.id==='cast').kaarten=[
-  {titel:'Per avond',sub:'Orry speelt ’s middags de show en daarna dief 2 op de kindertocht. Tessy is de heks en staat ’s avonds op de volwassentocht.',tabel:{kop:['Datum','Orry (en dief 2)','Heks','Tessy ’s avonds'],rijen:CAST}}
+  {titel:'Per avond',sub:'Orry speelt ’s middags de show en daarna dief 2 op de kindertocht. Tessy is de heks en staat ’s avonds op de volwassentocht.',tabel:{kop:['Datum','Orry (en dief 2)','Heks','Tessy ’s avonds'],rijen:CAST},
+   nota:Object.keys(KN).map(d=>KN[d].showNota).filter(Boolean).join(' ')||undefined}
 ];
 
 })();

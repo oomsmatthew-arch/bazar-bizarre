@@ -563,6 +563,21 @@ window.HW={
     z.opbouw=z.opbouw.map((t,i)=>({t:t,fotos:((OPB[z.id]||{})[i]||[]).map(n=>foto(n,kaart[n]||''))}));
   });
 
+  // ---- wissels voor één avond (zieken), bovenop het Drive-draaiboek in js/halloween-bron.js.
+  // Ze verschijnen als melding bovenaan die avond. De afbouw volgt de rol: wie de rol overneemt,
+  // bouwt ook af wat bij die rol hoort. Haal ze weg zodra het draaiboek in de Drive is bijgewerkt.
+  const WISSELS={
+    '17/10':{
+      melding:['Laura is ziek. Nick neemt Overlever 3 over (Safezone) en bouwt na de tocht ook het bos af.',
+               'CZC-mutant 4 (buiten bos) is daardoor nog te bepalen, net als de afbouw die Nick als mutant 4 zou doen (inkom en locker).'],
+      rollen:{'Overlever 3':'Nick','CZC mutant 4':'Nog te bepalen (Nick is Overlever 3)'}}
+  };
+  Object.keys(WISSELS).forEach(d=>{
+    const n=(window.HW_NACHTEN||{})[d], w=WISSELS[d]; if(!n) return;
+    n.wijziging=w.melding;
+    (n.draaiboek||[]).concat(n.afbouw||[]).forEach(r=>{ if(w.rollen[r.karakter]) r.naam=w.rollen[r.karakter]; });
+  });
+
   // ---- aanvullende briefing van Marith (mail van 13–15/10): voorbereiden, eten, nationaliteiten, EHBO
   const VOORBEREIDEN=[
     ['Draaiboek','Per avond een gestructureerd schema: de tijdsplanning, welke rol je die avond hebt en wat je taak is voor, tijdens en na de tocht. Vooral handig op de dag zelf (zie Planning). De draaiboeken liggen in de kleedkamer en worden ook gedeeld in de WhatsAppgroepen.'],

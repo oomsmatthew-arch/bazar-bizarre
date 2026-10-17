@@ -99,7 +99,12 @@ function alleNamen(){
   const s=new Set(); const bronnen=A().alles?Object.values(ACT).map(x=>x.nachten||{}):[A().nachten||{}];
   bronnen.forEach(n=>Object.values(n).forEach(x=>{ (x.draaiboek||[]).forEach(r=>namenIn(r.naam).forEach(v=>s.add(v)));
     (x.opbouw||[]).concat(x.afbouw||[]).forEach(r=>namenIn(r.naam||(r.namen||[]).join(',')).forEach(v=>s.add(v))); }));
-  return [...s].sort((a,b)=>a.localeCompare(b,'nl'));
+  return [...s].filter(v=>!/te bepalen/i.test(v)).sort((a,b)=>a.localeCompare(b,'nl'));
+}
+// Wissels voor één avond (zieken): de melding staat als n.wijziging op de avond (zie WISSELS in de data).
+function wijzigingKaarten(d){
+  const bronnen=A().alles?Object.values(ACT).filter(x=>x.nachten&&!x.alles):[A()];
+  return bronnen.map(x=>{ const n=(x.nachten||{})[d]; return n&&n.wijziging?kaartHtml({nood:true,titel:'⚠️ Wijziging op '+dagnaam(d)+' '+d+(A().alles?' · '+x.kort:''),l:n.wijziging}):''; }).join('');
 }
 function tijdTxt(t){ return String(t||'').replace(/(\d+)\.(\d+)/g,'$1u$2').replace('-',' – '); }
 function hash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36); }
@@ -223,6 +228,7 @@ function viewStart(){
       +'<span class="hw-muted">'+dagnaam(volgende)+' · '+wanneer+'</span></div>'
       +'<div class="hw-knoppen" style="margin:0">'+(heeft('planning')?'<button class="btn primary" data-kies="'+volgende+'" data-ga="planning">📅 Planning</button>':'')
       +(heeft('checklist')?'<button class="btn" data-kies="'+volgende+'" data-ga="checklist">✅ Checklist</button>':'')+'</div></div>';
+    if(nog>=0) h+=wijzigingKaarten(volgende);
   }
   (a.startKaartenVoor||[]).forEach(k=>{ h+=kaartHtml(k); });
   if(a.verhaal) h+='<div class="hw-kaart"><h3>'+esc(a.verhaalTitel||'Het verhaal')+'</h3>'+paragrafen(a.verhaal)+'</div>';
@@ -259,7 +265,7 @@ function afbouwNaam(r){ return r.naam||(r.namen||[]).join(', '); }
 function viewPlanning(){
   const a=A(), d=state.datum, n=(a.nachten||{})[d]||{draaiboek:[],afbouw:[]};
   const P=a.planning||{kolommen:[['karakter','Karakter'],['naam','Naam'],['waar','Waar']]};
-  let h=datumKnoppen();
+  let h=datumKnoppen()+wijzigingKaarten(d);
   h+='<div class="hw-wie"><label for="hwWie"><b>Wie ben jij?</b></label><select id="hwWie"><option value="">— niemand (toon iedereen) —</option>'
     +alleNamen().map(x=>'<option'+(x===state.wie?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'
     +'<span class="hw-muted">Dan lichten jouw rijen op en zie je al je avonden.</span></div>';
@@ -268,8 +274,10 @@ function viewPlanning(){
   if(n.opbouw&&n.opbouw.length){
     h+='<div class="hw-kaart"><h3>'+esc(P.opbouwTitel||'Opbouw')+'</h3><div class="hw-afbouw">'+n.opbouw.map(r=>{
       const ik=isIk(r.naam);
-      return '<div class="hw-afb'+(ik?' ik':'')+'" style="--zk:var(--hw)"><b>'+esc(r.naam)+(ik?'<span class="hw-ikbadge">jij</span>':'')+'</b><div class="waar">'+esc(r.tijd||'')+'</div>'
-        +(r.taken&&r.taken.length?'<ul>'+r.taken.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')+'</div>';
+      return '<div class="hw-afb'+(ik?' ik':'')+'" style="--zk:'+(r.karakter?kleurVoorRol(String(r.karakter).split(' / ')[0]):'var(--hw)')+'"><b>'+esc(r.naam)+(ik?'<span class="hw-ikbadge">jij</span>':'')+'</b>'
+        +'<div class="waar">'+(r.karakter?'<b class="rol">'+esc(r.karakter)+'</b> · ':'')+esc(r.tijd||'')+'</div>'
+        +(r.taken&&r.taken.length?'<ul>'+r.taken.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')
+        +(r.waar?'<div class="waar">📍 '+esc(r.waar)+'</div>':'')+(r.mee&&r.mee.length?'<div class="waar">🧰 Mee: '+esc(r.mee.join(' · '))+'</div>':'')+'</div>';
     }).join('')+'</div></div>';
   }
   h+='<div class="hw-kaart"><h3>'+esc(P.titel||'Draaiboek')+' · '+dagnaam(d)+' '+d+'</h3>';
@@ -544,19 +552,22 @@ function jouwDag(d){
     (M.draaiboek||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Marktje · '+r.karakter));
     (M.afbouw||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Marktje · afbouw')); }
   if(K){
+    (K.opbouw||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Kindertocht · opbouw ('+r.karakter+')'));
     // Wie een fiets nodig heeft, haalt die eerst op: vóór de show (Orry en heks) of vóór de briefing van 15u00.
     const fietsRol=(K.draaiboek||[]).find(r=>ik(r.naam)&&ACT['zeven-zeeen'].fiets&&ACT['zeven-zeeen'].fiets[r.karakter]);
     if(fietsRol){ const metShow=ik(K.orry)||ik(K.heks); const t=metShow?'Vóór 14u15':'Vóór 15u00';
       lijst.push({tijd:t,wat:'🚲 Eerst: fiets '+ACT['zeven-zeeen'].fiets[fietsRol.karakter]+' ophalen bij de Housekeeping (achter de loods) en inklokken bij de check-in',m:metShow?14*60+14:14*60-1}); }
     (K.draaiboek||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Kindertocht · '+r.karakter+(ACT['zeven-zeeen'].fiets&&ACT['zeven-zeeen'].fiets[r.karakter]?' (🚲 fiets '+ACT['zeven-zeeen'].fiets[r.karakter]+')':'')));
     (K.afbouw||[]).filter(r=>ik(afbouwNaam(r))).forEach(r=>voeg(r.tijd,'Ombouw · '+r.waar));
-    if(ik(K.orry)) voeg('14u15 – 16u50','Show · Orry (daarna dief 2)'); if(ik(K.heks)) voeg('14u15 – 16u30','Show · heks'); }
+    // Normaal speelt Orry daarna dief 2; bij een wissel kan dat iemand anders zijn.
+    const d2=(K.draaiboek||[]).find(r=>r.karakter==='Dief 2'), ookDief2=!d2||namenIn(d2.naam).some(v=>namenIn(K.orry).indexOf(v)>=0);
+    if(ik(K.orry)) voeg(ookDief2?'14u15 – 16u50':'14u15 – 16u45',ookDief2?'Show · Orry (daarna dief 2)':'Show · Orry'); if(ik(K.heks)) voeg('14u15 – 16u30','Show · heks'); }
   if(O){ (O.draaiboek||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Volwassentocht · '+r.karakter+' ('+r.waar+')'));
     (O.afbouw||[]).filter(r=>ik(r.naam)).forEach(r=>voeg(r.tijd,'Afbouw volwassentocht · '+r.waar)); }
   return lijst.sort((x,y)=>x.m-y.m);
 }
 function viewDagPlanning(){
-  const a=A(), d=state.datum; let h=datumKnoppen();
+  const a=A(), d=state.datum; let h=datumKnoppen()+wijzigingKaarten(d);
   h+='<div class="hw-wie"><label for="hwWie"><b>Wie ben jij?</b></label><select id="hwWie"><option value="">— niemand (toon iedereen) —</option>'
     +alleNamen().map(x=>'<option'+(x===state.wie?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select><span class="hw-muted">Dan zie je jouw hele dag, over alle onderdelen heen.</span></div>';
   if(state.wie&&alleNamen().indexOf(state.wie)>=0){
@@ -598,6 +609,7 @@ function viewOmbouw(){
   h+=kaartHtml({titel:'Ombouw · '+dagnaam(d)+' '+d+' · 19u00 – 19u30',p:['Om 19u00 stopt de kindertocht en de Bay wordt omgebouwd tot de volwassentocht. Wie een eigen post van de kindertocht had, bouwt die eerst af en helpt daarna mee met de ombouw. Hieronder per zone wie er staat en wat er moet gebeuren.',
     'Na de kindertocht gaat er iemand een ronde door de hele Bay doen om achtergebleven decoratie op te ruimen (de Kidsclub kan dit doen). Berta de heks (de pop in de eerste grot na de ingang) wordt afgebouwd voor de volwassentocht.'],
     nota:'Het volledige draaiboek met foto’s per zone staat bij The Outbreak → Zones → Opbouw & materiaal.'});
+  h+=wijzigingKaarten(d);
   if(!K||!(K.afbouw||[]).length){ return h+'<p class="hw-muted">Voor deze avond staat de ombouw nog niet in het draaiboek.</p>'; }
   OMBOUW_ZONES.forEach(z=>{
     const rijen=K.afbouw.filter(r=>z.m.test(r.waar));
