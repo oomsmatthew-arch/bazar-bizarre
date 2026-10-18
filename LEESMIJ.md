@@ -279,12 +279,12 @@ collega's. Halloween heeft de database ook niet nodig: alles staat in de code va
 die toch al openbaar op de website staat. De startpagina toont zo'n toestel enkel de kaart
 Halloween — geen mededelingen, geen voorraadmeldingen, geen tandwiel naar Instellingen.
 
-Is er op het toestel al een collega ingelogd (bv. jij, om de link te testen), dan blijft die
-ingelogd en ga je gewoon naar Halloween. Wil een collega later op een Extern-toestel met
-zijn eigen naam werken, dan wisselt hij via het naamknopje en typt hij één keer de
-toegangscode. Komt er later iets bij in `EXTERN_TOEGANG` dat wél gegevens uit de database
-nodig heeft, dan toont dat op een Extern-toestel leeg — dat vraagt dan een aparte, beperkte
-aanmelding in Supabase.
+De link wisselt altijd naar Extern, ook als er op dat toestel al een collega ingelogd was
+(bv. jij, om de link te testen) — anders zag je bij het testen gewoon je eigen scherm en
+leek de link niet te werken. Wil je nadien weer als jezelf verder, tik dan gewoon opnieuw op
+je naam en typ je code, zoals van gebruiker wisselen overal in de app werkt. Komt er later
+iets bij in `EXTERN_TOEGANG` dat wél gegevens uit de database nodig heeft, dan toont dat op
+een Extern-toestel leeg — dat vraagt dan een aparte, beperkte aanmelding in Supabase.
 
 Is iemand óók Vaste mdw of Admin, dan telt dat zwaarder: die ziet gewoon alles, zelfs met
 het vinkje Extern aan. Zo kan dat vinkje nooit per ongeluk een eigen collega buitensluiten.

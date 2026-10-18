@@ -15,28 +15,21 @@
 // gaf /extern toen een lege pagina; vermoedelijk die doorverwijzing — zonder valt ze weg.
 // Voor gidsen en andere buitenstaanders. Wie deze link opent, is meteen binnen als het
 // gedeelde account "Extern" en komt op Halloween terecht — zonder toegangscode, zonder
-// naam te kiezen.
+// naam te kiezen. Dat geldt altijd, ook op een toestel waar al een collega is ingelogd
+// (bv. om de link zelf te testen): de link wisselt gewoon naar Extern. Een collega die
+// nadien weer als zichzelf wil werken, tikt gewoon opnieuw op zijn naam en typt zijn code —
+// precies zoals van gebruiker wisselen al overal in de app werkt.
 //
 // Waarom dat veilig kan: een extern account ziet enkel Halloween (EXTERN_TOEGANG in
 // js/kern.js), en Halloween haalt niets uit de database — alles staat in de code van de
 // pagina zelf, die toch al openbaar op de website staat. Dit toestel krijgt de
 // toegangscode dus nooit en kan niets uit de database lezen of erin schrijven (zie
 // isExternToestel in js/inventaris.js).
-//
-// Is er op dit toestel al een collega ingelogd (bv. jij, om de link te testen), dan blijft
-// die ingelogd: we gaan gewoon naar Halloween. Anders wordt het Extern, en dat blijft het
-// ook als de gids de app later opnieuw opent.
 (function(){
   try{
-    var u=JSON.parse(localStorage.getItem('bb_current_user')||'null');
-    var laatst=+(localStorage.getItem('bb_laatst_actief')||0)||0;
-    var nogIngelogd=u && u.id!=='extern' &&
-      (localStorage.getItem('bb_remember_user')==='1' || (laatst && Date.now()-laatst<6*60*60*1000));
-    if(!nogIngelogd){
-      localStorage.setItem('bb_current_user',JSON.stringify({id:'extern',naam:'Extern'}));
-      localStorage.setItem('bb_remember_user','1');
-      localStorage.setItem('bb_laatst_actief',String(Date.now()));
-    }
+    localStorage.setItem('bb_current_user',JSON.stringify({id:'extern',naam:'Extern'}));
+    localStorage.setItem('bb_remember_user','1');
+    localStorage.setItem('bb_laatst_actief',String(Date.now()));
   }catch(e){}
   location.replace('paginas/halloween.html');
 })();
