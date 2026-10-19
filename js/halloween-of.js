@@ -102,22 +102,38 @@ const SHOW=[
 const KN=window.HW_KIND_NACHTEN||{};
 const CAST=Object.keys(KN).map(d=>[d,KN[d].orry||'—',KN[d].heks||'—',KN[d].tessy||'—']);
 
+// ---------------------------------------------------------------- het rooster van Kids Disco en Bedtime stories
+// Ze lopen niet elke dag. Dit zijn de dagen en uren uit het overzichtsdraaiboek (12/10 – 8/11).
+const ROOSTER={
+  disco:{'14/10':'16u45 – 17u15','16/10':'17u30 – 18u00','21/10':'16u45 – 17u15','23/10':'17u30 – 18u00','28/10':'16u45 – 17u15','30/10':'17u30 – 18u00','04/11':'16u45 – 17u15','06/11':'17u30 – 18u00','07/11':'16u45 – 17u15'},
+  bedtime:{'13/10':'16u45 – 17u00','18/10':'16u45 – 17u00','20/10':'16u45 – 17u00','25/10':'16u45 – 17u00','27/10':'16u45 – 17u00','01/11':'16u45 – 17u00','03/11':'16u45 – 17u00','08/11':'16u45 – 17u00'}
+};
+const ROOSTER_RIJEN=[];
+(function(){
+  const dag=['zo','ma','di','wo','do','vr','za'], p2=n=>String(n).padStart(2,'0');
+  for(let d=new Date(2026,9,12);d<=new Date(2026,10,8);d.setDate(d.getDate()+1)){
+    const k=p2(d.getDate())+'/'+p2(d.getMonth()+1);
+    ROOSTER_RIJEN.push([dag[d.getDay()]+' '+k,ROOSTER.disco[k]||'—',ROOSTER.bedtime[k]||'—']);
+  }
+})();
+
 window.HW_ACT=window.HW_ACT||{};
-const STAND='12/10/2026';
+const STAND='19/10/2026';
 
 // ================================================================ O&F programma
 window.HW_ACT.of={
   stand:STAND,
   tabs:[{id:'start',ic:'🎭',t:'Start'},{id:'disco',ic:'🪩',t:'Kids Disco',type:'kaarten',uitleg:'Alles over de Halloween disco: uren, de dansjes (met links om te oefenen) en de video’s.'},{id:'bedtime',ic:'📖',t:'Bedtime stories',type:'kaarten',uitleg:'De twee voorleesverhalen, in het Nederlands, Duits, Frans en Engels: kies de taal van de kinderen.'},
         {id:'docs',ic:'📎',t:'Documenten'}],
-  feiten:[['Kids Disco','16u45 · 17u30'],['Bedtime stories','16u45'],['Waar','Time-Out Podium'],['Kleding','O&F-halloween']],
+  feiten:[['Kids Disco','wo 16u45 · vr 17u30'],['Bedtime stories','di + zo 16u45'],['Waar','Time-Out Podium'],['Kleding','O&F-halloween']],
   startKaarten:[
     {nood:true,titel:'Belangrijk: kledij van de karakters',p:['Tijdens de Halloweenperiode (vanaf 12/10 t/m 5/11) dragen de karakters hun Halloweenkledij gedurende alle activiteiten: een cape voor Orry, een hoed voor Bing, een weerwolvenjack voor Rep en een masker voor Woops. Schmink mag altijd, maar is geen must.']},
     {titel:'Het O&F-programma tijdens de Halloweenperiode',p:['Alle O&F-activiteiten vinden volledig in Halloweenthema plaats. De Kids Disco en het verhaaltje doen we echt in thema (zie de tabbladen). Voor attributen en techniek is voorlopig niets bepaald: dit is naar eigen invulling, maak er iets leuks van!']},
     {titel:'Wat staat er op het programma?',rijen:[
-      ['Kids Disco','Time-Out Podium · 16u45 – 17u15 en 17u30 – 18u00 · 2–3 Halloweendansjes per disco'],
-      ['Bedtime stories','Time-Out Podium · 16u45 – 17u00 · Halloweenverhaal voorlezen']
-    ],sub:'Tik hierboven op een tabblad voor de details van elke activiteit.',nota:'Op de tochtdagen (donderdag en zaterdag: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11) is er geen O&F-programma. Op de andere dagen volgt het rooster in het overzichtsdraaiboek.'},
+      ['Kids Disco','Time-Out Podium · woensdag 16u45 – 17u15 en vrijdag 17u30 – 18u00 (zaterdag 7/11: 16u45 – 17u15) · 2–3 Halloweendansjes per disco'],
+      ['Bedtime stories','Time-Out Podium · dinsdag en zondag 16u45 – 17u00 · Halloweenverhaal voorlezen']
+    ],sub:'Tik hierboven op een tabblad voor de details van elke activiteit.',nota:'Op de tochtdagen (donderdag en zaterdag: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11) is er geen O&F-programma. Het rooster per dag staat hieronder.'},
+    {titel:'Rooster per dag',sub:'Volgens het overzichtsdraaiboek (12/10 – 8/11). Een streepje betekent: die dag geen activiteit.',tabel:{kop:['Dag','Kids Disco','Bedtime stories'],rijen:ROOSTER_RIJEN}},
     {titel:'Wie is verantwoordelijk?',rijen:[
       ['Algemeen','Marith Weickl'],['Halloween Show','Lennert Lehaen'],['Kindertocht','Lien Ramaekers'],['Griezeltocht (Bay)','Matthew Ooms']
     ],nota:'Voor vragen of opmerkingen kan je altijd contact opnemen met een van de verantwoordelijken. Telefoonnummers staan in Contacten en in het overzichtsdraaiboek.'},
@@ -133,7 +149,7 @@ window.HW_ACT.of={
 window.HW_ACT.of.tabs.find(t=>t.id==='disco').kaarten=[
   {titel:'Overzicht',rijen:[
     ['Locatie','Time-Out Podium'],
-    ['Uren','16u45 – 17u15 en 17u30 – 18u00 (niet op de tochtdagen: donderdag en zaterdag)'],
+    ['Uren','Woensdag 16u45 – 17u15 en vrijdag 17u30 – 18u00; op zaterdag 7/11 16u45 – 17u15. Niet op de tochtdagen (donderdag en zaterdag). Het rooster per dag staat bij Start.'],
     ['Wat','De Kids Disco doen we echt in thema: tijdens ELKE disco doen we minstens 2 Halloweendansjes (de richtlijn is 2–3). De dansjes staan in de Drive: studeer ze allemaal goed van tevoren in!'],
     ['Verwachting','Iedereen die een disco heeft tijdens de Halloweenperiode kent de dansjes. Bekijk dus goed je rooster en bereid je voor als je een discoshift hebt: oefen ze vanuit je woonkamer met de links hieronder.'],
     ['Liedjes','Minstens twee tot drie Halloweenliedjes per disco, en starten en sluiten met het standaard O&F-lied.'],
@@ -151,7 +167,7 @@ window.HW_ACT.of.tabs.find(t=>t.id==='disco').kaarten=[
 ];
 window.HW_ACT.of.tabs.find(t=>t.id==='bedtime').kaarten=[
   {titel:'Overzicht',rijen:[
-    ['Locatie','Time-Out Podium'],['Uren','16u45 – 17u00 (niet op de tochtdagen: donderdag en zaterdag)'],
+    ['Locatie','Time-Out Podium'],['Uren','Dinsdag en zondag 16u45 – 17u00. Niet op de tochtdagen (donderdag en zaterdag). Het rooster per dag staat bij Start.'],
     ['Kleding','De Halloweenkledij van je karakter: cape (Orry), hoed (Bing), weerwolvenjack (Rep) of masker (Woops). Schmink mag altijd, maar is geen must.'],
     ['Wat','Het verhaaltje doen we echt in thema: je neemt het Halloweenboek mee naar boven en leest 1 van deze 2 verhaaltjes.'],
     ['Materiaal','Het Halloweenboek en het script in de Drive. Er zijn voorlopig geen attributen of techniek voor bepaald: dit is naar eigen invulling, maak er iets leuks van!'],

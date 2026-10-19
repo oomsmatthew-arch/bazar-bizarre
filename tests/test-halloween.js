@@ -102,6 +102,14 @@ ok(K17.opbouw&&K17.opbouw.some(function(r){ return r.karakter==='Dief 1'&&r.naam
 ok(['nl','de','fr','en'].every(function(t){ return /soep maken|Suppe kochen|faire de la soupe|make soup/.test(KS.kok[t][0]); }),'kindertocht: het intro van de kok is dat van de manual van 16/10');
 ok(!NACHTEN['24/10'].afbouw.some(function(r){ return r.taken[0]==='En'; }),'volwassentocht 24/10: geen losse "En" bij de afbouwtaken');
 
+print('— Drive 19/10: opbouw van elke kinderavond en het O&F-rooster —');
+ok(K.data.every(function(d){ var o=K.nachten[d].opbouw; return o&&o.length>=6&&o.every(function(r){ return r.karakter&&r.naam&&r.tijd; }); }),'kindertocht: elke avond heeft een opbouwtabel (niet enkel 15/10 en 17/10)');
+ok(K.data.every(function(d){ var o=K.nachten[d].opbouw; return ['Kapitein','Schutter','Dronkaard','Kok','Dief 1','Ontvangst'].every(function(rol){ return o.some(function(r){ return r.karakter.indexOf(rol)===0; }); }); }),'kindertocht: in elke opbouw staan de zes posten');
+var roosterKaart=OF.startKaarten.find(function(k){ return k.titel==='Rooster per dag'; });
+ok(roosterKaart&&roosterKaart.tabel.rijen.length===28,'O&F: het rooster per dag dekt 12/10 t/m 8/11 (28 dagen)');
+ok(roosterKaart.tabel.rijen.filter(function(r){ return r[1]!=='—'; }).length===9&&roosterKaart.tabel.rijen.filter(function(r){ return r[2]!=='—'; }).length===8,'O&F: 9 discodagen en 8 bedtime-dagen, zoals in het overzichtsdraaiboek');
+ok(roosterKaart.tabel.rijen.filter(function(r){ return /^(do|za) /.test(r[0])&&HW.info.data.indexOf(r[0].slice(3))>=0; }).every(function(r){ return r[1]==='—'&&r[2]==='—'; }),'O&F: op de tochtdagen staat geen disco of bedtime');
+
 print('— Gevoelige gegevens —');
 var alles=JSON.stringify(HW)+JSON.stringify(ACT);
 ok(alles.indexOf('BVMOPE')<0,'geen PC-aanmeldgegevens in de pagina');

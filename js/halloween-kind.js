@@ -96,6 +96,7 @@ const ZONES=[
     wat:['Kapitein Pablo heeft jaren geleden een magisch kompas gekocht bij de heks. Dat is zopas gestolen door een dief! Maar omdat het een magisch kompas is, is de dief nu vervloekt. Pablo wil zijn kompas terug, maar hij lag te slapen en heeft niet gezien wie het deed. Een aantal piraten heeft wel iets gezien, maar wil het niet aan Pablo vertellen. Daarom heeft hij de kinderen nodig en stuurt hij ze op pad.',
          'Hij waarschuwt hen voor de dief: komen ze die tegen, dan worden ze misschien zelf vervloekt. Door de vloek kan de dief niets meer zien, enkel horen: als de dief komt, moeten ze muisstil blijven staan. Pablo geeft elk kind een kaartje met gezichtskenmerken; hij weet enkel niet welke de juiste zijn.'],
     aandacht:['De kapitein zorgt dat er op elk tijdslot een groep wordt meegenomen van Pirate Place (beneden op het platform van Janneke) naar de nooddeur: 16u40 (groep 1), 16u55, 17u10, 17u25, 17u40, 17u55, 18u10 en 18u25 (groep 8).',
+              'Haal de groep steeds 5 minuten vóór het vertrekuur op bij Pirate Place (voor groep 1 dus om 16u35): tot iedereen mee is en jij je uitleg hebt gedaan, zitten we dan mooi op schema.',
               'Aan de nooddeur doet de kapitein de uitleg, deelt het materiaal uit en stuurt de groep naar links (richting hotel).',
               'Elke groep bestaat uit maximum 10–15 kinderen tussen 2 en 12, begeleiders niet meegerekend. Is er iemand te laat, laat hem dan liefst met de volgende groep meelopen.',
               'Laat geen kinderen zonder begeleider vertrekken. Komen er toch kinderen alleen, dan scant de ontvangst hun bandjes en neemt contact op met de ouders (of belt de receptie).'],
@@ -120,7 +121,7 @@ const ZONES=[
     id:'dronkaard',naam:'Dronkaard',kleur:K.dronkaard,rollen:['Dronkaard'],kort:'Post 3 · Stop 3 (Nature Lodge)',
     plattegrond:foto('kind-plattegrond','Plattegrond van het park met de route'),
     wat:['Deze piraat heeft veel te veel rum gedronken, daardoor kan hij amper nog recht lopen. De kinderen moeten laten zien hoe een echte piraat over het schip loopt.'],
-    aandacht:['Fiets met laadbak: klok in bij de check-in en haal hem op bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip, zodat je je spullen er makkelijk in kan zetten.','Dit is de eerste post waar de groepen passeren.',OPDRACHT,'Let op: de fles is van glas.','Stempel bij regenalternatief steeds op de achterkant van het bingokaartje af.'],
+    aandacht:['Fiets met laadbak: klok in bij de check-in en haal hem op bij de fietsenstalling van de Housekeeping (achter de loods). Zet hem bij de nooddeur onder het schip, zodat je je spullen er makkelijk in kan zetten.','Dit is de eerste post waar de groepen passeren.',OPDRACHT,'Als de groep bij jou vertrekt, moet ze oversteken: houd zelf even de auto’s tegen zodat de groep dit veilig kan.','Let op: de fles is van glas.','Stempel bij regenalternatief steeds op de achterkant van het bingokaartje af.'],
     extra:[
       {titel:'Opdracht',p:['Het piratenparcours doorlopen terwijl ze een lepel vasthouden met daarop een knikker. De knikker mag niet vallen. Valt de knikker, laat ze dan eventueel opnieuw starten.']},
       {titel:'Locatie',p:['De dronkaard staat in het grasveldje links naast de Nature Lodge. Het parcours dat daar al ligt wordt gebruikt met wat extra attributen. De hoepels mag je tussendoor leggen: daar moeten ze dan volledig doorheen.']},
@@ -237,7 +238,7 @@ const ZONES=[
     wat:['Er zijn altijd 2 dieven die elk een deel van het parcours voor hun rekening nemen. Ze proberen elke groep minstens 1 keer gehad te hebben. Sommige tochten zijn er 3 dieven: dief 3 vlindert dan wat over het parcours.',
          'Tijdens de opbouw ben jij (dief 1) verantwoordelijk om de lampjes op de splitsingen te plaatsen, zodat de groepen weten waar ze heen moeten, en om bij elke splitsing met stoepkrijt een pijl op de weg te tekenen. Dief 1 brengt en haalt ook het bord van de schutter, altijd met de E-car en met twee personen gedragen.',
          'De dief is vervloekt: hij kan niets zien, enkel horen. Als de dief bij een groep komt, moeten de kinderen muisstil blijven staan.'],
-    aandacht:['Fiets: dief 1 (overhead) neemt een fiets MET laadbak, dief 2 (Orry) een fiets ZONDER laadbak. Klok in bij de check-in, haal hem op bij de fietsenstalling van de Housekeeping (achter de loods) en zet hem bij de nooddeur onder het schip.','Je kondigt je komst steeds aan met de bel, zodat dit ook voor spanning zorgt.','Benader een groep bij voorkeur van achteren, zodat de groep niet opsplitst of in delen doorloopt. Dagen kinderen je uit, loop dan achter de groep langs in plaats van ertussendoor.','Maak af en toe gromgeluiden. Maakt iemand lawaai, dan mag je daar gerust even aandacht aan besteden.','Bij regenalternatief loop je doorheen de hele Bay.'],
+    aandacht:['Fiets: dief 1 (overhead) neemt een fiets MET laadbak, dief 2 (Orry) een fiets ZONDER laadbak. Klok in bij de check-in, haal hem op bij de fietsenstalling van de Housekeeping (achter de loods) en zet hem bij de nooddeur onder het schip.','Je kondigt je komst steeds aan met de bel, zodat dit ook voor spanning zorgt.','Na de kok weten de kinderen dat de dief groene ogen heeft: houd daarna voldoende afstand, zodat ze dit niet komen controleren.','Benader een groep bij voorkeur van achteren, zodat de groep niet opsplitst of in delen doorloopt. Dagen kinderen je uit, loop dan achter de groep langs in plaats van ertussendoor.','Maak af en toe gromgeluiden. Maakt iemand lawaai, dan mag je daar gerust even aandacht aan besteden.','Bij regenalternatief loop je doorheen de hele Bay.'],
     personages:[
       {naam:'De Dief',sub:'Volledig gemaskerd, met bel en lantaarn',wieTitel:'Wat doe je',
        wie:['Je loopt rond met je bel en je lantaarn, doorheen je deel van het parcours, en laat de kinderen stilstaan wanneer je langskomt. Je benadert de groep van achteren, zodat ze samen blijft. Je bent volledig gemaskerd en spreekt niet: je gromt.'],
@@ -289,7 +290,7 @@ const CHECK=[
 // ---------------------------------------------------------------- de activiteit
 window.HW_ACT=window.HW_ACT||{};
 window.HW_ACT['zeven-zeeen']={
-  stand:'16/10/2026',
+  stand:'19/10/2026',
   data:['15/10','17/10','22/10','24/10','29/10','31/10','05/11'],
   nachten:NACHTEN,scripts:window.HW_KIND_SCRIPTS||{},
   tabs:[{id:'start',ic:'🏴‍☠️',t:'Start'},{id:'planning',ic:'📅',t:'Planning'},{id:'tijd',ic:'⏱️',t:'Tijdsloten'},{id:'zones',ic:'🗺️',t:'Posten'},

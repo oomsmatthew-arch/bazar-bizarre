@@ -38,7 +38,7 @@ const GROEPEN=['16:40','16:55','17:10','17:25','17:40','17:55','18:10','18:25'];
 
 window.HW_ACT=window.HW_ACT||{};
 window.HW_ACT.overzicht={
-  stand:'15/10/2026',alles:true,
+  stand:'19/10/2026',alles:true,
   data:['15/10','17/10','22/10','24/10','29/10','31/10','05/11'],
   tabs:[{id:'start',ic:'ℹ️',t:'Informatie'},
         {id:'planning',ic:'📅',t:'Planning per dag',type:'dagplanning',uitleg:'Het dagschema, jouw dag (kies je naam) en wie er die avond per onderdeel staat. Kies bovenaan de avond.'},
@@ -58,13 +58,13 @@ window.HW_ACT.overzicht={
      links:[{t:'🛍️ Marktje',url:'#marktje'},{t:'🏴‍☠️ Kindertocht',url:'#zeven-zeeen'},{t:'🎃 Volwassentocht',url:'#start'},{t:'⚠️ Alle afspraken',url:'#overzicht/praktisch',hoofd:true}]}
   ],
   startKaarten:[
-    {titel:'De Halloweenperiode',p:['Van 12/10 tot en met 5/11 (volgens het overzichtsdraaiboek tot 9/11) is er in Center Parcs De Vossemeren Halloween-animatie. De tochten en het marktje lopen op 7 avonden: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11. Het O&F-programma (Kids Disco en Bedtime stories) loopt op de andere dagen volgens het rooster in het overzichtsdraaiboek; op de tochtdagen is er geen O&F-programma.']},
+    {titel:'De Halloweenperiode',p:['Van 12/10 tot en met 5/11 (volgens het overzichtsdraaiboek tot 9/11) is er in Center Parcs De Vossemeren Halloween-animatie. De tochten en het marktje lopen op 7 avonden: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11. Het O&F-programma loopt op andere dagen: Kids Disco op woensdag (16u45) en vrijdag (17u30), Bedtime stories op dinsdag en zondag (16u45). Het volledige rooster staat bij O&F programma; op de tochtdagen is er geen O&F-programma.']},
     {titel:'De onderdelen',sub:'Tik een knop voor alle details van dat onderdeel.',rijen:[
       ['The Outbreak','Volwassentocht (vanaf 10 jaar) · 20u30 – 22u30 · Discovery Bay'],
       ['Zeven zeeën','Kindertocht (2 – 12 jaar) · 16u40 – 19u00 · € 3 · start in de Discovery Bay'],
       ['Halloween show','Orry & de heks · 15u15 en 16u00 · Discovery Bay'],
       ['Marktje','Halloween-kinderactiviteiten (atelier) · ± 14u45/15u00 – 19u00 · Discovery Bay'],
-      ['O&F programma','Kids Disco en Bedtime stories · Time-Out Podium · niet op de tochtdagen']],
+      ['O&F programma','Kids Disco (woensdag en vrijdag) en Bedtime stories (dinsdag en zondag) · Time-Out Podium · niet op de tochtdagen']],
      links:[{t:'🎃 The Outbreak',url:'#start'},{t:'🏴‍☠️ Zeven zeeën',url:'#zeven-zeeen'},{t:'🎭 Halloween show',url:'#show'},{t:'🛍️ Marktje',url:'#marktje'},{t:'🪩 O&F programma',url:'#of'}]},
     {titel:'Wie is verantwoordelijk?',rijen:[['Algemeen','Marith Weickl (medeverantwoordelijke voor het Halloweenproject)'],['Griezeltocht (Bay)','Matthew Ooms'],['Kindertocht','Lien Ramaekers'],['Halloween show','Lennert Lehaen']],
      nota:'Per dag zijn er daarnaast aanspreekpunten bij het marktje (zie Planning per dag). Telefoonnummers staan in Contacten en in het overzichtsdraaiboek.'}
@@ -79,7 +79,7 @@ window.HW_ACT.overzicht={
      tabel:{kop:['Groep','Vertrek'],rijen:GROEPEN.map((t,i)=>['Groep '+(i+1),t])}},
     {titel:'Volwassentocht: de tijdsloten',sub:'Gasten schrijven in per tijdslot van 10 minuten, met 20 personen per tijdslot. Er vertrekt om de 5–8 minuten een groep van max 8–10 personen. Laatste vertrek 22:20.',
      p:['Tijdsloten: '+SLOTS.join(' · ')]},
-    {titel:'O&F programma',rijen:[['Kids Disco','16u45 – 17u15 en 17u30 – 18u00 (Time-Out Podium)'],['Bedtime stories','16u45 – 17u00 (Time-Out Podium)']],nota:'Op de tochtdagen (donderdag en zaterdag: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11) is er geen O&F-programma. Op de andere dagen volgt het rooster in het overzichtsdraaiboek.'}
+    {titel:'O&F programma',rijen:[['Kids Disco','Woensdag 16u45 – 17u15 en vrijdag 17u30 – 18u00; zaterdag 7/11 16u45 – 17u15 (Time-Out Podium)'],['Bedtime stories','Dinsdag en zondag 16u45 – 17u00 (Time-Out Podium)']],nota:'Op de tochtdagen (donderdag en zaterdag: 15/10, 17/10, 22/10, 24/10, 29/10, 31/10 en 5/11) is er geen O&F-programma. Het rooster per dag staat bij O&F programma.'}
   ],
   praktisch:[
     {titel:'Op tijd zijn',rijen:[
