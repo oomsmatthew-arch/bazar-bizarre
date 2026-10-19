@@ -110,6 +110,30 @@ ok(roosterKaart&&roosterKaart.tabel.rijen.length===28,'O&F: het rooster per dag 
 ok(roosterKaart.tabel.rijen.filter(function(r){ return r[1]!=='—'; }).length===9&&roosterKaart.tabel.rijen.filter(function(r){ return r[2]!=='—'; }).length===8,'O&F: 9 discodagen en 8 bedtime-dagen, zoals in het overzichtsdraaiboek');
 ok(roosterKaart.tabel.rijen.filter(function(r){ return /^(do|za) /.test(r[0])&&HW.info.data.indexOf(r[0].slice(3))>=0; }).every(function(r){ return r[1]==='—'&&r[2]==='—'; }),'O&F: op de tochtdagen staat geen disco of bedtime');
 
+print('— Wissels van 22/10 en 24/10 (Drive van 19/10) en de feedback voor donderdag —');
+var rolNaam=function(n,kar){ var r=n.draaiboek.find(function(x){ return x.karakter===kar; }); return r&&r.naam; };
+var N22=NACHTEN['22/10'], N24=NACHTEN['24/10'];
+ok(rolNaam(N22,'CZC mdw 1')==='Isabelle'&&rolNaam(N22,'Overlever 1')==='Tessy'&&rolNaam(N22,'Overlever 2')==='Lennert','volwassentocht 22/10: Isabelle CZC mdw 1, Tessy Overlever 1, Lennert Overlever 2');
+ok(rolNaam(N24,'CZC mdw 1')==='Billy'&&rolNaam(N24,'Overlever 1')==='Tessy'&&rolNaam(N24,'Overlever CZC')==='Lennert','volwassentocht 24/10: Billy CZC mdw 1, Tessy Overlever 1, Lennert Overlever CZC');
+var voorNaam=function(s){ return String(s||'').replace(/\(.*?\)/g,'').trim(); };
+var zelfVerwijzing=[]; HW.info.data.forEach(function(d){ (NACHTEN[d].afbouw||[]).forEach(function(r){ if((r.taken||[]).some(function(t){ return t==='Zie '+voorNaam(r.naam); })) zelfVerwijzing.push(d+' '+r.naam); }); });
+ok(zelfVerwijzing.length===0,'afbouw: niemand verwijst naar zichzelf ("Zie <eigen naam>")'+(zelfVerwijzing.length?' — '+zelfVerwijzing.join(', '):''));
+ok(!JSON.stringify(N24.afbouw).match(/Zie Isabelle|Laurant/),'volwassentocht 24/10: geen "Zie Isabelle" (ze werkt niet) en geen "Laurant"');
+ok(['22/10','24/10'].every(function(d){ var n=NACHTEN[d]; return n.wissels&&n.wissels.length&&n.wijziging&&n.wijziging.length===n.wissels.length+1; }),'beide avonden hebben wissels en een melding met een regel per persoon');
+var wisselsKloppen=[];
+['22/10','24/10'].forEach(function(d){ NACHTEN[d].wissels.forEach(function(w){
+  if(!w.tocht&&!w.afbouw) wisselsKloppen.push(d+' '+w.wie+': geen tocht of afbouw');
+  [w.tocht,w.afbouw].filter(Boolean).forEach(function(c){ if(!c.was||!c.nu||c.was===c.nu) wisselsKloppen.push(d+' '+w.wie+': was/nu onduidelijk'); });
+  if(w.tocht&&voorNaam(rolNaam(NACHTEN[d],w.karakter)).indexOf(w.wie)<0) wisselsKloppen.push(d+' '+w.wie+': staat niet als '+w.karakter+' in het draaiboek');
+  if(w.afbouw&&!(NACHTEN[d].afbouw||[]).some(function(r){ return voorNaam(r.naam)===w.wie; })) wisselsKloppen.push(d+' '+w.wie+': staat niet bij de afbouw');
+}); });
+ok(wisselsKloppen.length===0,'elke wissel klopt met het draaiboek van die avond'+(wisselsKloppen.length?' — '+wisselsKloppen.join('; '):''));
+ok(ACT.overzicht.tabs.some(function(x){ return x.id==='wissels'&&x.type==='wissels'; }),'overzicht: er is een tabblad Wissels');
+var pdf=JSON.stringify(ACT.overzicht)+JSON.stringify(HW);
+ok(/Hout van de rangers/.test(pdf)&&/Bestellingen en materiaal/.test(pdf)&&/Broodjes/.test(pdf)&&/props of directe taakjes/.test(pdf),'feedback 19/10: hout van de rangers, bestellingen, broodjes en KIC-props staan erin');
+ok(/verspreid je ook meer/i.test(JSON.stringify(HW.praktisch))&&/Matthew neemt de Halloweenmuziek/.test(pdf),'feedback 19/10: verspreid je meer en Matthew neemt de Halloweenmuziek bij de dj');
+ok(/suikerspinmachine/i.test(JSON.stringify(M.tabs.find(function(x){ return x.id==='activiteiten'; })))&&/Lisa is al komen kijken/.test(JSON.stringify(M)),'marktje: suikerspinbriefing van donderdag staat erin');
+
 print('— Gevoelige gegevens —');
 var alles=JSON.stringify(HW)+JSON.stringify(ACT);
 ok(alles.indexOf('BVMOPE')<0,'geen PC-aanmeldgegevens in de pagina');

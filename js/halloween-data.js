@@ -13,6 +13,7 @@
 //  Aangevuld met de werkpunten na de eerste avond (mail van het Halloween team, 17/10/2026):
 //  start aan de tent bij de ingang van de Bay, meer schrikeffect, vaste plek voor de rook,
 //  buitenroute met telefoonzaklamp, struikelgevaar, extra hek, slot Safezone, KIC als griezels.
+//  En met de feedback voor donderdag 22/10 (mail van 19/10/2026) en de wissels van 22/10 en 24/10 (DRIVE_WISSELS).
 // =====================================================================
 (function(){
 'use strict';
@@ -80,7 +81,7 @@ window.HW={
       '3':[foto('poster-3-sterker','Poster met de 3'),foto('poster-3-symptomen','Poster met de 3')],
       '9':[foto('poster-9-selena','Poster met de 9'),foto('poster-9-kael','Poster met de 9')]
     },
-    nota:'Lukt de code na enkele pogingen niet, dan hoort Overlever 3 via het oortje dat een andere overlever het ontbrekende cijfer gevonden heeft en kan hij één van de cijfers geven. Op 15/10 en 17/10 zijn er nog geen polsbandjes: dan krijgen de gasten een vrijstellingskaart.'
+    nota:'Lukt de code na enkele pogingen niet, dan hoort Overlever 3 via het oortje dat een andere overlever het ontbrekende cijfer gevonden heeft en kan hij één van de cijfers geven. Op 15/10 en 17/10 zijn er nog geen polsbandjes: dan krijgen de gasten een vrijstellingskaart. De bandjes voor de volwassentocht liggen nu klaar op kantoor.'
   },
 
   // ---------------------------------------------------------------- planning
@@ -122,8 +123,9 @@ window.HW={
       ['Noodgeval: “Code 10”','Raakt iemand in paniek, valt die of wil hij/zij stoppen? Meld het via de portofoon met “Code 10” en je locatie. Speel niet verder en blijf bij de persoon tot er hulp is.'],
       ['Verantwoordelijke','De verantwoordelijke van de avond is bereikbaar via de portofoon.'],
       ['Toilet','Kan tussendoor, op de gebruikelijke plaats in Discovery Bay. Laat je collega’s wel even weten dat je gaat.'],
-      ['Schrikmomenten','Geen schrikmomenten bij de straatoversteek, trappen, bruggen of andere risicopunten. In de rest van The Bay willen we juist meer schrikeffect en minder zombiestijl.'],
+      ['Schrikmomenten','Geen schrikmomenten bij de straatoversteek, trappen, bruggen of andere risicopunten. In de rest van The Bay willen we juist meer schrikeffect en minder zombiestijl, zeker bij de ateliermedewerkers, maar ook bij de entertainers. Verspreid je ook meer, zodat er op elk stuk van de tocht interactie is.'],
       ['Struikelgevaar','Houd rekening met risicovolle stukken: laat gasten voorzichtig lopen en beperk schrikeffecten op moeilijke punten.'],
+      ['Hout van de rangers','De rangers worden gebrieft dat het hout van het hutten bouwen netjes aan de kant moet liggen in plaats van over heel het eiland.'],
       ['Buitenroute','Bij de nooduitgang vraag je de gasten om voor de buitenroute hun telefoonzaklamp aan te zetten, en waarschuw je voor boomstronken.'],
       ['Extra hek','In de grot bij de trap naar Atkins staat een extra hek in plaats van linten, zodat de doorgang mogelijk blijft.'],
       ['Trap waterlabyrint','Daar komt extra verlichting. Er is nog geen bon voor aangemaakt in Leviy: die moet aangemaakt en opgevolgd worden.'],
@@ -142,7 +144,7 @@ window.HW={
       ['Wie doet wat','Wie iets afbouwt, heeft het ook opgezet. Wie welke taak doet, staat per avond bij Planning.'],
       ['Tent','Om 19u00 zetten de ateliermedewerkers als eerste samen de grote kar voor Entertainment klaar: tentframe, zwarte bache, spandoek, posters en lint. De tent staat tegen de ingang van Discovery Bay. In de bak op de kar zit een handleiding; vraag Marith om uitleg als iets niet duidelijk is. Dit moet snel en vóór de gasten aankomen.'],
       ['Berta de heks','De pop in de eerste grot na de ingang staat er tijdens de kindertocht en wordt bij de volwassentocht afgebouwd.'],
-      ['KIC-medewerkers','Je krijgt hulp van de KIC-medewerkers: zet hun hulp goed in. Zodra ze klaar zijn met opruimen en schoonmaken, komen ze via de personeelsingang binnen en melden ze zich bij Marith. Tot 21u50 kunnen ze meehelpen als griezels in de Bay, voor extra beleving.'],
+      ['KIC-medewerkers','Je krijgt hulp van de KIC-medewerkers: zet hun hulp goed in. Zodra ze klaar zijn met opruimen en schoonmaken, komen ze via de personeelsingang binnen en melden ze zich bij Marith. Tot 21u50 kunnen ze meehelpen als griezels in de Bay, voor extra beleving. Over hun hulp kwam veel feedback: geef hen props of directe taakjes. Voor velen is griezelen uit hun comfortzone, en zonder duidelijke taak wordt het eerder een onderonsje dan een echte taak. Stuur elkaar hierin aan; props maken de taak laagdrempeliger.'],
       ['Rookmachine','Krijgt een vaste locatie (vraag Marith waar). Zet ze bij de afbouw eerst uit en laat ze afkoelen voor ze weggezet wordt.'],
       ['Na de tocht','Doe een ronde door de hele Bay om achtergebleven decoratie op te ruimen. Breng gebruikte en ongebruikte verlengsnoeren terug onder het schip. De laatste medewerker controleert bij vertrek of de nooddeuren gesloten zijn; lukt dat niet, bel dan guestservice. Breng de vuile was weg en laat de kleedkamers netjes achter.']
     ]}
@@ -317,7 +319,7 @@ window.HW={
       'Dit is het hart van The Bay. De mutanten bewegen zich elk vrij binnen hun eigen zone langs het pad en laten de gasten schrikken, achtervolgen en opjagen. Onderweg zoeken de gasten de eerste 3 cijfers van de code: de 1 en de 3 hangen langs het pad, de 7 staat op het pak van een van de mutanten.'
     ],
     aandacht:[
-      'Meer schrikeffect en minder zombiestijl in de Bay.',
+      'Meer schrikeffect en minder zombiestijl in de Bay, zeker bij de ateliermedewerkers, maar ook bij de entertainers. Verspreid je ook meer, zodat er op elk stuk van de tocht interactie is.',
       'Houd rekening met risicovolle stukken: laat gasten voorzichtig lopen en beperk schrikeffecten op moeilijke punten.',
       'In sector 1/2 staat een rookmachine. Ze krijgt een vaste locatie, zodat ze elke avond op dezelfde plek staat (vraag Marith waar). De mutant in die zone bedient ze met een drukknop. Geef korte stoten, zodat het pad zichtbaar en veilig blijft.',
       'Eén mutant in The Bay draagt elke avond het pak met de 7. Raak de gasten nooit aan en laat je ook niet door hen aanraken.',
@@ -496,7 +498,7 @@ window.HW={
   // De checklist van de verantwoordelijke. fase 3 is enkel ter info (geen vinkjes).
   checklist:[
     {id:'f1',nr:1,titel:'Ombouw',tijd:'19u00',protocol:'Quarantainezone inrichten',groepen:[
-      {naam:'Team',items:['Materiaal kindertocht opgeruimd','Ronde door de Bay na de kindertocht: achtergebleven decoratie opgeruimd','Berta de heks (pop in de eerste grot) afgebouwd','Draaiboek van de avond hangt onder het schip','Iedereen kent zijn zone en opbouwtaak','KIC-medewerkers hebben een duidelijke taak']},
+      {naam:'Team',items:['Materiaal kindertocht opgeruimd','Ronde door de Bay na de kindertocht: achtergebleven decoratie opgeruimd','Berta de heks (pop in de eerste grot) afgebouwd','Draaiboek van de avond hangt onder het schip','Iedereen kent zijn zone en opbouwtaak','KIC-medewerkers hebben een duidelijke taak: props of een direct taakje, geen onderonsje']},
       {naam:'In de hut',items:['PC en techniektafel','Lichtpaneel','Tablets (blauw en groen) en muziekboxen, opgeladen','Portofoons en oortjes liggen opgeladen klaar','Warmtecamera, 2 PDA’s, 2 betaalterminals']},
       {naam:'Onder het schip',items:['Ledbars uit de lader','Rookmachine, drukknop, groene DMX-kabel, vloeistof','Lichtstatief achter de zwarte doek (Piraat disco)','Zwarte doeken (voor de deur)','Verlengkabels en ductape']},
       {naam:'Kleedkamer (boven)',items:['Witte pakken geprept, één met de 7','Overleverkledij: T-shirts, militaire jassen','Gasmaskers, latex handschoenen, mondmaskers','Geweren, stokken, walkietalkies','Schmink en bloed aangevuld']},
@@ -508,7 +510,7 @@ window.HW={
       {naam:'Techniek',items:['PC en techniektafel aangesloten','Lichtpaneel opgestart, load 13','Lichtstatief aan de nooddeur, kabel ligt veilig','Rookmachine op haar vaste locatie aangesloten, aan het opwarmen','Atkins-lampen 60, 62, 65, 68, 77, 78 uit']}
     ]},
     {id:'f2',nr:2,titel:'Eindcontrole',tijd:'20u00 – 20u25',protocol:'Zone vrijgeven',groepen:[
-      {naam:'Briefing 20u00',items:['Rollen en zones van vanavond overlopen','Nationaliteiten: welke talen zijn vanavond belangrijk','Code 10 en “niet aanraken” herhaald','Schrikvrije punten: straat, trappen, bruggen; struikelgevaar: gasten voorzichtig laten lopen','Meer schrikeffect, minder zombiestijl in de Bay','Nooduitgang: gasten zetten hun telefoonzaklamp aan voor de buitenroute, waarschuwen voor boomstronken']},
+      {naam:'Briefing 20u00',items:['Rollen en zones van vanavond overlopen','Nationaliteiten: welke talen zijn vanavond belangrijk','Code 10 en “niet aanraken” herhaald','Schrikvrije punten: straat, trappen, bruggen; struikelgevaar: gasten voorzichtig laten lopen','Meer schrikeffect, minder zombiestijl in de Bay (ook de entertainers) en verspreid je: op elk stuk van de tocht interactie','Nooduitgang: gasten zetten hun telefoonzaklamp aan voor de buitenroute, waarschuwen voor boomstronken']},
       {naam:'Bay vrij',items:['KIC-activiteiten en silent disco afgebouwd','Geen gasten meer in The Bay of op de route']},
       {naam:'Verbinding',items:['Portofoons uit de hut, iedereen op kanaal 1','Radiotest met elke zone, in beide richtingen','Oortjes bij extractiepunt en Safezone','Verantwoordelijke heeft gsm met CP-noodnummer']},
       {naam:'Licht, geluid, rook',items:['Halloweenmuziek zo vroeg mogelijk aan (staat ze niet aan: Marith verwittigen)','Muziek speelt in The Bay (repeat) en in het bos (loop)','Lichtpaneel, ledbars, lamp inkom en lichtstatief branden','Rookmachine getest met de voetknop']},
@@ -578,6 +580,51 @@ window.HW={
     (n.draaiboek||[]).concat(n.afbouw||[]).forEach(r=>{ if(w.rollen[r.karakter]) r.naam=w.rollen[r.karakter]; });
   });
 
+  // ---- wissels in het Drive-draaiboek zelf (stand 19/10/2026, 15u36). De namen in js/halloween-bron.js zijn al de
+  // nieuwe; hier staat wat er veranderd is ten opzichte van de eerder gedeelde planning. Het tabblad Wissels van het
+  // Overzicht, de melding bovenaan de avond en de "🔄 wissel"-labels bij Planning lezen dit.
+  //   karakter = de nieuwe rol in het draaiboek · tocht / afbouw = {was, nu} · ontbreekt = zelfde rol of taak
+  const DRIVE_WISSELS={
+    '22/10':[
+      {wie:'Isabelle',karakter:'CZC mdw 1',
+       tocht:{was:'Overlever 2 · Sector 1',nu:'CZC mdw 1 · Inkom'},
+       afbouw:{was:'Sector 1 & extractiepunt: linten en paddenstoelen opruimen',nu:'Inkom, locker & ingang: helpt het materiaal van het bos meenemen'}},
+      {wie:'Lennert',karakter:'Overlever 2',
+       tocht:{was:'Overlever 1 · Locker & ingang',nu:'Overlever 2 · Sector 1'},
+       afbouw:{was:'Inkom, locker & ingang: partytent, posters, doeken, hek en lamp',nu:'Sector 1 & extractiepunt: linten en paddenstoelen opruimen'}},
+      {wie:'Tessy',karakter:'Overlever 1',
+       tocht:{was:'CZC mdw 1 · Inkom',nu:'Overlever 1 · Locker & ingang'},
+       afbouw:{was:'Inkom + locker & ingang (volgde Isabelle)',nu:'Inkom, locker & ingang: partytent, posters, doeken, hek en lamp'}},
+      {wie:'Lien',
+       afbouw:{was:'Inkom, locker & ingang: helpt het materiaal van het bos meenemen',nu:'Buitenbos + Safezone: lint doorheen het bos, ledbars, muziekbox en tablet, Safezone-kist'}},
+      {wie:'Sarah',
+       afbouw:{was:'Buitenbos + Safezone: lint doorheen het bos, ledbars, muziekbox en tablet, Safezone-kist',nu:'Buitenbos + Safezone: helpt Lien'}}
+    ],
+    '24/10':[
+      {wie:'Billy',karakter:'CZC mdw 1',
+       tocht:{was:'Overlever CZC · Sector 1',nu:'CZC mdw 1 · Inkom'},
+       afbouw:{was:'Buitenbos + Safezone en techniek: ledbars, muziekbox en tablet, Safezone-kist, portofoons, lichtstatief, pc, lichtpaneel',nu:'Inkom, locker & ingang: partytent, posters, doeken, hek en lamp'}},
+      {wie:'Tessy',karakter:'Overlever 1',
+       tocht:{was:'CZC mdw 1 · Inkom',nu:'Overlever 1 · Locker & ingang'},
+       afbouw:{was:'Inkom, locker & ingang: partytent, posters, doeken, hek en lamp',nu:'Inkom + locker & ingang: volgt Billy'}},
+      {wie:'Lennert',karakter:'Overlever CZC',
+       tocht:{was:'Overlever 1 · Locker & ingang',nu:'Overlever CZC · Sector 1'},
+       afbouw:{was:'Inkom + locker & ingang (volgde Isabelle)',nu:'Sector 1 & extractiepunt: helpt Elise'}},
+      {wie:'Matthew',
+       afbouw:{was:'Buitenbos + Safezone en techniek (samen met Billy)',nu:'Techniek, alleen: portofoons, lichtstatief, techniektafel, pc, muziek, lichtpaneel en de Atkins-lampen'}}
+    ]
+  };
+  const zinWissel=w=>{
+    const t=w.tocht, a=w.afbouw;
+    if(t) return w.wie+': nu '+t.nu+' (was '+t.was+')'+(a?'; afbouw: '+a.nu:'')+'.';
+    return w.wie+': afbouw nu '+a.nu+' (was '+a.was+').';
+  };
+  Object.keys(DRIVE_WISSELS).forEach(d=>{
+    const n=(window.HW_NACHTEN||{})[d]; if(!n) return;
+    n.wissels=DRIVE_WISSELS[d];
+    n.wijziging=['De rolverdeling en de afbouwtaken zijn gewisseld in het draaiboek. Wie nu waar staat, met wat het eerder was:'].concat(n.wissels.map(zinWissel));
+  });
+
   // ---- aanvullende briefing van Marith (mail van 13–15/10): voorbereiden, eten, nationaliteiten, EHBO
   const VOORBEREIDEN=[
     ['Draaiboek','Per avond een gestructureerd schema: de tijdsplanning, welke rol je die avond hebt en wat je taak is voor, tijdens en na de tocht. Vooral handig op de dag zelf (zie Planning). De draaiboeken liggen in de kleedkamer en worden ook gedeeld in de WhatsAppgroepen.'],
@@ -585,6 +632,13 @@ window.HW={
     ['Vragen?','Lees je draaiboek goed na en stel je vragen zoveel mogelijk vóór je dienst begint: meld ze zo snel mogelijk aan Marith en niet pas op de dag zelf.']];
   HW.startKaartenVoor=[
     {nood:true,titel:'Belangrijk',l:['Je staat de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je rol staat welke kleding je zelf moet voorzien.','Zorg dat je echt op de afgesproken tijd onder het schip bent voor de briefing (zie het uurschema bij Tijdsloten).','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Heb je vragen? Meld ze zo snel mogelijk aan Marith, niet pas op de dag zelf.']},
+    {titel:'🆕 Nieuw voor donderdag 22/10',sub:'Wissels en nieuwe feedback uit de mail van het Halloween team (19/10). De afspraken van de vorige keer blijven gelden.',l:[
+      'Wissels: op 22/10 en 24/10 zijn rollen en afbouwtaken verschoven in het draaiboek. Wie nu waar staat, met wat het eerder was, staat bij Wissels in het Overzicht en in de melding bovenaan Planning.',
+      'Schrikeffect: meer schrikeffect en minder zombiestijl, zeker bij de ateliermedewerkers, maar ook bij de entertainers. Verspreid je ook meer, zodat er op elk stuk van de tocht interactie is.',
+      'KIC als griezels: geef de ateliermedewerkers props of directe taakjes. Voor velen is griezelen uit hun comfortzone, en zonder duidelijke taak wordt het een onderonsje. Stuur elkaar hierin aan.',
+      'Hout van de rangers: de rangers worden gebrieft dat het hout van het hutten bouwen netjes aan de kant moet liggen in plaats van over heel het eiland.',
+      'Op kantoor liggen klaar: de bandjes voor de volwassentocht en nieuwe maskers. Wegwerpoveralls zijn besteld (zijn ze er donderdag nog niet, dan lenen we er van sport, de paintball). Glow-in-the-darktextielverf en blacklightverf voor op het pak zijn besteld, maar nog niet in orde.'],
+     links:[{t:'🔄 Alle wissels bekijken',url:'#overzicht/wissels',hoofd:true}]},
     {titel:'🆕 Nieuw na de eerste avond',sub:'Werkpunten en afspraken uit de mail van het Halloween team (17/10). Ze staan ook uitgewerkt bij de zones, Praktisch en de checklist.',l:[
       'De tocht start vooraan bij de ingang van de Bay, waar de tent staat. De ateliermedewerkers zetten om 19u00 als eerste de grote kar voor de tent klaar (tentframe, zwarte bache, spandoek, posters en lint).',
       'Staat er een wachtrij, dan kan de ontvangstmedewerker die alvast entertainen, bijvoorbeeld door temperatuur en ‘symptomen’ te controleren.',

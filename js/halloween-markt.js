@@ -8,6 +8,7 @@
 //  Aangevuld met de werkpunten na de eerste avond (mail van het Halloween team, 17/10/2026):
 //  bolderkarren vooraf onder het schip, vaste plekken per activiteit, suikerspin, Berta de heks
 //  en om 19u00 eerst de grote kar voor de tent van Entertainment.
+//  Aangevuld met de feedback voor donderdag 22/10 (mail van 19/10/2026): suikerspinbriefing en vlotter opruimen.
 // =====================================================================
 (function(){
 'use strict';
@@ -113,7 +114,7 @@ const N={
 const POSTEN=[
   {titel:'Knuffels maken',sub:'Betalend · knuffels + maskers · beneden op het strandje',rijen:[['Waar','Beneden op het strandje, bij de andere betalende activiteiten en de maskers'],['Opbouw','Kar met knuffels + maskers onder het schip halen (staat hij nog in het atelier: meenemen naar de Bay); tafels neerzetten en de activiteit klaarzetten'],['Afbouw','Tafels en stoelen terug onder het schip; alle spullen in de kar van knuffels + maskers; controleer dat alle benodigheden van het lijstje in de kar zitten']]},
   {titel:'Maskers maken',sub:'Gratis · beneden op het strandje',rijen:[['Waar','Beneden op het strandje'],['Opbouw','Samen met de knuffels: de kar met knuffels + maskers'],['Afbouw','Samen met de knuffels: alles terug in de kar']]},
-  {titel:'Suikerspin',sub:'Gratis · eerste verdieping van het schip',rijen:[['Waar','Eerste verdieping van het schip, vanwege het stroompunt. De stroomaansluiting zit onder het schip, direct links bij binnenkomst: leg de verlengkabel langs de muur naar de eerste verdieping.'],['Opbouw','Zet de machine om 14u00 direct klaar en begin meteen met het voorbereiden van suikerspinnen; vuilniszak ophangen en handschoenen aan'],['Let op','Gebruik alle suiker op en laat geen suiker in het bakje zitten terwijl de heat-knop aanstaat, om verbranden te voorkomen.'],['Afbouw','Tafel en verlengkabel terug onder het schip; machine in de kar en naar het atelier; in het atelier de machine schoonmaken zoals in de briefing beschreven'],['Briefing','Marith geeft een korte briefing over het gebruik en het schoonmaken van de suikerspinmachine.']]},
+  {titel:'Suikerspin',sub:'Gratis · eerste verdieping van het schip',rijen:[['Waar','Eerste verdieping van het schip, vanwege het stroompunt. De stroomaansluiting zit onder het schip, direct links bij binnenkomst: leg de verlengkabel langs de muur naar de eerste verdieping.'],['Opbouw','Zet de machine om 14u00 direct klaar en begin meteen met het voorbereiden van suikerspinnen; vuilniszak ophangen en handschoenen aan'],['Let op','Gebruik alle suiker op en laat geen suiker in het bakje zitten terwijl de heat-knop aanstaat, om verbranden te voorkomen.'],['Afbouw','Tafel en verlengkabel terug onder het schip; machine in de kar en naar het atelier; in het atelier de machine schoonmaken zoals in de briefing beschreven'],['Briefing','Marith geeft een korte briefing over het gebruik en het schoonmaken van de suikerspinmachine. Donderdag 22/10 geeft ze die briefing; Lisa is al komen kijken hoe het werkt.'],['Bekers','Er zijn nieuwe bekers voor de suikerspin besteld.']]},
   {titel:'Kids make over',sub:'Schminken (gratis), glittertattoo, bubble braid, scrunchies en hairbeads (betalend)',rijen:[['Waar','Schminken op de tweede verdieping van het schip, bij het roer: zet daar vier stoelen uit het atelier klaar. De betalende activiteiten beneden op het strandje.'],['Opbouw','Kar kids make over onder het schip halen (staat hij nog in het atelier: meenemen naar de Bay); vier stoelen uit het atelier bij het roer; tafels en stoelen van onder het schip op het strandje; activiteit klaarzetten'],['Afbouw','Tafels en stoelen terug onder het schip; spullen terug in de kar en checken of er iets aangevuld moet worden; kar terug naar het atelier brengen, alles schoonmaken en de kar achterlaten zoals meegenomen']]},
   {titel:'Pompoen schilderen',sub:'Betalend · beneden op het strandje',rijen:[['Waar','Beneden op het strandje'],['Opbouw','Kar pompoen schilderen ophalen (de pompoenen liggen onder het schip); tafels en stoelen neerzetten en de spullen klaarleggen'],['Tip aan de gasten','Vertel de gasten dat de stiften niet uit kleding gaan. Laat hen bij voorkeur kiezen tussen verf of stiften. Willen ze beide gebruiken, laat ze dan eerst met stiften werken en daarna met verf, niet andersom.'],['Afbouw','Tafels en stoelen terug onder het schip; spullen in de kar en kijken of er iets bijgevuld moet worden; kar onder het schip achterlaten zoals meegenomen. De pompoenen, stoelen en tafels gaan niet terug naar het atelier.']]},
   {titel:'Ontvangst',sub:'Aan de ingang van de Discovery Bay',rijen:[['Wat doe je','Je verwelkomt de gasten en informeert hen over de activiteiten die in de Bay plaatsvinden. Zorg dus dat je op de hoogte bent van alles wat er gebeurt. We verwachten dat je de gasten in Halloweenthema ontvangt (zie het welkomstpraatje op Start).'],
@@ -149,7 +150,7 @@ const CHECK=[
 // ---------------------------------------------------------------- de activiteit
 window.HW_ACT=window.HW_ACT||{};
 window.HW_ACT.marktje={
-  stand:'12/10/2026',
+  stand:'19/10/2026',
   data:['15/10','17/10','22/10','24/10','29/10','31/10','05/11'],
   nachten:N,scripts:{},
   tabs:[{id:'start',ic:'🛍️',t:'Start'},{id:'planning',ic:'📅',t:'Planning'},{id:'tijd',ic:'⏱️',t:'Uren'},{id:'activiteiten',ic:'🎨',t:'Activiteiten',type:'kaarten',uitleg:'Het aanbod en per post wat je opbouwt, afbouwt en waar je op moet letten.'},
@@ -160,6 +161,10 @@ window.HW_ACT.marktje={
            'Entertainment verzorgt daarnaast het maken van lampionnen, de silent disco, de Orry & heks Halloweenshow, de kindertochten en de volwassentochten. Daarom gaan er PDA’s en betaalkastjes mee naar de Discovery Bay, om ter plaatse nog activiteiten te kunnen verkopen. Boeken van activiteiten kan ook altijd via de app.',
            'Wie om 14u00 begint, wordt in het atelier verwacht voor een korte briefing. De bolderkarren met de materialen worden voortaan vooraf onder het schip gezet, zodat niet alles pas om 14u00 verplaatst hoeft te worden. Je kleedt je eerst onder het schip om, daarna zet je alles klaar: de tafels willen we niet onbemand laten staan.'],
   startKaartenVoor:[
+    {titel:'🆕 Nieuw voor donderdag 22/10',sub:'Feedback uit de mail van het Halloween team (19/10). De afspraken van de vorige keer blijven gelden.',l:[
+      'Opstart en opruimen liepen veel vlotter. Het opruimen loopt veel vlotter nu het atelier tussen de dienst door helpt: dat houden we zo.',
+      'Suikerspinmachine: Marith geeft donderdag een korte briefing; Lisa is al komen kijken hoe het werkt. Er zijn nieuwe bekers voor de suikerspin besteld.',
+      'Besteld (zie Overzicht → Praktisch → Bestellingen en materiaal): o.a. elastiek, extra stiften, extra schmink en nieuwe bekers voor de suikerspin.']},
     {titel:'🆕 Nieuw na de eerste avond',sub:'Werkpunten en afspraken uit de mail van het Halloween team (17/10).',l:[
       'De bolderkarren worden vooraf vanuit het atelier onder het schip gezet. Linse en/of Britt kunnen op maandag en vrijdag al een deel voorbereiden.',
       'Vaste plekken: beneden op het strandje alle betalende activiteiten en de maskers, op de eerste verdieping van het schip de suikerspin, op de tweede verdieping bij het roer het schminken (vier stoelen uit het atelier).',
@@ -209,7 +214,7 @@ window.HW_ACT.marktje={
       ['Op tijd','Zorg dat je echt op de afgesproken tijd in het atelier bent voor de briefing.'],
       ['Bolderkarren','Worden voortaan vooraf vanuit het atelier onder het schip gezet, zodat niet alles pas om 14u00 verplaatst hoeft te worden. Linse en/of Britt kunnen op maandag en vrijdag al een deel voorbereiden.'],
       ['Briefing op wisseldagen','De ateliermedewerkers van donderdag en zaterdag krijgen een briefing met wat vooraf kan gebeuren, inclusief decoratie.'],
-      ['Na 19u00','Spullen onder het schip en dan eerst Entertainment helpen met de opbouw van de tochten, als eerste met de grote kar voor de tent. Daarna naar het atelier om de karren te controleren, aan te vullen, op te ruimen en schoon te maken. Dit werkte goed en houden we zo.'],
+      ['Na 19u00','Spullen onder het schip en dan eerst Entertainment helpen met de opbouw van de tochten, als eerste met de grote kar voor de tent. Daarna naar het atelier om de karren te controleren, aan te vullen, op te ruimen en schoon te maken. Dit werkte goed en houden we zo: het opruimen loopt veel vlotter nu het atelier tussen de dienst door helpt.'],
       ['Verlengsnoeren','Breng gebruikte en ongebruikte verlengsnoeren aan het einde van je shift terug onder het schip: we delen ze met meerdere afdelingen.']
     ]},
     {titel:'Betalen en boeken',rijen:[

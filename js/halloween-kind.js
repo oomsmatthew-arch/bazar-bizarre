@@ -301,6 +301,8 @@ window.HW_ACT['zeven-zeeen']={
   fiets:FIETS,
   startKaartenVoor:[
     {nood:true,titel:'Belangrijk',l:['Je staat de hele tocht buiten: zorg voor voldoende warme onderkleding en eventueel handschoenen. Bij je post staat welke kleding je zelf moet voorzien.','Zorg dat je echt op de afgesproken tijd onder het schip bent voor de briefing (15u00).','Neem eigen eten mee voor de pauze: eten in de Evergreens is op deze dagen niet echt mogelijk.','Heb je vragen? Meld ze zo snel mogelijk aan Marith, niet pas op de dag zelf.']},
+    {titel:'🆕 Nieuw voor donderdag 22/10',sub:'Mail van het Halloween team (19/10).',l:[
+      'Geen nieuwe werkpunten voor de kindertocht: de afspraken van de vorige keer (hieronder) blijven gelden.']},
     {titel:'🆕 Nieuw na de eerste avond',sub:'Werkpunten en afspraken uit de mail van het Halloween team (17/10). Ze staan ook uitgewerkt bij de posten.',l:[
       'De tocht start op Pirate Place, beneden op het platform van Janneke. Enkel het tijdslot dat vertrekt staat op Pirate Place; andere groepen wachten even.',
       'Laat kinderen niet alleen vertrekken. Komen er toch kinderen alleen, scan dan hun bandjes en neem contact op met de ouders (of bel de receptie).',

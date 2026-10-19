@@ -104,7 +104,15 @@ function alleNamen(){
 // Wissels voor één avond (zieken): de melding staat als n.wijziging op de avond (zie WISSELS in de data).
 function wijzigingKaarten(d){
   const bronnen=A().alles?Object.values(ACT).filter(x=>x.nachten&&!x.alles):[A()];
-  return bronnen.map(x=>{ const n=(x.nachten||{})[d]; return n&&n.wijziging?kaartHtml({nood:true,titel:'⚠️ Wijziging op '+dagnaam(d)+' '+d+(A().alles?' · '+x.kort:''),l:n.wijziging}):''; }).join('');
+  const metTab=!!(ACT.overzicht&&ACT.overzicht.tabs.some(t=>t.id==='wissels'));
+  return bronnen.map(x=>{ const n=(x.nachten||{})[d];
+    return n&&n.wijziging?kaartHtml({nood:true,titel:'⚠️ Wijziging op '+dagnaam(d)+' '+d+(A().alles?' · '+x.kort:''),l:n.wijziging,
+      links:(metTab&&n.wissels&&n.wissels.length)?[{t:'🔄 Alle wissels bekijken',url:'#overzicht/wissels'}]:undefined}):''; }).join('');
+}
+// Heeft deze avond wissels (in dit onderdeel, of in het overzicht: in één van de onderdelen)?
+function heeftWissels(d){
+  const bronnen=A().alles?Object.values(ACT).filter(x=>x.nachten&&!x.alles):[A()];
+  return bronnen.some(x=>{ const n=(x.nachten||{})[d]; return !!(n&&n.wissels&&n.wissels.length); });
 }
 function tijdTxt(t){ return String(t||'').replace(/(\d+)\.(\d+)/g,'$1u$2').replace('-',' – '); }
 function hash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36); }
@@ -151,7 +159,7 @@ function datumKnoppen(){
   return '<div class="hw-datums" role="group" aria-label="Kies een avond">'+a.data.map(d=>{
     const n=(a.nachten||{})[d]; const aant=n?new Set((n.draaiboek||[]).flatMap(r=>namenIn(r.naam))).size:0;
     return '<button type="button" class="hw-datum'+(d===state.datum?' actief':'')+(d===vandaag?' vandaag':'')+'" data-datum="'+d+'">'
-      +'<small>'+dagnaam(d)+(d===vandaag?' · vandaag':'')+'</small><b>'+d+'</b><small>'+(aant?aant+' mdw':'&nbsp;')+'</small></button>';
+      +'<small>'+dagnaam(d)+(d===vandaag?' · vandaag':'')+'</small><b>'+d+'</b><small>'+([aant?aant+' mdw':'',heeftWissels(d)?'🔄':''].filter(Boolean).join(' · ')||'&nbsp;')+'</small></button>';
   }).join('')+'</div>';
 }
 function fotoKnop(f){
@@ -266,6 +274,10 @@ function viewPlanning(){
   const a=A(), d=state.datum, n=(a.nachten||{})[d]||{draaiboek:[],afbouw:[]};
   const P=a.planning||{kolommen:[['karakter','Karakter'],['naam','Naam'],['waar','Waar']]};
   let h=datumKnoppen()+wijzigingKaarten(d);
+  // Wissels (zie n.wissels in de data): een label bij wie van rol wisselde of een andere afbouwtaak kreeg.
+  const wis=n.wissels||[];
+  const wisT=(naam,kar)=>wis.some(w=>w.tocht&&w.karakter===kar&&namenIn(naam).indexOf(w.wie)>=0)?'<span class="hw-wisselbadge">🔄 wissel</span>':'';
+  const wisA=naam=>wis.some(w=>w.afbouw&&namenIn(naam).indexOf(w.wie)>=0)?'<span class="hw-wisselbadge">🔄 nieuwe taak</span>':'';
   h+='<div class="hw-wie"><label for="hwWie"><b>Wie ben jij?</b></label><select id="hwWie"><option value="">— niemand (toon iedereen) —</option>'
     +alleNamen().map(x=>'<option'+(x===state.wie?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'
     +'<span class="hw-muted">Dan lichten jouw rijen op en zie je al je avonden.</span></div>';
@@ -288,7 +300,7 @@ function viewPlanning(){
     h+='<div class="hw-afbouw">'+n.draaiboek.map(r=>{
       const z=zoneVoorRol(r.karakter);
       return '<div class="hw-afb'+(isIk(r.naam)?' ik':'')+'" style="--zk:'+kleurVoorRol(r.karakter)+(z?';cursor:pointer':'')+'"'+(z?' data-ga="zones/'+z.id+'"':'')+'>'
-        +'<b>'+esc(r.naam||'–')+(isIk(r.naam)?'<span class="hw-ikbadge">jij</span>':'')+'</b>'
+        +'<b>'+esc(r.naam||'–')+(isIk(r.naam)?'<span class="hw-ikbadge">jij</span>':'')+wisT(r.naam,r.karakter)+'</b>'
         +'<div class="waar"><b class="rol">'+esc(r.karakter)+'</b>'+(r.tijd?' · '+esc(r.tijd):'')+'</div>'
         +(r.wat?'<p style="margin:6px 0 0;font-size:14px">'+esc(r.wat)+'</p>':'')+(r.waar?'<div class="waar">📍 '+esc(r.waar)+'</div>':'')
         +(a.fiets&&a.fiets[r.karakter]?'<div class="waar">🚲 Fiets '+esc(a.fiets[r.karakter])+' ophalen (inklokken bij de check-in)</div>':'')+'</div>';
@@ -298,7 +310,7 @@ function viewPlanning(){
       +n.draaiboek.map(r=>{
         const z=zoneVoorRol(r.karakter);
         return '<tr style="--zk:'+kleurVoorRol(r.karakter)+';cursor:pointer" class="'+(isIk(r.naam)?'ik':'')+'"'+(z?' data-ga="zones/'+z.id+'"':'')+'>'
-          +P.kolommen.map((k,i)=>'<td>'+esc(r[k[0]])+(k[0]==='naam'&&isIk(r.naam)?'<span class="hw-ikbadge">jij</span>':'')+'</td>').join('')+'</tr>';
+          +P.kolommen.map((k,i)=>'<td>'+esc(r[k[0]])+(k[0]==='naam'&&isIk(r.naam)?'<span class="hw-ikbadge">jij</span>':'')+(k[0]==='naam'?wisT(r.naam,r.karakter):'')+'</td>').join('')+'</tr>';
       }).join('')+'</tbody></table>';
   }
   h+='</div>';
@@ -311,7 +323,7 @@ function viewPlanning(){
   }else{
     h+='<p class="hw-muted">Wie iets afbouwt, heeft het ook opgezet.</p><div class="hw-afbouw">'+n.afbouw.map(r=>{
       const nm=afbouwNaam(r), ik=isIk(nm);
-      return '<div class="hw-afb'+(ik?' ik':'')+'" style="--zk:'+kleurVoorRol(r.rol||r.karakter)+'"><b>'+esc(nm)+(ik?'<span class="hw-ikbadge">jij</span>':'')+'</b>'
+      return '<div class="hw-afb'+(ik?' ik':'')+'" style="--zk:'+kleurVoorRol(r.rol||r.karakter)+'"><b>'+esc(nm)+(ik?'<span class="hw-ikbadge">jij</span>':'')+wisA(nm)+'</b>'
         +'<div class="waar">'+esc([r.karakter,r.waar,(r.tijd&&P.afbTijd?r.tijd:'')].filter(Boolean).join(' · '))+'</div>'
         +(r.taken&&r.taken.length?'<ul>'+r.taken.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')+'</div>';
     }).join('')+'</div>';
@@ -527,7 +539,7 @@ function vinkOm(el){
 function viewPraktisch(){
   const a=A(); let h='';
   if(a.noodkaart) h+='<div class="hw-kaart hw-nood"><h3>'+esc(a.noodkaart.titel)+'</h3>'+paragrafen(a.noodkaart.p)+'<p class="hw-muted" style="margin:0">'+a.noodkaart.klein+'</p></div>';
-  h+=a.praktisch.map(s=>'<div class="hw-kaart"><h3>'+esc(s.titel)+'</h3>'+deflijst(s.rijen)+'</div>').join('');
+  h+=a.praktisch.map(s=>'<div class="hw-kaart"><h3>'+esc(s.titel)+'</h3>'+(s.sub?'<p class="hw-muted">'+esc(s.sub)+'</p>':'')+deflijst(s.rijen)+'</div>').join('');
   return h;
 }
 
@@ -635,6 +647,62 @@ function viewOmbouw(){
 }
 function kleurVoorZone(z){ const zz=(ACT.outbreak.zones||[]).find(x=>(z.link||'').indexOf(x.id)>=0); return zz?zz.kleur:'var(--hw)'; }
 
+// ---------------------------------------------------------------- OVERZICHT: wissels
+// Per komende avond en per onderdeel: wie wisselt van rol of post en wie krijgt een andere afbouwtaak, met wat het
+// eerder was. De gegevens staan bij de avond (n.wissels, zie DRIVE_WISSELS in de data); avonden die enkel een
+// vrije melding hebben (n.wijziging, bv. een zieke) tonen die tekst.
+function wisselKaartje(x,n,w){
+  const eigen=(n.draaiboek||[]).filter(r=>namenIn(r.naam).indexOf(w.wie)>=0);
+  const kar=w.karakter||(eigen[0]||{}).karakter;
+  const z=(x.zones||[]).find(zz=>zz.rollen.indexOf(kar)>=0);
+  const tocht=n.draaiboek&&n.draaiboek[0]?tijdTxt(n.draaiboek[0].tijd):'', afb=n.afbouw&&n.afbouw[0]?tijdTxt(n.afbouw[0].tijd):'';
+  const deel=(label,tijd,c,gelijk)=>'<div class="waar">'+label+(tijd?' · '+esc(tijd):'')+'</div>'
+    +(c?'<div class="hw-wis"><b>Nu: '+esc(c.nu)+'</b><small>Was: '+esc(c.was)+'</small></div>':'<div class="hw-wis"><small>'+esc(gelijk)+'</small></div>');
+  const ik=isIk(w.wie);
+  return '<div class="hw-afb'+(ik?' ik':'')+'" style="--zk:'+(z?z.kleur:'var(--line)')+'"><b>'+esc(w.wie)+(ik?'<span class="hw-ikbadge">jij</span>':'')+'</b>'
+    +deel('Tocht',tocht,w.tocht,'Zelfde rol'+(eigen.length?': '+eigen.map(r=>r.karakter+' · '+r.waar).join(' + '):''))
+    +deel('Afbouw',afb,w.afbouw,'Zelfde taken')+'</div>';
+}
+function viewWissels(){
+  const a=A(); let h='';
+  const bronnen=Object.values(ACT).filter(x=>x.nachten&&!x.alles);
+  const heeft=(x,d)=>{ const n=(x.nachten||{})[d]; return !!(n&&((n.wissels&&n.wissels.length)||(n.wijziging&&n.wijziging.length))); };
+  const dagen=(a.data||[]).filter(d=>bronnen.some(x=>heeft(x,d)));
+  const komend=dagen.filter(d=>dagenTot(d)>=0), voorbij=dagen.filter(d=>dagenTot(d)<0);
+  h+=kaartHtml({titel:'Wat is een wissel?',p:['Een wissel is een verandering ten opzichte van de planning die eerder gedeeld werd: iemand krijgt een andere rol of post, of een andere taak bij de afbouw. De namen bij Planning zijn al aangepast; hier zie je per avond wat er veranderd is.'],
+    nota:'Avonden met een 🔄 bij de datums hebben wissels. Zijn er nog wissels onderweg, bijvoorbeeld door ziekte? Die verschijnen hier zodra het draaiboek in de Drive is aangepast.'});
+  h+='<div class="hw-wie"><label for="hwWie"><b>Wie ben jij?</b></label><select id="hwWie"><option value="">— niemand (toon iedereen) —</option>'
+    +alleNamen().map(v=>'<option'+(v===state.wie?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select><span class="hw-muted">Dan lichten jouw wissels op.</span></div>';
+  if(state.wie){
+    const mijn=[];
+    komend.forEach(d=>bronnen.forEach(x=>{ const n=(x.nachten||{})[d]; ((n&&n.wissels)||[]).filter(w=>isIk(w.wie)).forEach(w=>{
+      mijn.push(dagnaam(d)+' '+d+' · '+x.titel+': '+(w.tocht?'nu '+w.tocht.nu+' (was '+w.tocht.was+')':'zelfde rol')+(w.afbouw?'; afbouw: '+w.afbouw.nu:'')+'.'); }); }));
+    if(mijn.length) h+=kaartHtml({nood:true,titel:'🔄 Jouw wissels, '+state.wie,l:mijn});
+  }
+  if(!komend.length) h+='<p class="hw-muted">Er zijn nog geen wissels doorgegeven voor de komende avonden.</p>';
+  komend.forEach(d=>{
+    const nog=dagenTot(d), wanneer=nog===0?'vandaag':nog===1?'morgen':'over '+nog+' dagen';
+    h+='<h3 class="hw-tussen">'+esc(dagnaam(d)+' '+d)+' <span style="font-weight:400;opacity:.75">· '+wanneer+'</span></h3>';
+    bronnen.forEach(x=>{
+      const n=(x.nachten||{})[d]; if(!n) return;
+      if(n.wissels&&n.wissels.length){
+        const nt=n.wissels.filter(w=>w.tocht).length, na=n.wissels.filter(w=>w.afbouw).length;
+        h+='<div class="hw-kaart"><h3>'+esc(x.titel)+'</h3><p class="hw-muted">'
+          +[nt?nt+(nt===1?' persoon wisselt':' personen wisselen')+' van rol of post':'',na?na+(na===1?' persoon krijgt':' personen krijgen')+' een andere afbouwtaak':''].filter(Boolean).join(' · ')+'.</p>'
+          +'<div class="hw-afbouw">'+n.wissels.map(w=>wisselKaartje(x,n,w)).join('')+'</div>'
+          +'<div class="hw-knoppen"><a class="btn" data-kies="'+d+'" href="#'+(x.id==='outbreak'?'':x.id+'/')+'planning">📅 Volledige planning van '+esc(d)+'</a></div></div>';
+      }else if(n.wijziging&&n.wijziging.length){
+        h+=kaartHtml({titel:x.titel+' · '+dagnaam(d)+' '+d,l:n.wijziging});
+      }
+    });
+  });
+  if(voorbij.length){
+    h+='<h3 class="hw-tussen">Afgelopen avonden</h3>';
+    voorbij.forEach(d=>bronnen.forEach(x=>{ const n=(x.nachten||{})[d]; if(n&&n.wijziging&&n.wijziging.length) h+=kaartHtml({titel:x.titel+' · '+dagnaam(d)+' '+d,l:n.wijziging}); }));
+  }
+  return h;
+}
+
 // ---------------------------------------------------------------- vrije tabbladen
 function viewKaarten(tab){
   let h='';
@@ -675,7 +743,7 @@ function render(scroll){
   if(act&&balk) balk.scrollLeft=act.offsetLeft-balk.clientWidth/2+act.clientWidth/2;
   const tab=a.tabs.find(t=>t.id===state.tab)||a.tabs[0];
   const type=tab.type||tab.id;
-  const V={start:viewStart,planning:viewPlanning,dagplanning:viewDagPlanning,ombouw:viewOmbouw,tijd:viewTijd,zones:viewZones,techniek:viewTechniek,checklist:viewChecklist,praktisch:viewPraktisch,docs:viewDocs};
+  const V={start:viewStart,planning:viewPlanning,dagplanning:viewDagPlanning,ombouw:viewOmbouw,wissels:viewWissels,tijd:viewTijd,zones:viewZones,techniek:viewTechniek,checklist:viewChecklist,praktisch:viewPraktisch,docs:viewDocs};
   const uitleg=tab.uitleg||UITLEG[type]||'';
   $('hwInhoud').innerHTML=(uitleg?'<p class="hw-uitleg">'+esc(uitleg)+'</p>':'')+(V[type]||(()=>viewKaarten(tab)))(tab);
   if(type==='checklist') updateChecklistVoortgang();
