@@ -300,9 +300,12 @@ const ACT_CANON=[
   {naam:'Family Quiz Night', re:/quiz/i},
   {naam:'Crazy Game Time', re:/crazy\s*game|dr[oô]les?\s*de\s*jeux/i},
   {naam:'Live muziek / Chill Tunes', re:/live[\s-]*mu|musique\s*live|chill\s*tunes/i},
+  // De kindertocht van 2026, ook in het Duits ("Auf den Sieben Meeren").
+  {naam:'Halloween kindertocht: Op de Zeven Zeeën', re:/kindertocht|kinderwanderung|zeven\s*ze|sieben\s*meer|seven\s*seas|sept\s*mers/i},
   // De magische wandeling (2025) liep op dezelfde dagen als de griezeltocht: een aparte tocht.
   {naam:'Magische Halloween Wandeling', re:/(magisch|magical|magique|zauber)[^,]{0,30}halloween|halloween[^,]{0,30}(magisch|magical|magique|zauber)/i},
-  {naam:'Halloween griezeltocht', re:/griezeltocht|grusellauf|halloween[^,]{0,30}(griezel|grusel|scary|spooky|terrifiante)|promenade[^,]{0,30}halloween/i},
+  // Outbreak = de griezeltocht van 2026 ('s avonds), ook als "Parcours Halloween Frissons : Outbreak".
+  {naam:'Halloween griezeltocht', re:/griezeltocht|grusellauf|outbreak|halloween[^,]{0,30}(griezel|grusel|scary|spooky|terrifiante|frisson)|promenade[^,]{0,30}halloween/i},
   {naam:'Paaseieren zoektocht', re:/paaseieren|easter\s*egg|oster(eier)?suche|chasse\s*aux\s*(œ|oe)ufs/i},
   {naam:'Paasarrangement', re:/paas\s*arrangement|easter\s*package|oster\s*pac?ke?t|forfait\s*de\s*p[aâ]ques/i}
 ];

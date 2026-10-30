@@ -149,6 +149,11 @@ heet('Orry & ses Amis : Drôles de jeux','O&F: Knotsgekke Spelshow');
 heet('Crazy Game Time','Crazy Game Time');
 heet('Orry & Vrienden Taxi ritje!','O&F: op taxibezoek');
 heet('Knecht Ruprecht besucht Cotttage','Pieten bezoek Cottage');
+heet('Parcours Halloween Frissons : Outbreak','Halloween griezeltocht');
+heet('Halloween griezel tocht: Outbreak','Halloween griezeltocht');
+heet('Halloween-Kinderwanderung: Auf den Sieben Meeren','Halloween kindertocht: Op de Zeven Zeeën');
+heet('Halloween kindertocht: Op de Zeven Zeeën','Halloween kindertocht: Op de Zeven Zeeën');
+heet('Magische Halloween Wandeling','Magische Halloween Wandeling');
 
 print('— Je eigen naam op de rooster —');
 // Een gewone medewerker ziet enkel zichzelf: de naam van zijn account moet op de rooster
