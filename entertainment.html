@@ -269,16 +269,20 @@ function updateKaarten(){
 }
 
 // ---------------- RATINGS: TEAM OF PERSOONLIJK ----------------
-// Een admin of parkcoach kiest achter de Ratings-kaart tussen de gastbeoordelingen van het
-// team en de persoonlijke ratings per medewerker. Iedereen anders volgt gewoon de link.
+// Wie met een eigen account is ingelogd, kiest achter de Ratings-kaart tussen de
+// gastbeoordelingen van het team en de persoonlijke ratings: de eigen, of — als admin of
+// parkcoach — die van elke medewerker. ENT algemeen (gedeeld) en een extern account hebben
+// geen persoonlijke ratings; die volgen gewoon de link naar Team ratings.
 document.querySelector('.menu .card[data-key="ratings"]').addEventListener('click',async e=>{
-  if(!(isAdmin()||isParkcoach())) return;
+  const u=fullCurrentUser();
+  if(!u || u.id==='entalg' || heeftRol('algemeen') || (isExtern() && !(isVasteMdw()||isAdmin()))) return;
   // Openen in een nieuw tabblad (Cmd/Ctrl-klik, middelste knop): de link gewoon laten volgen.
   if(e.metaKey||e.ctrlKey||e.shiftKey||e.button!==0) return;
   e.preventDefault();
+  const coach=isAdmin()||isParkcoach();
   const k=await bbKies({titel:'Ratings', keuzes:[
     {waarde:'team', tekst:'👥 Team ratings', sub:'Alle gastbeoordelingen'},
-    {waarde:'pers', tekst:'👤 Persoonlijke ratings', sub:'Per medewerker, via de rooster'}]});
+    {waarde:'pers', tekst:'👤 Persoonlijke ratings', sub:coach?'Per medewerker, via de rooster':'Jouw eigen ratings, via de rooster'}]});
   if(k==='team') location.href='paginas/ratings.html';
   else if(k==='pers') location.href='paginas/ratings-persoonlijk.html';
 });

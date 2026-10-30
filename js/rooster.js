@@ -71,6 +71,19 @@ function mooieNaam(n){
   if(p.length!==2) return String(n||'').trim();
   return (p[1].trim()+' '+p[0].trim()).trim();
 }
+// De naam van een account in de app terugvinden op de rooster. Volgorde, hoofdletters,
+// accenten en leestekens tellen niet mee ("Ooms, Matthew" = "matthew ooms"), maar alle
+// delen van de naam moeten kloppen: enkel "Matthew" is niet genoeg — anders zou iemand
+// zomaar de scores van een collega met dezelfde voornaam te zien krijgen.
+function naamSleutel(n){
+  return String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean).sort().join(' ');
+}
+function zoekNaam(naam, namen){
+  const k=naamSleutel(naam); if(!k) return null;
+  const hits=(namen||[]).filter(n=>naamSleutel(n)===k);
+  return hits.length===1?hits[0]:null;
+}
 function leesDatum(s){                       // "1-9-2026" → Date (lokaal, middernacht)
   const m=/(\d{1,2})-(\d{1,2})-(\d{4})/.exec(s||'');
   return m ? new Date(+m[3],+m[2]-1,+m[1]) : null;
@@ -285,7 +298,7 @@ async function leesPdf(file){
 
 const API={KOPPEL:KOPPEL, isOptreden:isOptreden, uitItems:uitItems, alleenOptredens:alleenOptredens,
   voegSamen:voegSamen, verwijderUpload:verwijderUpload, koppel:koppel, minuten:minuten, mooieNaam:mooieNaam,
-  iso:iso, leesPdf:leesPdf};
+  zoekNaam:zoekNaam, iso:iso, leesPdf:leesPdf};
 if(typeof window!=='undefined') window.Rooster=API;
 else if(typeof globalThis!=='undefined') globalThis.Rooster=API;
 })();

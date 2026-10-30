@@ -609,10 +609,11 @@ function maandRapport(){
 // Sinds de offline kopie in IndexedDB woont, staan bb_gebruikers en bb_cache_v1 meestal
 // niet meer in localStorage; bb_namen_snel (de namen mét rollen, zie js/inventaris.js)
 // wel. De oude sleutels blijven als terugval voor een toestel dat nog niet omgezet is.
-function rolTags(){
+// Geeft {id, naam, tags} terug, of null als er niemand ingelogd is.
+function huidigeGebruiker(){
   try{
     const cu=JSON.parse(localStorage.getItem('bb_current_user')||'null');
-    if(!cu) return [];
+    if(!cu) return null;
     let lijst=[];
     if(window.BBInv&&BBInv.getGebruikers){ try{ lijst=BBInv.getGebruikers()||[]; }catch(e){} }
     ['bb_namen_snel','bb_gebruikers'].forEach(k=>{ if(!lijst.length){ try{ lijst=JSON.parse(localStorage.getItem(k)||'[]')||[]; }catch(e){} } });
@@ -620,10 +621,13 @@ function rolTags(){
     // eerst op id, anders op naam (account kan ooit opnieuw aangemaakt zijn met een nieuw id)
     let u=lijst.find(x=>x&&x.id===cu.id);
     if(!u){ const naam=String(cu.naam||'').trim().toLowerCase(); if(naam) u=lijst.find(x=>String((x&&x.naam)||'').trim().toLowerCase()===naam); }
+    const w=u||cu;
     // 'rol' is een komma-lijst met etiketten (bv. "vast,admin") — zoals BBInv.heeftRol
-    return String(((u||cu)&&(u||cu).rol)||'').split(',').map(s=>s.trim()).filter(Boolean);
-  }catch(e){ return []; }
+    return {id:w.id||cu.id, naam:String(w.naam||cu.naam||''),
+      tags:String(w.rol||'').split(',').map(s=>s.trim()).filter(Boolean)};
+  }catch(e){ return null; }
 }
+function rolTags(){ const u=huidigeGebruiker(); return u?u.tags:[]; }
 // Is de op dit toestel ingelogde persoon een vaste medewerker (of admin)?
 function isVaste(){ const t=rolTags(); return t.indexOf('vast')>=0 || t.indexOf('admin')>=0; }
 // Beheer-wachtwoord (gedeeld) — zodat je ook zonder als jezelf ingelogd te zijn (bv. op het
@@ -695,5 +699,5 @@ document.addEventListener('DOMContentLoaded',()=>{
 window.Ratings={ canonAct:canonAct, groepeer:groepeer, avg:avg, fmtScore:fmtScore, kl:kl,
   maandKey:maandKey, maandLabel:maandLabel, taalVan:taalVan, boekjaarKey:boekjaarKey, boekjaarLabel:boekjaarLabel,
   esc:esc, fmtDate:fmtDate, MND:MND, laadReviews:laadOpgeslagenReviews, syncGedeeld:syncGedeeld,
-  donut:donut, kaartRij:kaartRij, reviewKaart:reviewKaart, sbClient:sbClient, ACT_CATS:ACT_CATS, rolTags:rolTags };
+  donut:donut, kaartRij:kaartRij, reviewKaart:reviewKaart, sbClient:sbClient, ACT_CATS:ACT_CATS, rolTags:rolTags, huidigeGebruiker:huidigeGebruiker };
 })();

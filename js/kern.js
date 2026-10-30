@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.31';
+const APP_VERSION='v9.32';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -625,8 +625,9 @@ function isVasteMdw(){ return heeftRol('vast'); }
 function isAdmin(){ return heeftRol('admin'); }
 // Extern = een buitenstaander (bv. een gids): ziet enkel EXTERN_TOEGANG, zie magToegang().
 function isExtern(){ return heeftRol('extern'); }
-// Parkcoach = een gewone medewerker die achter de Ratings-kaart ook de Persoonlijke ratings
-// kan kiezen. Verder niets: telt bewust NIET mee in magToegang/externGeblokkeerd.
+// Parkcoach = een gewone medewerker die in de Persoonlijke ratings ook die van collega's kan
+// bekijken (iedereen ziet daar zijn eigen). Verder niets: telt bewust NIET mee in
+// magToegang/externGeblokkeerd.
 function isParkcoach(){ return heeftRol('parkcoach'); }
 // De link voor externen (zie extern.html): wie ze opent, is meteen binnen als het
 // gedeelde account Extern, zonder toegangscode.
@@ -952,7 +953,7 @@ function renderGebrList(){
                                :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
             (admin?'✓ Admin':'Admin')+'</button>'+
           '<button class="parkcoach'+(parkcoach?' on':'')+(magAdminUitdelen()?'':' uit')+'" title="'+
-            (magAdminUitdelen()?'Ziet achter de Ratings-kaart ook de Persoonlijke ratings (per medewerker) — verder een gewone medewerker'
+            (magAdminUitdelen()?'Kan in de Persoonlijke ratings ook die van collega\'s bekijken en de rooster uploaden — verder een gewone medewerker'
                                :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
             (parkcoach?'✓ Parkcoach':'Parkcoach')+'</button>'+
           '<button class="extern'+(extern?' on':'')+'" title="Buitenstaander (bv. een gids): ziet enkel '+

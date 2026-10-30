@@ -117,4 +117,18 @@ ok(opnieuw.uploads.length===2 && opnieuw.shifts.length===twee.shifts.length,'sep
 var zonderSep=RO.verwijderUpload(opnieuw,opnieuw.uploads.findIndex(function(u){ return u.van==='2026-09-01'; }));
 ok(zonderSep.dagen.join(',')==='2026-10-01,2026-10-02' && zonderSep.namen.join('|')==='Cato Maes','september weghalen laat oktober staan');
 
+print('— Je eigen naam op de rooster —');
+// Een gewone medewerker ziet enkel zichzelf: de naam van zijn account moet op de rooster
+// gevonden worden, en nooit per ongeluk iemand anders.
+var namen=['An Peeters','Bram Janssens','Christel Van vleymen','Zoë De Smet','An Maes'];
+ok(RO.zoekNaam('An Peeters',namen)==='An Peeters','zelfde schrijfwijze');
+ok(RO.zoekNaam('peeters an',namen)==='An Peeters','andere volgorde en kleine letters');
+ok(RO.zoekNaam('Peeters, An',namen)==='An Peeters','zoals op de rooster ("Peeters, An")');
+ok(RO.zoekNaam('Christel Van Vleymen',namen)==='Christel Van vleymen','hoofdletter in "Van Vleymen"');
+ok(RO.zoekNaam('Zoe De Smet',namen)==='Zoë De Smet','zonder accent');
+ok(RO.zoekNaam('An',namen)===null,'enkel een voornaam is niet genoeg (twee keer "An" op de rooster)');
+ok(RO.zoekNaam('Bram',namen)===null,'ook niet als die voornaam maar één keer voorkomt');
+ok(RO.zoekNaam('An Peeters-Maes',namen)===null,'een andere naam geeft niemand');
+ok(RO.zoekNaam('',namen)===null,'geen naam geeft niemand');
+
 print(fouten?('RESULTAAT: '+fouten+' fout(en)'):'RESULTAAT: alles in orde');

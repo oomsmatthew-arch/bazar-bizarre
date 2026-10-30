@@ -1,9 +1,16 @@
 /* Persoonlijke ratings — de ratings per medewerker, via de rooster.
-   Enkel voor een Admin of Parkcoach. Gebruikt de helpers van js/ratings.js (window.Ratings)
-   en het inlezen/koppelen van js/rooster.js (window.Rooster).
+   Gebruikt de helpers van js/ratings.js (window.Ratings) en het inlezen/koppelen van
+   js/rooster.js (window.Rooster).
+
+   Wie ziet wat:
+     • iedereen met een eigen account ziet enkel zijn eigen ratings (de naam van het account
+       wordt op de rooster opgezocht, zie Rooster.zoekNaam);
+     • een Admin of Parkcoach kan ook andere medewerkers kiezen, uploadt de rooster en ziet
+       welke ratings niemand konden vinden;
+     • ENT algemeen (gedeeld account) en Extern zien hier niets.
 
    De rooster wordt gedeeld bewaard, net als de ratings: in de tabel spelarchief, rij 5.
-   Zo upload je hem één keer en ziet elke Admin of Parkcoach hem op elk toestel. */
+   Zo upload je hem één keer en staat hij op elk toestel. */
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
@@ -14,13 +21,22 @@ const SB_RIJ=5;
 let _alle=[];            // alle ratings van dit toestel (na de sync met de gedeelde set)
 let _rooster=null;       // {ts, dagen, namen, shifts, uploads}
 let _boekjaar='', _bjInit=false;
-let _mdw='';             // gekozen medewerker
+let _mdw='';             // getoonde medewerker (naam zoals op de rooster)
 let _koppel=null;        // uitkomst van Rooster.koppel voor het gekozen boekjaar
-let _dFilter=null;       // filter op de reacties van de gekozen medewerker: {soort, key, label}
+let _dFilter=null;       // filter op de reacties van de getoonde medewerker: {soort, key, label}
+let _ik=null;            // wie er ingelogd is: {id, naam, tags}
+let _coach=false;        // Admin of Parkcoach: mag iedereen bekijken en de rooster beheren
 
 // ---------------------------------------------------------------- wie mag hier binnen
-// De rol komt uit de gedeelde gebruikerslijst, zoals isVaste() op Team ratings (Ratings.rolTags).
-function magHier(){ const t=(R.rolTags?R.rolTags():[]); return t.indexOf('admin')>=0 || t.indexOf('parkcoach')>=0; }
+function heeft(t){ return !!(_ik && _ik.tags.indexOf(t)>=0); }
+// Enkel een eigen account. ENT algemeen is van iedereen tegelijk, en een extern account
+// (een gids) hoort hier niet — tenzij het óók vaste mdw of admin is, zoals elders in de app.
+function eigenAccount(){
+  if(!_ik || !_ik.id) return false;
+  if(_ik.id==='entalg' || heeft('algemeen')) return false;
+  if(heeft('extern') && !(heeft('vast')||heeft('admin'))) return false;
+  return true;
+}
 
 // ---------------------------------------------------------------- opslag
 function laadLokaal(){ try{ const r=JSON.parse(localStorage.getItem(K_ROOSTER)||'null'); return (r&&Array.isArray(r.shifts))?r:null; }catch(e){ return null; } }
@@ -49,12 +65,11 @@ function uploadLabel(u){
 }
 function kortDatum(isoDag){ const p=String(isoDag||'').split('-'); return p.length>2?(+p[2]+'/'+(+p[1])):''; }
 function leegDonut(){ return '<span class="donut leeg"><span class="donut-in">–</span></span>'; }
+function toon(id,aan){ const e=$(id); if(e) e.style.display=aan?'':'none'; }
 
 // ---------------------------------------------------------------- tekenen
 function render(){
-  const heeft=!!(_rooster && _rooster.uploads && _rooster.uploads.length);
-  $('leeg').style.display=heeft?'none':'';
-  $('mdwCard').style.display=heeft?'':'none';
+  const heeftRooster=!!(_rooster && _rooster.uploads && _rooster.uploads.length);
   renderUploads();
   // boekjaren uit de ratings; standaard het recentste, zoals op Team ratings
   const bj=Array.from(new Set(_alle.map(r=>R.boekjaarKey(r.datum)).filter(Boolean))).sort().reverse();
@@ -63,10 +78,36 @@ function render(){
   const bs=$('boekjaar');
   bs.innerHTML='<option value="">Alle boekjaren</option>'+bj.map(k=>'<option value="'+k+'">Boekjaar '+R.boekjaarLabel(k)+'</option>').join('');
   bs.value=_boekjaar;
-  if(!heeft){ $('detail').style.display='none'; $('nietCard').style.display='none'; $('koppelInfo').innerHTML=''; $('telling').textContent=''; $('mdwKeuze').style.display='none'; return; }
+  // Wat enkel een Admin of Parkcoach ziet
+  toon('uploadBtn',_coach); toon('mdwKeuze',_coach&&heeftRooster); toon('koppelInfo',_coach); toon('telling',_coach);
+  toon('mdwCard',_coach&&heeftRooster); toon('dSluit',_coach);
+  toon('leeg',!heeftRooster);
+  toon('nietOpRooster',false);
+  if(!heeftRooster){
+    $('leegTekst').innerHTML=_coach
+      ? '<b>Nog geen rooster.</b> Upload de <b>Master Schedule</b>-PDF uit het planningsprogramma. Elke rating wordt dan gekoppeld aan wie die dag op de passende shift stond: een O&amp;F-show van 15u00 gaat naar iedereen met een O&amp;F-shift rond dat uur (ook de technieker), een Prize Night naar ENT 1 én ENT 2, een quiz naar wie op FQN staat. Upload gerust meerdere maanden; een nieuwe upload van dezelfde maand vervangt de vorige.'
+      : '<b>Nog geen rooster.</b> Zodra een admin of parkcoach de rooster uploadt, zie je hier je eigen ratings: elke rating van een activiteit waarop jij op de rooster stond.';
+    toon('detail',false); toon('nietCard',false);
+    return;
+  }
 
   const rev=_boekjaar?_alle.filter(r=>R.boekjaarKey(r.datum)===_boekjaar):_alle;
   _koppel=RO.koppel(rev,_rooster,R.canonAct);
+
+  if(!_coach){
+    // Een gewone medewerker: altijd zichzelf, en enkel zichzelf.
+    _mdw=RO.zoekNaam(_ik.naam,_rooster.namen)||'';
+    if(!_mdw){
+      $('nietOpRoosterTekst').innerHTML='Je naam <b>'+esc(_ik.naam)+'</b> staat niet op de opgeladen rooster ('+
+        esc(_rooster.uploads.map(uploadLabel).join(', '))+'). Schrijft de app je naam anders dan de rooster '+
+        '(bv. enkel je voornaam)? Vraag dan een admin om je naam in de namenlijst gelijk te zetten met de rooster.';
+      toon('nietOpRooster',true);
+    }
+    renderDetail();
+    toon('nietCard',false);
+    return;
+  }
+
   const pp=_koppel.perPersoon;
   const gekoppeld=rev.length-_koppel.niet.length-_koppel.buiten;
   let info='<b>'+gekoppeld+'</b> van de '+(rev.length-_koppel.buiten)+' ratings in de roosterperiode zijn gekoppeld aan een medewerker.';
@@ -93,7 +134,7 @@ function render(){
     el.onclick=()=>kies(n,true);
     box.appendChild(el);
   });
-  const mk=$('mdwKeuze'); mk.style.display='';
+  const mk=$('mdwKeuze');
   mk.innerHTML='<option value="">Kies een medewerker…</option>'+met.map(m=>m.naam).concat(zonder.slice().sort((a,b)=>a.localeCompare(b)))
     .map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
   mk.value=_mdw;
@@ -107,13 +148,14 @@ function renderUploads(){
   ((_rooster&&_rooster.uploads)||[]).forEach((u,i)=>{
     const el=document.createElement('span'); el.className='upl';
     el.title=(u.bestand||'')+(u.ts?(' · opgeladen '+new Date(u.ts).toLocaleDateString('nl-BE')):'');
-    el.innerHTML='📅 '+esc(uploadLabel(u))+' <button type="button" title="Deze rooster weghalen">✕</button>';
-    el.querySelector('button').onclick=()=>verwijder(i);
+    el.innerHTML='📅 '+esc(uploadLabel(u))+(_coach?' <button type="button" title="Deze rooster weghalen">✕</button>':'');
+    const b=el.querySelector('button'); if(b) b.onclick=()=>verwijder(i);
     box.appendChild(el);
   });
 }
 
 function kies(naam,scroll){
+  if(!_coach) return;                // een gewone medewerker kiest niemand anders
   _mdw=naam; _dFilter=null;
   render();
   if(scroll){ const d=$('detail'); if(d&&d.scrollIntoView) d.scrollIntoView({behavior:'smooth',block:'start'}); }
@@ -125,7 +167,7 @@ function renderDetail(){
   box.style.display='';
   const lijst=_koppel.perPersoon[_mdw]||[];
   const shifts=(_rooster.shifts||[]).filter(s=>s.n===_mdw);
-  $('dNaam').textContent=_mdw;
+  $('dNaam').textContent=_coach?_mdw:('Jouw ratings — '+_mdw);
   $('dSub').textContent=lijst.length+(lijst.length===1?' rating · ':' ratings · ')+shifts.length+(shifts.length===1?' shift':' shifts')+' met een activiteit op de rooster';
   if(!lijst.length){
     $('dTiles').innerHTML='<div class="hint" style="grid-column:1/-1;margin:0;">Nog geen ratings gekoppeld aan '+esc(_mdw)+
@@ -159,7 +201,7 @@ function zetFilter(soort,key,label){
 }
 function renderReacties(lijst){
   const f=_dFilter;
-  const toon=lijst.filter(r=>{
+  const toonLijst=lijst.filter(r=>{
     if(!f) return true;
     if(f.soort==='maand') return R.maandKey(r.datum)===f.key;
     if(f.soort==='taal') return R.taalVan(r)===f.key;
@@ -167,16 +209,16 @@ function renderReacties(lijst){
     return true;
   }).sort((a,b)=>((b.datum?b.datum.getTime():0)-(a.datum?a.datum.getTime():0)));
   const c=$('dCount');
-  c.innerHTML=toon.length+' van '+lijst.length+' reacties'+(f?' · gemiddelde '+(toon.length?R.fmtScore(R.avg(toon.map(r=>r.score))):'–'):'')+
+  c.innerHTML=toonLijst.length+' van '+lijst.length+' reacties'+(f?' · gemiddelde '+(toonLijst.length?R.fmtScore(R.avg(toonLijst.map(r=>r.score))):'–'):'')+
     (f?' <span class="filterchip" id="dFilterWeg">'+esc(f.label)+' ✕</span>':'');
   const w=$('dFilterWeg'); if(w) w.onclick=()=>{ _dFilter=null; renderReacties(lijst); };
-  $('dLijst').innerHTML=toon.length?toon.map(R.reviewKaart).join(''):'<p class="muted">Geen reacties.</p>';
+  $('dLijst').innerHTML=toonLijst.length?toonLijst.map(R.reviewKaart).join(''):'<p class="muted">Geen reacties.</p>';
 }
 
 function renderNiet(){
   const card=$('nietCard');
   const niet=(_koppel&&_koppel.niet)||[];
-  if(!niet.length){ card.style.display='none'; return; }
+  if(!_coach || !niet.length){ card.style.display='none'; return; }
   card.style.display='';
   $('nietUitleg').textContent=niet.length+' ratings vallen op een dag met rooster, maar niemand stond rond dat uur op een passende shift. '+
     'Meestal heeft de shift in de rooster een naam die (nog) niet herkend wordt, of valt het uur van de rating buiten de shift.';
@@ -186,8 +228,9 @@ function renderNiet(){
     .map(r=>'<div class="r"><span>'+esc(r.activiteit||'—')+'</span><span>'+esc(r.datum?kortDatum(RO.iso(r.datum)):'')+(r.uur?' · '+esc(r.uur):'')+'</span><b>'+R.fmtScore(r.score)+'</b></div>').join('');
 }
 
-// ---------------------------------------------------------------- uploaden en weghalen
+// ---------------------------------------------------------------- uploaden en weghalen (Admin/Parkcoach)
 async function upload(file){
+  if(!_coach) return;
   status('Rooster inlezen…','bezig');
   try{
     const r=await RO.leesPdf(file);
@@ -206,6 +249,7 @@ async function upload(file){
   }
 }
 async function verwijder(i){
+  if(!_coach) return;
   const u=_rooster&&_rooster.uploads&&_rooster.uploads[i]; if(!u) return;
   if(!await bbBevestig({titel:'Rooster weghalen?', okTekst:'Ja, weghalen', gevaar:true,
     tekst:'De rooster van '+uploadLabel(u)+' wordt weggehaald, voor iedereen. De ratings zelf blijven staan.'})) return;
@@ -221,15 +265,17 @@ async function verwijder(i){
 // ---------------------------------------------------------------- opstarten
 document.addEventListener('DOMContentLoaded',async()=>{
   const verbergLaden=()=>{ const o=$('laadOverlay'); if(o) o.classList.add('weg'); };
-  if(!magHier()){ $('geenToegang').style.display=''; verbergLaden(); return; }
+  _ik=R.huidigeGebruiker?R.huidigeGebruiker():null;
+  if(!eigenAccount()){ $('geenToegang').style.display=''; verbergLaden(); return; }
+  _coach=heeft('admin')||heeft('parkcoach');
   $('inhoud').style.display='';
   const inp=$('fileInput');
   inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) upload(f); inp.value=''; };
-  $('uploadBtn').onclick=()=>inp.click();
+  $('uploadBtn').onclick=()=>{ if(_coach) inp.click(); };
   $('boekjaar').onchange=()=>{ _boekjaar=$('boekjaar').value; render(); };
   $('mdwKeuze').onchange=()=>{ const v=$('mdwKeuze').value; if(v) kies(v,true); else { _mdw=''; render(); } };
-  // Terug naar het overzicht van iedereen.
-  $('dSluit').onclick=()=>{ _mdw=''; _dFilter=null; render(); const c=$('mdwCard'); if(c&&c.scrollIntoView) c.scrollIntoView({behavior:'smooth',block:'start'}); };
+  // Terug naar het overzicht van iedereen (Admin/Parkcoach).
+  $('dSluit').onclick=()=>{ if(!_coach) return; _mdw=''; _dFilter=null; render(); const c=$('mdwCard'); if(c&&c.scrollIntoView) c.scrollIntoView({behavior:'smooth',block:'start'}); };
 
   // Eerst wat er op dit toestel staat, dan de gedeelde versies erbij halen.
   _alle=(R.laadReviews?R.laadReviews():[])||[];

@@ -141,8 +141,9 @@
   <script src="../js/topbar.js"></script>
 
   <div class="card" id="geenToegang" style="display:none;">
-    <p class="hint" style="margin:0;"><b>Deze pagina is enkel voor een Admin of Parkcoach.</b><br>
-    De gewone ratings vind je bij <a href="ratings.html">Team ratings</a>.</p>
+    <p class="hint" style="margin:0;"><b>Persoonlijke ratings zijn er enkel voor je eigen account.</b><br>
+    Met ENT algemeen of een extern account is hier niets te zien — log in met je eigen naam.
+    De ratings van het hele team vind je bij <a href="ratings.html">Team ratings</a>.</p>
   </div>
 
   <div id="inhoud" style="display:none;">
@@ -160,12 +161,12 @@
     </div>
 
     <div class="card" id="leeg" style="display:none;">
-      <p class="hint" style="margin:0;"><b>Nog geen rooster.</b> Upload de <b>Master Schedule</b>-PDF uit het
-      planningsprogramma. Elke rating wordt dan gekoppeld aan wie die dag op de passende shift stond: een O&amp;F-show
-      van 15u00 gaat naar iedereen met een O&amp;F-shift rond dat uur (ook de technieker), een Prize Night naar ENT 1
-      én ENT 2, een quiz naar wie op FQN staat. Upload gerust meerdere maanden; een nieuwe upload van dezelfde maand
-      vervangt de vorige.</p>
+      <p class="hint" id="leegTekst" style="margin:0;"></p>
       <p class="hint" style="margin:10px 0 0;">De ratings zelf komen van <a href="ratings.html">Team ratings</a>.</p>
+    </div>
+
+    <div class="card" id="nietOpRooster" style="display:none;">
+      <p class="hint" id="nietOpRoosterTekst" style="margin:0;"></p>
     </div>
 
     <!-- Is er een medewerker gekozen, dan staat die bovenaan; de lijst van iedereen blijft eronder. -->

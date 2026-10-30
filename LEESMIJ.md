@@ -296,12 +296,19 @@ Wil je dat externen later ook iets anders mogen zien, voeg de categorie toe aan
 
 ## Rol: Parkcoach en de Persoonlijke ratings
 
-Een **Parkcoach** is verder een gewone medewerker, met één ding meer: wie Admin of Parkcoach
-is en op de kaart **Ratings** tikt, krijgt een keuze tussen **Team ratings** (de gewone
-pagina) en **Persoonlijke ratings**. Iedereen anders gaat meteen naar Team ratings, zonder
-keuzemenu. De rol geef je in de namenlijst, en enkel een admin kan dat — anders zou iedereen
-zichzelf Parkcoach kunnen maken en de scores van collega's bekijken. De rol geeft geen
-enkele extra toegang elders in de app (`tests/test-toegangen.js` controleert dat).
+Wie met een **eigen account** is ingelogd en op de kaart **Ratings** tikt, krijgt een keuze
+tussen **Team ratings** (de gewone pagina) en **Persoonlijke ratings**. Daar ziet iedereen
+**enkel zijn eigen** ratings: de naam van het account wordt op de rooster opgezocht
+(volgorde, hoofdletters en accenten tellen niet mee, maar voor- én achternaam moeten
+kloppen — enkel een voornaam is niet genoeg). Staat je naam in de app anders dan op de
+rooster, dan zegt de pagina dat; zet ze dan gelijk in de namenlijst. **ENT algemeen** en
+**Extern** hebben geen persoonlijke ratings: die gaan meteen naar Team ratings.
+
+Een **Parkcoach** (of **Admin**) kan daarnaast elke medewerker op de rooster bekijken,
+uploadt de rooster en ziet welke ratings niemand konden vinden. Verder is een Parkcoach een
+gewone medewerker. De rol geef je in de namenlijst, en enkel een admin kan dat — anders zou
+iedereen zichzelf Parkcoach kunnen maken en de scores van collega's bekijken. De rol geeft
+geen enkele extra toegang elders in de app (`tests/test-toegangen.js` controleert dat).
 
 **Persoonlijke ratings** (`paginas/ratings-persoonlijk.html`) koppelt de ratings aan de
 rooster. Upload de **Master Schedule**-PDF uit het planningsprogramma; de app leest er per
@@ -320,7 +327,7 @@ het gemiddelde, en de ratings per maand, per activiteit en per taal.
   shift stond. Staat daar veel van één activiteit, dan heeft die shift in de rooster
   waarschijnlijk een naam die `KOPPEL` nog niet kent.
 - De rooster wordt gedeeld bewaard, net als de ratings (tabel `spelarchief`, rij 5): één
-  keer uploaden, en elke Admin of Parkcoach ziet hem op elk toestel. Dezelfde maand
+  keer uploaden, en hij staat op elk toestel. Dezelfde maand
   opnieuw uploaden vervangt de vorige; met het kruisje haal je een maand weer weg.
 - Net als bij de ratings zit de afscherming in de app zelf: wie technisch onderlegd is, kan
   de gegevens ook buiten de app opvragen.
@@ -557,7 +564,7 @@ aanpassen aan een onderdeel, dan open je gewoon dat ene bestand — de rest blij
 | Inventaris lijst BB | `paginas/inventaris.html` |
 | Besteloverzicht | `paginas/bestellingen.html` |
 | Projecten | `paginas/projecten.html` |
-| Ratings | `paginas/ratings.html` (+ `ratings-vergelijk.html`, en `ratings-persoonlijk.html` voor Admin en Parkcoach) |
+| Ratings | `paginas/ratings.html` (+ `ratings-vergelijk.html`, en `ratings-persoonlijk.html`: je eigen ratings, of als Admin/Parkcoach die van iedereen) |
 | Checklists | `paginas/checklists.html` |
 | Contacten | `paginas/contacten.html` |
 | Logboek | `paginas/logboek.html` |
