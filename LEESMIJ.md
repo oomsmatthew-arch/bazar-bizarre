@@ -324,6 +324,9 @@ het gemiddelde, en de ratings per maand, per activiteit en per taal.
 
 - Welke shift bij welke activiteit hoort, staat in de lijst `KOPPEL` bovenaan
   `js/rooster.js`. Een nieuwe soort shift (bv. voor Kerst)? Voeg daar een regel toe.
+- Valt een activiteit onder een algemene shift, zodat de rooster niet zegt wie ze speelde
+  (zoals de Halloween Show van Orry en de heks in 2026, onder "halloween"), zet dan in
+  `VASTE_BEZETTING` in `js/rooster.js` wie het was. Die ratings gaan dan enkel naar hen.
 - Enkel shifts die bij een activiteit horen, worden bewaard — geen verlof, restaurant of
   vergaderingen. Komt er een regel bij, upload de rooster van die maand dan opnieuw.
 - **Niet gekoppeld** onderaan de pagina toont de ratings waarvoor niemand op een passende

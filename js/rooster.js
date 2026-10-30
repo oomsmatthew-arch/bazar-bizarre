@@ -50,6 +50,19 @@ const KOPPEL=[
 // "Training Bazar Bizarre", "EA - Halloween": EA is voorbereiding, geen optreden).
 const GEEN_OPTREDEN=/^EA\b|overleg|vergadering|training|programma|briefing/i;
 
+// Activiteiten waarvoor de rooster niet zegt wie er speelde, omdat ze onder een algemene
+// shift vallen. De Halloween Show van Orry en de heks (2026) stond onder "halloween": via de
+// rooster zou de hele Halloweenploeg de rating krijgen. Hier staat wie het echt was.
+// Een rating van zo'n activiteit gaat enkel naar deze mensen, rooster of niet.
+const VASTE_BEZETTING=[
+  {act:'O&F: Halloween Show', van:'2026-10-01', tot:'2026-11-15',
+   namen:['Matthew Ooms','Tessy Torfs'], perDag:{'2026-10-22':['Matthew Ooms','Isabelle Poos']}}
+];
+function vasteBezetting(act,dag){
+  const v=VASTE_BEZETTING.find(x=>x.act===act && dag>=x.van && dag<=x.tot);
+  return v ? ((v.perDag&&v.perDag[dag])||v.namen) : null;
+}
+
 function past(regel,label){ return typeof regel.shift==='function' ? regel.shift(label) : regel.shift.test(label); }
 function isOptreden(label){
   const l=String(label||'');
@@ -242,8 +255,10 @@ function koppel(reviews, rooster, canon){
   (reviews||[]).forEach(r=>{
     if(!(r.datum instanceof Date) || isNaN(r.datum)){ buiten++; return; }
     const d=iso(r.datum);
-    if(!dagen.has(d)){ buiten++; return; }
     const act=canon?canon(r.activiteit):String(r.activiteit||'');
+    const vast=vasteBezetting(act,d);
+    if(vast){ vast.forEach(n=>{ (perPersoon[n]=perPersoon[n]||[]).push(r); }); return; }
+    if(!dagen.has(d)){ buiten++; return; }
     const regels=KOPPEL.filter(k=>k.act(act));
     const um=minuten(r.uur);
     const wie=[];
@@ -297,7 +312,7 @@ async function leesPdf(file){
   return r;
 }
 
-const API={KOPPEL:KOPPEL, isOptreden:isOptreden, uitItems:uitItems, alleenOptredens:alleenOptredens,
+const API={KOPPEL:KOPPEL, VASTE_BEZETTING:VASTE_BEZETTING, isOptreden:isOptreden, uitItems:uitItems, alleenOptredens:alleenOptredens,
   voegSamen:voegSamen, verwijderUpload:verwijderUpload, koppel:koppel, minuten:minuten, mooieNaam:mooieNaam,
   zoekNaam:zoekNaam, iso:iso, leesPdf:leesPdf};
 if(typeof window!=='undefined') window.Rooster=API;

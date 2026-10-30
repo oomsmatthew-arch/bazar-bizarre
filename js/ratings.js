@@ -278,13 +278,16 @@ const ACT_CANON=[
   {naam:'O&F: Pieten Disco', re:/pieten\s*disco/i},
   {naam:'O&F: Carnaval Disco', re:/carnaval\s*disco/i},
   {naam:'O&F: Halloween Disco', re:/halloween\s*disco/i},
+  // De show van Orry en de heks voor de kindertocht (Halloween 2026).
+  {naam:'O&F: Halloween Show', re:/orry\s*&\s*(heks|(la\s*)?sorci[eè]re|hexe|witch)|spectacle\s*d.?\s*halloween|halloween[\s-]*show/i},
   // "Cott+age": de Duitse export schrijft "Cotttage".
   {naam:'Pieten bezoek Cottage', re:/(pieten|ruprecht|knecht)[^,]{0,30}cott+age|cott+age[^,]{0,30}(ruprecht|knecht)/i},
   {naam:'Meet & Greet Sinterklaas', re:/meet\s*&\s*greet[^,]{0,40}(nikolaus|nicolas|sinterklaas|piet|pierre)|(nikolaus|sinterklaas)[^,]{0,40}meet\s*&\s*greet/i},
   {naam:'Schoen zetten (Sint)', re:/nikolausstiefel|petit\s*soulier|schoen\s*zetten/i},
   {naam:'Wannabe Pepernotenpiet', re:/pepernot/i},
   {naam:'O&F: Halloween-avontuur', re:/(avontuur|aventure|abenteuer|adventure)[^,]{0,15}halloween|halloween[\s-]{0,3}(avontuur|aventure|abenteuer|adventure)/i},
-  {naam:'O&F: Knotsgekke Spelshow', re:/knotsgekke\s*spel-?show|verrückte\s*spiel-?show/i},
+  // Engels "Crazy Gameshow" en Frans "Drôles de jeux" — mét Orry erbij, anders is het Crazy Game Time ('s avonds).
+  {naam:'O&F: Knotsgekke Spelshow', re:/knotsgekke\s*spel-?show|verrückte\s*spiel-?show|orry[^,]{0,30}(crazy\s*game-?\s*show|dr[oô]les?\s*de\s*jeux)/i},
   {naam:'O&F: Kids Disco', re:/kids\s*disco/i},
   {naam:'O&F: Pool Party', re:/(pool|paul)\s*party/i},
   {naam:'O&F: op taxibezoek', re:/taxi/i},
@@ -293,7 +296,7 @@ const ACT_CANON=[
   {naam:'O&F: Voorleesverhaaltjes', re:/voorlees|vorlese|bedtime|gute\s*nacht|raconte|histoire/i},
   {naam:'O&F: verjaardagsfeest', re:/geburtstag|birthday|verjaardag/i},
   {naam:'O&F: Meet & Greet', re:/orry[^,]{0,25}meet\s*&\s*greet/i},
-  {naam:'O&F: Show', re:/orry\s*&\s*(seine\s*)?(vrienden|freunde|friends|ses\s*amis)[\s:-]*show\s*$/i},
+  {naam:'O&F: Show', re:/orry\s*&\s*(seine\s*)?(vrienden|freunde|friends|(ses\s*)?amis)[\s:-]*show\s*$/i},
   {naam:'Family Quiz Night', re:/quiz/i},
   {naam:'Crazy Game Time', re:/crazy\s*game|dr[oô]les?\s*de\s*jeux/i},
   {naam:'Live muziek / Chill Tunes', re:/live[\s-]*mu|musique\s*live|chill\s*tunes/i},
@@ -303,7 +306,13 @@ const ACT_CANON=[
   {naam:'Paaseieren zoektocht', re:/paaseieren|easter\s*egg|oster(eier)?suche|chasse\s*aux\s*(œ|oe)ufs/i},
   {naam:'Paasarrangement', re:/paas\s*arrangement|easter\s*package|oster\s*pac?ke?t|forfait\s*de\s*p[aâ]ques/i}
 ];
-function canonAct(naam){ const n=String(naam||''); for(let i=0;i<ACT_CANON.length;i++){ if(ACT_CANON[i].re.test(n)) return ACT_CANON[i].naam; } return n; }
+// Sinds oktober 2026 zet de export soms de duur achter de naam ("Prize Night (120 min)");
+// die telt niet mee, anders wordt het een aparte activiteit.
+function canonAct(naam){
+  const n=String(naam||'').replace(/\s*\(\s*\d+\s*min\.?\s*\)\s*$/i,'');
+  for(let i=0;i<ACT_CANON.length;i++){ if(ACT_CANON[i].re.test(n)) return ACT_CANON[i].naam; }
+  return n;
+}
 let _perAct=[]; let _actCat='';
 function renderPerAct(){
   const cat=ACT_CATS.find(c=>c.key===_actCat);

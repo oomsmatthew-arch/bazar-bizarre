@@ -124,6 +124,32 @@ ok(opnieuw.uploads.length===2 && opnieuw.shifts.length===twee.shifts.length,'sep
 var zonderSep=RO.verwijderUpload(opnieuw,opnieuw.uploads.findIndex(function(u){ return u.van==='2026-09-01'; }));
 ok(zonderSep.dagen.join(',')==='2026-10-01,2026-10-02' && zonderSep.namen.join('|')==='Cato Maes','september weghalen laat oktober staan');
 
+print('— Vaste bezetting (Halloween Show) —');
+// De show van Orry en de heks stond onder een algemene "halloween"-shift; via de rooster zou
+// de hele ploeg de rating krijgen. Ze gaat enkel naar wie het echt speelde.
+var hw=function(dagTekst){ return {score:5,activiteit:'Orry & Heks: Halloween Show',datum:dag(dagTekst),uur:'15:15'}; };
+var hwCanon=function(a){ return /heks|sorci/i.test(a)?'O&F: Halloween Show':canon(a); };
+var hw17=hw('2026-10-17'), hw22=hw('2026-10-22');
+var kh=RO.koppel([hw17,hw22],basis,hwCanon);
+function wieH(rv){ return Object.keys(kh.perPersoon).filter(function(n){ return kh.perPersoon[n].indexOf(rv)>=0; }).sort().join(','); }
+ok(wieH(hw17)==='Matthew Ooms,Tessy Torfs','17/10 → Matthew en Tessy ('+wieH(hw17)+')');
+ok(wieH(hw22)==='Isabelle Poos,Matthew Ooms','22/10 → Matthew en Isabelle ('+wieH(hw22)+')');
+ok(kh.buiten===0 && kh.niet.length===0,'ook zonder rooster voor die dagen');
+
+print('— Namen van activiteiten (js/ratings.js) —');
+var rsrc=readFile('./js/ratings.js');
+var canonAct=(new Function(rsrc.slice(rsrc.indexOf('const ACT_CANON=['), rsrc.indexOf('let _perAct='))+'; return canonAct;'))();
+function heet(n,verwacht){ var u=canonAct(n); ok(u===verwacht,'"'+n+'" → '+u+(u===verwacht?'':'  (verwacht '+verwacht+')')); }
+heet('Prize Night (120 min)','Prize Night');
+heet('Orry & Amis Show (45 min)','O&F: Show');
+heet('Orry & Heks: Halloween Show','O&F: Halloween Show');
+heet('Orry & la Sorcière : Spectacle d’Halloween (30 min)','O&F: Halloween Show');
+heet('Orry & Friends: Crazy Gameshow','O&F: Knotsgekke Spelshow');
+heet('Orry & ses Amis : Drôles de jeux','O&F: Knotsgekke Spelshow');
+heet('Crazy Game Time','Crazy Game Time');
+heet('Orry & Vrienden Taxi ritje!','O&F: op taxibezoek');
+heet('Knecht Ruprecht besucht Cotttage','Pieten bezoek Cottage');
+
 print('— Je eigen naam op de rooster —');
 // Een gewone medewerker ziet enkel zichzelf: de naam van zijn account moet op de rooster
 // gevonden worden, en nooit per ongeluk iemand anders.
