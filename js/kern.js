@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.38';
+const APP_VERSION='v9.39';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1204,21 +1204,31 @@ async function controleerStandaardcode(u,users){
 }
 
 // ---------------- OFFLINE-STATUS + VERSIE ----------------
+// Enkel de toestand wisselen (klaar/bezig/offline); 'tikbaar' en de rest blijven staan.
+function zetStat(stat,staat){ stat.classList.add('sysstat'); ['off','ready','busy'].forEach(k=>stat.classList.toggle(k,k===staat)); }
 function updateSys(){
   const stat=document.getElementById('sysStat'), txt=document.getElementById('sysStatTxt');
   if(!stat||!txt) return;
-  if(!navigator.onLine){ stat.className='sysstat off'; txt.textContent='Geen internet · '+APP_VERSION; return; }
+  if(!navigator.onLine){ zetStat(stat,'off'); txt.textContent='Geen internet · '+APP_VERSION; return; }
   if('serviceWorker' in navigator && navigator.serviceWorker.controller){
-    stat.className='sysstat ready'; txt.textContent='Klaar voor offline · '+APP_VERSION;
+    zetStat(stat,'ready'); txt.textContent='Klaar voor offline · '+APP_VERSION;
   }else{
-    stat.className='sysstat busy'; txt.textContent='Aan het downloaden… · '+APP_VERSION;
+    zetStat(stat,'busy'); txt.textContent='Aan het downloaden… · '+APP_VERSION;
   }
 }
 window.addEventListener('online',updateSys);
 window.addEventListener('offline',updateSys);
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register(bbUrl('sw.js')).then(()=>navigator.serviceWorker.ready).then(updateSys).catch(updateSys);
-  navigator.serviceWorker.addEventListener('controllerchange',updateSys);
+  // Had deze pagina al een service worker en neemt er een andere het over, dan is dat de
+  // service worker van een nieuwe versie: die heeft alle bestanden net vers opgehaald.
+  // (Bij de allereerste installatie had de pagina er nog geen; dat is geen update.)
+  let hadSw=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    updateSys();
+    if(hadSw) markeerUpdate();
+    hadSw=true;
+  });
 }
 
 // ---------------- AUTOMATISCH VERNIEUWEN (blijft up-to-date) ----------------
@@ -1252,21 +1262,80 @@ function appIsBusy(){
 }
 function tryReload(){
   if(!updateReady) return;
-  if(document.hidden){ location.reload(); return; }
-  if(!appIsBusy() && (Date.now()-lastActivity > 180000)) location.reload();
+  if(document.hidden){ werkBij(); return; }
+  if(!appIsBusy() && (Date.now()-lastActivity > 180000)) werkBij();
 }
+// Er staat een nieuwe versie klaar: onthouden, de balk tonen, en herladen zodra het kan.
+let nieuweVersie='';
+function markeerUpdate(){
+  updateReady=true;
+  toonUpdateBalk();
+  tryReload();
+}
+// Wie de app gebruikt, wacht anders tot hij drie minuten niets aanraakt — en in de app op
+// de iPad is er geen herlaadknop, dus restte enkel de app herstarten. Nu staat er onderaan
+// een balk: één tik en je hebt de nieuwe versie. (Niet op de spelpagina: die laadt de kern
+// niet, dus een spel wordt nooit onderbroken.)
+function toonUpdateBalk(){
+  let b=document.getElementById('updateBalk');
+  if(!b){
+    b=document.createElement('button');
+    b.id='updateBalk'; b.type='button'; b.className='updatebalk';
+    b.onclick=werkBij;
+    document.body.appendChild(b);
+    document.body.classList.add('updatebalk-aan');   // meldingen schuiven erboven (css/app.css)
+  }
+  b.textContent='🔄 Nieuwe versie'+(nieuweVersie?' ('+nieuweVersie+')':'')+' — tik om bij te werken';
+}
+// Herladen naar de nieuwe versie. Eerst de service worker van die versie laten binnenkomen:
+// bij zijn installatie haalt hij alle bestanden vers op (zie sw.js). Gewoon herladen gaf de
+// nieuwe pagina met de OUDE scripts uit de cache — die ververst sw.js pas op de achtergrond —
+// en dan moest je de app nóg eens herstarten voor je echt bij was.
+let bezigMetBijwerken=false;
+async function werkBij(){
+  if(bezigMetBijwerken) return;
+  bezigMetBijwerken=true;
+  const b=document.getElementById('updateBalk'); if(b) b.textContent='🔄 Bijwerken…';
+  try{
+    const reg=('serviceWorker' in navigator) ? await navigator.serviceWorker.getRegistration() : null;
+    if(reg){
+      if(!reg.installing && !reg.waiting) await reg.update().catch(()=>{});
+      if(reg.installing || reg.waiting) await new Promise(klaar=>{
+        navigator.serviceWorker.addEventListener('controllerchange',klaar,{once:true});
+        setTimeout(klaar,20000);   // op een trage wifi niet eeuwig blijven wachten
+      });
+    }
+  }catch(e){}
+  location.reload();
+}
+// Geeft true (nieuwe versie), false (je bent bij) of null (niet na te kijken) terug.
 async function checkForUpdate(){
-  if(updateReady || !navigator.onLine) return;
+  if(updateReady) return true;
+  if(!navigator.onLine) return null;
   try{
     // Het versienummer staat sinds v4.0 in dit bestand (kern.js), niet meer in de pagina.
     const url=bbUrl('js/kern.js')+'?_v='+Date.now();
     const res=await fetch(url,{cache:'no-store'});
-    if(!res.ok) return;
+    if(!res.ok) return null;
     const m=(await res.text()).match(/APP_VERSION='([^']+)'/);
-    if(m && m[1] && m[1]!==APP_VERSION){ updateReady=true; tryReload(); }
-  }catch(e){}
+    if(!m || !m[1]) return null;
+    if(m[1]===APP_VERSION) return false;
+    nieuweVersie=m[1];
+    markeerUpdate();
+    return true;
+  }catch(e){ return null; }
 }
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(updateReady) location.reload(); } else { checkForUpdate(); vastVerbruikNakijken(); } });
+// Tik op de versie onderaan (bv. "Klaar voor offline · v9.37"): nu meteen nakijken en
+// bijwerken. Handig vlak nadat je een update online zette.
+async function zoekUpdateNu(){
+  const r=await checkForUpdate();
+  if(r===true) werkBij();
+  else if(r===false) bbToon('Je hebt de nieuwste versie ('+APP_VERSION+').');
+  else bbToon(navigator.onLine?'Nakijken lukte niet. Probeer zo meteen nog eens.':'Geen internet: nakijken kan nu niet.');
+}
+{ const s=document.getElementById('sysStat');
+  if(s){ s.classList.add('tikbaar'); s.title='Tik om te kijken of er een nieuwe versie is'; s.onclick=zoekUpdateNu; } }
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(updateReady) werkBij(); } else { checkForUpdate(); vastVerbruikNakijken(); } });
 window.addEventListener('online',checkForUpdate);
 
 // ---------------- VAST VERBRUIK (automatische aftelling) ----------------

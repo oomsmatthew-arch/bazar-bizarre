@@ -663,6 +663,11 @@ Publiceren gebeurt via **GitHub Desktop**: commit je wijzigingen en klik **Push 
 Ongeveer een minuut later staat de nieuwe versie online. Verhoog daarbij ook het versienummer
 in `sw.js`, anders blijven tablets de oude versie tonen.
 
+Zodra een toestel merkt dat er een nieuwe versie is, verschijnt onderaan een balk
+**🔄 Nieuwe versie — tik om bij te werken**. Tik je er niet op, dan werkt de app zichzelf bij
+zodra hij een paar minuten niet gebruikt wordt. Meteen nakijken kan ook: tik onderaan op
+**Klaar voor offline · v…**. (De spelpagina doet dit niet, zodat een spel nooit onderbroken wordt.)
+
 Een eigen domeinnaam in plaats van het github.io-adres? Zie `docs/EIGEN-DOMEIN.md`.
 
 > **Let op — de gegevens staan open.** Iedereen die de link heeft, kan momenteel bij de

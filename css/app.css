@@ -706,6 +706,17 @@
   .sysstat.ready .dot{background:var(--leaf);}
   .sysstat.busy .dot{background:var(--sun);}
   .sysstat.off .dot{background:#c0392b;}
+  .sysstat.tikbaar{cursor:pointer;}
+  /* "Nieuwe versie — tik om bij te werken" (js/kern.js): onderaan, onder het inlogscherm
+     (9000) en de vensters, zodat hij nooit iets afdekt waar je mee bezig bent. */
+  .updatebalk{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));
+    z-index:8900;max-width:calc(100% - 28px);border:none;border-radius:999px;padding:11px 18px;
+    background:var(--forest);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);}
+  :root[data-theme="dark"] .updatebalk{color:#0f1a14;}
+  /* Een melding (bbToon) mag de balk niet afdekken: dan tik je op de melding in plaats van op bijwerken. */
+  .updatebalk-aan .bbmeldingen{padding-bottom:calc(70px + env(safe-area-inset-bottom,0px));}
+  /* En de onderste knop van een pagina moet bereikbaar blijven, ook helemaal onderaan. */
+  .updatebalk-aan .wrap{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px));}
 
   /* ---- donker thema ---- */
   :root[data-theme="dark"]{
