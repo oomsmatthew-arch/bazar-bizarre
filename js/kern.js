@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.29';
+const APP_VERSION='v9.30';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -625,6 +625,9 @@ function isVasteMdw(){ return heeftRol('vast'); }
 function isAdmin(){ return heeftRol('admin'); }
 // Extern = een buitenstaander (bv. een gids): ziet enkel EXTERN_TOEGANG, zie magToegang().
 function isExtern(){ return heeftRol('extern'); }
+// Parkcoach = een gewone medewerker die achter de Ratings-kaart ook de Persoonlijke ratings
+// kan kiezen. Verder niets: telt bewust NIET mee in magToegang/externGeblokkeerd.
+function isParkcoach(){ return heeftRol('parkcoach'); }
 // De link voor externen (zie extern.html): wie ze opent, is meteen binnen als het
 // gedeelde account Extern, zonder toegangscode.
 function externDeellink(){ try{ return new URL(bbUrl('extern'),location.href).href; }catch(e){ return 'https://entertainmentvm.be/extern'; } }
@@ -770,6 +773,7 @@ function renderLoginNames(){
       const r=[];
       if(BBInv.heeftRol(u,'admin')) r.push('Admin');
       if(BBInv.heeftRol(u,'vast')) r.push('Vaste mdw');
+      if(BBInv.heeftRol(u,'parkcoach')) r.push('Parkcoach');
       if(BBInv.heeftRol(u,'extern')) r.push('Extern');
       if(r.length) sub='<span class="nopin vast">'+r.join(' · ')+'</span>';
     }
@@ -918,7 +922,10 @@ function magAdminUitdelen(){ return isAdmin() || !erIsEenAdmin(); }
 // Iets doen mét een bestaande admin (rol afnemen, code resetten, verwijderen) mag enkel
 // door een admin — anders is het een omweg naar punt 3 hierboven.
 function magAanAdminRaken(u){ return isAdmin() || !BBInv.heeftRol(u,'admin'); }
-function meldGeenAdmin(){
+// Met een rol erbij (bv. 'Parkcoach') enkel dat het een admin-beslissing is; de uitleg
+// hieronder over Toegangen geldt alleen voor de rol Admin zelf.
+function meldGeenAdmin(rol){
+  if(rol){ bbToon('Alleen een admin kan de rol '+rol+' toekennen of afnemen.'); return; }
   bbToon('Alleen een admin kan de rol Admin toekennen of afnemen.\n\n'+
     'Dat is met opzet: wie dat zou kunnen, kan zichzelf admin maken en daarna via '+
     'Instellingen → Toegangen alles openzetten.');
@@ -933,6 +940,7 @@ function renderGebrList(){
     const vast = BBInv.heeftRol(u,'vast');
     const admin = BBInv.heeftRol(u,'admin');
     const extern = BBInv.heeftRol(u,'extern');
+    const parkcoach = BBInv.heeftRol(u,'parkcoach');
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
       (locked
@@ -943,6 +951,10 @@ function renderGebrList(){
             (magAdminUitdelen()?'Mag Systeem en Activiteit bekijken en de Toegangen beheren'
                                :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
             (admin?'✓ Admin':'Admin')+'</button>'+
+          '<button class="parkcoach'+(parkcoach?' on':'')+(magAdminUitdelen()?'':' uit')+'" title="'+
+            (magAdminUitdelen()?'Ziet achter de Ratings-kaart ook de Persoonlijke ratings (per medewerker) — verder een gewone medewerker'
+                               :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
+            (parkcoach?'✓ Parkcoach':'Parkcoach')+'</button>'+
           '<button class="extern'+(extern?' on':'')+'" title="Buitenstaander (bv. een gids): ziet enkel '+
             esc(EXTERN_TOEGANG.map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', '))+
             ' — ongeacht de andere toegangen">'+(extern?'✓ Extern':'Extern')+'</button>'+
@@ -962,6 +974,12 @@ function renderGebrList(){
         // uitgeschakelde knop is geen beveiliging.
         if(!magAdminUitdelen()){ meldGeenAdmin(); return; }
         BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'admin',!admin)}); renderGebrList(); refreshAuth();
+      };
+      row.querySelector('.parkcoach').onclick=()=>{
+        // Zelfde grens als bij Admin: anders zet iedereen in de namenlijst zichzelf
+        // Parkcoach en kijkt mee in de persoonlijke scores van collega's.
+        if(!magAdminUitdelen()){ meldGeenAdmin('Parkcoach'); return; }
+        BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'parkcoach',!parkcoach)}); renderGebrList(); refreshAuth();
       };
       row.querySelector('.extern').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'extern',!extern)}); renderGebrList(); refreshAuth(); };
       row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });

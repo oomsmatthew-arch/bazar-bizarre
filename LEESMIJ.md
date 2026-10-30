@@ -294,6 +294,37 @@ die doorzoekt toch enkel onderdelen die ze niet mogen zien.
 Wil je dat externen later ook iets anders mogen zien, voeg de categorie toe aan
 `EXTERN_TOEGANG` in `js/kern.js` (een regel code, geen instelling in de app).
 
+## Rol: Parkcoach en de Persoonlijke ratings
+
+Een **Parkcoach** is verder een gewone medewerker, met één ding meer: wie Admin of Parkcoach
+is en op de kaart **Ratings** tikt, krijgt een keuze tussen **Team ratings** (de gewone
+pagina) en **Persoonlijke ratings**. Iedereen anders gaat meteen naar Team ratings, zonder
+keuzemenu. De rol geef je in de namenlijst, en enkel een admin kan dat — anders zou iedereen
+zichzelf Parkcoach kunnen maken en de scores van collega's bekijken. De rol geeft geen
+enkele extra toegang elders in de app (`tests/test-toegangen.js` controleert dat).
+
+**Persoonlijke ratings** (`paginas/ratings-persoonlijk.html`) koppelt de ratings aan de
+rooster. Upload de **Master Schedule**-PDF uit het planningsprogramma; de app leest er per
+medewerker en per dag de shifts uit (`js/rooster.js`, met pdf.js dat pas bij het uploaden
+van cdnjs geladen wordt). Een rating gaat naar **iedereen** die die dag rond dat uur op een
+passende shift stond: een O&F-show van 15u00 naar Orry, Woops, Rep én de technieker (O&F
+Tech), een Prize Night naar ENT 1 en ENT 2, een quiz naar wie op FQN staat. Pool party-shifts
+("O&F Rep Pool", "DJ - Pool Party") tellen enkel voor de Pool Party. Je ziet per medewerker
+het gemiddelde, en de ratings per maand, per activiteit en per taal.
+
+- Welke shift bij welke activiteit hoort, staat in de lijst `KOPPEL` bovenaan
+  `js/rooster.js`. Een nieuwe soort shift (bv. voor Kerst)? Voeg daar een regel toe.
+- Enkel shifts die bij een activiteit horen, worden bewaard — geen verlof, restaurant of
+  vergaderingen. Komt er een regel bij, upload de rooster van die maand dan opnieuw.
+- **Niet gekoppeld** onderaan de pagina toont de ratings waarvoor niemand op een passende
+  shift stond. Staat daar veel van één activiteit, dan heeft die shift in de rooster
+  waarschijnlijk een naam die `KOPPEL` nog niet kent.
+- De rooster wordt gedeeld bewaard, net als de ratings (tabel `spelarchief`, rij 5): één
+  keer uploaden, en elke Admin of Parkcoach ziet hem op elk toestel. Dezelfde maand
+  opnieuw uploaden vervangt de vorige; met het kruisje haal je een maand weer weg.
+- Net als bij de ratings zit de afscherming in de app zelf: wie technisch onderlegd is, kan
+  de gegevens ook buiten de app opvragen.
+
 ## Toegangen: wie mag wat
 
 ⚙ Instellingen → **🔑 Toegangen** (enkel zichtbaar voor admins). Daar staat per onderdeel
@@ -526,7 +557,7 @@ aanpassen aan een onderdeel, dan open je gewoon dat ene bestand — de rest blij
 | Inventaris lijst BB | `paginas/inventaris.html` |
 | Besteloverzicht | `paginas/bestellingen.html` |
 | Projecten | `paginas/projecten.html` |
-| Ratings | `paginas/ratings.html` (+ `ratings-vergelijk.html`) |
+| Ratings | `paginas/ratings.html` (+ `ratings-vergelijk.html`, en `ratings-persoonlijk.html` voor Admin en Parkcoach) |
 | Checklists | `paginas/checklists.html` |
 | Contacten | `paginas/contacten.html` |
 | Logboek | `paginas/logboek.html` |
@@ -556,6 +587,7 @@ werkt vanaf de startpagina én vanuit `paginas/`.
 - `inventaris-data.js` — de startlijst met prijzen
 - `projecten.js` — alles wat de projectenpagina doet
 - `ratings.js` / `ratings-vergelijk.js` — de gastbeoordelingen
+- `ratings-persoonlijk.js` + `rooster.js` — de persoonlijke ratings: de rooster-PDF inlezen en de ratings koppelen aan wie op de shift stond
 - `supabase.min.js` — de database-bibliotheek
 
 Elke pagina laadt de scripts in deze volgorde en vult daarna zelf `window.bbStart`

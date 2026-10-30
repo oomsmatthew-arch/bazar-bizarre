@@ -1,5 +1,5 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v9.29';
+const CACHE = 'bazar-bizarre-v9.30';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
@@ -11,9 +11,9 @@ const ASSETS = ['./','./index.html','./entertainment.html','./bazar-bizarre-spel
   './paginas/werkuren.html',
   './paginas/instellingen.html','./paginas/activiteit.html','./paginas/systeem.html',
   './paginas/halloween.html','./js/halloween.js','./js/halloween-data.js','./js/halloween-bron.js','./js/halloween-kind.js','./js/halloween-kind-bron.js','./js/halloween-of.js','./js/halloween-markt.js','./js/halloween-overzicht.js',
-  './paginas/projecten.html','./paginas/ratings.html','./paginas/ratings-vergelijk.html',
+  './paginas/projecten.html','./paginas/ratings.html','./paginas/ratings-vergelijk.html','./paginas/ratings-persoonlijk.html',
   './css/app.css','./js/kern.js','./js/topbar.js','./js/terug.js','./js/zoek.js',
-  './js/inventaris-data.js','./js/inventaris.js','./js/projecten.js','./js/ratings.js','./js/ratings-vergelijk.js','./js/supabase.min.js',
+  './js/inventaris-data.js','./js/inventaris.js','./js/projecten.js','./js/ratings.js','./js/ratings-vergelijk.js','./js/ratings-persoonlijk.js','./js/rooster.js','./js/supabase.min.js',
   './assets/icon-192.png','./assets/icon-512.png','./assets/Logo_kleine_tekst.jpg']
   .concat(DEALS);
 

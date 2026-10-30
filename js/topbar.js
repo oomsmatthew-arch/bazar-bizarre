@@ -43,7 +43,7 @@
 
   // ENKEL DE VENSTERS, GEEN BALK — met data-topbar="geen" op <body>.
   // De spelpagina heeft een eigen balk en een eigen donkerblauw thema, maar wil wél de
-  // vensters onderaan dit bestand (bbToon, bbBevestig, bbVraagTekst, bbVraagCode). Zonder
+  // vensters onderaan dit bestand (bbToon, bbBevestig, bbKies, bbVraagTekst, bbVraagCode). Zonder
   // deze uitweg zou ze er een groene balk bij krijgen, zou het thema van de app over het
   // hare heen gezet worden, en zou er een tweede element met id="title" ontstaan.
   const geenBalk = document.body && document.body.getAttribute('data-topbar')==='geen';
@@ -114,6 +114,7 @@
       '.cammodal-title{font-family:var(--serif,Georgia,serif);color:var(--forest,#2f6450);font-size:18px;margin-bottom:4px}'+
       '.cammodal .code-uitleg{margin:0;font-size:13px;color:var(--muted,#5e7363);line-height:1.5}'+
       '.cammodal .bev-tekst{margin:0;font-size:14px;color:var(--text,#1d2e22);line-height:1.55;white-space:pre-line}'+
+      '.cammodal .kies-sub{display:block;font-size:12px;font-weight:600;opacity:.8;margin-top:2px}'+
       '.cammodal .code-form{display:contents}'+
       '.cammodal .finp{width:100%;box-sizing:border-box;background:var(--panel2,#f4f8f2);border:1px solid var(--line,#cfe0c8);color:var(--text,#1d2e22);font-size:16px;padding:11px 12px;border-radius:12px;font-family:inherit}'+
       '.cammodal .code-inp{font-size:20px;text-align:center;letter-spacing:6px;padding-left:18px}'+
@@ -243,7 +244,7 @@
   }
 
   // ---------------- EEN VENSTER TONEN EN WEER OPRUIMEN ----------------
-  // Alle drie de vensters hieronder gaan hier doorheen, om één reden: de TERUGKNOP.
+  // Alle vensters hieronder gaan hier doorheen, om één reden: de TERUGKNOP.
   //
   // js/terug.js zorgt dat terug een open venster sluit in plaats van de hele pagina te
   // verlaten. Het merkt een venster op via een MutationObserver die naar KLASSE-wijzigingen
@@ -370,6 +371,54 @@
       venster.querySelector('.bev-nee').onclick=()=>{ if(magTikken(venster)) sluit(false); };
       venster.addEventListener('click',e=>{ if(e.target===venster && magTikken(venster)) sluit(false); });
       setTimeout(()=>{ try{ venster.querySelector('.bev-ja').focus(); }catch(e){} },30);
+    });
+  }
+
+  // ---------------- EEN KEUZE LATEN MAKEN ----------------
+  //     const k = await bbKies({titel:'Ratings', keuzes:[
+  //       {waarde:'team', tekst:'👥 Team ratings', sub:'Alle gastbeoordelingen'}, …]});
+  // Elke keuze is een knop (de eerste is de hoofdknop), met een optionele kleine regel
+  // eronder. Geeft de waarde van de gekozen knop terug, of null als je annuleert.
+  function bbKies(opties){
+    const o=opties||{};
+    const keuzes=Array.isArray(o.keuzes)?o.keuzes:[];
+    return new Promise(klaar=>{
+      const venster=document.createElement('div');
+      venster.className='cammodal bevestigvenster';
+      venster.innerHTML=
+        '<div class="cammodal-box choose">'+
+          '<div class="cammodal-title">'+esc(o.titel||'Maak een keuze')+'</div>'+
+          (o.tekst?('<p class="bev-tekst">'+esc(o.tekst)+'</p>'):'')+
+          keuzes.map((k,i)=>
+            '<button type="button" class="btn'+(i===0?' primary':'')+' kies-knop" data-i="'+i+'">'+
+              esc(k.tekst||k.waarde)+(k.sub?('<span class="kies-sub">'+esc(k.sub)+'</span>'):'')+
+            '</button>').join('')+
+          '<button type="button" class="btn clear bev-nee">'+esc(o.neeTekst||'Annuleren')+'</button>'+
+        '</div>';
+      let af=false;
+      function sluit(waarde){
+        if(af) return;
+        af=true;
+        document.removeEventListener('keydown',toets,true);
+        ruimVensterOp(venster);
+        klaar(waarde);
+      }
+      toonVenster(venster,()=>sluit(null));   // terug = annuleren
+      // Geen Enter-snelkoppeling zoals bij bbBevestig: er is geen "ja", dus Enter doet
+      // gewoon wat het op de knop met de focus doet.
+      function toets(e){
+        if(!isBovenste(venster)) return;
+        if(e.key==='Tab'){ houdTabBinnen(e,venster); e.stopPropagation(); return; }
+        if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sluit(null); return; }
+        e.stopPropagation();
+      }
+      document.addEventListener('keydown',toets,true);
+      venster.querySelectorAll('.kies-knop').forEach(b=>{
+        b.onclick=()=>{ if(magTikken(venster)) sluit(keuzes[+b.dataset.i].waarde); };
+      });
+      venster.querySelector('.bev-nee').onclick=()=>{ if(magTikken(venster)) sluit(null); };
+      venster.addEventListener('click',e=>{ if(e.target===venster && magTikken(venster)) sluit(null); });
+      setTimeout(()=>{ try{ (venster.querySelector('.kies-knop')||venster.querySelector('.bev-nee')).focus(); }catch(e){} },30);
     });
   }
 
@@ -520,5 +569,6 @@
   window.bbVraagCode=bbVraagCode;
   window.bbVraagTekst=bbVraagTekst;
   window.bbBevestig=bbBevestig;
+  window.bbKies=bbKies;
   window.bbToon=bbToon;
 })();

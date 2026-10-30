@@ -20,6 +20,7 @@ var IK={vast:false, admin:false, ontgrendeld:false, extern:false};
 globalThis.isVasteMdw=function(){ return IK.vast; };
 globalThis.isAdmin=function(){ return IK.admin; };
 globalThis.isExtern=function(){ return IK.extern; };
+globalThis.isParkcoach=function(){ return !!IK.parkcoach; };
 globalThis.isOntgrendeld=function(){ return IK.ontgrendeld; };
 globalThis.eisBeheer=function(){ return IK.vast||IK.admin||IK.ontgrendeld; };
 // 'Bepaalde medewerkers…' kijkt naar fullCurrentUser().id — hier ook na te bootsen.
@@ -209,6 +210,39 @@ function verse(){ Object.keys(store).forEach(function(k){ delete store[k]; }); }
   ok(/function erIsEenAdmin\(\)/.test(kk),'en kijkt of er al een admin bestaat');
   // Bestaande admins mogen door deze wijziging niets verliezen.
   ok(!/zetRol\([^)]*'admin',\s*false\s*\)/.test(kk),'niemand wordt automatisch zijn rol afgenomen');
+
+  print('\n— Parkcoach geeft geen enkele extra toegang —');
+  // Een parkcoach is een gewone medewerker die achter de Ratings-kaart ook de Persoonlijke
+  // ratings mag kiezen. Meer niet: in magToegang moet hij exact hetzelfde krijgen als
+  // iemand zonder rol, bij elke instelling.
+  var kk2=readFile('./js/kern.js');
+  var toegDeel=kk2.slice(kk2.indexOf('// ---------------- TOEGANGEN ----------------'), kk2.indexOf('// ---- Keuzelijsten van het besteloverzicht'));
+  ok(!/parkcoach/i.test(toegDeel),'het toegangen-deel van kern.js kent de rol niet');
+  var anders=[];
+  ['', 'vast', 'admin', 'beheer'].forEach(function(regel){
+    verse();
+    if(regel){
+      var t={};
+      TOEGANG_CATEGORIEEN.forEach(function(c){ t[c.key]={}; TOEGANG_NIVEAUS.forEach(function(n){ t[c.key][n]=regel; }); });
+      setToegangen(t);
+    }
+    TOEGANG_CATEGORIEEN.forEach(function(c){
+      TOEGANG_NIVEAUS.forEach(function(n){
+        IK={vast:false,admin:false,ontgrendeld:false,extern:false,parkcoach:false};
+        var gewoon=magToegang(c.key,n);
+        IK.parkcoach=true;
+        if(magToegang(c.key,n)!==gewoon) anders.push((regel||'standaard')+': '+c.key+'/'+n);
+      });
+    });
+  });
+  ok(anders.length===0,'bij elke instelling evenveel als een gewone collega'+(anders.length?(' ('+anders.join(', ')+')'):''));
+  verse();
+  IK={vast:false,admin:false,ontgrendeld:false,extern:true,parkcoach:true};
+  ok(magToegang('inventaris','bekijken')===false,'en een extern account blijft extern, ook als parkcoach');
+  var pk=kk2.slice(kk2.indexOf(".querySelector('.parkcoach')"), kk2.indexOf(".querySelector('.parkcoach')")+400);
+  ok(/if\(!magAdminUitdelen\(\)\)\{ meldGeenAdmin\('Parkcoach'\); return; \}/.test(pk),
+     'de rol Parkcoach toekennen mag enkel een admin');
+  IK={vast:false,admin:false,ontgrendeld:false,extern:false};
 
   print('\n— Alle categorieën hebben alle drie de niveaus —');
   verse();

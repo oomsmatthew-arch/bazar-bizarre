@@ -401,6 +401,8 @@
   /* bevestigingsvenster (in plaats van confirm) — zelfde vorm als het codevenster */
   .bevestigvenster{z-index:9500;}
   .bevestigvenster .bev-tekst{margin:0;font-size:14px;color:var(--text);line-height:1.55;white-space:pre-line;}
+  /* keuzevenster (bbKies): een kleine uitlegregel onder de tekst van een keuzeknop */
+  .bevestigvenster .kies-sub{display:block;font-size:12px;font-weight:600;opacity:.8;margin-top:2px;}
   /* Ruimte maken voor het schermtoetsenbord. Een venster met position:fixed blijft even
      hoog als het scherm, ook als het toetsenbord de onderste helft afdekt — dan zitten
      'Doorgaan' en 'Annuleren' daarachter, precies wanneer je ze nodig hebt. js/topbar.js
@@ -811,6 +813,8 @@
   .gebr-row .admin.on{background:#5b7fb0;color:#fff;border-color:#5b7fb0;}
   .gebr-row .extern{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
   .gebr-row .extern.on{background:var(--sun);color:#3a2a06;border-color:var(--sun);}
+  .gebr-row .parkcoach{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  .gebr-row .parkcoach.on{background:#7b55a8;color:#fff;border-color:#7b55a8;}
   [data-theme="dark"] .gebr-row .del{background:#3a2020;color:#f0a0a0;}
   .gebradd{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:16px;}
   .gebradd .h{font-weight:800;margin-bottom:10px;color:var(--forest);}
@@ -1005,8 +1009,8 @@
     .card:hover,.item:hover{transform:none;}
   }
 
-  /* Rol Admin die je niet mag wijzigen: zichtbaar, maar duidelijk buiten bereik. */
-  .gebr-row .admin.uit{opacity:.45;cursor:not-allowed;}
+  /* Rollen die enkel een admin mag wijzigen (Admin, Parkcoach): zichtbaar, maar duidelijk buiten bereik. */
+  .gebr-row .admin.uit, .gebr-row .parkcoach.uit{opacity:.45;cursor:not-allowed;}
 
   /* ================================================================
      MIJN WERKUREN (persoonlijke agenda)

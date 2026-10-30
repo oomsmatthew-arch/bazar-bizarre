@@ -2027,7 +2027,7 @@
     let wat='aangepast';
     if(patch&&('rol' in patch)){
       const t=rolTags({rol:patch.rol});
-      const namen={vast:'Vaste mdw',admin:'Admin',algemeen:'Gedeeld account'};
+      const namen={vast:'Vaste mdw',admin:'Admin',parkcoach:'Parkcoach',extern:'Extern',algemeen:'Gedeeld account'};
       wat = t.length ? ('rol: '+t.map(x=>namen[x]||x).join(' + ')) : 'rol verwijderd (gewone medewerker)';
     }
     else if(patch&&('pin' in patch)) wat='pincode gereset';

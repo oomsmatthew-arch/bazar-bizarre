@@ -33,6 +33,7 @@ $JSC tests/test-vast-verbruik.js
 $JSC tests/test-boekjes-telling.js
 $JSC tests/test-toegangscode.js
 $JSC tests/test-doorgestuurd.js
+$JSC tests/test-rooster.js
 ```
 
 Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
@@ -75,6 +76,7 @@ gebruiken — stilletjes door hun Node-tegenhangers.)
 | `test-boekjes-telling.js` | De boekjesvoorraad is geteld + geleverd − uitgedeeld, niet langer een losse teller. Toont eerst de oude fout (een speltablet zonder internet wist de afboeking van een andere tablet: de teller liep op) en dan dat het met een telling klopt; plus aanpassen, ongedaan maken, verwijderen vóór/na de telling, opnieuw tellen, en dat elk toestel hetzelfde uitrekent |
 | `test-toegangscode.js` | Het toegangscode-scherm: op een wifi zonder internet (het TP-Link-netwerk aan de techniektafel) mag het nooit verschijnen, ook niet als de aanmelding van een uur verlopen is. De app werkt dan lokaal verder, meldt zich stil opnieuw aan zodra het internet terug is en stuurt dan de wachtrij door. Enkel een toestel dat nooit aangemeld was (of echt afgemeld werd) krijgt het scherm, en alleen als de code ook gecontroleerd kán worden. Zonder internet zegt het scherm "geen verbinding" in plaats van "klopt niet" |
 | `test-doorgestuurd.js` | Het "Doorgestuurd"-scherm van het spel: één kader dat rood (nog niet verstuurd), oranje (bezig) of groen (verstuurd) wordt. Op een wifi zonder internet en bij een foutmelding van de server moet het rood worden in plaats van eindeloos "bezig" te blijven, met een knop om meteen opnieuw te proberen; zonder internet of zonder aanmelding ook rood; groen enkel als de wachtrij echt leeg is |
+| `test-rooster.js` | De persoonlijke ratings: een nagebouwde rooster-PDF (verzonnen namen) wordt gelezen — elke shift bij de juiste naam en dag, ook over twee pagina's met dezelfde dagen en aan het einde van de maand, zonder kop of voettekst als shift; verlof, restaurant en overleg worden niet bewaard. Daarna het koppelen: een show gaat naar Orry én de technieker, een pool party enkel naar de pool-shift, Prize Night naar ENT 2, een rating buiten elke shift blijft niet gekoppeld; en samenvoegen/weghalen van maanden |
 
 `nep-supabase.js` is een nagemaakte database, zodat `test-sync.js` het echte online-gedrag
 kan naspelen zonder internet.

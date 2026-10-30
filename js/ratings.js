@@ -604,22 +604,28 @@ function maandRapport(){
 // hier stond bewaarde meteen de stand van het toestel als "jouw keuze", waardoor deze
 // pagina daarna niet meer meeging als je gsm 's avonds op donker sprong.
 
-// Is de op dit toestel ingelogde persoon een vaste medewerker? (rol staat in de gedeelde
-// gebruikerslijst die entertainment.html lokaal bewaart — geen extra verbinding nodig.)
-function isVaste(){
+// De rollen van wie op dit toestel is ingelogd (bv. ['vast','admin']). Ze staan in de
+// gedeelde gebruikerslijst die de app lokaal bijhoudt — geen extra verbinding nodig.
+// Sinds de offline kopie in IndexedDB woont, staan bb_gebruikers en bb_cache_v1 meestal
+// niet meer in localStorage; bb_namen_snel (de namen mét rollen, zie js/inventaris.js)
+// wel. De oude sleutels blijven als terugval voor een toestel dat nog niet omgezet is.
+function rolTags(){
   try{
     const cu=JSON.parse(localStorage.getItem('bb_current_user')||'null');
-    if(!cu) return false;
-    let lijst=[]; try{ lijst=JSON.parse(localStorage.getItem('bb_gebruikers')||'[]')||[]; }catch(e){}
+    if(!cu) return [];
+    let lijst=[];
+    if(window.BBInv&&BBInv.getGebruikers){ try{ lijst=BBInv.getGebruikers()||[]; }catch(e){} }
+    ['bb_namen_snel','bb_gebruikers'].forEach(k=>{ if(!lijst.length){ try{ lijst=JSON.parse(localStorage.getItem(k)||'[]')||[]; }catch(e){} } });
     if(!lijst.length){ try{ const c=JSON.parse(localStorage.getItem('bb_cache_v1')||'null'); if(c&&Array.isArray(c.gebruikers)) lijst=c.gebruikers; }catch(e){} }
     // eerst op id, anders op naam (account kan ooit opnieuw aangemaakt zijn met een nieuw id)
     let u=lijst.find(x=>x&&x.id===cu.id);
     if(!u){ const naam=String(cu.naam||'').trim().toLowerCase(); if(naam) u=lijst.find(x=>String((x&&x.naam)||'').trim().toLowerCase()===naam); }
     // 'rol' is een komma-lijst met etiketten (bv. "vast,admin") — zoals BBInv.heeftRol
-    const tags=String(((u||cu)&&(u||cu).rol)||'').split(',').map(s=>s.trim()).filter(Boolean);
-    return tags.indexOf('vast')>=0 || tags.indexOf('admin')>=0;
-  }catch(e){ return false; }
+    return String(((u||cu)&&(u||cu).rol)||'').split(',').map(s=>s.trim()).filter(Boolean);
+  }catch(e){ return []; }
 }
+// Is de op dit toestel ingelogde persoon een vaste medewerker (of admin)?
+function isVaste(){ const t=rolTags(); return t.indexOf('vast')>=0 || t.indexOf('admin')>=0; }
 // Beheer-wachtwoord (gedeeld) — zodat je ook zonder als jezelf ingelogd te zijn (bv. op het
 // algemene toestel-account) kan importeren, net zoals elders in de app met beheer.
 function beheerPin(){
@@ -685,8 +691,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   syncGedeeld().then(d=>{ const naN=(d&&d.reviews)?d.reviews.length:0; if(naN!==voorN) laadBewaard(); verbergLaden(); }).catch(verbergLaden);
 });
 
-// Gedeelde API voor andere pagina's (bv. de vergelijk-pagina).
+// Gedeelde API voor andere pagina's (de vergelijk-pagina en Persoonlijke ratings).
 window.Ratings={ canonAct:canonAct, groepeer:groepeer, avg:avg, fmtScore:fmtScore, kl:kl,
   maandKey:maandKey, maandLabel:maandLabel, taalVan:taalVan, boekjaarKey:boekjaarKey, boekjaarLabel:boekjaarLabel,
-  esc:esc, fmtDate:fmtDate, MND:MND, laadReviews:laadOpgeslagenReviews, syncGedeeld:syncGedeeld };
+  esc:esc, fmtDate:fmtDate, MND:MND, laadReviews:laadOpgeslagenReviews, syncGedeeld:syncGedeeld,
+  donut:donut, kaartRij:kaartRij, reviewKaart:reviewKaart, sbClient:sbClient, ACT_CATS:ACT_CATS, rolTags:rolTags };
 })();
