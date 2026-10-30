@@ -304,8 +304,10 @@ kloppen — enkel een voornaam is niet genoeg). Staat je naam in de app anders d
 rooster, dan zegt de pagina dat; zet ze dan gelijk in de namenlijst. **ENT algemeen** en
 **Extern** hebben geen persoonlijke ratings: die gaan meteen naar Team ratings.
 
-Een **Parkcoach** (of **Admin**) kan daarnaast elke medewerker op de rooster bekijken,
-uploadt de rooster en ziet welke ratings niemand konden vinden. Verder is een Parkcoach een
+Een **Parkcoach** (of **Admin**) kan daarnaast elke medewerker op de rooster bekijken en
+ziet welke ratings niemand konden vinden. De rooster uploaden of een maand weghalen gebeurt
+via **⚙ Beheer**: vaste mdw en admins mogen meteen, anders vraagt het het beheer-wachtwoord
+(zoals uploaden op Team ratings). Verder is een Parkcoach een
 gewone medewerker. De rol geef je in de namenlijst, en enkel een admin kan dat — anders zou
 iedereen zichzelf Parkcoach kunnen maken en de scores van collega's bekijken. De rol geeft
 geen enkele extra toegang elders in de app (`tests/test-toegangen.js` controleert dat).

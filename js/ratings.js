@@ -637,6 +637,15 @@ function beheerPin(){
   try{ const c=JSON.parse(localStorage.getItem('bb_cache_v1')||'null'); if(c&&c.appconfig&&c.appconfig.pin) return String(c.appconfig.pin); }catch(e){}
   const p=localStorage.getItem('bb_home_pin'); return p?String(p):'3920';
 }
+// Beheer op de ratingspagina's (ratings uploaden of wissen, de rooster beheren): vaste
+// medewerkers en admins mogen meteen, iedereen anders typt het beheer-wachtwoord.
+// LET OP: asynchroon — altijd met 'await' aanroepen (zie magBewerken hieronder).
+async function vraagBeheer(uitleg){
+  if(isVaste()) return true;
+  const p=await bbVraagCode({titel:'Beheer-wachtwoord', uitleg:uitleg||'Vaste medewerkers en admins hoeven dit niet.',
+    plaatshouder:'Wachtwoord', controle:v=>v===beheerPin()?'':'Onjuist wachtwoord.'});
+  return p!==null;
+}
 
 // ---------------------------------------------------------------- wiring
 document.addEventListener('DOMContentLoaded',()=>{
@@ -650,14 +659,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   async function magBewerken(){
     if(isVaste()) return true;
     const fz=$('fZoek'), zoekVoor=fz?fz.value:'';
-    const p=await bbVraagCode({titel:'Beheer-wachtwoord',
-      uitleg:'Nodig om de ratings te uploaden of te wissen. Vaste medewerkers hoeven dit niet.',
-      plaatshouder:'Wachtwoord', controle:v=>v===beheerPin()?'':'Onjuist wachtwoord.'});
+    const ok=await vraagBeheer('Nodig om de ratings te uploaden of te wissen. Vaste medewerkers hoeven dit niet.');
     // Vangnet: sommige browsers vullen bij een wachtwoordveld óók een "gebruikersnaam" in,
     // en kozen daarvoor het zoekveld (er stond dan ineens 0000 in en de lijst was leeg).
     // Het venster zelf houdt dat nu tegen; is het toch gebeurd, zet het zoekveld dan terug.
     if(fz && fz.value!==zoekVoor){ fz.value=zoekVoor; _filter.zoek=zoekVoor.trim().toLowerCase(); renderReviews(); }
-    return p!==null;
+    return ok;
   }
   const importBtn=$('importBtn'), wisBtn=$('wisBtn'), leegImport=$('leegImport');
   if(importBtn){ importBtn.style.display=''; importBtn.onclick=async()=>{ if(await magBewerken()) inp&&inp.click(); }; }
@@ -699,5 +706,5 @@ document.addEventListener('DOMContentLoaded',()=>{
 window.Ratings={ canonAct:canonAct, groepeer:groepeer, avg:avg, fmtScore:fmtScore, kl:kl,
   maandKey:maandKey, maandLabel:maandLabel, taalVan:taalVan, boekjaarKey:boekjaarKey, boekjaarLabel:boekjaarLabel,
   esc:esc, fmtDate:fmtDate, MND:MND, laadReviews:laadOpgeslagenReviews, syncGedeeld:syncGedeeld,
-  donut:donut, kaartRij:kaartRij, reviewKaart:reviewKaart, sbClient:sbClient, ACT_CATS:ACT_CATS, rolTags:rolTags, huidigeGebruiker:huidigeGebruiker };
+  donut:donut, kaartRij:kaartRij, reviewKaart:reviewKaart, sbClient:sbClient, ACT_CATS:ACT_CATS, rolTags:rolTags, huidigeGebruiker:huidigeGebruiker, vraagBeheer:vraagBeheer };
 })();

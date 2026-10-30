@@ -49,6 +49,7 @@
   .btn{border:1px solid var(--line);background:var(--panel2);color:var(--forest);font-weight:700;font-size:13px;
     padding:9px 14px;border-radius:12px;cursor:pointer;text-decoration:none;display:inline-block;font-family:inherit;}
   .btn.primary{background:linear-gradient(120deg,var(--leaf),var(--forest2));color:#fff;border-color:var(--forest2);}
+  .btn.aan{background:var(--forest);color:#fff;border-color:var(--forest);}
   .finp{background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:15px;
     padding:9px 11px;border-radius:10px;outline:none;font-family:inherit;}
   .finp:focus{border-color:var(--leaf);}
@@ -151,7 +152,8 @@
 
     <div class="card">
       <div class="toolbar">
-        <button class="btn primary" id="uploadBtn">📄 Rooster uploaden (PDF)</button>
+        <button class="btn" id="beheerBtn" type="button" title="Rooster uploaden of weghalen">⚙ Beheer</button>
+        <button class="btn primary" id="uploadBtn" type="button" style="display:none;">📄 Rooster uploaden (PDF)</button>
         <select id="boekjaar" class="finp" style="max-width:210px;" title="Boekjaar (1 okt – 30 sep)"></select>
         <select id="mdwKeuze" class="finp" style="max-width:240px;" title="Medewerker"></select>
         <span class="telling" id="telling"></span>

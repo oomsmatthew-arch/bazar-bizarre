@@ -5,8 +5,9 @@
    Wie ziet wat:
      • iedereen met een eigen account ziet enkel zijn eigen ratings (de naam van het account
        wordt op de rooster opgezocht, zie Rooster.zoekNaam);
-     • een Admin of Parkcoach kan ook andere medewerkers kiezen, uploadt de rooster en ziet
-       welke ratings niemand konden vinden;
+     • een Admin of Parkcoach kan ook andere medewerkers kiezen en ziet welke ratings
+       niemand konden vinden; de rooster uploaden of weghalen gebeurt via ⚙ Beheer (vaste
+       mdw en admins meteen, anders met het beheer-wachtwoord — zoals op Team ratings);
      • ENT algemeen (gedeeld account) en Extern zien hier niets.
 
    De rooster wordt gedeeld bewaard, net als de ratings: in de tabel spelarchief, rij 5.
@@ -25,7 +26,8 @@ let _mdw='';             // getoonde medewerker (naam zoals op de rooster)
 let _koppel=null;        // uitkomst van Rooster.koppel voor het gekozen boekjaar
 let _dFilter=null;       // filter op de reacties van de getoonde medewerker: {soort, key, label}
 let _ik=null;            // wie er ingelogd is: {id, naam, tags}
-let _coach=false;        // Admin of Parkcoach: mag iedereen bekijken en de rooster beheren
+let _coach=false;        // Admin of Parkcoach: mag iedereen bekijken
+let _beheer=false;       // ⚙ Beheer staat aan: rooster uploaden en weghalen (enkel voor deze keer)
 
 // ---------------------------------------------------------------- wie mag hier binnen
 function heeft(t){ return !!(_ik && _ik.tags.indexOf(t)>=0); }
@@ -79,13 +81,14 @@ function render(){
   bs.innerHTML='<option value="">Alle boekjaren</option>'+bj.map(k=>'<option value="'+k+'">Boekjaar '+R.boekjaarLabel(k)+'</option>').join('');
   bs.value=_boekjaar;
   // Wat enkel een Admin of Parkcoach ziet
-  toon('uploadBtn',_coach); toon('mdwKeuze',_coach&&heeftRooster); toon('koppelInfo',_coach); toon('telling',_coach);
+  toon('beheerBtn',_coach); toon('uploadBtn',_coach&&_beheer); toon('mdwKeuze',_coach&&heeftRooster);
+  const bb=$('beheerBtn'); bb.textContent=_beheer?'✓ Beheer':'⚙ Beheer'; bb.classList.toggle('aan',_beheer); toon('koppelInfo',_coach); toon('telling',_coach);
   toon('mdwCard',_coach&&heeftRooster); toon('dSluit',_coach);
   toon('leeg',!heeftRooster);
   toon('nietOpRooster',false);
   if(!heeftRooster){
     $('leegTekst').innerHTML=_coach
-      ? '<b>Nog geen rooster.</b> Upload de <b>Master Schedule</b>-PDF uit het planningsprogramma. Elke rating wordt dan gekoppeld aan wie die dag op de passende shift stond: een O&amp;F-show van 15u00 gaat naar iedereen met een O&amp;F-shift rond dat uur (ook de technieker), een Prize Night naar ENT 1 én ENT 2, een quiz naar wie op FQN staat. Upload gerust meerdere maanden; een nieuwe upload van dezelfde maand vervangt de vorige.'
+      ? '<b>Nog geen rooster.</b> Upload via <b>⚙ Beheer</b> de <b>Master Schedule</b>-PDF uit het planningsprogramma. Elke rating wordt dan gekoppeld aan wie die dag op de passende shift stond: een O&amp;F-show van 15u00 gaat naar iedereen met een O&amp;F-shift rond dat uur (ook de technieker), een Prize Night naar ENT 1 én ENT 2, een quiz naar wie op FQN staat. Upload gerust meerdere maanden; een nieuwe upload van dezelfde maand vervangt de vorige.'
       : '<b>Nog geen rooster.</b> Zodra een admin of parkcoach de rooster uploadt, zie je hier je eigen ratings: elke rating van een activiteit waarop jij op de rooster stond.';
     toon('detail',false); toon('nietCard',false);
     return;
@@ -148,7 +151,7 @@ function renderUploads(){
   ((_rooster&&_rooster.uploads)||[]).forEach((u,i)=>{
     const el=document.createElement('span'); el.className='upl';
     el.title=(u.bestand||'')+(u.ts?(' · opgeladen '+new Date(u.ts).toLocaleDateString('nl-BE')):'');
-    el.innerHTML='📅 '+esc(uploadLabel(u))+(_coach?' <button type="button" title="Deze rooster weghalen">✕</button>':'');
+    el.innerHTML='📅 '+esc(uploadLabel(u))+(_coach&&_beheer?' <button type="button" title="Deze rooster weghalen">✕</button>':'');
     const b=el.querySelector('button'); if(b) b.onclick=()=>verwijder(i);
     box.appendChild(el);
   });
@@ -228,9 +231,9 @@ function renderNiet(){
     .map(r=>'<div class="r"><span>'+esc(r.activiteit||'—')+'</span><span>'+esc(r.datum?kortDatum(RO.iso(r.datum)):'')+(r.uur?' · '+esc(r.uur):'')+'</span><b>'+R.fmtScore(r.score)+'</b></div>').join('');
 }
 
-// ---------------------------------------------------------------- uploaden en weghalen (Admin/Parkcoach)
+// ---------------------------------------------------------------- uploaden en weghalen (via ⚙ Beheer)
 async function upload(file){
-  if(!_coach) return;
+  if(!(_coach&&_beheer)) return;
   status('Rooster inlezen…','bezig');
   try{
     const r=await RO.leesPdf(file);
@@ -249,7 +252,7 @@ async function upload(file){
   }
 }
 async function verwijder(i){
-  if(!_coach) return;
+  if(!(_coach&&_beheer)) return;
   const u=_rooster&&_rooster.uploads&&_rooster.uploads[i]; if(!u) return;
   if(!await bbBevestig({titel:'Rooster weghalen?', okTekst:'Ja, weghalen', gevaar:true,
     tekst:'De rooster van '+uploadLabel(u)+' wordt weggehaald, voor iedereen. De ratings zelf blijven staan.'})) return;
@@ -271,7 +274,13 @@ document.addEventListener('DOMContentLoaded',async()=>{
   $('inhoud').style.display='';
   const inp=$('fileInput');
   inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) upload(f); inp.value=''; };
-  $('uploadBtn').onclick=()=>{ if(_coach) inp.click(); };
+  $('uploadBtn').onclick=()=>{ if(_coach&&_beheer) inp.click(); };
+  // ⚙ Beheer aan of uit. Aanzetten vraagt het beheer-wachtwoord, behalve aan vaste mdw en admins.
+  $('beheerBtn').onclick=async()=>{
+    if(!_coach) return;
+    if(_beheer){ _beheer=false; render(); return; }
+    if(await R.vraagBeheer('Nodig om de rooster te uploaden of weg te halen. Vaste medewerkers en admins hoeven dit niet.')){ _beheer=true; render(); }
+  };
   $('boekjaar').onchange=()=>{ _boekjaar=$('boekjaar').value; render(); };
   $('mdwKeuze').onchange=()=>{ const v=$('mdwKeuze').value; if(v) kies(v,true); else { _mdw=''; render(); } };
   // Terug naar het overzicht van iedereen (Admin/Parkcoach).
