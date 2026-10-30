@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.37';
+const APP_VERSION='v9.38';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -959,6 +959,7 @@ function renderGebrList(){
           '<button class="extern'+(extern?' on':'')+'" title="Buitenstaander (bv. een gids): ziet enkel '+
             esc(EXTERN_TOEGANG.map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', '))+
             ' — ongeacht de andere toegangen">'+(extern?'✓ Extern':'Extern')+'</button>'+
+          '<button class="naam" title="De naam wijzigen (voor- én achternaam, zoals op de rooster)">✏️ Naam</button>'+
           '<button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
     const dl=row.querySelector('.deellink');
     if(dl) dl.onclick=()=>{
@@ -983,6 +984,30 @@ function renderGebrList(){
         BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'parkcoach',!parkcoach)}); renderGebrList(); refreshAuth();
       };
       row.querySelector('.extern').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'extern',!extern)}); renderGebrList(); refreshAuth(); };
+      row.querySelector('.naam').onclick=async()=>{
+        // Net als de code resetten: de naam van een admin wijzigt enkel een admin.
+        if(!magAanAdminRaken(u)){ bbToon('Alleen een admin kan de naam van een andere admin wijzigen.'); return; }
+        const oud=u.naam||'';
+        const nieuw=await bbVraagTekst({titel:'Naam wijzigen', okTekst:'Bewaren', waarde:oud,
+          tekst:'Gebruik voor- én achternaam, zoals op de rooster: dan vindt Persoonlijke ratings de juiste persoon.',
+          controle:v=>String(v||'').trim()?'':'Vul een naam in.'});
+        if(nieuw===null) return;
+        const naam=String(nieuw).trim();
+        if(!naam || naam===oud) return;
+        const anderen=BBInv.getGebruikers().filter(x=>x.id!==u.id);
+        if(anderen.some(x=>(x.naam||'').toLowerCase()===naam.toLowerCase())
+           && !await bbBevestig({titel:'Naam bestaat al', okTekst:'Toch wijzigen',
+                tekst:'Er staat al iemand met de naam "'+naam+'" in de lijst.'})) return;
+        BBInv.updateGebruiker(u.id,{naam},'naam gewijzigd (was '+oud+')');
+        // Taken in Projecten staan op naam: zet ze mee over, zodat ze nog bij "Mijn taken" staan.
+        // Enkel als niemand anders die oude naam draagt — anders is niet uit te maken van wie ze zijn.
+        if(oud && !anderen.some(x=>(x.naam||'')===oud) && BBInv.getTaken){
+          BBInv.getTaken().forEach(t=>{ if((t.wie||[]).indexOf(oud)>=0) BBInv.updateTaak(t.id,{wie:t.wie.map(n=>n===oud?naam:n)},true); });
+        }
+        // Ben je dat zelf, dan ook je naam bovenaan meteen bijwerken.
+        const cu=currentUser(); if(cu&&cu.id===u.id){ try{ localStorage.setItem(K_USER,JSON.stringify({id:u.id,naam})); }catch(e){} }
+        renderGebrList(); updateUserBtn(); refreshAuth();
+      };
       row.querySelector('.foto').onclick=()=>chooseProfilePhoto(url=>{ if(url){ BBInv.updateGebruiker(u.id,{foto:url}); updateUserBtn(); renderGebrList(); } });
       row.querySelector('.rst').onclick=async()=>{
         // De code van een admin resetten = als die admin kunnen inloggen. Dus enkel een

@@ -301,7 +301,8 @@ tussen **Team ratings** (de gewone pagina) en **Persoonlijke ratings**. Daar zie
 **enkel zijn eigen** ratings: de naam van het account wordt op de rooster opgezocht
 (volgorde, hoofdletters en accenten tellen niet mee, maar voor- én achternaam moeten
 kloppen — enkel een voornaam is niet genoeg). Staat je naam in de app anders dan op de
-rooster, dan zegt de pagina dat; zet ze dan gelijk in de namenlijst. **ENT algemeen** en
+rooster, dan zegt de pagina dat; zet ze dan gelijk in de namenlijst met **✏️ Naam**
+(de naam van een admin wijzigt enkel een admin; taken in Projecten gaan mee naar de nieuwe naam). **ENT algemeen** en
 **Extern** hebben geen persoonlijke ratings: die gaan meteen naar Team ratings.
 
 Een **Parkcoach** (of **Admin**) kan daarnaast elke medewerker op de rooster bekijken en

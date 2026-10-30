@@ -895,6 +895,7 @@
   .gebr-row .av{width:36px;height:36px;border-radius:50%;background:var(--forest);color:#fff;font-weight:700;
     display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;overflow:hidden;}
   .gebr-row .foto{background:var(--panel2);border:1px solid var(--line);color:var(--text);}
+  .gebr-row .naam{background:var(--panel2);border:1px solid var(--line);color:var(--text);}
   #profAvatar{width:104px;height:104px;border-radius:50%;margin:6px auto 2px;background:var(--forest);color:#fff;
     display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;overflow:hidden;}
   .prof-naam{text-align:center;font-weight:800;font-size:18px;color:var(--forest);margin-bottom:10px;}
