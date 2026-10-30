@@ -168,13 +168,10 @@
       <p class="hint" style="margin:10px 0 0;">De ratings zelf komen van <a href="ratings.html">Team ratings</a>.</p>
     </div>
 
-    <div class="card" id="mdwCard" style="display:none;">
-      <h2>Per medewerker <span class="tik">tik op een naam</span></h2>
-      <div id="perMdw"></div>
-    </div>
-
+    <!-- Is er een medewerker gekozen, dan staat die bovenaan; de lijst van iedereen blijft eronder. -->
     <div class="card" id="detail" style="display:none;">
-      <div class="mdwkop"><h2 id="dNaam"></h2><span class="muted" id="dSub"></span></div>
+      <div class="mdwkop"><h2 id="dNaam"></h2><span class="muted" id="dSub"></span>
+        <button class="btn" id="dSluit" type="button" style="margin-left:auto;">✕ Alle medewerkers</button></div>
       <div class="tiles" id="dTiles"></div>
       <div class="overzichten2">
         <div class="ov-col">
@@ -188,6 +185,11 @@
       <h2 style="margin-top:20px;">Reacties</h2>
       <div class="reviewcount muted" id="dCount"></div>
       <div class="reviewgrid" id="dLijst"></div>
+    </div>
+
+    <div class="card" id="mdwCard" style="display:none;">
+      <h2>Per medewerker <span class="tik">tik op een naam</span></h2>
+      <div id="perMdw"></div>
     </div>
 
     <div class="card" id="nietCard" style="display:none;">

@@ -228,6 +228,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
   $('uploadBtn').onclick=()=>inp.click();
   $('boekjaar').onchange=()=>{ _boekjaar=$('boekjaar').value; render(); };
   $('mdwKeuze').onchange=()=>{ const v=$('mdwKeuze').value; if(v) kies(v,true); else { _mdw=''; render(); } };
+  // Terug naar het overzicht van iedereen.
+  $('dSluit').onclick=()=>{ _mdw=''; _dFilter=null; render(); const c=$('mdwCard'); if(c&&c.scrollIntoView) c.scrollIntoView({behavior:'smooth',block:'start'}); };
 
   // Eerst wat er op dit toestel staat, dan de gedeelde versies erbij halen.
   _alle=(R.laadReviews?R.laadReviews():[])||[];
