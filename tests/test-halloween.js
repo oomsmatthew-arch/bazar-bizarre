@@ -98,6 +98,9 @@ ok(naamVan(K17,'Dief 2')==='Nick'&&/te bepalen/i.test(naamVan(K17,'Kapitein'))&&
 ok(naamVan(O17,'Overlever 3')==='Nick'&&/te bepalen/i.test(naamVan(O17,'CZC mutant 4'))&&O17.afbouw.some(function(r){ return r.karakter==='Overlever 3'&&r.naam==='Nick'; }),'volwassentocht 17/10: Nick is Overlever 3 (ook bij de afbouw), CZC-mutant 4 is nog te bepalen');
 var namen17=[]; [K17.draaiboek,K17.afbouw,O17.draaiboek,O17.afbouw].forEach(function(l){ l.forEach(function(r){ namen17=namen17.concat(r.namen&&r.namen.length?r.namen:[r.naam]); }); });
 ok(!namen17.some(function(x){ return /Laura/.test(String(x).replace(/\(.*?\)/g,'')); })&&K17.wijziging.length&&O17.wijziging.length,'17/10: Laura staat nergens meer ingepland en er is een melding');
+var K31=K.nachten['31/10'];
+ok(naamVan(K31,'Dief 2')==='Matthew'&&/te bepalen/i.test(naamVan(K31,'Reserve'))&&/^Matthew/.test(K31.orry)&&K31.wijziging&&K31.wijziging.length,'kindertocht 31/10: Matthew speelt Orry en is dief 2, de reserve is nog te bepalen, met een melding');
+ok(!K31.draaiboek.some(function(r){ return /Laura/.test(String(r.naam).replace(/\(.*?\)/g,'')); }),'kindertocht 31/10: Laura staat niet meer als dief 2 of Orry in het draaiboek');
 ok(K17.opbouw&&K17.opbouw.some(function(r){ return r.karakter==='Dief 1'&&r.naam==='Nick'&&/E-car/.test(r.taken.join(' ')); }),'kindertocht 17/10: de opbouw uit het draaiboek staat erin (Nick doet dief 1, bord met de E-car)');
 ok(['nl','de','fr','en'].every(function(t){ return /soep maken|Suppe kochen|faire de la soupe|make soup/.test(KS.kok[t][0]); }),'kindertocht: het intro van de kok is dat van de manual van 16/10');
 ok(!NACHTEN['24/10'].afbouw.some(function(r){ return r.taken[0]==='En'; }),'volwassentocht 24/10: geen losse "En" bij de afbouwtaken');

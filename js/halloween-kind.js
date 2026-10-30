@@ -31,7 +31,13 @@ const WISSELS={
     rollen:{'Dief 2':'Nick','Kapitein':TE_BEPALEN+' (Nick is dief 2)'},
     ombouw:{'Laura':TE_BEPALEN+' (Laura is ziek)','Nick':TE_BEPALEN+' (Nick is dief 2)'},
     orry:'Matthew (voor Laura)',
-    showNota:'17/10: Laura is ziek. Matthew speelt Orry in de show, Nick is dief 2.'}
+    showNota:'17/10: Laura is ziek. Matthew speelt Orry in de show, Nick is dief 2.'},
+  '31/10':{
+    melding:['Matthew speelt Orry in de show (15u15 en 16u00) en is daarna dief 2 (16u50 – 19u00), in plaats van Laura.',
+             'Laura neemt een andere rol; welke staat nog niet vast. De reserve, die Matthew zou zijn, is daardoor nog te bepalen.'],
+    rollen:{'Dief 2':'Matthew','Reserve':TE_BEPALEN+' (Matthew is dief 2)'},
+    orry:'Matthew (voor Laura)',
+    showNota:'31/10: Matthew speelt Orry in de show en is daarna dief 2; Laura neemt een andere rol.'}
 };
 Object.keys(WISSELS).forEach(d=>{
   const n=NACHTEN[d], w=WISSELS[d]; if(!n) return;
