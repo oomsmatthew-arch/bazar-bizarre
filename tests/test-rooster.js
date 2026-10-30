@@ -48,12 +48,12 @@ var blok2=[['ma',28],['di',29],['wo',30]];
 var pag=[
   pagina(blok1,[
     {naam:'Peeters, An', y:400, shifts:[[0,'O&F Orry 15.00','15:00','18:00'],[0,'Rest. Avond','18:30','21:00'],[2,'FQN','19:00','22:00']]},
-    {naam:'Janssens, Bram', y:340, shifts:[[0,'O&F Tech','15:00','18:00'],[1,'JV','09:00','17:00']]},
+    {naam:'Janssens, Bram', y:340, shifts:[[0,'O&F Tech','15:00','18:00'],[1,'JV','09:00','12:00'],[1,'DJ - Pool Party','17:30','21:30']]},
     {naam:'Maes, Cato', y:280, shifts:[]}
   ],true),
   // dezelfde dagen, tweede reeks medewerkers
   pagina(blok1,[
-    {naam:'Willems, Dirk', y:400, shifts:[[0,'O&F Rep Pool','14:45','19:30'],[2,'Prize Night - ENT 2','19:00','23:15']]}
+    {naam:'Willems, Dirk', y:400, shifts:[[1,'O&F Rep Pool','14:45','19:30'],[2,'Prize Night - ENT 2','19:00','23:15']]}
   ],true),
   pagina(blok2,[
     {naam:'Peeters, An', y:400, shifts:[[2,'Overleg Halloween','14:15','17:00'],[2,'Silent Disco','20:00','22:00']]}
@@ -71,28 +71,35 @@ ok(s1 && s1.v==='15:00' && s1.t==='18:00','shift met label en uren');
 ok(!!vind('An Peeters','2026-09-01','Rest. Avond'),'tweede shift in dezelfde cel');
 ok(!!vind('An Peeters','2026-09-03','FQN'),'shift in de derde kolom → 3 september');
 ok(!!vind('Bram Janssens','2026-09-01','O&F Tech'),'shift bij de juiste naam (volgende rij)');
-ok(!!vind('Dirk Willems','2026-09-03','Prize Night - ENT 2'),'tweede pagina met dezelfde dagen');
+ok(!!vind('Dirk Willems','2026-09-03','Prize Night - ENT 2') && !!vind('Dirk Willems','2026-09-02','O&F Rep Pool'),'tweede pagina met dezelfde dagen');
+ok(!!vind('Bram Janssens','2026-09-02','DJ - Pool Party'),'tweede shift op dezelfde dag, na verlof');
 ok(!!vind('An Peeters','2026-09-30','Silent Disco'),'einde van de maand');
 ok(!r.shifts.some(function(s){ return /Master|Period|16:25/.test(s.l); }),'kop en voettekst worden geen shift');
 
 var op=RO.alleenOptredens(r);
 ok(!op.shifts.some(function(s){ return s.l==='JV'||s.l==='Rest. Avond'||s.l==='Overleg Halloween'; }),'verlof, restaurant en overleg worden niet bewaard');
-ok(op.shifts.length===6,'zes shifts met een activiteit ('+op.shifts.length+')');
+ok(op.shifts.length===7,'zeven shifts met een activiteit ('+op.shifts.length+')');
 
 print('— Ratings koppelen —');
 var basis=RO.voegSamen(null,op);
 function dag(s){ var p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
-function canon(a){ return /orry.*show/i.test(a)?'O&F: Show':(/pool/i.test(a)?'O&F: Pool Party':a); }
+function canon(a){ return /orry.*show/i.test(a)?'O&F: Show':(/pool/i.test(a)?'O&F: Pool Party':(/taxi/i.test(a)?'O&F: op taxibezoek':a)); }
 var show={score:5,activiteit:'Orry & Vrienden: Show',datum:dag('2026-09-01'),uur:'15:00'};
 var showLaat={score:4,activiteit:'Orry & Vrienden: Show',datum:dag('2026-09-01'),uur:'14:00'};
-var pool={score:3,activiteit:'Pool party',datum:dag('2026-09-01'),uur:'15:00'};
+var pool={score:3,activiteit:'Pool party',datum:dag('2026-09-02'),uur:'15:00'};
+var poolAvond={score:4,activiteit:'Pool party',datum:dag('2026-09-02'),uur:'18:00'};
+var taxi={score:5,activiteit:'Orry & Vrienden: Taxi ritje!',datum:dag('2026-09-02'),uur:'16:30'};
+var taxiLaat={score:5,activiteit:'Orry & Freunde: eine Taxifahrt!',datum:dag('2026-09-02'),uur:'18:00'};
 var quiz={score:5,activiteit:'Family Quiz Night',datum:dag('2026-09-03'),uur:'19:00'};
 var prize={score:2,activiteit:'Prize Night',datum:dag('2026-09-03'),uur:'19:00'};
 var buiten={score:5,activiteit:'Family Quiz Night',datum:dag('2026-10-08'),uur:'19:00'};
-var k=RO.koppel([show,showLaat,pool,quiz,prize,buiten],basis,canon);
+var k=RO.koppel([show,showLaat,pool,poolAvond,taxi,taxiLaat,quiz,prize,buiten],basis,canon);
 function wie(rv){ return Object.keys(k.perPersoon).filter(function(n){ return k.perPersoon[n].indexOf(rv)>=0; }).sort().join(','); }
 ok(wie(show)==='An Peeters,Bram Janssens','show van 15u00 → Orry én de technieker ('+wie(show)+')');
-ok(wie(pool)==='Dirk Willems','pool party → enkel wie op de pool-shift staat ('+wie(pool)+')');
+ok(wie(pool)==='Dirk Willems','pool party van 15u00 → wie op de pool-shift staat ('+wie(pool)+')');
+ok(wie(poolAvond)==='Bram Janssens,Dirk Willems','pool party van 18u00 → ook de DJ ('+wie(poolAvond)+')');
+ok(wie(taxi)==='Dirk Willems','taxirit tijdens een pool-shift → het personage ('+wie(taxi)+')');
+ok(wie(taxiLaat)==='Dirk Willems','taxirit → nooit de DJ ('+wie(taxiLaat)+')');
 ok(wie(quiz)==='An Peeters','quiz → wie op FQN staat');
 ok(wie(prize)==='Dirk Willems','Prize Night → ENT 2');
 ok(k.niet.indexOf(showLaat)>=0,'show om 14u00 valt buiten elke shift → niet gekoppeld');

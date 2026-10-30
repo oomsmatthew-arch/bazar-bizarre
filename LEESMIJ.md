@@ -315,8 +315,9 @@ rooster. Upload de **Master Schedule**-PDF uit het planningsprogramma; de app le
 medewerker en per dag de shifts uit (`js/rooster.js`, met pdf.js dat pas bij het uploaden
 van cdnjs geladen wordt). Een rating gaat naar **iedereen** die die dag rond dat uur op een
 passende shift stond: een O&F-show van 15u00 naar Orry, Woops, Rep én de technieker (O&F
-Tech), een Prize Night naar ENT 1 en ENT 2, een quiz naar wie op FQN staat. Pool party-shifts
-("O&F Rep Pool", "DJ - Pool Party") tellen enkel voor de Pool Party. Je ziet per medewerker
+Tech), een Prize Night naar ENT 1 en ENT 2, een quiz naar wie op FQN staat. Elke shift van
+een personage telt voor elke O&F-activiteit, ook de pool-shifts ("O&F Rep Pool"): op vrijdag
+gebeurt de taxirit binnen die shift. De DJ ("DJ - Pool Party") telt enkel voor de Pool Party. Je ziet per medewerker
 het gemiddelde, en de ratings per maand, per activiteit en per taal.
 
 - Welke shift bij welke activiteit hoort, staat in de lijst `KOPPEL` bovenaan

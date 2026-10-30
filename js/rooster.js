@@ -26,11 +26,12 @@ const IS_WEEKDAG=/^(ma|di|wo|do|vr|za|zo)$/i;
 // Een nieuwe soort shift of activiteit? Voeg hier een regel toe. Shifts die nergens bij
 // passen, worden niet bewaard (verlof, vergaderingen, restaurant…) — upload de rooster
 // dan opnieuw nadat je een regel hebt toegevoegd.
-// De pool party heeft eigen shifts ("O&F Rep Pool", "DJ - Pool Party"); wie daar staat, hoort
-// niet bij een show die op hetzelfde uur elders loopt, en omgekeerd.
+// Elke shift van een personage (Orry, Woops, Rep, Bing, of gewoon "O&F") telt voor elke
+// O&F-activiteit — ook de pool-shifts ("O&F Rep Pool"): op vrijdag gebeurt de taxirit binnen
+// die shift. De DJ van de pool party ("DJ - Pool Party") telt enkel voor de Pool Party.
 const IS_OF=/\bO&F\b|\borry\b|\bwoops\b|\brep\b|\bbing\b|kids\s*disco/i;
 const KOPPEL=[
-  {shift:l=>IS_OF.test(l) && !/pool/i.test(l),                          act:a=>/^O&F:/.test(a) && a!=='O&F: Pool Party'},
+  {shift:IS_OF,                                                         act:a=>/^O&F:/.test(a)},
   {shift:/pool/i,                                                       act:a=>a==='O&F: Pool Party'},
   {shift:/\bFQN\b|quiz/i,                                               act:a=>a==='Family Quiz Night'},
   {shift:/prize\s*night/i,                                              act:a=>a==='Prize Night'},
