@@ -48,6 +48,9 @@ function laadToegangen(){
     'globalThis.eisToegang=eisToegang;'+
     'globalThis.toegLabel=toegLabel;'+
     'globalThis.EXTERN_TOEGANG=EXTERN_TOEGANG;'+
+    'globalThis.UIT_SEIZOEN=UIT_SEIZOEN;'+
+    'globalThis.isUitSeizoen=isUitSeizoen;'+
+    'globalThis.externOnderdelenTekst=externOnderdelenTekst;'+
     'globalThis.externGeblokkeerd=externGeblokkeerd;'+
     'globalThis.TOEGANG_CATEGORIEEN=TOEGANG_CATEGORIEEN;'+
     'globalThis.TOEGANG_NIVEAUS=TOEGANG_NIVEAUS;'+
@@ -115,6 +118,8 @@ function verse(){ Object.keys(store).forEach(function(k){ delete store[k]; }); }
 
   print('\n— Een extern account ziet enkel EXTERN_TOEGANG, wat de instelling ook zegt —');
   verse();
+  // Deze regel testen we los van het seizoen: Halloween even "aan" zetten (zie het blok hierna).
+  var uitBewaard=UIT_SEIZOEN.slice(); UIT_SEIZOEN.length=0;
   ok(EXTERN_TOEGANG.indexOf('halloween')>=0,'Halloween staat op de lijst (pas deze test aan als dat ooit verandert)');
   IK={vast:false,admin:false,ontgrendeld:false,extern:true};
   ok(magToegang('halloween','bekijken')===true,'Halloween mag, die staat standaard op "iedereen"');
@@ -127,6 +132,24 @@ function verse(){ Object.keys(store).forEach(function(k){ delete store[k]; }); }
   setToegangen({}); // de 'beheer'-instelling hierboven was enkel om het achterpoortje te testen
   IK={vast:false,admin:false,ontgrendeld:false,extern:false};
   ok(magToegang('inventaris','bekijken')===true,'een gewone collega (niet extern) blijft gewoon overal bij kunnen, zoals voorheen');
+  ok(externOnderdelenTekst()==='Halloween','zolang Halloween aan staat, ziet extern "Halloween"');
+  UIT_SEIZOEN.push.apply(UIT_SEIZOEN,uitBewaard);
+
+  print('\n— Een onderdeel buiten het seizoen (UIT_SEIZOEN) is voor iedereen dicht —');
+  verse();
+  ok(isUitSeizoen('halloween'),'Halloween staat uit (pas deze test aan als het weer aan gaat)');
+  [{w:'een gewone collega',ik:{}},{w:'een vaste medewerker',ik:{vast:true}},{w:'een admin',ik:{admin:true}},
+   {w:'wie het wachtwoord typte',ik:{ontgrendeld:true}},{w:'een extern account',ik:{extern:true}}].forEach(function(g){
+    IK={vast:!!g.ik.vast,admin:!!g.ik.admin,ontgrendeld:!!g.ik.ontgrendeld,extern:!!g.ik.extern};
+    ok(magToegang('halloween','bekijken')===false && magToegang('halloween','beheren')===false,g.w+' kan niet bij Halloween');
+  });
+  setToegangen({halloween:{bekijken:'iedereen'}});
+  IK={vast:false,admin:true,ontgrendeld:false,extern:false};
+  ok(magToegang('halloween','bekijken')===false,'ook niet als de toegang uitdrukkelijk op "iedereen" staat');
+  ok(getToegangen().halloween.bekijken==='iedereen','de ingestelde toegang zelf blijft bewaard voor wanneer het weer aan gaat');
+  ok(magToegang('inventaris','bekijken')===true,'de andere onderdelen merken er niets van');
+  ok(externOnderdelenTekst()==='','een extern account ziet nu niets (geen "ziet enkel Halloween" meer in de namenlijst)');
+  setToegangen({}); IK={vast:false,admin:false,ontgrendeld:false,extern:false};
 
   print('\n— "Bepaalde medewerkers…" laat enkel de aangevinkte mensen door —');
   verse();

@@ -210,7 +210,8 @@ function tekenToegangen(){
   const huidig=getToegangen();
   let h='<table class="toegtab"><tr><th>Onderdeel</th>'+
     TOEGANG_NIVEAUS.map(n=>'<th>'+n.charAt(0).toUpperCase()+n.slice(1)+'</th>').join('')+'</tr>';
-  TOEGANG_CATEGORIEEN.forEach(c=>{
+  // Onderdelen buiten het seizoen (UIT_SEIZOEN in js/kern.js) staan er niet in.
+  TOEGANG_CATEGORIEEN.filter(c=>!isUitSeizoen(c.key)).forEach(c=>{
     h+='<tr><td class="naam"><b>'+esc(c.naam)+'</b><span>'+esc(c.uitleg)+'</span></td>';
     TOEGANG_NIVEAUS.forEach(n=>{
       const w=(huidig[c.key]||{})[n];
@@ -223,7 +224,7 @@ function tekenToegangen(){
   });
   wrap.innerHTML=h+'</table>';
   const gebruikers=(window.BBInv&&BBInv.getGebruikers)?BBInv.getGebruikers():[];
-  TOEGANG_CATEGORIEEN.forEach(c=>{
+  TOEGANG_CATEGORIEEN.filter(c=>!isUitSeizoen(c.key)).forEach(c=>{
     TOEGANG_NIVEAUS.forEach(n=>{
       const w=(huidig[c.key]||{})[n]||'';
       if(/^wie:/.test(w)) toegWiePaneelZet(c.key,n,w.slice(4).split(',').filter(Boolean),gebruikers);
@@ -278,6 +279,10 @@ document.getElementById('toegBewaar').onclick=()=>{
     }
     (nieuw[c]||(nieuw[c]={}))[n]=w;
   });
+  // Onderdelen buiten het seizoen staan niet in de tabel: hun instelling ongewijzigd laten,
+  // zodat ze terug is zodra het onderdeel weer aan staat.
+  let oud={}; try{ oud=JSON.parse(localStorage.getItem(K_TOEGANGEN))||{}; }catch(e){ oud={}; }
+  UIT_SEIZOEN.forEach(k=>{ if(oud[k]) nieuw[k]=oud[k]; });
   setToegangen(nieuw);
   if(window.BBInv&&BBInv.logAct) BBInv.logAct('Toegangen aangepast');
   toegMeld('✓ Opgeslagen — geldt op alle toestellen.');

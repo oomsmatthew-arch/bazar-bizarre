@@ -291,6 +291,9 @@ het vinkje Extern aan. Zo kan dat vinkje nooit per ongeluk een eigen collega bui
 De algemene zoekfunctie (het vergrootglas) geeft voor een extern account geen resultaten —
 die doorzoekt toch enkel onderdelen die ze niet mogen zien.
 
+Sinds 7/11/2026 staat Halloween uit (zie *Onderdelen buiten het seizoen* hieronder): een
+extern account ziet dan voorlopig niets, en in de namenlijst staat "ziet momenteel niets".
+
 Wil je dat externen later ook iets anders mogen zien, voeg de categorie toe aan
 `EXTERN_TOEGANG` in `js/kern.js` (een regel code, geen instelling in de app).
 
@@ -371,6 +374,17 @@ Twee dingen blijven bewust vast: **Instellingen** blijft altijd bereikbaar en de
 Toegangen-tabel zelf is enkel voor admins — anders kan iemand zichzelf rechten geven.
 Wie niets aanpast, merkt geen verschil: de standaardwaarden zijn precies het gedrag van
 vóór deze functie.
+
+### Onderdelen buiten het seizoen
+
+Een onderdeel dat maar een deel van het jaar loopt (zoals **Halloween**), zet je uit met
+`UIT_SEIZOEN` in `js/kern.js`. Dan verdwijnt het voor iedereen, ook voor admins: de kaart op
+de startpagina, de rij bij Instellingen → Toegangen, en wie de pagina nog via een link opent,
+komt op de startpagina terecht. De bestanden en de ingestelde toegangen blijven staan.
+Terugzetten = de key uit `UIT_SEIZOEN` weghalen (en het versienummer verhogen).
+
+**Halloween staat uit sinds 7/11/2026.** Een extern account (en de deellink) ziet daardoor
+voorlopig niets; zie hierboven bij Rol: Extern.
 
 ## Database (alle foto's op één plek)
 
@@ -567,7 +581,7 @@ aanpassen aan een onderdeel, dan open je gewoon dat ene bestand — de rest blij
 
 | Kaart | Bestand |
 |---|---|
-| Halloween (volwassentocht The Outbreak) | `paginas/halloween.html` — tekent enkel; de inhoud staat in `js/halloween-data.js` (zones, techniek, checklist) en `js/halloween-bron.js` (planning + scripts, gegenereerd uit de Drive-documenten, foto's in `assets/halloween/`) |
+| Halloween (volwassentocht The Outbreak) — staat uit, zie `UIT_SEIZOEN` | `paginas/halloween.html` — tekent enkel; de inhoud staat in `js/halloween-data.js` (zones, techniek, checklist) en `js/halloween-bron.js` (planning + scripts, gegenereerd uit de Drive-documenten, foto's in `assets/halloween/`) |
 | Inventaris lijst BB | `paginas/inventaris.html` |
 | Besteloverzicht | `paginas/bestellingen.html` |
 | Projecten | `paginas/projecten.html` |

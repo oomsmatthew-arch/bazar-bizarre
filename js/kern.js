@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.39';
+const APP_VERSION='v9.40';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -241,6 +241,17 @@ const EXTERN_TOEGANG=['halloween'];
 function externGeblokkeerd(cat){
   return isExtern() && !(isVasteMdw()||isAdmin()) && EXTERN_TOEGANG.indexOf(cat)<0;
 }
+// Onderdelen buiten het seizoen: tijdelijk uit de app, voor iedereen — ook voor admins. De
+// kaart op de startpagina, de rij bij Instellingen → Toegangen en de pagina zelf verdwijnen
+// (wie de pagina nog via een link opent, komt op de startpagina terecht). De bestanden en de
+// ingestelde toegangen blijven staan. Terugzetten = de key hier weghalen.
+// Halloween 2026 is voorbij (laatste activiteiten op 8/11): staat uit sinds 7/11/2026.
+const UIT_SEIZOEN=['halloween'];
+function isUitSeizoen(cat){ return UIT_SEIZOEN.indexOf(cat)>=0; }
+// Wat een extern account nu kan zien, leesbaar ('Halloween'), of '' als er niets openstaat.
+function externOnderdelenTekst(){
+  return EXTERN_TOEGANG.filter(k=>!isUitSeizoen(k)).map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', ');
+}
 // 'wie:id1,id2' — enkel de aangevinkte medewerkers mogen dit, ongeacht hun rol.
 function toegWieMag(r){
   const u=fullCurrentUser(); if(!u) return false;
@@ -256,6 +267,7 @@ function toegLabel(r){
 // Mag ik dit, zonder iets te vragen? 'beheer' geldt als toegestaan zodra het wachtwoord
 // deze sessie al is ingetikt (of je vaste mdw / admin bent).
 function magToegang(cat,niveau){
+  if(isUitSeizoen(cat)) return false;
   if(externGeblokkeerd(cat)) return false;
   const r=toegangRegel(cat,niveau);
   if(r==='iedereen') return true;
@@ -956,16 +968,17 @@ function renderGebrList(){
             (magAdminUitdelen()?'Kan in de Persoonlijke ratings ook die van collega\'s bekijken en de rooster uploaden — verder een gewone medewerker'
                                :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
             (parkcoach?'✓ Parkcoach':'Parkcoach')+'</button>'+
-          '<button class="extern'+(extern?' on':'')+'" title="Buitenstaander (bv. een gids): ziet enkel '+
-            esc(EXTERN_TOEGANG.map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', '))+
+          '<button class="extern'+(extern?' on':'')+'" title="Buitenstaander (bv. een gids): '+
+            esc(externOnderdelenTekst()?'ziet enkel '+externOnderdelenTekst():'ziet momenteel niets')+
             ' — ongeacht de andere toegangen">'+(extern?'✓ Extern':'Extern')+'</button>'+
           '<button class="naam" title="De naam wijzigen (voor- én achternaam, zoals op de rooster)">✏️ Naam</button>'+
           '<button class="foto">📷 Foto</button><button class="rst">Reset code</button><button class="del">Verwijderen</button>');
     const dl=row.querySelector('.deellink');
     if(dl) dl.onclick=()=>{
       const link=externDeellink();
-      const klaar=()=>bbToon('Link gekopieerd: '+link+'\n\nWie die opent, is meteen binnen als Extern en ziet enkel '+
-        EXTERN_TOEGANG.map(k=>(TOEGANG_CATEGORIEEN.find(c=>c.key===k)||{}).naam||k).join(', ')+' — zonder toegangscode.');
+      const t=externOnderdelenTekst();
+      const klaar=()=>bbToon('Link gekopieerd: '+link+'\n\nWie die opent, is meteen binnen als Extern'+
+        (t?' en ziet enkel '+t+' — zonder toegangscode.':', maar ziet momenteel niets: er staat geen onderdeel voor externen open.'));
       if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(klaar,()=>bbToon('Kopiëren niet gelukt. De link is:\n'+link));
       else bbToon('De link is:\n'+link);
     };
@@ -1149,6 +1162,12 @@ async function bewaakPaginaDoe(){
   const cat=document.body.getAttribute('data-toegang');
   const nodig=document.body.getAttribute('data-rol');
   if(!cat && !nodig) return;
+  if(cat && isUitSeizoen(cat)){                                // tijdelijk uit (UIT_SEIZOEN): voor iedereen dicht
+    const c=TOEGANG_CATEGORIEEN.find(x=>x.key===cat);
+    bbToon((c?c.naam:'Dit onderdeel')+' staat momenteel uit.');
+    location.replace(bbUrl('entertainment.html'));
+    return;
+  }
   if(!currentUser()) return;                                   // nog niet ingelogd: eerst het inlogscherm
   if(!(window.BBInv&&BBInv.isReady&&BBInv.isReady())) return;   // rollen nog niet geladen
   if(cat){

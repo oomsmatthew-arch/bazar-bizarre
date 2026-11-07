@@ -258,6 +258,8 @@ function computeLowstock(){
 function updateKaarten(){
   document.querySelectorAll('.menu .card[data-key]').forEach(kaart=>{
     const cat=kaart.getAttribute('data-key');
+    // Buiten het seizoen (UIT_SEIZOEN in js/kern.js): voor iedereen weg, ook voor admins.
+    if(isUitSeizoen(cat)){ kaart.style.display='none'; return; }
     // Een extern account (bv. een gids) ziet enkel EXTERN_TOEGANG — ook Instellingen
     // blijft dan weg, die regel weegt zwaarder dan de "altijd bereikbaar"-uitzondering.
     if(externGeblokkeerd(cat)){ kaart.style.display='none'; return; }
