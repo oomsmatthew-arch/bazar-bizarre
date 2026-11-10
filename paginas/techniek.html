@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Techniek · Entertainment</title>
+<meta name="description" content="Licht en geluid: materiaal, wat kapot of in herstel is, het logboek en de bestellingen.">
+<link rel="manifest" href="../manifest.json">
+<link rel="preconnect" href="https://tbromtomzglqtuyezoav.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://tbromtomzglqtuyezoav.supabase.co">
+<meta name="theme-color" content="#2f6450">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EntVM">
+<link rel="icon" href="../assets/logo-cp.png">
+<link rel="apple-touch-icon" href="../assets/logo-cp.png">
+<link rel="stylesheet" href="../css/app.css">
+</head>
+<!-- Toegang: Instellingen → Toegangen → Techniek (standaard "Techniekers + admin").
+     Kapot melden kan iedereen, vanaf de startpagina (js/techniek-melden.js). -->
+<body data-toegang="techniek" data-titel="Techniek">
+
+<div class="wrap">
+  <!-- De balk bovenaan komt uit js/topbar.js (titel + knoppen staan op <body>). -->
+  <script src="../js/topbar.js"></script>
+
+  <div class="view paginainhoud" id="techniek">
+    <p class="hint">Licht en geluid: wat we hebben en waar het staat, wat kapot of in herstel is, en wat er besteld is.</p>
+    <div class="tk-gedeeld" id="tkGedeeld" hidden></div>
+    <div class="invtabs">
+      <button class="invtab active" data-tab="materiaal">Materiaal</button>
+      <button class="invtab" data-tab="meldingen">Meldingen &amp; logboek <span class="tk-teller" id="tkTelMeld"></span></button>
+      <button class="invtab" data-tab="herstel">Herstel &amp; bestellingen</button>
+      <button class="invtab" data-tab="beheer">Beheer</button>
+    </div>
+
+    <!-- MATERIAAL -->
+    <div class="invpane active" id="tpane-materiaal">
+      <div class="invsum" id="tkSum"></div>
+      <div class="prodcontrole">
+        <span class="sc-info">Tik op een item voor de details, de geschiedenis en wat je ermee kan doen.</span>
+        <button class="btn" id="tkMeldBtn" type="button">⚠ Kapot melden</button>
+      </div>
+      <input type="text" id="tkZoek" class="finp zoek" placeholder="Zoek materiaal, bv. XLR, headset, spot…">
+      <div class="invfilter" id="tkGroepen"></div>
+      <div class="invfilter" id="tkStatussen"></div>
+      <div class="invfilter"><select id="tkLocatie" class="finp" style="max-width:320px"></select></div>
+      <div class="invlist" id="tkLijst"></div>
+    </div>
+
+    <!-- MELDINGEN & LOGBOEK -->
+    <div class="invpane" id="tpane-meldingen">
+      <div class="tk-h">Open meldingen</div>
+      <div id="tkOpen"></div>
+      <div class="tk-h" style="margin-top:22px;">Logboek</div>
+      <input type="text" id="tkLogZoek" class="finp zoek" placeholder="Zoek in het logboek (item, tekst, wie)…">
+      <div id="tkLog"></div>
+    </div>
+
+    <!-- HERSTEL & BESTELLINGEN -->
+    <div class="invpane" id="tpane-herstel">
+      <div class="tk-h">In herstel</div>
+      <div id="tkHerstel"></div>
+      <div class="tk-h" style="margin-top:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="flex:1">Bestellingen (categorie Techniek)</span>
+        <button class="btn" id="tkBestelNieuw" type="button">🛒 Nieuwe bestelling</button>
+      </div>
+      <p class="hint" style="margin:0 2px 10px;">Wat je hier bestelt, staat ook in het <a href="bestellingen.html">Besteloverzicht</a>. Zet je het daar op <b>In loods</b> of <b>Uitgepakt</b>, dan komt het hier vanzelf bij: een telbaar item krijgt het aantal erbij, een los item staat terug in orde.</p>
+      <div id="tkBest"></div>
+    </div>
+
+    <!-- BEHEER -->
+    <div class="invpane" id="tpane-beheer">
+      <div class="field">
+        <div class="h">Materiaal toevoegen</div>
+        <label class="mlbl" for="tkNNaam">Naam</label>
+        <input type="text" id="tkNNaam" class="finp" placeholder="bv. XLR-kabel 10 m, Headset, Shure SM58">
+        <div class="tk-2kol">
+          <div><label class="mlbl" for="tkNGroep">Soort</label><select id="tkNGroep" class="finp"></select></div>
+          <div><label class="mlbl" for="tkNLocatie">Waar staat het?</label>
+            <input type="text" id="tkNLocatie" class="finp" list="tkLocaties" placeholder="bv. Technische ruimte, kast A"></div>
+        </div>
+        <label class="mlbl">Hoe hou je het bij?</label>
+        <div class="chips" id="tkNType">
+          <button type="button" class="chip active" data-type="aantal">Telbaar (aantal)</button>
+          <button type="button" class="chip" data-type="los">Losse items (elk een eigen status)</button>
+        </div>
+        <p class="hint" style="margin:8px 0 0;" id="tkNTypeUitleg"></p>
+        <div class="tk-2kol">
+          <div><label class="mlbl" for="tkNAantal" id="tkNAantalLbl">Aantal</label>
+            <input type="tel" inputmode="numeric" id="tkNAantal" class="finp" value="1"></div>
+          <div id="tkNNummerVak" hidden><label class="mlbl" for="tkNNummer">Nummer of serienummer (optioneel)</label>
+            <input type="text" id="tkNNummer" class="finp"></div>
+        </div>
+        <label class="mlbl" for="tkNNotitie">Notitie (optioneel)</label>
+        <input type="text" id="tkNNotitie" class="finp" placeholder="bv. met windkap, reserve-adapter in de doos">
+        <div class="row" style="margin-top:12px;"><button class="btn primary" id="tkNVoeg" type="button">Toevoegen</button></div>
+      </div>
+      <div class="tk-h" style="margin-top:22px;">Al het materiaal <span class="tik">tik om te bewerken of te verwijderen</span></div>
+      <input type="text" id="tkBZoek" class="finp zoek" placeholder="Zoek om te bewerken…">
+      <div class="invlist" id="tkBLijst"></div>
+    </div>
+    <datalist id="tkLocaties"></datalist>
+  </div>
+
+  <footer>
+    Entertainment. Wijzigingen worden automatisch op dit toestel bewaard.
+    <div class="foot-line"><span class="sysstat busy" id="sysStat"><span class="dot"></span><span id="sysStatTxt">Controleren…</span></span></div>
+  </footer>
+</div>
+
+<!-- Eén item: info, wat je ermee kan doen, en zijn geschiedenis -->
+<div class="cammodal" id="tkDetail">
+  <div class="cammodal-box formbox">
+    <div class="cammodal-title" id="tkdTitel"></div>
+    <div class="tkd-info" id="tkdInfo"></div>
+    <div class="tkd-acties" id="tkdActies"></div>
+    <div class="tk-h" style="margin-top:16px;">Geschiedenis</div>
+    <div id="tkdLog"></div>
+    <div class="sc-voet"><span class="sc-teller"></span><button class="btn" id="tkdSluit" type="button">Sluiten</button></div>
+  </div>
+</div>
+
+<!-- Een klein formulier voor de acties (naar herstel, bestellen, bewerken…) -->
+<div class="cammodal" id="tkForm">
+  <div class="cammodal-box formbox">
+    <div class="cammodal-title" id="tkfTitel"></div>
+    <p class="hint" id="tkfUitleg" style="margin:0;"></p>
+    <div id="tkfVelden"></div>
+    <div class="sc-voet"><span class="sc-teller"></span>
+      <button class="btn" id="tkfAnnuleer" type="button">Annuleren</button>
+      <button class="btn primary" id="tkfOk" type="button">OK</button></div>
+  </div>
+</div>
+
+<script src="../js/supabase.min.js"></script>
+<script src="../js/terug.js"></script>
+<script src="../js/inventaris.js"></script>
+<script src="../js/kern.js"></script>
+<script src="../js/zoek.js"></script>
+<script src="../js/techniek-melden.js"></script>
+<script src="../js/techniek.js"></script>
+</body>
+</html>

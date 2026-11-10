@@ -8,13 +8,14 @@
   const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRicm9tdG9temdscXR1eWV6b2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDg0MjQsImV4cCI6MjA5NzA4NDQyNH0.RxcKKWjEcat3ji4iUjByO5WxBSL0yvZMBvfzkoM3Jrc';
 
   let sb=null, ready=false, onChange=null, onUpdateSignaal=null;
-  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],werkuren:[],manualsdoc:null,appconfig:null,spelarchief:null,producten:[],productleveringen:[]};
+  const cache={prijzen:[],boekjes:{stock:0},formulieren:[],leveringen:[],bestellingen:[],contacten:[],checklisten:[],logboek:[],gebruikers:[],activiteit:[],sessies:[],projecten:[],projecttaken:[],projectberichten:[],projectagenda:[],projectdocs:[],werkuren:[],manualsdoc:null,appconfig:null,spelarchief:null,producten:[],productleveringen:[],techniek:[]};
   // Sommige tabellen zijn gedeeld via Supabase als ze bestaan; anders bewaren we ze
   // lokaal op dit toestel (zodat de functie meteen werkt). Eén vlag per tabel.
   let bestelOK=false, contactenOK=false, checklistenOK=false, logboekOK=false, gebruikersOK=false, activiteitOK=false, manualsdocOK=false, appconfigOK=false, spelarchiefOK=false;
   let productenOK=false, productleveringenOK=false;
   let projectenOK=false, projecttakenOK=false, projectberichtenOK=false, projectagendaOK=false, projectdocsOK=false;
   let werkurenOK=false;
+  let techniekOK=false;
   // Losse kolom die er later bij kwam: 'finalevraag' op de tabel formulieren.
   // Zie docs/finalevraag-kolom.sql — zonder die kolom werkt alles gewoon, maar komt de
   // finalevraag in het bestaande veld 'finale' terecht, herkenbaar aan VRAAG_MARKER.
@@ -83,7 +84,7 @@
   // blijven staan. Ze heeft geen oude losse opslagsleutel, vandaar null.
   const INHAAL_TABELLEN=[['projecten',K_PROJECTEN_BACKUP],['projecttaken',K_PROJTAKEN_BACKUP],
     ['projectberichten',K_PROJBERICHTEN_BACKUP],['projectagenda',K_PROJAGENDA_BACKUP],
-    ['projectdocs',K_PROJDOCS_BACKUP],['werkuren',null]];
+    ['projectdocs',K_PROJDOCS_BACKUP],['werkuren',null],['techniek',null]];
   function bewaarLokaleProjectstand(){
     INHAAL_TABELLEN.forEach(paar=>{ lokaalVoorSync[paar[0]]=lokaleKopie(paar[0],paar[1]); });
   }
@@ -148,7 +149,7 @@
       boekjes: cache.boekjes, formulieren: cache.formulieren, leveringen: zonderFoto(cache.leveringen),
       bestellingen: cache.bestellingen, contacten: cache.contacten, checklisten: cache.checklisten, logboek: cache.logboek, gebruikers: zonderFoto(cache.gebruikers), activiteit: cache.activiteit,
       projecten: cache.projecten, projecttaken: cache.projecttaken, projectberichten: cache.projectberichten,
-      projectagenda: cache.projectagenda, projectdocs: cache.projectdocs, werkuren: cache.werkuren,
+      projectagenda: cache.projectagenda, projectdocs: cache.projectdocs, werkuren: cache.werkuren, techniek: cache.techniek,
       manualsdoc: cache.manualsdoc, appconfig: cache.appconfig, spelarchief: cache.spelarchief,
       producten: cache.producten, productleveringen: zonderFoto(cache.productleveringen)
     };
@@ -269,7 +270,7 @@
       cache.leveringen=c.leveringen||[]; cache.bestellingen=c.bestellingen||[]; cache.contacten=c.contacten||[];
       cache.checklisten=c.checklisten||[]; cache.logboek=c.logboek||[]; cache.gebruikers=c.gebruikers||[]; cache.activiteit=c.activiteit||[];
       cache.projecten=c.projecten||[]; cache.projecttaken=c.projecttaken||[]; cache.projectberichten=c.projectberichten||[];
-      cache.projectagenda=c.projectagenda||[]; cache.projectdocs=c.projectdocs||[]; cache.werkuren=c.werkuren||[];
+      cache.projectagenda=c.projectagenda||[]; cache.projectdocs=c.projectdocs||[]; cache.werkuren=c.werkuren||[]; cache.techniek=c.techniek||[];
       cache.manualsdoc=c.manualsdoc||null; cache.appconfig=c.appconfig||null; cache.spelarchief=c.spelarchief||null;
       cache.producten=c.producten||[]; cache.productleveringen=c.productleveringen||[];
       overlayOudeKopieen();
@@ -547,6 +548,7 @@
   const KOL_PRIJZEN='id,cat,naam,stock,in_gebruik';
   const KOL_LEVERINGEN='id,ts,datum,boekjes,tekst';
   const KOL_GEBRUIKERS='id,naam,pin,rol,ts';
+  const KOL_TECHNIEK='id,soort,ts,data';
   // Vangnet: bestaat een van die kolommen (nog) niet in de tabel, dan vragen we gewoon
   // alles op. Beter één verzoek te veel dan een lege inventaris.
   async function selectSmal(tabel,kolommen){
@@ -965,6 +967,7 @@
     await seedTabelInhalen('projectagenda',agendaToRow,'projectagenda',K_PROJAGENDA_BACKUP,()=>projectagendaOK);
     await seedTabelInhalen('projectdocs',docToRow,'projectdocs',K_PROJDOCS_BACKUP,()=>projectdocsOK);
     await seedTabelInhalen('werkuren',uurToRow,'werkuren',null,()=>werkurenOK);
+    await seedTabelInhalen('techniek',tkToRow,'techniek',null,()=>techniekOK);
     if(checklistenOK && !cache.checklisten.length && localStorage.getItem('bb_sharedseed_checklisten_def')!=='1'){
       const def=defaultChecklist(); const r=await sb.from('checklisten').insert(checklistToRow(def)); err(r);
       cache.checklisten=[def]; saveBackup('checklisten',K_CHECKLISTEN_BACKUP);
@@ -1018,7 +1021,7 @@
     if(fotosBezig) return; fotosBezig=true;           // niet twee keer tegelijk
     try{
       let iets=false;
-      for(const [tabel,key] of [['prijzen','prijzen'],['leveringen','leveringen'],['gebruikers','gebruikers'],['productleveringen','productleveringen']])
+      for(const [tabel,key] of [['prijzen','prijzen'],['leveringen','leveringen'],['gebruikers','gebruikers'],['productleveringen','productleveringen'],['techniek','techniek']])
         if(await haalFotosVoor(tabel,key)) iets=true;
       if(iets) persistCache();                        // meteen offline bewaren (ook in IndexedDB)
     } finally { fotosBezig=false; }
@@ -1061,6 +1064,7 @@
       loadShared('projectagenda','projectagenda',mapAgenda,K_PROJAGENDA_BACKUP,v=>projectagendaOK=v),
       loadShared('projectdocs','projectdocs',mapDoc,K_PROJDOCS_BACKUP,v=>projectdocsOK=v),
       loadShared('werkuren','werkuren',mapUur,null,v=>werkurenOK=v),
+      loadShared('techniek','techniek',mapTk,null,v=>techniekOK=v,KOL_TECHNIEK),
       loadActiviteit(),
       loadDoc('manualsdoc','manualsdoc',v=>manualsdocOK=v),
       loadDoc('appconfig','appconfig',v=>appconfigOK=v),
@@ -1144,6 +1148,7 @@
     else if(t==='projectagenda'&&projectagendaOK){const r=await sb.from('projectagenda').select('*'); if(r.data){cache.projectagenda=r.data.map(mapAgenda); saveBackup('projectagenda',K_PROJAGENDA_BACKUP);}}
     else if(t==='projectdocs'&&projectdocsOK){const r=await sb.from('projectdocs').select('*'); if(r.data){cache.projectdocs=r.data.map(mapDoc); saveBackup('projectdocs',K_PROJDOCS_BACKUP);}}
     // Werkuren: wat hier nog te versturen of te wissen staat, blijft voorgaan op de serverlijst.
+    else if(t==='techniek'&&techniekOK){const r=await selectSmal('techniek',KOL_TECHNIEK); if(r.data){cache.techniek=behoudFotos(cache.techniek,metWachtendeSchrijfsels('techniek',zonderWachtendeWissers('techniek',r.data)).map(mapTk)); saveBackup('techniek',null);}}
     else if(t==='werkuren'&&werkurenOK){const r=await sb.from('werkuren').select('*'); if(r.data){cache.werkuren=metWachtendeSchrijfsels('werkuren',zonderWachtendeWissers('werkuren',r.data)).map(mapUur); saveBackup('werkuren',null);}}
     else if(t==='manualsdoc'&&manualsdocOK){const r=await sb.from('manualsdoc').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.manualsdoc=r.data?(r.data.data||null):null;}}
     else if(t==='appconfig'&&appconfigOK){const r=await sb.from('appconfig').select('*').eq('id',1).maybeSingle(); if(!r.error){cache.appconfig=r.data?(r.data.data||null):null;}}
@@ -1852,6 +1857,228 @@
     return lijst.filter(r=>namen.indexOf(String(r.naam||'').trim().toLowerCase())<0).length;
   }
 
+  // ---------------- TECHNIEK (licht en geluid) ----------------
+  // Eén gedeelde tabel 'techniek' met één rij per ding — zie docs/techniek-supabase.sql:
+  //   soort 'item'  het materiaal. Twee soorten:
+  //                 type 'aantal'  telbaar spul (XLR-kabels: aantal 24, kapot 2, herstel 1)
+  //                 type 'los'     een apart item met een eigen status (Headset 3: ok / kapot /
+  //                                herstel / weg), eventueel met een nummer
+  //   soort 'log'   het logboek: kapot gemeld, naar herstel, terug, hersteld, afgeschreven,
+  //                 besteld, geleverd… Een melding blijft 'open' tot een technieker ze afhandelt.
+  // De velden staan in de kolom data (jsonb); een foto in een eigen kolom, die achteraf komt.
+  // Kapot melden mag iedereen; de rest is voor techniekers en admins (zie kern.js).
+  const TK_GROEPEN=['Geluid','Licht','Kabels','Video','Overig'];
+  const TK_STATUS=['ok','kapot','herstel','weg'];
+  const mapTk=r=>{
+    const d=(r&&r.data&&typeof r.data==='object')?r.data:{};
+    return Object.assign({},d,{id:r.id,soort:r.soort||'item',ts:+r.ts||0,foto:r.foto||''});
+  };
+  function tkData(x){ const d={}; Object.keys(x||{}).forEach(k=>{ if(['id','soort','ts','foto'].indexOf(k)<0) d[k]=x[k]; }); return d; }
+  const tkToRow=x=>({id:x.id,soort:x.soort||'item',ts:+x.ts||0,data:tkData(x),foto:x.foto||''});
+  // Zonder foto: een gewone wijziging mag de foto in de database niet leegmaken.
+  const tkToRowKaal=x=>({id:x.id,soort:x.soort||'item',ts:+x.ts||0,data:tkData(x)});
+  function tkVandaag(){ return vvIso(vvVandaag()); }
+  // Een tijdstip dat altijd oploopt: twee regels in dezelfde milliseconde (bv. "naar herstel"
+  // en het sluiten van de melding) staan anders in een willekeurige volgorde in het logboek.
+  let tkLaatsteTs=0;
+  function tkNu(){ const n=Date.now(); tkLaatsteTs=n>tkLaatsteTs?n:tkLaatsteTs+1; return tkLaatsteTs; }
+  function tkSave(x,metFoto){
+    saveBackup('techniek',null);
+    inhaalSchrijf('techniek',techniekOK,metFoto?tkToRow(x):tkToRowKaal(x),x.id);
+  }
+  const getTechniek=()=>cache.techniek.filter(x=>x&&x.soort==='item');
+  const getTechniekItem=id=>cache.techniek.find(x=>x&&x.soort==='item'&&x.id===id)||null;
+  function getTechniekLog(itemId){
+    return cache.techniek.filter(x=>x&&x.soort==='log'&&(!itemId||x.item_id===itemId)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  }
+  const techniekOpenMeldingen=()=>getTechniekLog().filter(x=>x.actie==='melding'&&x.open);
+  function tkLog(item,actie,extra){
+    const rec=Object.assign({id:uid(),soort:'log',ts:tkNu(),item_id:item?item.id:'',item_naam:item?item.naam:'',
+      actie:actie,tekst:'',door:actor||'',datum:tkVandaag()},extra||{});
+    if(!rec.item_naam && extra && extra.naam) rec.item_naam=extra.naam;
+    delete rec.naam;
+    cache.techniek.push(rec); tkSave(rec,!!rec.foto);
+    return rec;
+  }
+  function tkN(v){ return Math.max(0,Math.round(+v||0)); }
+  function tkSchoon(it){
+    const type=it.type==='los'?'los':'aantal';
+    return {naam:String(it.naam||'').trim(), groep:TK_GROEPEN.indexOf(it.groep)>=0?it.groep:'Overig', type:type,
+      locatie:String(it.locatie||'').trim(), nummer:String(it.nummer||'').trim(), notitie:String(it.notitie||'').trim(),
+      aantal:type==='aantal'?tkN(it.aantal):1, kapot:type==='aantal'?tkN(it.kapot):0, herstel:type==='aantal'?tkN(it.herstel):0,
+      status:type==='los'?(TK_STATUS.indexOf(it.status)>=0?it.status:'ok'):'',
+      herstelBij:String(it.herstelBij||''), herstelSinds:String(it.herstelSinds||'')};
+  }
+  function addTechniekItem(it,stil){
+    const rec=Object.assign({id:uid(),soort:'item',ts:tkNu()},tkSchoon(it||{}));
+    if(!rec.naam) return null;
+    cache.techniek.push(rec); tkSave(rec);
+    tkLog(rec,'toegevoegd',{tekst:rec.type==='aantal'?(rec.aantal+' stuks'):''});
+    if(!stil) logAct('Techniek: '+rec.naam+' toegevoegd');
+    return rec;
+  }
+  // Een reeks losse items in één keer: "Headset" × 6 → Headset 1 … Headset 6.
+  function addTechniekReeks(it,aantal){
+    const k=Math.max(1,Math.round(+aantal||1));
+    if(k===1) return [addTechniekItem(Object.assign({},it,{type:'los'}))].filter(Boolean);
+    const uit=[];
+    for(let i=1;i<=k;i++){ const r=addTechniekItem(Object.assign({},it,{type:'los',naam:String(it.naam||'').trim()+' '+i}),true); if(r) uit.push(r); }
+    if(uit.length) logAct('Techniek: '+uit.length+'× '+String(it.naam||'').trim()+' toegevoegd');
+    return uit;
+  }
+  function updateTechniekItem(id,patch,logTekst){
+    const r=getTechniekItem(id); if(!r) return null;
+    Object.assign(r,tkSchoon(Object.assign({},r,patch))); tkSave(r);
+    if(logTekst!==false) tkLog(r,'aangepast',{tekst:logTekst||''});
+    return r;
+  }
+  function removeTechniekItem(id){
+    const r=getTechniekItem(id); if(!r) return;
+    cache.techniek=cache.techniek.filter(x=>x.id!==id); saveBackup('techniek',null);
+    inhaalWissen('techniek',techniekOK,id);
+    tkLog({id:id,naam:r.naam},'verwijderd',{});     // het logboek houdt de geschiedenis
+    logAct('Techniek: '+r.naam+' verwijderd');
+  }
+  // Open meldingen van een item sluiten (bv. omdat het naar herstel gaat of hersteld is).
+  function tkSluitMeldingen(itemId,hoe){
+    techniekOpenMeldingen().filter(m=>m.item_id===itemId).forEach(m=>{
+      m.open=false; m.afgehandeld={hoe:hoe,door:actor||'',ts:Date.now()}; tkSave(m);
+    });
+  }
+  // Kapot melden — mag iedereen. m = {itemId | naam (iets dat niet in de lijst staat), tekst, foto, aantal}
+  function techniekMeld(m){
+    const it=m&&m.itemId?getTechniekItem(m.itemId):null;
+    const n=Math.max(1,tkN(m&&m.aantal));
+    if(it){
+      if(it.type==='los'){ if(it.status==='ok') it.status='kapot'; }
+      else it.kapot=Math.min(Math.max(0,it.aantal-it.herstel),it.kapot+n);
+      tkSave(it);
+    }
+    const naam=it?it.naam:String((m&&m.naam)||'').trim();
+    const rec=tkLog(it,'melding',{naam:naam,tekst:String((m&&m.tekst)||'').trim(),foto:(m&&m.foto)||'',aantal:it&&it.type==='aantal'?n:1,open:true});
+    logAct('Techniek: '+(naam||'iets')+' kapot gemeld');
+    return rec;
+  }
+  function meldingAfhandelen(logId,hoe){
+    const m=cache.techniek.find(x=>x&&x.id===logId&&x.soort==='log'); if(!m) return null;
+    m.open=false; m.afgehandeld={hoe:hoe||'opgelost',door:actor||'',ts:Date.now()}; tkSave(m);
+    // "Geen probleem": de melding had het item op kapot gezet — dat terugdraaien. Een los item
+    // enkel als er geen andere melding meer open staat.
+    const it=hoe==='geen'&&m.item_id?getTechniekItem(m.item_id):null;
+    if(it){
+      if(it.type==='los'){ if(it.status==='kapot' && !techniekOpenMeldingen().some(x=>x.item_id===it.id)) it.status='ok'; }
+      else it.kapot=Math.max(0,it.kapot-Math.max(1,tkN(m.aantal)));
+      tkSave(it);
+    }
+    return m;
+  }
+  function naarHerstel(id,o){
+    const it=getTechniekItem(id); if(!it) return null; o=o||{};
+    const bij=String(o.bij||'').trim(); let n=1;
+    if(it.type==='los'){ it.status='herstel'; }
+    else { n=Math.min(Math.max(1,tkN(o.aantal)),Math.max(0,it.aantal-it.herstel)); if(!n) return null;
+      it.kapot=Math.max(0,it.kapot-n); it.herstel+=n; }
+    it.herstelBij=bij; it.herstelSinds=tkVandaag(); tkSave(it);
+    tkLog(it,'herstel',{tekst:String(o.tekst||'').trim(),bij:bij,aantal:n});
+    tkSluitMeldingen(id,'herstel');
+    logAct('Techniek: '+it.naam+(n>1?(' ('+n+')'):'')+' naar herstel'+(bij?(' bij '+bij):''));
+    return it;
+  }
+  function terugUitHerstel(id,o){
+    const it=getTechniekItem(id); if(!it) return null; o=o||{}; let n=1;
+    if(it.type==='los'){ it.status='ok'; }
+    else { n=Math.min(Math.max(1,tkN(o.aantal)),it.herstel); if(!n) return null; it.herstel-=n; }
+    if(it.type==='los'||!it.herstel){ it.herstelBij=''; it.herstelSinds=''; }
+    tkSave(it); tkLog(it,'terug',{tekst:String(o.tekst||'').trim(),aantal:n});
+    logAct('Techniek: '+it.naam+(n>1?(' ('+n+')'):'')+' terug uit herstel');
+    return it;
+  }
+  // Ter plaatse gemaakt (zonder herstelling elders).
+  function markeerHersteld(id,o){
+    const it=getTechniekItem(id); if(!it) return null; o=o||{}; let n=1;
+    if(it.type==='los'){ it.status='ok'; it.herstelBij=''; it.herstelSinds=''; }
+    else { n=Math.min(Math.max(1,tkN(o.aantal)),it.kapot); if(!n) return null; it.kapot-=n; }
+    tkSave(it); tkLog(it,'hersteld',{tekst:String(o.tekst||'').trim(),aantal:n});
+    tkSluitMeldingen(id,'opgelost');
+    logAct('Techniek: '+it.naam+' hersteld');
+    return it;
+  }
+  // Weg ermee: los → status 'weg'; telbaar → minder in totaal (eerst van wat kapot is).
+  function afschrijven(id,o){
+    const it=getTechniekItem(id); if(!it) return null; o=o||{}; let n=1;
+    if(it.type==='los'){ it.status='weg'; it.herstelBij=''; it.herstelSinds=''; }
+    else { n=Math.min(Math.max(1,tkN(o.aantal)),it.aantal); if(!n) return null;
+      it.aantal-=n; it.kapot=Math.max(0,it.kapot-n); it.herstel=Math.min(it.herstel,it.aantal); it.kapot=Math.min(it.kapot,it.aantal-it.herstel); }
+    tkSave(it); tkLog(it,'afgeschreven',{tekst:String(o.tekst||'').trim(),aantal:n});
+    tkSluitMeldingen(id,'afgeschreven');
+    logAct('Techniek: '+it.naam+(n>1?(' ('+n+')'):'')+' afgeschreven');
+    return it;
+  }
+  // ---- Bestellen: gekoppeld aan het Besteloverzicht (categorie "Techniek") ----
+  // Wat je hier bestelt, komt als bestelling in het Besteloverzicht; zet iemand ze daar op een
+  // "ontvangen" status (standaard In loods / Uitgepakt), dan werkt Techniek zichzelf bij: een
+  // telbaar item krijgt er het bestelde aantal bij, een los item staat terug op "in orde".
+  function bestelOntvangen(st){
+    let l=['In loods','Uitgepakt'];
+    try{ const x=JSON.parse(localStorage.getItem('bb_bestel_ontvangen')||'null'); if(Array.isArray(x)&&x.length) l=x; }catch(e){}
+    return l.indexOf(st)>=0;
+  }
+  const tkIsTechniekBestelling=b=>String((b&&b.cat)||'').trim().toLowerCase()==='techniek';
+  const tkBestelLink=bid=>cache.techniek.find(x=>x&&x.soort==='log'&&x.actie==='besteld'&&x.bestel_id===bid)||null;
+  const tkGeleverd=bid=>cache.techniek.some(x=>x&&x.soort==='log'&&x.actie==='geleverd'&&x.bestel_id===bid);
+  function techniekBestellen(o){
+    o=o||{};
+    const it=o.itemId?getTechniekItem(o.itemId):null;
+    const n=Math.max(1,tkN(o.aantal));
+    const info=String(o.info||'').trim()||(it?it.naam:'');
+    if(!info) return null;
+    const b=addBestelling({datum:tkVandaag(),cat:'Techniek',info:info,aantal:String(n),status:'Besteld',
+      leverancier:String(o.leverancier||'').trim(),door:o.door||actor||''});
+    tkLog(it,'besteld',{naam:it?it.naam:info,bestel_id:b.id,aantal:n,tekst:it&&info!==it.naam?info:''});
+    return b;
+  }
+  // Een bestelling die in het Besteloverzicht gemaakt werd, alsnog aan een item koppelen.
+  function koppelBestelling(bestelId,itemId,aantal){
+    const b=cache.bestellingen.find(x=>x.id===bestelId), it=getTechniekItem(itemId);
+    if(!b||!it||tkBestelLink(bestelId)) return null;
+    const n=Math.max(1,tkN(aantal||parseInt(b.aantal,10)||1));
+    const l=tkLog(it,'besteld',{bestel_id:b.id,aantal:n,tekst:b.info&&b.info!==it.naam?b.info:''});
+    techniekBijLevering(b);                      // stond ze al op ontvangen? dan meteen verwerken
+    return l;
+  }
+  function techniekBijLevering(b){
+    if(!b||!bestelOntvangen(b.status)) return false;
+    const link=tkBestelLink(b.id); if(!link||tkGeleverd(b.id)) return false;
+    const it=getTechniekItem(link.item_id);
+    if(it){
+      if(it.type==='los'){ it.status='ok'; it.herstelBij=''; it.herstelSinds=''; }
+      else it.aantal+=tkN(link.aantal);
+      tkSave(it);
+    }
+    // Vaste id: zo komt een levering nooit twee keer in het logboek, ook niet van twee toestellen.
+    const rec={id:'tkgel-'+b.id,soort:'log',ts:tkNu(),item_id:link.item_id,item_naam:link.item_naam,actie:'geleverd',
+      bestel_id:b.id,aantal:link.aantal,tekst:b.status,door:actor||'',datum:tkVandaag()};
+    cache.techniek.push(rec); tkSave(rec);
+    logAct('Techniek: levering van '+(link.item_naam||b.info||'')+' verwerkt'+(it&&it.type==='aantal'?(' (+'+tkN(link.aantal)+')'):''));
+    return true;
+  }
+  // Alle bestellingen die over techniek gaan: categorie Techniek, of gekoppeld aan een item.
+  function techniekBestellingen(){
+    return cache.bestellingen.filter(b=>tkIsTechniekBestelling(b)||tkBestelLink(b.id))
+      .map(b=>{ const l=tkBestelLink(b.id); return {bestelling:b,link:l,item:l?getTechniekItem(l.item_id):null,geleverd:tkGeleverd(b.id)}; })
+      .sort((a,b)=>String(b.bestelling.datum||'').localeCompare(String(a.bestelling.datum||''))||(b.bestelling.ts||0)-(a.bestelling.ts||0));
+  }
+  // Voor de samenvatting en de melding op de startpagina.
+  function techniekTelling(){
+    const items=getTechniek();
+    let kapot=0, herstel=0;
+    items.forEach(it=>{
+      if(it.type==='los'){ if(it.status==='kapot') kapot++; else if(it.status==='herstel') herstel++; }
+      else { kapot+=tkN(it.kapot); herstel+=tkN(it.herstel); }
+    });
+    return {items:items.length,kapot:kapot,herstel:herstel,open:techniekOpenMeldingen().length};
+  }
+
   // ---------------- CHECKLISTS (gedeeld) ----------------
   const getChecklisten=()=>cache.checklisten.slice().sort((a,b)=>(a.pos||0)-(b.pos||0)||(a.ts||0)-(b.ts||0));
   function saveChecklistBackup(){ saveBackup('checklisten',K_CHECKLISTEN_BACKUP); }
@@ -2190,7 +2417,7 @@
     let wat='aangepast';
     if(patch&&('rol' in patch)){
       const t=rolTags({rol:patch.rol});
-      const namen={vast:'Vaste mdw',admin:'Admin',parkcoach:'Parkcoach',extern:'Extern',algemeen:'Gedeeld account'};
+      const namen={vast:'Vaste mdw',admin:'Admin',parkcoach:'Parkcoach',technieker:'Technieker',extern:'Extern',algemeen:'Gedeeld account'};
       wat = t.length ? ('rol: '+t.map(x=>namen[x]||x).join(' + ')) : 'rol verwijderd (gewone medewerker)';
     }
     else if(patch&&('pin' in patch)) wat='pincode gereset';
@@ -2821,7 +3048,9 @@
     const oudeStatus=rec.status;
     Object.assign(rec,bestelClean(Object.assign({},rec,patch))); bestelSave(rec);
     const statusExtra=(rec.status&&rec.status!==oudeStatus)?(' → '+rec.status):'';
-    logAct('Bestelling aangepast: '+(rec.info||rec.cat||'')+statusExtra); return rec;
+    logAct('Bestelling aangepast: '+(rec.info||rec.cat||'')+statusExtra);
+    if(rec.status!==oudeStatus) techniekBijLevering(rec);
+    return rec;
   }
   function removeBestelling(id){
     const b0=cache.bestellingen.find(b=>b.id===id);
@@ -2888,6 +3117,7 @@
     {tabel:'projectagenda',  label:'Projectagenda',        ok:()=>projectagendaOK,  tel:()=>cache.projectagenda.length},
     {tabel:'projectdocs',    label:'Projectdocumenten',    ok:()=>projectdocsOK,    tel:()=>cache.projectdocs.length},
     {tabel:'werkuren',      label:'Werkuren',             ok:()=>werkurenOK,       tel:()=>cache.werkuren.length},
+    {tabel:'techniek',      label:'Techniek',             ok:()=>techniekOK,       tel:()=>cache.techniek.length},
     {tabel:'manualsdoc',     label:'Online manuals',       ok:()=>manualsdocOK,     tel:()=>cache.manualsdoc?1:0},
     {tabel:'appconfig',      label:'Instellingen (gedeeld)',ok:()=>appconfigOK,     tel:()=>cache.appconfig?1:0},
     {tabel:'spelarchief',    label:'Spelarchief',          ok:()=>spelarchiefOK,    tel:()=>cache.spelarchief?1:0}
@@ -3044,6 +3274,10 @@
     // Minimum, eenheid en stockcontrole voor Quiz/O&F/Algemeen — zie hierboven.
     getProductInfo,setProductInfo,productStaat,tekorten,getStockControle,stockControle,
     voegStocklijstToe,stocklijstOntbreekt,printProductBestellijst,dubbeleProducten,voegDubbelsSamen,
+    // Techniek (licht en geluid) — zie hierboven.
+    TK_GROEPEN,getTechniek,getTechniekItem,getTechniekLog,techniekOpenMeldingen,addTechniekItem,addTechniekReeks,
+    updateTechniekItem,removeTechniekItem,techniekMeld,meldingAfhandelen,naarHerstel,terugUitHerstel,markeerHersteld,
+    afschrijven,techniekBestellen,koppelBestelling,techniekBestellingen,techniekTelling,isTechniekGedeeld:()=>techniekOK,
     // Vast verbruik (automatische aftelling) voor Quiz/O&F/Algemeen — zie hierboven.
     getVastVerbruik,setVastVerbruik,vastVerbruikInhalen,volgendeVastVerbruik,isVastVerbruikRij,
     isProductenFotoGedeeld:()=>productenFotoOK,

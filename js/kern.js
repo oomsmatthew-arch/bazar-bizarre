@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.42';
+const APP_VERSION='v9.43';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -166,6 +166,7 @@ const TOEGANG_KEUZES=[
   {waarde:'iedereen', naam:'Iedereen'},
   {waarde:'vast',     naam:'Vaste mdw + admin'},
   {waarde:'admin',    naam:'Enkel admin'},
+  {waarde:'techniek', naam:'Techniekers + admin'},
   {waarde:'wie',      naam:'Bepaalde medewerkers…'},
   {waarde:'beheer',   naam:'Met wachtwoord'}
 ];
@@ -194,6 +195,8 @@ const TOEGANG_CATEGORIEEN=[
    std:{bekijken:'vast',gebruiken:'vast',beheren:'vast'}},
   {key:'manuals',     naam:'Online manuals', uitleg:'Handleidingen en video\'s.',
    std:{bekijken:'iedereen',gebruiken:'iedereen',beheren:'beheer'}},
+  {key:'techniek',    naam:'Techniek',       uitleg:'Materiaal voor licht en geluid: wat waar staat, wat kapot of in herstel is, en bestellingen. Kapot melden kan iedereen, ook zonder deze toegang.',
+   std:{bekijken:'techniek',gebruiken:'techniek',beheren:'techniek'}},
   {key:'activiteit',  naam:'Activiteit',     uitleg:'Wie heeft wat aangepast.',
    std:{bekijken:'vast',gebruiken:'vast',beheren:'admin'}},
   {key:'systeem',     naam:'Systeem',        uitleg:'Verbinding, synchronisatie en opslag.',
@@ -273,6 +276,7 @@ function magToegang(cat,niveau){
   if(r==='iedereen') return true;
   if(r==='vast')     return isVasteMdw()||isAdmin();
   if(r==='admin')    return isAdmin();
+  if(r==='techniek') return isTechnieker()||isAdmin();
   if(r==='beheer')   return isVasteMdw()||isAdmin()||isOntgrendeld();
   if(/^wie:/.test(r)) return toegWieMag(r);
   return true;
@@ -641,6 +645,9 @@ function isExtern(){ return heeftRol('extern'); }
 // bekijken (iedereen ziet daar zijn eigen). Verder niets: telt bewust NIET mee in
 // magToegang/externGeblokkeerd.
 function isParkcoach(){ return heeftRol('parkcoach'); }
+// Technieker = ziet en beheert Techniek (licht en geluid). Telt enkel mee via de toegangsregel
+// 'techniek' (Techniekers + admin) — verder een gewone medewerker.
+function isTechnieker(){ return heeftRol('technieker'); }
 // De link voor externen (zie extern.html): wie ze opent, is meteen binnen als het
 // gedeelde account Extern, zonder toegangscode.
 function externDeellink(){ try{ return new URL(bbUrl('extern'),location.href).href; }catch(e){ return 'https://entertainmentvm.be/extern'; } }
@@ -787,6 +794,7 @@ function renderLoginNames(){
       if(BBInv.heeftRol(u,'admin')) r.push('Admin');
       if(BBInv.heeftRol(u,'vast')) r.push('Vaste mdw');
       if(BBInv.heeftRol(u,'parkcoach')) r.push('Parkcoach');
+      if(BBInv.heeftRol(u,'technieker')) r.push('Technieker');
       if(BBInv.heeftRol(u,'extern')) r.push('Extern');
       if(r.length) sub='<span class="nopin vast">'+r.join(' · ')+'</span>';
     }
@@ -954,6 +962,7 @@ function renderGebrList(){
     const admin = BBInv.heeftRol(u,'admin');
     const extern = BBInv.heeftRol(u,'extern');
     const parkcoach = BBInv.heeftRol(u,'parkcoach');
+    const technieker = BBInv.heeftRol(u,'technieker');
     row.innerHTML='<span class="av">'+avatarInner(u)+'</span>'+
       '<span class="nm">'+esc(u.naam)+'</span>'+
       (locked
@@ -968,6 +977,10 @@ function renderGebrList(){
             (magAdminUitdelen()?'Kan in de Persoonlijke ratings ook die van collega\'s bekijken en de rooster uploaden — verder een gewone medewerker'
                                :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
             (parkcoach?'✓ Parkcoach':'Parkcoach')+'</button>'+
+          '<button class="technieker'+(technieker?' on':'')+(magAdminUitdelen()?'':' uit')+'" title="'+
+            (magAdminUitdelen()?'Ziet en beheert Techniek (licht en geluid) — verder een gewone medewerker'
+                               :'Alleen een admin kan deze rol toekennen of afnemen')+'">'+
+            (technieker?'✓ Technieker':'Technieker')+'</button>'+
           '<button class="extern'+(extern?' on':'')+'" title="Buitenstaander (bv. een gids): '+
             esc(externOnderdelenTekst()?'ziet enkel '+externOnderdelenTekst():'ziet momenteel niets')+
             ' — ongeacht de andere toegangen">'+(extern?'✓ Extern':'Extern')+'</button>'+
@@ -995,6 +1008,11 @@ function renderGebrList(){
         // Parkcoach en kijkt mee in de persoonlijke scores van collega's.
         if(!magAdminUitdelen()){ meldGeenAdmin('Parkcoach'); return; }
         BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'parkcoach',!parkcoach)}); renderGebrList(); refreshAuth();
+      };
+      row.querySelector('.technieker').onclick=()=>{
+        // Net als Admin en Parkcoach: enkel een admin geeft deze rol.
+        if(!magAdminUitdelen()){ meldGeenAdmin('Technieker'); return; }
+        BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'technieker',!technieker)}); renderGebrList(); refreshAuth();
       };
       row.querySelector('.extern').onclick=()=>{ BBInv.updateGebruiker(u.id,{rol: BBInv.zetRol(u,'extern',!extern)}); renderGebrList(); refreshAuth(); };
       row.querySelector('.naam').onclick=async()=>{

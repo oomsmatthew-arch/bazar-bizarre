@@ -323,6 +323,41 @@ extern account ziet dan voorlopig niets, en in de namenlijst staat "ziet momente
 Wil je dat externen later ook iets anders mogen zien, voeg de categorie toe aan
 `EXTERN_TOEGANG` in `js/kern.js` (een regel code, geen instelling in de app).
 
+## Rol: Technieker en de pagina Techniek
+
+Een **Technieker** ziet de kaart **Techniek** (licht en geluid); verder is het een gewone
+medewerker. Enkel een admin geeft de rol, in de namenlijst. Admins zien Techniek ook. Bij
+Instellingen → Toegangen staat Techniek standaard op **Techniekers + admin**; daar kan een
+admin het ook voor anderen openzetten.
+
+**⚠ Kapot melden kan iedereen** (behalve Extern): een kaart op de startpagina opent een venster
+— kies wat er kapot is (of typ iets dat niet in de lijst staat), zeg wat er mis is, eventueel
+met een foto. Het item staat meteen op kapot en de techniekers krijgen een rode melding op de
+startpagina tot iemand het afhandelt.
+
+`paginas/techniek.html` (+ `js/techniek.js`, het meldvenster in `js/techniek-melden.js`):
+- **Materiaal** — twee soorten. *Telbaar* (XLR-kabels: 24, waarvan 2 kapot en 1 in herstel)
+  en *losse items* met elk een eigen status (Headset 1 … 6: in orde / kapot / in herstel /
+  weg). Per item de soort (Geluid, Licht, Kabels, Video, Overig) en **waar het staat**; filteren
+  op soort, status en plaats. Wat kapot of in herstel is, staat bovenaan.
+- Tik op een item voor de details, de **geschiedenis** en de acties: kapot melden, naar herstel
+  (bij wie, bv. AMPS), terug uit herstel, hersteld (ter plaatse), afschrijven, bestellen,
+  bewerken, verwijderen (de geschiedenis blijft dan in het logboek).
+- **Meldingen & logboek** — de open meldingen (naar herstel / opgelost / geen probleem) en het
+  volledige logboek: wie meldde wat, wanneer ging het weg, wanneer kwam het terug.
+- **Herstel & bestellingen** — wat er weg is voor herstel en sinds hoelang, en de bestellingen
+  met categorie Techniek. **Bestellen vanuit Techniek** maakt de bestelling in het
+  Besteloverzicht; zet iemand ze daar op een "ontvangen" status (standaard *In loods* of
+  *Uitgepakt*), dan komt het aantal er vanzelf bij (telbaar) of staat het item terug in orde
+  (los) — precies één keer. Een bestelling die in het Besteloverzicht werd gemaakt, koppel je
+  hier met **🔗 Koppel aan materiaal**.
+- **Beheer** — materiaal toevoegen. Losse items in één keer als reeks: "Headset" × 6 wordt
+  Headset 1 … Headset 6.
+- De gegevens staan in één gedeelde tabel `techniek` (één rij per item of logregel, de velden
+  in een jsonb-kolom, een foto apart). Maak ze eenmalig aan met `docs/techniek-supabase.sql`;
+  ze staat op slot zoals de andere tabellen. Zonder die tabel werkt de pagina ook, maar dan
+  enkel op dat toestel (de pagina zegt het).
+
 ## Rol: Parkcoach en de Persoonlijke ratings
 
 Wie met een **eigen account** is ingelogd en op de kaart **Ratings** tikt, krijgt een keuze
@@ -611,6 +646,7 @@ aanpassen aan een onderdeel, dan open je gewoon dat ene bestand — de rest blij
 | Inventaris lijst BB | `paginas/inventaris.html` |
 | Besteloverzicht | `paginas/bestellingen.html` |
 | Projecten | `paginas/projecten.html` |
+| Techniek | `paginas/techniek.html` (techniekers en admins; kapot melden kan iedereen) |
 | Ratings | `paginas/ratings.html` (+ `ratings-vergelijk.html`, en `ratings-persoonlijk.html`: je eigen ratings, of als Admin/Parkcoach die van iedereen) |
 | Checklists | `paginas/checklists.html` |
 | Contacten | `paginas/contacten.html` |
@@ -642,6 +678,7 @@ werkt vanaf de startpagina én vanuit `paginas/`.
 - `projecten.js` — alles wat de projectenpagina doet
 - `ratings.js` / `ratings-vergelijk.js` — de gastbeoordelingen
 - `ratings-persoonlijk.js` + `rooster.js` — de persoonlijke ratings: de rooster-PDF inlezen en de ratings koppelen aan wie op de shift stond
+- `techniek.js` + `techniek-melden.js` — Techniek (licht en geluid) en het venster "Kapot melden"; de gegevens in `inventaris.js` (blok TECHNIEK)
 - `supabase.min.js` — de database-bibliotheek
 
 Elke pagina laadt de scripts in deze volgorde en vult daarna zelf `window.bbStart`

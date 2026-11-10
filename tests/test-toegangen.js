@@ -21,6 +21,7 @@ globalThis.isVasteMdw=function(){ return IK.vast; };
 globalThis.isAdmin=function(){ return IK.admin; };
 globalThis.isExtern=function(){ return IK.extern; };
 globalThis.isParkcoach=function(){ return !!IK.parkcoach; };
+globalThis.isTechnieker=function(){ return !!IK.technieker; };
 globalThis.isOntgrendeld=function(){ return IK.ontgrendeld; };
 globalThis.eisBeheer=function(){ return IK.vast||IK.admin||IK.ontgrendeld; };
 // 'Bepaalde medewerkers…' kijkt naar fullCurrentUser().id — hier ook na te bootsen.
@@ -134,6 +135,28 @@ function verse(){ Object.keys(store).forEach(function(k){ delete store[k]; }); }
   ok(magToegang('inventaris','bekijken')===true,'een gewone collega (niet extern) blijft gewoon overal bij kunnen, zoals voorheen');
   ok(externOnderdelenTekst()==='Halloween','zolang Halloween aan staat, ziet extern "Halloween"');
   UIT_SEIZOEN.push.apply(UIT_SEIZOEN,uitBewaard);
+
+  print('\n— Techniek: enkel techniekers en admins —');
+  verse();
+  var tc=TOEGANG_CATEGORIEEN.filter(function(c){ return c.key==='techniek'; })[0];
+  ok(tc && tc.std.bekijken==='techniek' && tc.std.beheren==='techniek','Techniek staat standaard op "Techniekers + admin"');
+  ok(toegLabel('techniek')==='Techniekers + admin','en zo heet die keuze bij Toegangen');
+  IK={vast:false,admin:false,ontgrendeld:false,extern:false,technieker:true};
+  ok(magToegang('techniek','bekijken')===true && magToegang('techniek','beheren')===true,'een technieker mag Techniek bekijken en beheren');
+  IK={vast:false,admin:true,ontgrendeld:false,extern:false};
+  ok(magToegang('techniek','bekijken')===true,'een admin ook');
+  IK={vast:true,admin:false,ontgrendeld:true,extern:false};
+  ok(magToegang('techniek','bekijken')===false,'een vaste medewerker niet (ook niet met het wachtwoord)');
+  IK={vast:false,admin:false,ontgrendeld:false,extern:false,parkcoach:true};
+  ok(magToegang('techniek','bekijken')===false,'een parkcoach of gewone collega niet');
+  IK={vast:false,admin:false,ontgrendeld:false,extern:true,technieker:true};
+  ok(magToegang('techniek','bekijken')===false,'een extern account niet, ook niet als technieker');
+  IK={vast:false,admin:false,ontgrendeld:false,extern:false,technieker:true};
+  ok(magToegang('inventaris','beheren')===false && magToegang('systeem','bekijken')===false,'en de rol geeft verder niets extra (geen inventaris beheren, geen systeem)');
+  setToegangen({techniek:{bekijken:'iedereen'}});
+  IK={vast:false,admin:false,ontgrendeld:false,extern:false};
+  ok(magToegang('techniek','bekijken')===true,'een admin kan Techniek bij Toegangen wel openzetten voor iedereen');
+  setToegangen({}); IK={vast:false,admin:false,ontgrendeld:false,extern:false};
 
   print('\n— Een onderdeel buiten het seizoen (UIT_SEIZOEN) is voor iedereen dicht —');
   verse();

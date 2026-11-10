@@ -88,6 +88,11 @@
         <h2>Besteloverzicht</h2>
         <p>Overzicht van bestellingen: status, aantal, kosten, leverancier en leverdatum.</p>
       </a>
+      <a class="card" data-key="techniek" href="paginas/techniek.html">
+        <div class="rnd">Techniekers</div>
+        <h2>Techniek</h2>
+        <p>Licht en geluid: wat we hebben en waar het staat, wat kapot of in herstel is, het logboek en de bestellingen.</p>
+      </a>
       <a class="card" data-key="projecten" href="paginas/projecten.html">
         <div class="rnd">Team</div>
         <h2>Projecten</h2>
@@ -112,6 +117,12 @@
         <div class="rnd">Team</div>
         <h2>Logboek</h2>
         <p>Overdracht tussen shifts: bijzonderheden, kapot materiaal, herinneringen.</p>
+      </a>
+      <!-- Voor iedereen (behalve Extern): geen pagina, maar een venster (js/techniek-melden.js). -->
+      <a class="card" data-key="kapotmelden" href="#" id="kaartKapot">
+        <div class="rnd">Iedereen</div>
+        <h2>⚠ Kapot melden</h2>
+        <p>Licht, geluid of ander technisch materiaal stuk? Meld het hier, de techniekers zien het meteen.</p>
       </a>
       <a class="card" data-key="werkuren" href="paginas/werkuren.html">
         <div class="rnd">Persoonlijk</div>
@@ -153,6 +164,7 @@
 <script src="js/inventaris.js"></script>
 <script src="js/kern.js"></script>
 <script src="js/zoek.js"></script>
+<script src="js/techniek-melden.js"></script>
 <script>
 // ---------------- ROTERENDE MELDINGEN ----------------
 // Zowel de voorraad-banners als de mededelingen wisselen elke 4 sec af als er
@@ -249,13 +261,21 @@ function computeLowstock(){
     if(o.length) op.push('<b>'+nm+': '+o.length+(o.length===1?' product':' producten')+' op het minimum</b> ('+namen(o)+').');
   });
 
-  bannerActive.red = (totaal<=dK) || boekjesLaag || onder.length>0;
+  // Techniek: open meldingen, enkel voor wie Techniek ziet (techniekers en admins).
+  let tkOpen=[];
+  if(BBInv.techniekOpenMeldingen && magToegang('techniek','bekijken')) tkOpen=BBInv.techniekOpenMeldingen();
+  const tkRegel=!tkOpen.length?'':('<b>🔧 Techniek: '+tkOpen.length+(tkOpen.length===1?' open melding':' open meldingen')+'</b> ('+
+    tkOpen.slice(0,3).map(m=>esc(m.item_naam||'?')).join(', ')+(tkOpen.length>3?', …':'')+') — <a href="paginas/techniek.html">naar Techniek</a>. ');
+
+  const voorraadRood=(totaal<=dK) || boekjesLaag || onder.length>0;
+  bannerActive.red = voorraadRood || !!tkRegel;
   if(bannerActive.red){
     let html='';
     if(totaal<=dK) html+='<b>Prijzenvoorraad bijna op (nog '+totaal+' stuks).</b> ';
     if(boekjesLaag) html+='<b>📕 Boekjes bijna op (nog '+bkStock+').</b> ';
     if(onder.length) html+=onder.join(' ')+' ';
-    html+='Bekijk via Naar voorraad.';
+    if(voorraadRood) html+='Bekijk via Naar voorraad. ';
+    html+=tkRegel;
     document.getElementById('lowstockItems').innerHTML=html;
   }
 
@@ -286,6 +306,12 @@ function updateKaarten(){
     kaart.style.display = mag ? '' : 'none';
   });
 }
+
+// ---------------- KAPOT MELDEN ----------------
+document.getElementById('kaartKapot').addEventListener('click',e=>{
+  e.preventDefault();
+  if(typeof techniekMelden==='function') techniekMelden('',()=>renderHome());
+});
 
 // ---------------- RATINGS: TEAM OF PERSOONLIJK ----------------
 // Wie met een eigen account is ingelogd, kiest achter de Ratings-kaart tussen de
