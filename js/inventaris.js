@@ -1492,8 +1492,10 @@
   // Kunnen we de database niet bereiken, dan doen we ook niets — liever een dag later dan
   // twee keer. Wie deze rij verwijdert, laat de dag opnieuw aftellen; daarom heeft ze op het
   // scherm geen verwijderknop.
-  const VV_HOOFDSTUKKEN=['quiz','of','algemeen'];
-  const VV_HSNAAM={quiz:'Quiz',of:'O&F',algemeen:'Algemeen'};
+  // 'techniek' = het verbruiksmateriaal van Techniek (batterijen, gaffa, lampen…): zelfde
+  // minimum, stockcontrole en bestellijst als de andere hoofdstukken.
+  const VV_HOOFDSTUKKEN=['quiz','of','algemeen','techniek'];
+  const VV_HSNAAM={quiz:'Quiz',of:'O&F',algemeen:'Algemeen',techniek:'Techniek'};
   const VV_DAGNAAM=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
   const VV_MAAND=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
   const VV_INHAAL_DAGEN=62;   // wat langer dan twee maanden geleden is, halen we niet meer in
@@ -1880,8 +1882,14 @@
   function tkVandaag(){ return vvIso(vvVandaag()); }
   // Een tijdstip dat altijd oploopt: twee regels in dezelfde milliseconde (bv. "naar herstel"
   // en het sluiten van de melding) staan anders in een willekeurige volgorde in het logboek.
+  // Ook voorbij de nieuwste regel die er al staat: loopt de klok van deze tablet wat achter op
+  // die van een andere, dan komt wat je nu doet toch ná wat daar eerder gebeurde.
   let tkLaatsteTs=0;
-  function tkNu(){ const n=Date.now(); tkLaatsteTs=n>tkLaatsteTs?n:tkLaatsteTs+1; return tkLaatsteTs; }
+  function tkNu(){
+    const nieuwste=cache.techniek.reduce((m,x)=>Math.max(m,+(x&&x.ts)||0),0);
+    const n=Math.max(Date.now(),nieuwste+1);
+    tkLaatsteTs=n>tkLaatsteTs?n:tkLaatsteTs+1; return tkLaatsteTs;
+  }
   function tkSave(x,metFoto){
     saveBackup('techniek',null);
     inhaalSchrijf('techniek',techniekOK,metFoto?tkToRow(x):tkToRowKaal(x),x.id);
@@ -1943,7 +1951,13 @@
   function tkSluitMeldingen(itemId,hoe){
     techniekOpenMeldingen().filter(m=>m.item_id===itemId).forEach(m=>{
       m.open=false; m.afgehandeld={hoe:hoe,door:actor||'',ts:Date.now()}; tkSave(m);
+      tkLogboekAf(m);
     });
+  }
+  // Het bericht in het Logboek dat bij een melding hoort, afvinken.
+  function tkLogboekAf(m){
+    const l=m&&m.logboek_id?cache.logboek.find(x=>x.id===m.logboek_id):null;
+    if(l&&!l.klaar) updateLog(l.id,{klaar:true});
   }
   // Kapot melden — mag iedereen. m = {itemId | naam (iets dat niet in de lijst staat), tekst, foto, aantal}
   function techniekMeld(m){
@@ -1955,13 +1969,20 @@
       tkSave(it);
     }
     const naam=it?it.naam:String((m&&m.naam)||'').trim();
-    const rec=tkLog(it,'melding',{naam:naam,tekst:String((m&&m.tekst)||'').trim(),foto:(m&&m.foto)||'',aantal:it&&it.type==='aantal'?n:1,open:true});
+    const tekst=String((m&&m.tekst)||'').trim(), stuks=it&&it.type==='aantal'?n:1;
+    // Ook in het Logboek (de overdracht tussen shifts), zodat de volgende shift het ziet. Dat
+    // bericht wordt vanzelf afgevinkt zodra een technieker de melding afhandelt. Eerst het
+    // bericht, zodat de melding in één keer (mét foto en mét die koppeling) bewaard wordt.
+    const lb=addLog({auteur:actor||'',tekst:'⚠ Kapot gemeld: '+(naam||'iets')+(stuks>1?(' ('+stuks+' stuks)'):'')+
+      (tekst?(' — '+tekst):'')+' (doorgegeven aan Techniek)'});
+    const rec=tkLog(it,'melding',{naam:naam,tekst:tekst,foto:(m&&m.foto)||'',aantal:stuks,open:true,logboek_id:lb?lb.id:''});
     logAct('Techniek: '+(naam||'iets')+' kapot gemeld');
     return rec;
   }
   function meldingAfhandelen(logId,hoe){
     const m=cache.techniek.find(x=>x&&x.id===logId&&x.soort==='log'); if(!m) return null;
     m.open=false; m.afgehandeld={hoe:hoe||'opgelost',door:actor||'',ts:Date.now()}; tkSave(m);
+    tkLogboekAf(m);
     // "Geen probleem": de melding had het item op kapot gezet — dat terugdraaien. Een los item
     // enkel als er geen andere melding meer open staat.
     const it=hoe==='geen'&&m.item_id?getTechniekItem(m.item_id):null;
@@ -2014,6 +2035,91 @@
     logAct('Techniek: '+it.naam+(n>1?(' ('+n+')'):'')+' afgeschreven');
     return it;
   }
+  // ---- Uitlenen: wie heeft wat, waar, en tot wanneer ----
+  // Eén rij per uitlening (soort 'uitleen'): {item_id, item_naam, aantal, aan, tot, sinds,
+  // door, terug, terugDatum, terugDoor}. Een los item is "uitgeleend" zolang er een open
+  // uitlening voor is; bij telbaar materiaal tellen de open uitleningen op.
+  const getUitleningen=(itemId,alleenOpen)=>cache.techniek.filter(x=>x&&x.soort==='uitleen'&&(!itemId||x.item_id===itemId)&&(!alleenOpen||!x.terug))
+    .sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const uitgeleend=it=>getUitleningen(it.id,true).reduce((s,u)=>s+tkN(u.aantal||1),0);
+  // Wat er nu echt ligt en bruikbaar is.
+  function bruikbaar(it){
+    if(it.type==='los') return (it.status==='ok'&&!uitgeleend(it))?1:0;
+    return Math.max(0,it.aantal-it.kapot-it.herstel-uitgeleend(it));
+  }
+  const teLaat=u=>!!(u&&!u.terug&&u.tot&&u.tot<tkVandaag());
+  function uitlenen(id,o){
+    const it=getTechniekItem(id); if(!it) return null; o=o||{};
+    const aan=String(o.aan||'').trim(); if(!aan) return null;
+    const vrij=bruikbaar(it); if(!vrij) return null;
+    const n=it.type==='los'?1:Math.min(Math.max(1,tkN(o.aantal)),vrij);
+    const rec={id:uid(),soort:'uitleen',ts:tkNu(),item_id:it.id,item_naam:it.naam,aantal:n,aan:aan,
+      tot:String(o.tot||''),sinds:tkVandaag(),door:actor||'',tekst:String(o.tekst||'').trim(),terug:false,terugDatum:'',terugDoor:''};
+    cache.techniek.push(rec); tkSave(rec);
+    tkLog(it,'uitgeleend',{aantal:n,bij:aan,tekst:(rec.tot?('tot '+rec.tot.split('-').reverse().join('/')):'')+(rec.tekst?((rec.tot?' · ':'')+rec.tekst):'')});
+    logAct('Techniek: '+it.naam+(n>1?(' ('+n+')'):'')+' uitgeleend aan '+aan);
+    return rec;
+  }
+  function terugbrengen(uitleenId,o){
+    const u=cache.techniek.find(x=>x&&x.id===uitleenId&&x.soort==='uitleen'); if(!u||u.terug) return null; o=o||{};
+    u.terug=true; u.terugDatum=tkVandaag(); u.terugDoor=actor||''; tkSave(u);
+    const it=getTechniekItem(u.item_id);
+    tkLog(it||{id:u.item_id,naam:u.item_naam},'teruggebracht',{aantal:u.aantal,bij:u.aan,tekst:String(o.tekst||'').trim()});
+    logAct('Techniek: '+u.item_naam+' teruggebracht');
+    return u;
+  }
+
+  // ---- Zalen: vaste opstelling, aansluitschema, presets, handleidingen en een check ----
+  // Eén rij per zaal (soort 'zaal'): {naam, opstelling, schema, presets, links:[{tekst,url}],
+  // opstart:[…], afsluit:[…]}; een foto van het aansluitschema mag in de foto-kolom.
+  // Het materiaal dat er staat, is gewoon het materiaal met die plaats (zie zaalMateriaal).
+  const getZalen=()=>cache.techniek.filter(x=>x&&x.soort==='zaal').sort((a,b)=>String(a.naam).localeCompare(String(b.naam),'nl'));
+  const getZaal=id=>cache.techniek.find(x=>x&&x.soort==='zaal'&&x.id===id)||null;
+  function zaalSchoon(z){
+    const lijst=v=>(Array.isArray(v)?v:String(v||'').split('\n')).map(x=>String(x).trim()).filter(Boolean);
+    return {naam:String(z.naam||'').trim(),opstelling:String(z.opstelling||'').trim(),schema:String(z.schema||'').trim(),
+      presets:String(z.presets||'').trim(),
+      links:(Array.isArray(z.links)?z.links:[]).map(l=>({tekst:String((l&&l.tekst)||'').trim(),url:String((l&&l.url)||'').trim()})).filter(l=>l.url),
+      opstart:lijst(z.opstart),afsluit:lijst(z.afsluit)};
+  }
+  function addZaal(z){
+    const rec=Object.assign({id:uid(),soort:'zaal',ts:tkNu(),foto:''},zaalSchoon(z||{}));
+    if(!rec.naam) return null;
+    cache.techniek.push(rec); tkSave(rec);
+    logAct('Techniek: zaal '+rec.naam+' toegevoegd'); return rec;
+  }
+  function updateZaal(id,patch){
+    const z=getZaal(id); if(!z) return null;
+    const metFoto=patch&&('foto' in patch);
+    Object.assign(z,zaalSchoon(Object.assign({},z,patch)));
+    if(metFoto) z.foto=patch.foto||'';
+    tkSave(z,metFoto);
+    logAct('Techniek: zaal '+z.naam+' aangepast'); return z;
+  }
+  function removeZaal(id){
+    const z=getZaal(id); if(!z) return;
+    cache.techniek=cache.techniek.filter(x=>x.id!==id); saveBackup('techniek',null);
+    inhaalWissen('techniek',techniekOK,id);
+    logAct('Techniek: zaal '+z.naam+' verwijderd');
+  }
+  // Materiaal dat in een zaal staat: de plaats begint met de naam van de zaal
+  // ("Theater" en "Theater, regie" horen bij de zaal Theater).
+  function zaalMateriaal(id){
+    const z=getZaal(id); if(!z) return [];
+    const k=z.naam.toLowerCase();
+    return getTechniek().filter(it=>{ const l=String(it.locatie||'').toLowerCase(); return l===k||l.indexOf(k+',')===0||l.indexOf(k+' ')===0||l.indexOf(k+' -')===0; });
+  }
+  // De opstart- of afsluitcheck van een zaal: komt in het logboek, met wat niet in orde was.
+  function zaalCheck(id,welke,nietOk,tekst){
+    const z=getZaal(id); if(!z) return null;
+    const lijst=welke==='afsluit'?z.afsluit:z.opstart, mis=(nietOk||[]).filter(x=>lijst.indexOf(x)>=0);
+    const rec=tkLog(null,'check',{naam:z.naam,zaal_id:z.id,welke:welke==='afsluit'?'afsluit':'opstart',
+      tekst:(mis.length?('Niet in orde: '+mis.join(', ')):'Alles in orde')+(tekst?(' · '+String(tekst).trim()):''),
+      aantal:lijst.length-mis.length,totaal:lijst.length});
+    logAct('Techniek: '+(welke==='afsluit'?'afsluitcheck':'opstartcheck')+' '+z.naam+(mis.length?(' — '+mis.length+' niet in orde'):''));
+    return rec;
+  }
+
   // ---- Bestellen: gekoppeld aan het Besteloverzicht (categorie "Techniek") ----
   // Wat je hier bestelt, komt als bestelling in het Besteloverzicht; zet iemand ze daar op een
   // "ontvangen" status (standaard In loods / Uitgepakt), dan werkt Techniek zichzelf bij: een
@@ -2076,7 +2182,9 @@
       if(it.type==='los'){ if(it.status==='kapot') kapot++; else if(it.status==='herstel') herstel++; }
       else { kapot+=tkN(it.kapot); herstel+=tkN(it.herstel); }
     });
-    return {items:items.length,kapot:kapot,herstel:herstel,open:techniekOpenMeldingen().length};
+    const uit=getUitleningen(null,true);
+    return {items:items.length,kapot:kapot,herstel:herstel,open:techniekOpenMeldingen().length,
+      uitgeleend:uit.reduce((s,u)=>s+tkN(u.aantal||1),0),teLaat:uit.filter(teLaat).length};
   }
 
   // ---------------- CHECKLISTS (gedeeld) ----------------
@@ -3278,6 +3386,8 @@
     TK_GROEPEN,getTechniek,getTechniekItem,getTechniekLog,techniekOpenMeldingen,addTechniekItem,addTechniekReeks,
     updateTechniekItem,removeTechniekItem,techniekMeld,meldingAfhandelen,naarHerstel,terugUitHerstel,markeerHersteld,
     afschrijven,techniekBestellen,koppelBestelling,techniekBestellingen,techniekTelling,isTechniekGedeeld:()=>techniekOK,
+    getUitleningen,uitgeleend,bruikbaar,teLaat,uitlenen,terugbrengen,
+    getZalen,getZaal,addZaal,updateZaal,removeZaal,zaalMateriaal,zaalCheck,
     // Vast verbruik (automatische aftelling) voor Quiz/O&F/Algemeen — zie hierboven.
     getVastVerbruik,setVastVerbruik,vastVerbruikInhalen,volgendeVastVerbruik,isVastVerbruikRij,
     isProductenFotoGedeeld:()=>productenFotoOK,

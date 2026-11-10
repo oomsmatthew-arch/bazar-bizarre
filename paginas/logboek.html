@@ -31,6 +31,12 @@
         <span class="logfrom" id="logFrom">Van: —</span>
         <button class="btn primary" id="logAdd">Plaatsen</button>
       </div>
+      <!-- Iets technisch kapot: dat gaat naar Techniek (js/techniek-melden.js) en komt
+           ook hier als bericht, dat vanzelf afgevinkt wordt zodra het afgehandeld is. -->
+      <div class="logkapot">
+        <button class="btn" id="logKapot" type="button">⚠ Iets technisch kapot? Melden</button>
+        <span class="hint">Licht, geluid… — gaat naar de techniekers en komt ook hieronder.</span>
+      </div>
     </div>
     <input type="text" id="logZoek" class="finp zoek" placeholder="Zoek in de berichten…">
     <div class="loglist" id="loglist"></div>
@@ -46,6 +52,7 @@
 <script src="../js/inventaris.js"></script>
 <script src="../js/kern.js"></script>
 <script src="../js/zoek.js"></script>
+<script src="../js/techniek-melden.js"></script>
 <script>
 // ---------------- LOGBOEK / OVERDRACHT (gedeeld via database) ----------------
 const K_LOGNAAM='bb_logboek_naam';
@@ -82,6 +89,7 @@ document.getElementById('logAdd').onclick=()=>{
 
 // ---- opstarten ----
 function toonVan(){ document.getElementById('logFrom').textContent='Van: '+(currentUserName()||'—'); }
+document.getElementById('logKapot').onclick=()=>{ if(typeof techniekMelden==='function') techniekMelden('',()=>renderLogboek()); };
 window.bbStart=()=>{ toonVan(); renderLogboek(); };
 window.bbNaLogin=toonVan;          // net ingelogd → juiste naam bij "Van:"
 window.bbOnChange=()=>{ toonVan(); renderLogboek(); };

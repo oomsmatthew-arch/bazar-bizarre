@@ -116,13 +116,7 @@
       <a class="card" data-key="logboek" href="paginas/logboek.html">
         <div class="rnd">Team</div>
         <h2>Logboek</h2>
-        <p>Overdracht tussen shifts: bijzonderheden, kapot materiaal, herinneringen.</p>
-      </a>
-      <!-- Voor iedereen (behalve Extern): geen pagina, maar een venster (js/techniek-melden.js). -->
-      <a class="card" data-key="kapotmelden" href="#" id="kaartKapot">
-        <div class="rnd">Iedereen</div>
-        <h2>⚠ Kapot melden</h2>
-        <p>Licht, geluid of ander technisch materiaal stuk? Meld het hier, de techniekers zien het meteen.</p>
+        <p>Overdracht tussen shifts: bijzonderheden, herinneringen — en iets technisch kapot melden.</p>
       </a>
       <a class="card" data-key="werkuren" href="paginas/werkuren.html">
         <div class="rnd">Persoonlijk</div>
@@ -230,6 +224,7 @@ function renderHome(){
   computeLowstock();
   startRotation();
   updateKaarten();
+  if(/techniek=/.test(location.hash||'')) techniekUitAdres();
 }
 
 // ---------------- LAGE VOORRAAD ----------------
@@ -251,9 +246,10 @@ function computeLowstock(){
   // js/inventaris.js). Pas na de eerste stockcontrole van een hoofdstuk: daarvoor staan nieuwe
   // producten nog op 0 en zou alles meteen "op" lijken.
   const onder=[], op=[];
-  ['quiz','of','algemeen'].forEach(hs=>{
+  const hoofdstukken=['quiz','of','algemeen'].concat(magToegang('techniek','bekijken')?['techniek']:[]);
+  hoofdstukken.forEach(hs=>{
     if(!(BBInv.getStockControle&&BBInv.getStockControle(hs))) return;
-    const nm={quiz:'Quiz',of:'O&amp;F',algemeen:'Algemeen'}[hs];
+    const nm={quiz:'Quiz',of:'O&amp;F',algemeen:'Algemeen',techniek:'Techniek (verbruik)'}[hs];
     const tk=BBInv.tekorten(hs);
     const r=tk.filter(t=>t.staat==='rood'), o=tk.filter(t=>t.staat==='oranje');
     const namen=l=>l.slice(0,3).map(t=>esc(t.naam)).join(', ')+(l.length>3?', …':'');
@@ -264,8 +260,14 @@ function computeLowstock(){
   // Techniek: open meldingen, enkel voor wie Techniek ziet (techniekers en admins).
   let tkOpen=[];
   if(BBInv.techniekOpenMeldingen && magToegang('techniek','bekijken')) tkOpen=BBInv.techniekOpenMeldingen();
-  const tkRegel=!tkOpen.length?'':('<b>🔧 Techniek: '+tkOpen.length+(tkOpen.length===1?' open melding':' open meldingen')+'</b> ('+
-    tkOpen.slice(0,3).map(m=>esc(m.item_naam||'?')).join(', ')+(tkOpen.length>3?', …':'')+') — <a href="paginas/techniek.html">naar Techniek</a>. ');
+  let tkLaat=[];
+  if(BBInv.getUitleningen && magToegang('techniek','bekijken')) tkLaat=BBInv.getUitleningen(null,true).filter(BBInv.teLaat);
+  const tkDelen=[];
+  if(tkOpen.length) tkDelen.push('<b>'+tkOpen.length+(tkOpen.length===1?' open melding':' open meldingen')+'</b> ('+
+    tkOpen.slice(0,3).map(m=>esc(m.item_naam||'?')).join(', ')+(tkOpen.length>3?', …':'')+')');
+  if(tkLaat.length) tkDelen.push('<b>'+tkLaat.length+(tkLaat.length===1?' uitlening':' uitleningen')+' te laat terug</b> ('+
+    tkLaat.slice(0,3).map(u=>esc(u.item_naam)+' → '+esc(u.aan)).join(', ')+(tkLaat.length>3?', …':'')+')');
+  const tkRegel=!tkDelen.length?'':('🔧 Techniek: '+tkDelen.join(' · ')+' — <a href="paginas/techniek.html">naar Techniek</a>. ');
 
   const voorraadRood=(totaal<=dK) || boekjesLaag || onder.length>0;
   bannerActive.red = voorraadRood || !!tkRegel;
@@ -307,11 +309,18 @@ function updateKaarten(){
   });
 }
 
-// ---------------- KAPOT MELDEN ----------------
-document.getElementById('kaartKapot').addEventListener('click',e=>{
-  e.preventDefault();
-  if(typeof techniekMelden==='function') techniekMelden('',()=>renderHome());
-});
+// ---------------- QR-STICKER VAN TECHNIEK: #techniek=<id> ----------------
+// Wie Techniek ziet, gaat naar dat item; iedereen anders krijgt meteen "Kapot melden" voor
+// dat item. Nog niet ingelogd? Dan eerst het inlogscherm; daarna komt dit vanzelf (renderHome).
+function techniekUitAdres(){
+  const m=/techniek=([^&]+)/.exec(location.hash||''); if(!m || !currentUser()) return;
+  if(!(window.BBInv && BBInv.isReady && BBInv.isReady())) return;      // eerst de gegevens
+  const id=decodeURIComponent(m[1]);
+  history.replaceState(null,'',location.pathname+location.search);  // één keer, niet bij elke hertekening
+  if(magToegang('techniek','bekijken')){ location.href=bbUrl('paginas/techniek.html')+'#item='+encodeURIComponent(id); return; }
+  if(externGeblokkeerd('logboek')) return;
+  if(typeof techniekMelden==='function') techniekMelden(id,()=>renderHome());
+}
 
 // ---------------- RATINGS: TEAM OF PERSOONLIJK ----------------
 // Wie met een eigen account is ingelogd, kiest achter de Ratings-kaart tussen de

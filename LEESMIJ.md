@@ -330,10 +330,12 @@ medewerker. Enkel een admin geeft de rol, in de namenlijst. Admins zien Techniek
 Instellingen → Toegangen staat Techniek standaard op **Techniekers + admin**; daar kan een
 admin het ook voor anderen openzetten.
 
-**⚠ Kapot melden kan iedereen** (behalve Extern): een kaart op de startpagina opent een venster
-— kies wat er kapot is (of typ iets dat niet in de lijst staat), zeg wat er mis is, eventueel
-met een foto. Het item staat meteen op kapot en de techniekers krijgen een rode melding op de
-startpagina tot iemand het afhandelt.
+**⚠ Kapot melden kan iedereen** (behalve Extern), via de knop op de pagina **Logboek** (of
+door een QR-sticker te scannen): kies wat er kapot is (of typ iets dat niet in de lijst staat),
+zeg wat er mis is, eventueel met een foto. Het item staat meteen op kapot, de melding komt ook
+als bericht in het Logboek (voor de volgende shift), en de techniekers krijgen een rode melding
+op de startpagina. Handelt een technieker de melding af, dan wordt dat Logboekbericht vanzelf
+afgevinkt.
 
 `paginas/techniek.html` (+ `js/techniek.js`, het meldvenster in `js/techniek-melden.js`):
 - **Materiaal** — twee soorten. *Telbaar* (XLR-kabels: 24, waarvan 2 kapot en 1 in herstel)
@@ -345,14 +347,29 @@ startpagina tot iemand het afhandelt.
   bewerken, verwijderen (de geschiedenis blijft dan in het logboek).
 - **Meldingen & logboek** — de open meldingen (naar herstel / opgelost / geen probleem) en het
   volledige logboek: wie meldde wat, wanneer ging het weg, wanneer kwam het terug.
+- **Uitgeleend** — "📦 Uitlenen" bij een item: aan wie of waar (bv. Bay — Halloween), hoeveel
+  (bij telbaar materiaal, nooit meer dan wat bruikbaar is) en tegen wanneer terug. Wat te laat
+  is, staat in het rood bovenaan en als melding op de startpagina van de techniekers;
+  "↩️ Teruggebracht" sluit de uitlening.
 - **Herstel & bestellingen** — wat er weg is voor herstel en sinds hoelang, en de bestellingen
   met categorie Techniek. **Bestellen vanuit Techniek** maakt de bestelling in het
   Besteloverzicht; zet iemand ze daar op een "ontvangen" status (standaard *In loods* of
   *Uitgepakt*), dan komt het aantal er vanzelf bij (telbaar) of staat het item terug in orde
   (los) — precies één keer. Een bestelling die in het Besteloverzicht werd gemaakt, koppel je
   hier met **🔗 Koppel aan materiaal**.
+- **Zalen** — per zaal (Theater, Bay…): de vaste opstelling, het materiaal dat er staat (alles
+  met die plaats, ook "Theater, regie"), het aansluitschema (tekst en/of een foto), presets,
+  handleidingen (links) en een **opstart- en afsluitcheck**: afvinken en bewaren; wat niet in
+  orde was, staat in het logboek.
+- **Verbruik** — batterijen, gaffa, reservelampen… staan bij **Inventaris → Techniek** (enkel
+  zichtbaar voor wie Techniek ziet), met hetzelfde minimum, dezelfde stockcontrole en
+  bestellijst als O&F en Algemeen; dit tabblad toont wat er bij te bestellen valt.
 - **Beheer** — materiaal toevoegen. Losse items in één keer als reeks: "Headset" × 6 wordt
-  Headset 1 … Headset 6.
+  Headset 1 … Headset 6. **🏷 QR-stickers afdrukken** (alles, per soort of per plaats; ook
+  per item vanuit de details): een A4 met stickers om uit te knippen. De code wijst naar
+  `entertainment.html#techniek=<id>`: wie Techniek ziet, komt op dat item; iedereen anders
+  krijgt meteen "Kapot melden" voor dat item. De QR-codes maakt `js/qrcode.js`
+  (qrcode-generator, MIT), ook offline.
 - De gegevens staan in één gedeelde tabel `techniek` (één rij per item of logregel, de velden
   in een jsonb-kolom, een foto apart). Maak ze eenmalig aan met `docs/techniek-supabase.sql`;
   ze staat op slot zoals de andere tabellen. Zonder die tabel werkt de pagina ook, maar dan
@@ -678,7 +695,7 @@ werkt vanaf de startpagina én vanuit `paginas/`.
 - `projecten.js` — alles wat de projectenpagina doet
 - `ratings.js` / `ratings-vergelijk.js` — de gastbeoordelingen
 - `ratings-persoonlijk.js` + `rooster.js` — de persoonlijke ratings: de rooster-PDF inlezen en de ratings koppelen aan wie op de shift stond
-- `techniek.js` + `techniek-melden.js` — Techniek (licht en geluid) en het venster "Kapot melden"; de gegevens in `inventaris.js` (blok TECHNIEK)
+- `techniek.js` + `techniek-melden.js` — Techniek (licht en geluid) en het venster "Kapot melden"; de gegevens in `inventaris.js` (blok TECHNIEK); `qrcode.js` maakt de QR-stickers
 - `supabase.min.js` — de database-bibliotheek
 
 Elke pagina laadt de scripts in deze volgorde en vult daarna zelf `window.bbStart`

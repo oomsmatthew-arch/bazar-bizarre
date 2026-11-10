@@ -139,5 +139,60 @@ function data(db,id){ var r=rij(db,id); return r?r.data:null; }
   B.removeTechniekItem(hs[4].id); await vlot();
   ok(!rij(db,hs[4].id) && B.getTechniekLog(hs[4].id).some(function(l){ return l.actie==='verwijderd'; }),'een item verwijderen: weg uit de lijst, de geschiedenis blijft');
 
+  print('\n— Uitlenen —');
+  var h1=B.getTechniek().filter(function(i){ return i.naam==='Headset 1'; })[0];
+  var x26=B.getTechniekItem(xlr.id);
+  ok(B.bruikbaar(h1)===1 && B.bruikbaar(x26)===24,'bruikbaar: Headset 1 ja, XLR 24 (26 − 2 in herstel)');
+  var u1=B.uitlenen(h1.id,{aan:'Bay — Halloween',tot:'2026-11-08'});
+  var u2=B.uitlenen(xlr.id,{aan:'Theater',aantal:30,tot:'2026-11-20'});
+  await vlot();
+  ok(u1 && data(db,u1.id).aan==='Bay — Halloween' && data(db,u1.id).sinds==='2026-11-10','Headset 1 uitgeleend aan de Bay, gedeeld');
+  ok(u2 && u2.aantal===24,'XLR: wie 30 vraagt, krijgt er hoogstens 24 (wat bruikbaar is)');
+  ok(B.bruikbaar(h1)===0 && B.bruikbaar(B.getTechniekItem(xlr.id))===0,'daarna is er niets meer bruikbaar');
+  ok(!B.uitlenen(h1.id,{aan:'Theater'}),'Headset 1 kan niet twee keer tegelijk uitgeleend worden');
+  ok(!B.uitlenen(hs[0].id,{aan:''}),'uitlenen zonder te zeggen aan wie: niets');
+  ok(B.teLaat(u1)===true && B.teLaat(u2)===false,'Headset 1 moest op 8/11 terug: te laat; de kabels pas op 20/11');
+  var tt=B.techniekTelling();
+  ok(tt.uitgeleend===25 && tt.teLaat===1,'samen 25 stuks uitgeleend, 1 uitlening te laat');
+  B.terugbrengen(u1.id,{tekst:'alles ok'}); await vlot();
+  ok(data(db,u1.id).terug===true && B.bruikbaar(B.getTechniekItem(h1.id))===1,'Headset 1 teruggebracht: terug bruikbaar');
+  ok(B.getTechniekLog(h1.id).slice(0,2).map(function(l){ return l.actie; }).join(',')==='teruggebracht,uitgeleend','in de geschiedenis: uitgeleend → teruggebracht');
+  ok(B.getUitleningen(null,true).length===1,'nog één open uitlening (de kabels)');
+
+  print('\n— Zalen —');
+  var z=B.addZaal({naam:'Theater',opstelling:'2 speakers, mengtafel in de regie',opstart:"Micro's opgeladen\nBeamer aan\n",afsluit:['Alles uit','Micro\'s aan de lader']});
+  await vlot();
+  ok(z && data(db,z.id).opstart.join('|')==="Micro's opgeladen|Beamer aan",'de opstartcheck: één punt per regel, lege regels weg');
+  var sp=B.addTechniekItem({naam:'Speaker links',groep:'Geluid',type:'los',locatie:'Theater, podium'});
+  var mt=B.addTechniekItem({naam:'Mengtafel',groep:'Geluid',type:'los',locatie:'Theater'});
+  var ander=B.addTechniekItem({naam:'Kast',groep:'Overig',type:'los',locatie:'Theatertje'});
+  var zm=B.zaalMateriaal(z.id).map(function(i){ return i.naam; }).sort().join(', ');
+  ok(zm==='Mengtafel, Speaker links','het materiaal van de zaal: wat in "Theater" of "Theater, …" staat ('+zm+')');
+  var c=B.zaalCheck(z.id,'opstart',['Beamer aan'],'lamp flikkert');
+  await vlot();
+  ok(c && data(db,c.id).actie==='check' && data(db,c.id).tekst==='Niet in orde: Beamer aan · lamp flikkert' && data(db,c.id).aantal===1 && data(db,c.id).totaal===2,'de opstartcheck staat in het logboek: 1 van 2 in orde, met wat niet in orde was');
+  B.updateZaal(z.id,{presets:'Scene 1: show',foto:'data:image/jpeg;base64,BBBB'}); await vlot();
+  ok(data(db,z.id).presets==='Scene 1: show' && rij(db,z.id).foto==='data:image/jpeg;base64,BBBB','presets en een foto van het aansluitschema');
+  B.removeZaal(z.id); await vlot();
+  ok(!rij(db,z.id) && B.getTechniekItem(mt.id),'een zaal weghalen laat het materiaal staan');
+
+  print('\n— Een melding staat ook in het Logboek —');
+  var mk=B.techniekMeld({itemId:mt.id,tekst:'Kanaal 3 kraakt'});
+  var lb=B.getLogboek().filter(function(l){ return l.id===mk.logboek_id; })[0];
+  ok(lb && lb.tekst==='⚠ Kapot gemeld: Mengtafel — Kanaal 3 kraakt (doorgegeven aan Techniek)' && !lb.klaar,'het bericht staat in het Logboek voor de volgende shift: '+(lb&&lb.tekst));
+  B.naarHerstel(mt.id,{bij:'AMPS'});
+  ok(B.getLogboek().filter(function(l){ return l.id===mk.logboek_id; })[0].klaar===true,'naar herstel gestuurd: het bericht in het Logboek is vanzelf afgevinkt');
+  var mk2=B.techniekMeld({naam:'Rookmachine',tekst:'Geen rook'});
+  B.meldingAfhandelen(mk2.id,'geen');
+  ok(B.getLogboek().filter(function(l){ return l.id===mk2.logboek_id; })[0].klaar===true,'"geen probleem": ook afgevinkt');
+
+  print('\n— Verbruiksmateriaal (hoofdstuk Techniek) —');
+  var bat=B.addProduct('techniek','Batterijen AA',12,'');
+  var w={}; w[bat.id]={min:24,eenheid:'stuks'};
+  ok(B.setProductInfo('techniek',w)!==null,'Techniek is een hoofdstuk met een minimum, zoals O&F en Algemeen');
+  ok(B.tekorten('techniek').length===1 && B.tekorten('techniek')[0].tekort===12,'12 batterijen bij een minimum van 24: 12 tekort');
+  var sc=B.stockControle('techniek',(function(){ var t={}; t[bat.id]=30; return t; })(),'Matthew');
+  ok(sc && B.tekorten('techniek').length===0,'na de stockcontrole (30): niets meer tekort');
+
   print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');
 })().catch(function(e){ print('  ✗ de test liep vast: '+(e&&e.message)); print('\nRESULTAAT: '+(fouten+1)+' fout(en)'); });

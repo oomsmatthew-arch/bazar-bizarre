@@ -30,7 +30,9 @@
     <div class="invtabs">
       <button class="invtab active" data-tab="materiaal">Materiaal</button>
       <button class="invtab" data-tab="meldingen">Meldingen &amp; logboek <span class="tk-teller" id="tkTelMeld"></span></button>
-      <button class="invtab" data-tab="herstel">Herstel &amp; bestellingen</button>
+      <button class="invtab" data-tab="herstel">Uitgeleend, herstel &amp; bestellingen <span class="tk-teller" id="tkTelLaat"></span></button>
+      <button class="invtab" data-tab="zalen">Zalen</button>
+      <button class="invtab" data-tab="verbruik">Verbruik</button>
       <button class="invtab" data-tab="beheer">Beheer</button>
     </div>
 
@@ -59,7 +61,9 @@
 
     <!-- HERSTEL & BESTELLINGEN -->
     <div class="invpane" id="tpane-herstel">
-      <div class="tk-h">In herstel</div>
+      <div class="tk-h">Uitgeleend</div>
+      <div id="tkUit"></div>
+      <div class="tk-h" style="margin-top:22px;">In herstel</div>
       <div id="tkHerstel"></div>
       <div class="tk-h" style="margin-top:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="flex:1">Bestellingen (categorie Techniek)</span>
@@ -69,8 +73,34 @@
       <div id="tkBest"></div>
     </div>
 
+    <!-- ZALEN -->
+    <div class="invpane" id="tpane-zalen">
+      <div class="prodcontrole">
+        <span class="sc-info">Per zaal: wat er vast staat, het aansluitschema, presets, handleidingen en een korte opstart- en afsluitcheck.</span>
+        <button class="btn" id="tkZaalNieuw" type="button">+ Zaal</button>
+      </div>
+      <div class="invlist" id="tkZalen"></div>
+    </div>
+
+    <!-- VERBRUIK -->
+    <div class="invpane" id="tpane-verbruik">
+      <p class="hint" style="margin:0 2px 12px;">Batterijen, gaffa, reservelampen en ander verbruiksmateriaal: met een minimum, een stockcontrole en een bestellijst, net als O&amp;F en Algemeen. Het staat bij <b>Inventaris → Techniek</b>; hier zie je wat er bij te bestellen valt.</p>
+      <div class="invsum" id="tkVSum"></div>
+      <div class="prodcontrole"><span class="sc-info" id="tkVControle"></span>
+        <a class="btn" href="inventaris.html#techniek">📦 Naar Inventaris → Techniek</a></div>
+      <div class="invlist" id="tkVLijst"></div>
+    </div>
+
     <!-- BEHEER -->
     <div class="invpane" id="tpane-beheer">
+      <div class="field" style="margin-bottom:16px;">
+        <div class="h">🏷 QR-stickers</div>
+        <p class="hint" style="margin:0 0 8px;">Een sticker per item. Scan je die met een gsm, dan opent dat item: een technieker ziet de details en de geschiedenis, iedereen anders kan het meteen kapot melden.</p>
+        <div class="tk-2kol">
+          <div><label class="mlbl" for="tkQrWelke">Welke?</label><select id="tkQrWelke" class="finp"></select></div>
+          <div><label class="mlbl">&nbsp;</label><button class="btn primary" id="tkQrPrint" type="button">🖨️ Stickers afdrukken</button></div>
+        </div>
+      </div>
       <div class="field">
         <div class="h">Materiaal toevoegen</div>
         <label class="mlbl" for="tkNNaam">Naam</label>
@@ -121,6 +151,15 @@
   </div>
 </div>
 
+<!-- Eén zaal -->
+<div class="cammodal" id="tkZaal">
+  <div class="cammodal-box formbox">
+    <div class="cammodal-title" id="tkzTitel"></div>
+    <div id="tkzInhoud"></div>
+    <div class="sc-voet"><span class="sc-teller"></span><button class="btn" id="tkzSluit" type="button">Sluiten</button></div>
+  </div>
+</div>
+
 <!-- Een klein formulier voor de acties (naar herstel, bestellen, bewerken…) -->
 <div class="cammodal" id="tkForm">
   <div class="cammodal-box formbox">
@@ -139,6 +178,7 @@
 <script src="../js/kern.js"></script>
 <script src="../js/zoek.js"></script>
 <script src="../js/techniek-melden.js"></script>
+<script src="../js/qrcode.js"></script>
 <script src="../js/techniek.js"></script>
 </body>
 </html>

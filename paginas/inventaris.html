@@ -30,6 +30,8 @@
       <button type="button" class="hoofdstuk" data-hs="quiz">Quiz</button>
       <button type="button" class="hoofdstuk" data-hs="of">O&amp;F</button>
       <button type="button" class="hoofdstuk" data-hs="algemeen">Algemeen</button>
+      <!-- Verbruiksmateriaal van Techniek (batterijen, gaffa…): enkel voor wie Techniek ziet. -->
+      <button type="button" class="hoofdstuk" data-hs="techniek" hidden>Techniek</button>
     </div>
     <div class="invtabs">
       <button class="invtab active" data-tab="stock">Stock</button>
@@ -363,6 +365,19 @@ let invCat='all';
 // eigen, eenvoudige productenlijst (naam + aantal), los van de Bazar Bizarre-prijzen.
 let huidigHoofdstuk='prizenight';
 function isPrizenight(){ return huidigHoofdstuk==='prizenight'; }
+// Het hoofdstuk Techniek volgt de toegang van Techniek (techniekers + admin), niet die van de
+// inventaris: een technieker beheert zijn verbruiksmateriaal zonder het inventaris-wachtwoord.
+function hsCat(){ return huidigHoofdstuk==='techniek'?'techniek':'inventaris'; }
+// inventaris.html#techniek (vanuit Techniek → Verbruik) opent meteen dat hoofdstuk — zodra de
+// rollen geladen zijn en de knop dus zichtbaar wordt.
+let naarTechniek=/techniek/.test(location.hash||'');
+function toonTechniekHoofdstuk(){
+  const b=document.querySelector('.hoofdstuk[data-hs="techniek"]'); if(!b) return;
+  const mag=typeof magToegang==='function' && magToegang('techniek','bekijken');
+  b.hidden=!mag;
+  if(!mag && huidigHoofdstuk==='techniek') document.querySelector('.hoofdstuk[data-hs="prizenight"]').click();
+  if(mag && naarTechniek){ naarTechniek=false; history.replaceState(null,'',location.pathname+location.search); b.click(); }
+}
 document.querySelectorAll('.hoofdstuk').forEach(b=>{
   b.onclick=()=>{
     if(b.dataset.hs===huidigHoofdstuk) return;
@@ -399,7 +414,7 @@ function renderActievePane(){
 document.querySelectorAll('.invtab').forEach(b=>{
   b.onclick=async()=>{
     const t=b.dataset.tab;
-    if(t==='beheer' && !await eisToegang('inventaris','beheren','de inventaris te beheren')) return;
+    if(t==='beheer' && !await eisToegang(hsCat(),'beheren','de inventaris te beheren')) return;
     document.querySelectorAll('.invtab').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     document.querySelectorAll('.invpane').forEach(p=>p.classList.remove('active'));
@@ -956,7 +971,7 @@ function renderProdStock(){
 // ---- Dubbele producten samenvoegen (zelfde naam in één hoofdstuk) ----
 async function samenvoegen(daarna){
   const dub=BBInv.dubbeleProducten(huidigHoofdstuk); if(!dub.length) return true;
-  if(!await eisToegang('inventaris','beheren','dubbele producten samen te voegen')) return false;
+  if(!await eisToegang(hsCat(),'beheren','dubbele producten samen te voegen')) return false;
   const regels=dub.slice(0,8).map(d=>'• '+d.naam+' — '+(d.weg.length+1)+'×, voorraad '+d.stock).join('\n')+(dub.length>8?('\n• … en nog '+(dub.length-8)):'');
   if(!await bbBevestig({titel:dub.length+(dub.length===1?' product staat':' producten staan')+' dubbel', okTekst:'Samenvoegen',
     tekst:'Per naam blijft er één over: die met het minimum. De hoogste getelde voorraad en een foto gaan mee.\n\n'+regels})) return false;
@@ -978,7 +993,7 @@ document.getElementById('dubbelSamen').onclick=()=>samenvoegen();
 // ---- Het venster van de stockcontrole ----
 let scNagekeken={};   // product-id → getelde aantal (enkel wat nagekeken is)
 async function openControle(){
-  if(!await eisToegang('inventaris','beheren','de stockcontrole te doen')) return;
+  if(!await eisToegang(hsCat(),'beheren','de stockcontrole te doen')) return;
   // Staat er iets dubbel, dan eerst samenvoegen: anders tel je het ene exemplaar en blijft het
   // andere op 0 staan — en lijkt het alsof de controle niets deed.
   if(BBInv.dubbeleProducten(huidigHoofdstuk).length && !await samenvoegen()) return;
@@ -1088,7 +1103,7 @@ function renderStocklijstVak(){
     '</b> van de '+lijst.length+' niet in. Wat er al staat, blijft zoals het is.';
 }
 document.getElementById('stocklijstAdd').onclick=async()=>{
-  if(!await eisToegang('inventaris','beheren','de stocklijst toe te voegen')) return;
+  if(!await eisToegang(hsCat(),'beheren','de stocklijst toe te voegen')) return;
   const r=BBInv.voegStocklijstToe(huidigHoofdstuk);
   renderProdBeheer();
   bbToon(r.toegevoegd+' producten toegevoegd'+(r.bijgewerkt?(', '+r.bijgewerkt+' aangevuld met hun minimum'):'')+
@@ -1154,7 +1169,7 @@ function renderProdLeveringen(){
     d.innerHTML=fotoHtml+'<div class="meta">'+(l.datum?esc(l.datum):bbFmtTs(l.ts))+'</div><div class="pr">'+(parts.join(' · ')||'—')+'</div>'+
       '<button class="rm" data-id="'+l.id+'">Verwijderen</button>';
     if(l.foto){const t=d.querySelector('.thumb'); if(t) t.onclick=()=>viewFoto(l.foto);}
-    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang('inventaris','beheren','de levering te verwijderen'))return;if(await bbBevestig({titel:'Levering verwijderen?', tekst:'De voorraad wordt niet automatisch teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.removeProductLevering(l.id);renderProdLeveringen();}};
+    d.querySelector('.rm').onclick=async()=>{if(!await eisToegang(hsCat(),'beheren','de levering te verwijderen'))return;if(await bbBevestig({titel:'Levering verwijderen?', tekst:'De voorraad wordt niet automatisch teruggedraaid.', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.removeProductLevering(l.id);renderProdLeveringen();}};
     wrap.appendChild(d);
   });
 }
@@ -1604,7 +1619,10 @@ document.getElementById('saveLowstock').onclick=()=>{
 };
 
 // ---- opstarten ----
-window.bbStart=()=>{ renderInventaris(); };
+window.bbStart=()=>{
+  renderInventaris(); toonTechniekHoofdstuk();
+};
+window.bbRolGewijzigd=toonTechniekHoofdstuk;
 window.bbOnChange=()=>{
   // Quiz/O&F/Algemeen: de voorraad en de leveringen live bijwerken — ook wanneer het vaste
   // verbruik net heeft afgeteld. Onder Beheer enkel de uitleg, niet de lijst of het klad,
