@@ -139,5 +139,46 @@ function rij(db,naam,hs){ return db.producten.filter(function(p){ return p.naam=
   var vb=rij(db,'O&F voorleesboekje FR','of');
   ok(B.getProductInfo('of')[vb.id].notitie==='oud logo','het voorleesboekje FR heeft de notitie "oud logo"');
 
+  print('\n— Twee toestellen voegen de stocklijst tegelijk toe —');
+  // Zo ontstond het: twee toestellen tikten op "Stocklijst toevoegen" voor ze elkaars producten
+  // gezien hadden. Met een vaste id per product wordt dat één product in de database, niet twee.
+  var db2=basisDB(); db2.producten=[];
+  var C=await toestel(db2), D=await toestel(db2);       // allebei opgestart vóór er iets in staat
+  C.voegStocklijstToe('algemeen'); await vlot();
+  ok(D.stocklijstOntbreekt('algemeen')===17,'het tweede toestel heeft de producten van het eerste nog niet gezien');
+  D.voegStocklijstToe('algemeen'); await vlot();
+  ok(db2.producten.length===17,'toch staat elk product maar één keer in de database ('+db2.producten.length+')');
+  var D2=await toestel(db2);
+  ok(D2.dubbeleProducten('algemeen').length===0,'en een vers toestel ziet geen dubbels');
+  var sh=db2.producten.filter(function(p){ return p.naam==='Shampoo'; })[0];
+  ok(D2.getProductInfo('algemeen')[sh.id] && D2.getProductInfo('algemeen')[sh.id].min===6,'met zijn minimum');
+
+  print('\n— Dubbels van vroeger samenvoegen —');
+  // Wat er al dubbel stond (met willekeurige id's): de kopie met het minimum stond op 0, de
+  // kopie zonder minimum werd geteld (5). Na het samenvoegen: één Shampoo, minimum 6, voorraad 5.
+  var db3=basisDB();
+  db3.producten=[
+    {id:'x1',hoofdstuk:'algemeen',naam:'Shampoo',stock:0},
+    {id:'x2',hoofdstuk:'algemeen',naam:'Shampoo',stock:5},
+    {id:'x3',hoofdstuk:'algemeen',naam:'Handzeep',stock:0},
+    {id:'x4',hoofdstuk:'algemeen',naam:'handzeep ',stock:0},
+    {id:'x5',hoofdstuk:'algemeen',naam:'Tissues',stock:4},
+    {id:'x6',hoofdstuk:'of',naam:'Shampoo',stock:1}
+  ];
+  db3.appconfig[0].data.productInfo_algemeen={x1:{min:6,eenheid:'flessen',status:'',notitie:''},x3:{min:6,eenheid:'flessen',status:'',notitie:''}};
+  var E=await toestel(db3);
+  var dub=E.dubbeleProducten('algemeen');
+  ok(dub.length===2,'2 namen staan dubbel (Shampoo, Handzeep — ook met een spatie of kleine letter)');
+  var dsh=dub.filter(function(d){ return d.naam==='Shampoo'; })[0];
+  ok(dsh && dsh.houd==='x1' && dsh.weg.join()==='x2' && dsh.stock===5,'Shampoo: de kopie met het minimum blijft, met de getelde 5');
+  var rs=E.voegDubbelsSamen('algemeen'); await vlot();
+  ok(rs.namen===2 && rs.weg===2,'2 namen samengevoegd, 2 kopieën weg');
+  var alg=db3.producten.filter(function(p){ return p.hoofdstuk==='algemeen'; });
+  ok(alg.length===3,'Algemeen: Shampoo, Handzeep en Tissues ('+alg.map(function(p){ return p.naam; }).join(', ')+')');
+  ok(alg.filter(function(p){ return p.id==='x1'; })[0].stock===5,'Shampoo staat op 5');
+  ok(E.getProductInfo('algemeen').x1.min===6,'en houdt zijn minimum van 6');
+  ok(db3.producten.filter(function(p){ return p.id==='x6'; }).length===1,'de Shampoo van O&F blijft gewoon staan');
+  ok(E.dubbeleProducten('algemeen').length===0,'daarna staat er niets meer dubbel');
+
   print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');
 })().catch(function(e){ print('  ✗ de test liep vast: '+(e&&e.message)); print('\nRESULTAAT: '+(fouten+1)+' fout(en)'); });

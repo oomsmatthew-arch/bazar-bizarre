@@ -131,9 +131,15 @@ daardoor dezelfde opslag** op het toestel.
     staan; de knop verdwijnt zodra alles erin staat. De lijsten staan in `STOCKLIJSTEN_DEFAULT`
     in `inventaris-data.js`.
   - **✅ Stockcontrole** (op het Stock-scherm) is de papieren lijst in de app: loop de producten
-    af, tik ✓ als het aantal klopt of zet het juiste aantal. Datum en wie de controle deed,
-    staan erbij ("Laatste stockcontrole: 10/11/2026 door …"). Vraagt dezelfde toegang als
-    🔒 Beheer.
+    af, tik ✓ als het aantal klopt (nog eens ✓ = toch niet nagekeken) of zet het juiste aantal.
+    Na Bewaren is het scherm meteen bijgewerkt. Datum en wie de controle deed, staan erbij
+    ("Laatste stockcontrole: 10/11/2026 door …"). Vraagt dezelfde toegang als 🔒 Beheer.
+  - **🧹 Dubbele producten samenvoegen.** Staat een naam twee keer in hetzelfde hoofdstuk (zo
+    gebeurde het toen de stocklijst op twee toestellen tegelijk werd toegevoegd), dan zegt het
+    Stock-scherm dat, en vraagt de stockcontrole eerst om samen te voegen. Per naam blijft er één
+    over: die met het minimum, met de hoogste getelde voorraad en een foto. Producten van de
+    stocklijst krijgen sindsdien een vaste id (`sl-algemeen-shampoo`), zodat twee toestellen
+    tegelijk hetzelfde product maken in plaats van twee.
   - **🖨️ Bestellijst** drukt af wat onder (en op) het minimum staat, met het tekort. Op de
     startpagina verschijnt een rode melding voor wat onder het minimum staat en een oranje voor
     wat erop staat — pas **na de eerste stockcontrole** van dat hoofdstuk, anders zou alles wat

@@ -1415,8 +1415,8 @@
   // ---- Producten per hoofdstuk (Quiz / O&F / Algemeen): eenvoudige lijst, naam + aantal ----
   const getProducten=()=>cache.producten;
   function saveProductBackup(){ saveBackup('producten',K_PRODUCTEN_BACKUP); }
-  function addProduct(hoofdstuk,naam,stock,foto){
-    const rec={id:uid(),hoofdstuk:hoofdstuk||'algemeen',naam:naam||'',stock:+stock||0,foto:foto||''};
+  function addProduct(hoofdstuk,naam,stock,foto,vasteId){
+    const rec={id:vasteId||uid(),hoofdstuk:hoofdstuk||'algemeen',naam:naam||'',stock:+stock||0,foto:foto||''};
     cache.producten.push(rec); saveProductBackup();
     if(productenOK) dbUpsert('producten',productToRow(rec)); else persistCache();
     logAct('Product toegevoegd: '+(rec.naam||'')); return rec;
@@ -1791,7 +1791,10 @@
     lijst.forEach(r=>{
       const naam=String(r.naam||'').trim(); if(!naam) return;
       let p=cache.producten.find(x=>x&&x.hoofdstuk===hs&&String(x.naam||'').trim().toLowerCase()===naam.toLowerCase());
-      if(!p){ p=addProduct(hs,naam,0,''); toegevoegd++; }
+      // Een VASTE id per product van de lijst: tikken twee toestellen tegelijk op de knop
+      // (voor ze elkaars producten gezien hebben), dan wordt het één en hetzelfde product in de
+      // database in plaats van twee. Met een willekeurige id stond alles dubbel.
+      if(!p){ p=addProduct(hs,naam,0,'',stocklijstId(hs,naam)); toegevoegd++; }
       else if(info[p.id] && info[p.id].min!==null && info[p.id].min!==undefined) return;
       else bijgewerkt++;
       wijz[p.id]={min:r.min,eenheid:r.eenheid||'',status:r.status||'',notitie:r.notitie||''};
@@ -1799,6 +1802,48 @@
     if(Object.keys(wijz).length) setProductInfo(hs,wijz);
     if(toegevoegd||bijgewerkt) logAct('Stocklijst '+VV_HSNAAM[hs]+' toegevoegd: '+toegevoegd+' nieuw, '+bijgewerkt+' met minimum aangevuld');
     return {toegevoegd:toegevoegd,bijgewerkt:bijgewerkt};
+  }
+  function stocklijstId(hs,naam){
+    return 'sl-'+hs+'-'+String(naam||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+  // Producten die dubbel staan (zelfde naam, zelfde hoofdstuk) — bv. omdat de stocklijst op twee
+  // toestellen tegelijk werd toegevoegd. Per naam blijft er één over: die met een minimum
+  // (anders die met een foto, anders die met de hoogste voorraad). De hoogste getelde voorraad
+  // en een foto gaan mee naar die ene; de rest verdwijnt.
+  function dubbeleProducten(hs){
+    const info=getProductInfo(hs), groepen={};
+    const heeftMin=p=>!!(info[p.id] && info[p.id].min!==null && info[p.id].min!==undefined);
+    cache.producten.filter(p=>p&&p.hoofdstuk===hs).forEach(p=>{
+      const k=String(p.naam||'').trim().toLowerCase(); (groepen[k]=groepen[k]||[]).push(p);
+    });
+    return Object.keys(groepen).filter(k=>groepen[k].length>1).map(k=>{
+      const g=groepen[k].slice().sort((a,b)=>(heeftMin(b)-heeftMin(a))||((b.foto?1:0)-(a.foto?1:0))||((b.stock||0)-(a.stock||0)));
+      const fotoBij=g.find(p=>p.foto);
+      return {naam:g[0].naam, houd:g[0].id, weg:g.slice(1).map(p=>p.id),
+        stock:Math.max.apply(null,g.map(p=>Math.round(p.stock||0))), foto:g[0].foto||(fotoBij?fotoBij.foto:'')};
+    }).sort((a,b)=>a.naam.localeCompare(b.naam));
+  }
+  function voegDubbelsSamen(hs){
+    const lijst=dubbeleProducten(hs);
+    const info=Object.assign({},getProductInfo(hs));
+    let weg=0, infoWeg=false;
+    lijst.forEach(d=>{
+      const houd=cache.producten.find(p=>p.id===d.houd); if(!houd) return;
+      if(Math.round(houd.stock||0)!==d.stock) setProductStock(houd.id,d.stock);
+      if(!houd.foto && d.foto) setProductFoto(houd.id,d.foto);
+      d.weg.forEach(id=>{
+        cache.producten=cache.producten.filter(x=>x.id!==id);
+        if(productenOK) dbDelete('producten','id',id);
+        if(info[id]){ delete info[id]; infoWeg=true; }
+        weg++;
+      });
+    });
+    if(weg){
+      saveProductBackup(); if(!productenOK) persistCache();
+      if(infoWeg){ const patch={}; patch[piSleutel(hs)]=info; saveConfig(patch); }
+      logAct('Dubbele producten '+VV_HSNAAM[hs]+' samengevoegd: '+lijst.length+' namen, '+weg+' kopie'+(weg===1?'':'ën')+' weggehaald');
+    }
+    return {namen:lijst.length,weg:weg};
   }
   // Hoeveel van de papieren stocklijst er nog niet in de app staat (voor de knop onder Beheer).
   function stocklijstOntbreekt(hs){
@@ -2998,7 +3043,7 @@
     getProducten,addProduct,setProductStock,setProductFoto,removeProduct,isProductenGedeeld:()=>productenOK,
     // Minimum, eenheid en stockcontrole voor Quiz/O&F/Algemeen — zie hierboven.
     getProductInfo,setProductInfo,productStaat,tekorten,getStockControle,stockControle,
-    voegStocklijstToe,stocklijstOntbreekt,printProductBestellijst,
+    voegStocklijstToe,stocklijstOntbreekt,printProductBestellijst,dubbeleProducten,voegDubbelsSamen,
     // Vast verbruik (automatische aftelling) voor Quiz/O&F/Algemeen — zie hierboven.
     getVastVerbruik,setVastVerbruik,vastVerbruikInhalen,volgendeVastVerbruik,isVastVerbruikRij,
     isProductenFotoGedeeld:()=>productenFotoOK,

@@ -76,6 +76,13 @@
       return; // de rest doen we zodra die stap binnen is
     }
     // 2) Nieuw opengegaan? Eén stap erbij per venster.
+    //    Maar NIET zolang onze eigen terugstap nog onderweg is (history.go is asynchroon). Gaat
+    //    er een venster dicht en meteen een ander open (bv. een vraag, en daarna het venster waar
+    //    ze over ging), dan kwam de nieuwe stap anders vóór de terugstap aan — en die nam hem
+    //    dan mee terug. Bij het sluiten van dat tweede venster ging terug daarna één stap te ver
+    //    en verliet je de hele pagina. De popstate hieronder roept ons opnieuw aan zodra de
+    //    terugstap binnen is; dan zetten we de stap er alsnog bij.
+    if(eigenStap>0) return;
     nu.forEach(el=>{
       if(stapel.some(s=>s.el===el)) return;
       stapel.push({el:el});

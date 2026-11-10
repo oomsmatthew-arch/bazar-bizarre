@@ -218,6 +218,11 @@
           <div class="vvuitleg" id="vvUitleg"></div>
           <div class="row" style="margin-top:12px;"><button class="btn primary" id="vvBewaar">Bewaren</button></div>
         </div>
+        <div class="field" id="dubbelVak" hidden>
+          <div class="h">🧹 Dubbele producten</div>
+          <p class="hint" style="margin:0 0 8px;" id="dubbelUitleg"></p>
+          <div class="row"><button class="btn primary" id="dubbelSamen">🧹 Samenvoegen</button></div>
+        </div>
         <div class="field" id="stocklijstVak" hidden>
           <div class="h">📋 Papieren stocklijst</div>
           <p class="hint" style="margin:0 0 8px;" id="stocklijstUitleg"></p>
@@ -902,14 +907,18 @@ function renderProdSum(alle){
 function renderProdControle(alle){
   const el=document.getElementById('prodControle'); if(!el) return;
   if(!alle.length){ el.innerHTML=''; return; }
+  const dub=BBInv.dubbeleProducten(huidigHoofdstuk);
+  const dubHtml=dub.length?('<div class="dubbelmelding">⚠ <b>'+dub.length+(dub.length===1?' product staat':' producten staan')+' dubbel</b> (zelfde naam). '+
+    'Voeg ze samen, anders tel je ze twee keer. <button class="btn" id="dubSamenStock" type="button">🧹 Samenvoegen</button></div>'):'';
   const sc=BBInv.getStockControle(huidigHoofdstuk);
   const metMin=alle.some(x=>x.staat!==''&&x.staat!=='uitlopend');
-  el.innerHTML='<span class="sc-info">'+(sc
+  el.innerHTML=dubHtml+'<span class="sc-info">'+(sc
       ? ('Laatste stockcontrole: <b>'+esc(fmtDag(sc.datum))+'</b>'+(sc.door?(' door '+esc(sc.door)):''))
       : (metMin?'<b>Nog geen stockcontrole.</b> Tel alles eens na, dan kloppen de aantallen en de kleuren.':'Nog geen stockcontrole.'))+'</span>'+
     '<button class="btn" id="scOpen" type="button">✅ Stockcontrole</button>'+
     (metMin?'<button class="btn" id="scPrint" type="button">🖨️ Bestellijst</button>':'');
   document.getElementById('scOpen').onclick=openControle;
+  const ds=document.getElementById('dubSamenStock'); if(ds) ds.onclick=()=>samenvoegen();
   const pb=document.getElementById('scPrint'); if(pb) pb.onclick=()=>BBInv.printProductBestellijst(huidigHoofdstuk);
 }
 function renderProdStock(){
@@ -944,10 +953,35 @@ function renderProdStock(){
   });
 }
 
+// ---- Dubbele producten samenvoegen (zelfde naam in één hoofdstuk) ----
+async function samenvoegen(daarna){
+  const dub=BBInv.dubbeleProducten(huidigHoofdstuk); if(!dub.length) return true;
+  if(!await eisToegang('inventaris','beheren','dubbele producten samen te voegen')) return false;
+  const regels=dub.slice(0,8).map(d=>'• '+d.naam+' — '+(d.weg.length+1)+'×, voorraad '+d.stock).join('\n')+(dub.length>8?('\n• … en nog '+(dub.length-8)):'');
+  if(!await bbBevestig({titel:dub.length+(dub.length===1?' product staat':' producten staan')+' dubbel', okTekst:'Samenvoegen',
+    tekst:'Per naam blijft er één over: die met het minimum. De hoogste getelde voorraad en een foto gaan mee.\n\n'+regels})) return false;
+  const r=BBInv.voegDubbelsSamen(huidigHoofdstuk);
+  bbToon('Samengevoegd: '+r.namen+(r.namen===1?' product':' producten')+', '+r.weg+' dubbele weggehaald.');
+  renderProdStock(); if(document.getElementById('pane-beheer').classList.contains('active')) renderProdBeheer();
+  return true;
+}
+function renderDubbelVak(){
+  const vak=document.getElementById('dubbelVak'); if(!vak) return;
+  const dub=BBInv.dubbeleProducten(huidigHoofdstuk);
+  vak.hidden=!dub.length; if(!dub.length) return;
+  document.getElementById('dubbelUitleg').innerHTML='<b>'+dub.length+'</b> '+(dub.length===1?'product staat':'producten staan')+
+    ' meer dan één keer in de lijst ('+dub.slice(0,4).map(d=>esc(d.naam)).join(', ')+(dub.length>4?', …':'')+'). '+
+    'Samenvoegen houdt er per naam één over, met het minimum, de foto en de hoogste getelde voorraad.';
+}
+document.getElementById('dubbelSamen').onclick=()=>samenvoegen();
+
 // ---- Het venster van de stockcontrole ----
 let scNagekeken={};   // product-id → getelde aantal (enkel wat nagekeken is)
 async function openControle(){
   if(!await eisToegang('inventaris','beheren','de stockcontrole te doen')) return;
+  // Staat er iets dubbel, dan eerst samenvoegen: anders tel je het ene exemplaar en blijft het
+  // andere op 0 staan — en lijkt het alsof de controle niets deed.
+  if(BBInv.dubbeleProducten(huidigHoofdstuk).length && !await samenvoegen()) return;
   scNagekeken={};
   const alle=prodMetStaat().filter(x=>x.staat!=='buiten')
     .sort((a,b)=>((a.staat==='uitlopend')-(b.staat==='uitlopend'))||a.p.naam.localeCompare(b.p.naam));
@@ -962,10 +996,14 @@ async function openControle(){
       '<button type="button" class="sc-ok" title="Het aantal klopt">✓</button>';
     const inp=r.querySelector('input');
     const markeer=v=>{ scNagekeken[p.id]=Math.max(0,Math.round(+v||0)); inp.value=scNagekeken[p.id]; r.classList.add('gedaan'); scTel(alle.length); };
+    // ✓ nog eens = niet nagekeken: terug naar het aantal van vóór de controle.
+    const wis=()=>{ delete scNagekeken[p.id]; inp.value=huidig; r.classList.remove('gedaan'); scTel(alle.length); };
     r.querySelector('.min').onclick=()=>markeer((+inp.value||0)-1);
     r.querySelector('.pl').onclick=()=>markeer((+inp.value||0)+1);
-    inp.onchange=()=>markeer(inp.value);
-    r.querySelector('.sc-ok').onclick=()=>markeer(inp.value);
+    // Al tijdens het typen bijhouden: wie meteen op Bewaren tikt, verliest het laatste getal niet.
+    inp.oninput=()=>{ if(inp.value.trim()!==''){ scNagekeken[p.id]=Math.max(0,Math.round(+inp.value||0)); r.classList.add('gedaan'); scTel(alle.length); } };
+    inp.onchange=()=>{ if(inp.value.trim()==='') wis(); else markeer(inp.value); };
+    r.querySelector('.sc-ok').onclick=()=>{ if(r.classList.contains('gedaan')) wis(); else markeer(inp.value); };
     lijst.appendChild(r);
   });
   scTel(alle.length);
@@ -981,7 +1019,9 @@ document.getElementById('scBewaar').onclick=()=>{
   const r=BBInv.stockControle(huidigHoofdstuk,scNagekeken,currentUserName());
   sluitControle();
   bbToon('Stockcontrole bewaard: '+r.geteld+' nagekeken, '+r.gewijzigd+' aangepast'+(r.onder?('. '+r.onder+' onder het minimum — zie 🖨️ Bestellijst.'):'. Alles staat op of boven het minimum.'));
+  // De pagina meteen bijwerken: aantallen, kleuren, samenvatting en "laatste stockcontrole".
   renderProdStock();
+  if(document.getElementById('pane-beheer').classList.contains('active')) renderProdBeheer();
 };
 
 document.getElementById('prodZoek').oninput=renderProdStock;
@@ -1035,7 +1075,7 @@ function renderProdBeheerList(){
   }
   items.forEach(p=>list.appendChild(prodRow(p)));
 }
-function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); renderVastVerbruik(); renderStocklijstVak(); }
+function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); renderVastVerbruik(); renderStocklijstVak(); renderDubbelVak(); }
 // De papieren stocklijst (enkel voor O&F en Algemeen): verdwijnt zodra alles erin staat.
 function renderStocklijstVak(){
   const vak=document.getElementById('stocklijstVak'); if(!vak) return;

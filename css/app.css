@@ -518,6 +518,8 @@
   .pinfo input,.pinfo select{border:1px solid var(--line);background:var(--panel2);color:var(--text);
     border-radius:8px;padding:5px 7px;font-size:13px;font-family:inherit;}
   .pinfo .pmin{width:56px;text-align:center;} .pinfo .peh{width:130px;}
+  .dubbelmelding{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;
+    background:rgba(224,138,30,.12);border:1px solid #e0a24a;color:var(--text);}
   /* het venster van de stockcontrole */
   .sc-lijst{display:flex;flex-direction:column;gap:7px;}
   .sc-rij .fe-nm{white-space:normal;}
