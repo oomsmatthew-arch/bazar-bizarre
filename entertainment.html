@@ -235,19 +235,36 @@ function computeLowstock(){
   const bkStock=BBInv.getBoekjes().stock||0;
   const boekjesLaag=bkStock<=dBk;
 
-  bannerActive.red = (totaal<=dK) || boekjesLaag;
+  // Quiz, O&F en Algemeen: per product een minimum (zie MINIMUM EN STOCKCONTROLE in
+  // js/inventaris.js). Pas na de eerste stockcontrole van een hoofdstuk: daarvoor staan nieuwe
+  // producten nog op 0 en zou alles meteen "op" lijken.
+  const onder=[], op=[];
+  ['quiz','of','algemeen'].forEach(hs=>{
+    if(!(BBInv.getStockControle&&BBInv.getStockControle(hs))) return;
+    const nm={quiz:'Quiz',of:'O&amp;F',algemeen:'Algemeen'}[hs];
+    const tk=BBInv.tekorten(hs);
+    const r=tk.filter(t=>t.staat==='rood'), o=tk.filter(t=>t.staat==='oranje');
+    const namen=l=>l.slice(0,3).map(t=>esc(t.naam)).join(', ')+(l.length>3?', …':'');
+    if(r.length) onder.push('<b>'+nm+': '+r.length+(r.length===1?' product':' producten')+' onder het minimum</b> ('+namen(r)+').');
+    if(o.length) op.push('<b>'+nm+': '+o.length+(o.length===1?' product':' producten')+' op het minimum</b> ('+namen(o)+').');
+  });
+
+  bannerActive.red = (totaal<=dK) || boekjesLaag || onder.length>0;
   if(bannerActive.red){
     let html='';
     if(totaal<=dK) html+='<b>Prijzenvoorraad bijna op (nog '+totaal+' stuks).</b> ';
     if(boekjesLaag) html+='<b>📕 Boekjes bijna op (nog '+bkStock+').</b> ';
+    if(onder.length) html+=onder.join(' ')+' ';
     html+='Bekijk via Naar voorraad.';
     document.getElementById('lowstockItems').innerHTML=html;
   }
 
-  bannerActive.org = (totaal>dK && totaal<=dA);
+  bannerActive.org = (totaal>dK && totaal<=dA) || op.length>0;
   if(bannerActive.org){
-    document.getElementById('attentionItems').innerHTML=
-      '<b>Prijzenvoorraad raakt laag (nog '+totaal+' stuks).</b> Bekijk via Naar voorraad.';
+    let html='';
+    if(totaal>dK && totaal<=dA) html+='<b>Prijzenvoorraad raakt laag (nog '+totaal+' stuks).</b> ';
+    if(op.length) html+=op.join(' ')+' ';
+    document.getElementById('attentionItems').innerHTML=html+'Bekijk via Naar voorraad.';
   }
 }
 

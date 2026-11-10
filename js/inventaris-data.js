@@ -903,3 +903,49 @@ window.FINALEVRAGEN_DEFAULT = [
   {vraag:'De eerste aardappelen kwamen vanuit Zuid-Amerika naar Europa, maar wanneer was dat volgens Wikipedia?',
    antwoord:'1536'}
 ];
+
+// De papieren stocklijsten (controle van 27/10/2026), voor de knop "Stocklijst toevoegen"
+// onder Inventaris → 🔒 Beheer bij O&F en Algemeen. min = "minstens op voorraad".
+//   status 'uitlopend' = niet meer bijbestellen, opmaken wat er ligt · 'zomer' = enkel in de zomer
+window.STOCKLIJSTEN_DEFAULT = {
+  of: [
+    {naam:'Vakantie Doeboek NL', min:20, eenheid:'stuks'},
+    {naam:'Vakantie Doeboek DU', min:20, eenheid:'stuks'},
+    {naam:'Vakantie Doeboek FR', min:20, eenheid:'stuks'},
+    {naam:'O&F Puzzel', min:20, eenheid:'stuks'},
+    {naam:'O&F Memorie', min:20, eenheid:'stuks'},
+    {naam:'O&F Sleutelhanger Orry', min:1, eenheid:'volle zak'},
+    {naam:'O&F Sleutelhanger Rep', min:1, eenheid:'volle zak'},
+    {naam:'O&F Sleutelhanger Bing', min:1, eenheid:'volle zak'},
+    {naam:'O&F Sleutelhanger Woops', min:1, eenheid:'volle zak'},
+    {naam:'Potloodjes', min:15, eenheid:'doosjes'},
+    {naam:'Boekjes', min:10, eenheid:'pakjes'},
+    {naam:'O&F T-shirt 104', min:0, status:'uitlopend'},
+    {naam:'O&F T-shirt 116', min:0, status:'uitlopend'},
+    {naam:'O&F T-shirt 128', min:0, status:'uitlopend'},
+    {naam:'O&F T-shirt 140', min:0, status:'uitlopend'},
+    {naam:'O&F T-shirt 164', min:0, status:'uitlopend'},
+    {naam:'O&F T-shirt stiften', min:0, status:'uitlopend'},
+    {naam:'O&F voorleesboekje FR', min:0, status:'uitlopend', notitie:'oud logo'},
+    {naam:'O&F vriendenboekje DU', min:0, status:'uitlopend', notitie:'oud logo'}
+  ],
+  algemeen: [
+    {naam:'BOMA Alco Spray', min:6, eenheid:'flessen'},
+    {naam:'Febreze kledij verfrisser', min:8, eenheid:'flessen'},
+    {naam:'Watjes', min:10, eenheid:'rollen'},
+    {naam:'Tissues', min:10, eenheid:'dozen'},
+    {naam:'Ontsminkingsproduct (make-up reiniger)', min:6, eenheid:'flessen'},
+    {naam:'Desinfectiespray (schoenen)', min:4, eenheid:'flessen'},
+    {naam:'Brush cleanser', min:2, eenheid:'flessen'},
+    {naam:'Haarlak', min:6, eenheid:'bussen'},
+    {naam:'Afwasproduct (bv. Dreft)', min:2, eenheid:'flessen'},
+    {naam:'Shampoo', min:6, eenheid:'flessen'},
+    {naam:'Body wash', min:6, eenheid:'flessen'},
+    {naam:'Handzeep', min:6, eenheid:'flessen'},
+    {naam:'Handgel', min:2, eenheid:'flessen'},
+    {naam:'Scheerschuim', min:2, eenheid:'bussen'},
+    {naam:'Haargel', min:1, eenheid:'pot'},
+    {naam:'Nagellak remover', min:1, eenheid:'fles'},
+    {naam:'Zonnebrand', min:2, eenheid:'flessen', status:'zomer'}
+  ]
+};

@@ -1436,6 +1436,11 @@
     const p=cache.producten.find(x=>x.id===id);
     cache.producten=cache.producten.filter(x=>x.id!==id); saveProductBackup();
     if(productenOK) dbDelete('producten','id',id); else persistCache();
+    // Het minimum en de eenheid (zie MINIMUM EN STOCKCONTROLE) gaan mee weg.
+    if(p && getProductInfo(p.hoofdstuk)[id]){
+      const m=Object.assign({},getProductInfo(p.hoofdstuk)); delete m[id];
+      const patch={}; patch[piSleutel(p.hoofdstuk)]=m; saveConfig(patch);
+    }
     logAct('Product verwijderd'+(p?': '+p.naam:''));
   }
   // ---- Leveringen van die producten: verhoogt meteen de voorraad van het gekozen product ----
@@ -1687,6 +1692,119 @@
     logAct('Vast verbruik '+VV_HSNAAM[hs]+' '+(r.aan&&r.dagen.length
       ?('ingesteld: '+r.dagen.map(n=>VV_DAGNAAM[n]).join(', ')+', telkens '+r.aantal):'uitgezet'));
     return getVastVerbruik(hs);
+  }
+
+  // ---------------- MINIMUM EN STOCKCONTROLE (Quiz/O&F/Algemeen) ----------------
+  // Zoals de papieren stocklijsten: per product hoeveel er minstens moet liggen ("6 flessen"),
+  // of het nog bijbesteld wordt, en wanneer en door wie de voorraad laatst nageteld werd.
+  // Woont in het gedeelde instellingen-document, één sleutel per hoofdstuk — net als het vaste
+  // verbruik. Er is dus geen extra kolom of SQL nodig.
+  //   productInfo_of    = {'<product-id>':{min:20, eenheid:'stuks', status:'', notitie:''}, …}
+  //   stockControle_of  = {ts, datum:'2026-10-27', door:'Matthew', geteld:12, gewijzigd:4, onder:3}
+  //   status  ''          gewoon: telt mee voor het minimum
+  //           'uitlopend' niet meer bijbestellen, opmaken wat er ligt (bv. T-shirts, oud logo)
+  //           'zomer'     enkel in de zomer (mei t/m september), bv. zonnebrand
+  const PI_STATUS=['','uitlopend','zomer'];
+  const ZOMER_MAANDEN=[4,5,6,7,8];   // mei t/m september (januari = 0)
+  const piSleutel=hs=>'productInfo_'+hs;
+  const scSleutel=hs=>'stockControle_'+hs;
+  function getProductInfo(hs){
+    const c=cache.appconfig, m=c&&c[piSleutel(hs)];
+    return (m&&typeof m==='object')?m:{};
+  }
+  function piSchoon(oud,patch){
+    const n=Object.assign({min:null,eenheid:'',status:'',notitie:''},oud||{});
+    const g=patch||{};
+    if('min' in g) n.min=(g.min===null||g.min===''||isNaN(+g.min))?null:Math.max(0,Math.round(+g.min));
+    if('eenheid' in g) n.eenheid=String(g.eenheid||'').trim();
+    if('status' in g) n.status=PI_STATUS.indexOf(g.status)>=0?g.status:'';
+    if('notitie' in g) n.notitie=String(g.notitie||'').trim();
+    return n;
+  }
+  // Eén of meer producten tegelijk: {id:{min, eenheid, status, notitie}} — één keer bewaren.
+  function setProductInfo(hs,wijzigingen){
+    if(VV_HOOFDSTUKKEN.indexOf(hs)<0) return null;
+    const m=Object.assign({},getProductInfo(hs));
+    Object.keys(wijzigingen||{}).forEach(id=>{ if(id) m[id]=piSchoon(m[id],wijzigingen[id]); });
+    const patch={}; patch[piSleutel(hs)]=m;
+    saveConfig(patch);
+    return m;
+  }
+  // Hoe staat een product ervoor?
+  //   'rood'      onder het minimum: bijbestellen
+  //   'oranje'    precies op het minimum: volgende keer bijbestellen
+  //   'groen'     erboven
+  //   'uitlopend' niet meer bijbestellen · 'buiten' enkel in de zomer, en het is geen zomer
+  //   ''          er is (nog) geen minimum ingesteld
+  function productStaat(p,info,datum){
+    const i=info||{};
+    if(i.status==='uitlopend') return 'uitlopend';
+    if(i.status==='zomer' && ZOMER_MAANDEN.indexOf((datum||new Date()).getMonth())<0) return 'buiten';
+    if(i.min===null||i.min===undefined) return '';
+    const s=Math.round((p&&p.stock)||0);
+    if(s<i.min) return 'rood';
+    if(s===i.min && i.min>0) return 'oranje';
+    return 'groen';
+  }
+  // Wat er in een hoofdstuk bij te bestellen valt: onder (rood) en op (oranje) het minimum,
+  // het ergste eerst, met hoeveel er ontbreekt tot aan het minimum.
+  function tekorten(hs,datum){
+    const info=getProductInfo(hs);
+    return cache.producten.filter(p=>p&&p.hoofdstuk===hs)
+      .map(p=>({p:p,i:info[p.id]||{},staat:productStaat(p,info[p.id],datum)}))
+      .filter(x=>x.staat==='rood'||x.staat==='oranje')
+      .map(x=>{ const s=Math.round(x.p.stock||0);
+        return {id:x.p.id,naam:x.p.naam,stock:s,min:x.i.min,eenheid:x.i.eenheid||'',staat:x.staat,tekort:Math.max(0,x.i.min-s)}; })
+      .sort((a,b)=>(a.staat===b.staat?0:(a.staat==='rood'?-1:1))||b.tekort-a.tekort||a.naam.localeCompare(b.naam));
+  }
+  function getStockControle(hs){
+    const c=cache.appconfig, r=c&&c[scSleutel(hs)];
+    return (r&&typeof r==='object')?r:null;
+  }
+  // Een stockcontrole bewaren. 'tellingen' = {product-id: getelde aantal}, enkel de producten
+  // die nagekeken zijn. Wat niet verandert, gaat niet opnieuw naar de database.
+  function stockControle(hs,tellingen,door){
+    if(VV_HOOFDSTUKKEN.indexOf(hs)<0) return null;
+    const ids=Object.keys(tellingen||{});
+    let gewijzigd=0;
+    ids.forEach(id=>{
+      const p=cache.producten.find(x=>x&&x.id===id&&x.hoofdstuk===hs); if(!p) return;
+      const v=Math.max(0,Math.round(+tellingen[id]||0));
+      if(v!==Math.round(p.stock||0)){ setProductStock(id,v); gewijzigd++; }
+    });
+    const rec={ts:Date.now(),datum:vvIso(vvVandaag()),door:door||actor||'',geteld:ids.length,gewijzigd:gewijzigd,
+      onder:tekorten(hs).filter(t=>t.staat==='rood').length};
+    const patch={}; patch[scSleutel(hs)]=rec;
+    saveConfig(patch);
+    logAct('Stockcontrole '+VV_HSNAAM[hs]+': '+rec.geteld+' nagekeken, '+gewijzigd+' aangepast'+
+      (rec.onder?(', '+rec.onder+' onder het minimum'):''));
+    return rec;
+  }
+  // De papieren stocklijst van een hoofdstuk toevoegen (zie STOCKLIJSTEN_DEFAULT in
+  // js/inventaris-data.js): wat er nog niet staat, komt erbij met voorraad 0; wat er al staat
+  // (zelfde naam), krijgt enkel zijn minimum als het er nog geen had. Niets wordt overschreven.
+  function voegStocklijstToe(hs){
+    const lijst=((window.STOCKLIJSTEN_DEFAULT||{})[hs])||[];
+    if(VV_HOOFDSTUKKEN.indexOf(hs)<0 || !lijst.length) return {toegevoegd:0,bijgewerkt:0};
+    const info=getProductInfo(hs), wijz={};
+    let toegevoegd=0, bijgewerkt=0;
+    lijst.forEach(r=>{
+      const naam=String(r.naam||'').trim(); if(!naam) return;
+      let p=cache.producten.find(x=>x&&x.hoofdstuk===hs&&String(x.naam||'').trim().toLowerCase()===naam.toLowerCase());
+      if(!p){ p=addProduct(hs,naam,0,''); toegevoegd++; }
+      else if(info[p.id] && info[p.id].min!==null && info[p.id].min!==undefined) return;
+      else bijgewerkt++;
+      wijz[p.id]={min:r.min,eenheid:r.eenheid||'',status:r.status||'',notitie:r.notitie||''};
+    });
+    if(Object.keys(wijz).length) setProductInfo(hs,wijz);
+    if(toegevoegd||bijgewerkt) logAct('Stocklijst '+VV_HSNAAM[hs]+' toegevoegd: '+toegevoegd+' nieuw, '+bijgewerkt+' met minimum aangevuld');
+    return {toegevoegd:toegevoegd,bijgewerkt:bijgewerkt};
+  }
+  // Hoeveel van de papieren stocklijst er nog niet in de app staat (voor de knop onder Beheer).
+  function stocklijstOntbreekt(hs){
+    const lijst=((window.STOCKLIJSTEN_DEFAULT||{})[hs])||[];
+    const namen=cache.producten.filter(x=>x&&x.hoofdstuk===hs).map(x=>String(x.naam||'').trim().toLowerCase());
+    return lijst.filter(r=>namen.indexOf(String(r.naam||'').trim().toLowerCase())<0).length;
   }
 
   // ---------------- CHECKLISTS (gedeeld) ----------------
@@ -2845,6 +2963,18 @@
     printHTML('Bestellijst',body);
   }
 
+  // De bestellijst van een hoofdstuk (Quiz/O&F/Algemeen): alles onder en op het minimum.
+  function printProductBestellijst(hs){
+    const tk=tekorten(hs), sc=getStockControle(hs), nm=VV_HSNAAM[hs]||hs;
+    const eh=t=>t.eenheid?(' '+escHtml(t.eenheid)):'';
+    const rij=t=>'<tr><td>'+escHtml(t.naam)+(t.staat==='oranje'?' <i>(op het minimum)</i>':'')+'</td><td class="n">'+t.stock+'</td><td class="n">'+t.min+eh(t)+'</td><td class="n"><b>'+(t.tekort||'—')+'</b></td></tr>';
+    const body='<h1>Bestellijst — '+escHtml(nm)+'</h1><div class="sub">Afgedrukt op '+fmtNowNL()+
+      (sc?(' · laatste stockcontrole '+escHtml(sc.datum.split('-').reverse().join('/'))+(sc.door?(' door '+escHtml(sc.door)):'')):' · nog geen stockcontrole')+'</div>'+
+      (tk.length?('<table><tr><th>Product</th><th class="n">Voorraad</th><th class="n">Minimum</th><th class="n">Tekort</th></tr>'+tk.map(rij).join('')+'</table>'):
+        '<p>Alles staat boven het minimum.</p>');
+    printHTML('Bestellijst '+nm,body);
+  }
+
   window.BBInv={init,setOnChange:fn=>{onChange=fn;},setOnUpdateSignal:fn=>{onUpdateSignaal=fn;},isReady:()=>ready,
     seedIfEmpty,getPrijzen,setPrijzen,getBoekjes,setBoekjes,boekjesOpbouw,
     getFormulieren,setFormulieren,getLeveringen,setLeveringen,
@@ -2866,6 +2996,9 @@
     STD_KOLOMMEN,
     getGebruikers,addGebruiker,updateGebruiker,removeGebruiker,isGebruikersGedeeld:()=>gebruikersOK,
     getProducten,addProduct,setProductStock,setProductFoto,removeProduct,isProductenGedeeld:()=>productenOK,
+    // Minimum, eenheid en stockcontrole voor Quiz/O&F/Algemeen — zie hierboven.
+    getProductInfo,setProductInfo,productStaat,tekorten,getStockControle,stockControle,
+    voegStocklijstToe,stocklijstOntbreekt,printProductBestellijst,
     // Vast verbruik (automatische aftelling) voor Quiz/O&F/Algemeen — zie hierboven.
     getVastVerbruik,setVastVerbruik,vastVerbruikInhalen,volgendeVastVerbruik,isVastVerbruikRij,
     isProductenFotoGedeeld:()=>productenFotoOK,

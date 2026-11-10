@@ -56,6 +56,9 @@
       <div class="hsonly hs-andere" hidden>
         <p class="hint" style="margin:0 2px 12px;">Actuele voorraad voor dit hoofdstuk. Aanpassen doe je onder <b>🔒 Beheer</b>.</p>
         <p class="vvstock" id="vvStockHint" hidden></p>
+        <!-- Minimum per product en stockcontrole (zie MINIMUM EN STOCKCONTROLE in js/inventaris.js) -->
+        <div class="invsum" id="prodSum"></div>
+        <div class="prodcontrole" id="prodControle"></div>
         <input type="text" id="prodZoek" class="finp zoek" placeholder="Zoek een product…">
         <div class="invlist" id="prodList"></div>
       </div>
@@ -215,6 +218,11 @@
           <div class="vvuitleg" id="vvUitleg"></div>
           <div class="row" style="margin-top:12px;"><button class="btn primary" id="vvBewaar">Bewaren</button></div>
         </div>
+        <div class="field" id="stocklijstVak" hidden>
+          <div class="h">📋 Papieren stocklijst</div>
+          <p class="hint" style="margin:0 0 8px;" id="stocklijstUitleg"></p>
+          <div class="row"><button class="btn primary" id="stocklijstAdd">📋 Stocklijst toevoegen</button></div>
+        </div>
         <div class="field">
           <div class="h">Product toevoegen</div>
           <div class="addrow">
@@ -226,6 +234,7 @@
           </div>
         </div>
         <div class="h" style="margin:28px 2px 8px;color:var(--forest);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;">Producten &amp; hoeveelheden</div>
+        <p class="hint" style="margin:0 2px 10px;">Per product: het <b>minimum</b> dat er altijd moet liggen en de eenheid (bv. 6 flessen). Daarop kleurt de voorraad rood, oranje of groen, en komt het op de bestellijst. <b>Niet meer bijbestellen</b>: opmaken wat er ligt. <b>Enkel in de zomer</b>: telt enkel mee van mei t/m september.</p>
         <input type="text" id="prodBeheerZoek" class="finp zoek" placeholder="Zoek een product om te bewerken…">
         <div class="invlist" id="prodBeheerList"></div>
       </div>
@@ -263,6 +272,19 @@
 
 <!-- Een ingezonden formulier aanpassen. Alles is bewerkbaar; de voorraad wordt bij het
      opslaan bijgesteld met het verschil, en je ziet dat verschil vooraf onderaan staan. -->
+<div class="cammodal" id="controleModal">
+  <div class="cammodal-box formbox">
+    <div class="cammodal-title" id="scTitel">Stockcontrole</div>
+    <p class="hint" style="margin:0 0 10px;">Tel na wat er ligt. Klopt het aantal, tik dan op <b>✓</b>; klopt het niet, zet het juiste aantal. Wat je niet nakijkt, blijft zoals het stond.</p>
+    <div class="sc-lijst" id="scLijst"></div>
+    <div class="sc-voet">
+      <span class="sc-teller" id="scTeller"></span>
+      <button class="btn" id="scAnnuleer" type="button">Annuleren</button>
+      <button class="btn primary" id="scBewaar" type="button">Bewaren</button>
+    </div>
+  </div>
+</div>
+
 <div class="cammodal" id="formEditModal">
   <div class="cammodal-box formbox">
     <div class="cammodal-title">Formulier aanpassen</div>
@@ -849,32 +871,128 @@ function renderLeveringen(){
 }
 
 // ---- Producten per hoofdstuk (Quiz / O&F / Algemeen): eenvoudige lijst, naam + aantal ----
+// ---- Minimum, kleuren en stockcontrole (Quiz/O&F/Algemeen) ----
+// Volgorde in de lijst: wat bijbesteld moet worden eerst, wat niet meer besteld wordt achteraan.
+const ST_VOLGORDE={rood:0,oranje:1,groen:2,'':3,buiten:4,uitlopend:5};
+const fmtDag=iso=>String(iso||'').split('-').reverse().join('/');
+function minTekst(i){ return 'min. '+i.min+(i.eenheid?(' '+i.eenheid):''); }
+function staatTekst(staat,i,stock){
+  if(staat==='rood') return minTekst(i)+' · nog '+(i.min-stock)+' tekort';
+  if(staat==='oranje') return minTekst(i)+' · op het minimum';
+  if(staat==='groen') return minTekst(i);
+  if(staat==='uitlopend') return 'niet meer bijbestellen — opmaken wat er ligt'+(i.notitie?(' · '+i.notitie):'');
+  if(staat==='buiten') return 'enkel in de zomer'+(i.min!=null?(' · '+minTekst(i)):'');
+  return i.notitie||'';
+}
+function prodMetStaat(){
+  const info=BBInv.getProductInfo(huidigHoofdstuk);
+  return BBInv.getProducten().filter(p=>p.hoofdstuk===huidigHoofdstuk).map(p=>{
+    const i=info[p.id]||{}; return {p:p,i:i,staat:BBInv.productStaat(p,i)};
+  });
+}
+function renderProdSum(alle){
+  const el=document.getElementById('prodSum'); if(!el) return;
+  const tel=st=>alle.filter(x=>x.staat===st).length;
+  const metMin=alle.some(x=>x.staat!=='');
+  if(!metMin){ el.innerHTML=''; return; }
+  const pill=(cls,l,v)=>'<span class="pill '+cls+'">'+l+': <b>'+v+'</b></span>';
+  el.innerHTML=pill('rood','🔴 Onder het minimum',tel('rood'))+pill('oranje','🟠 Op het minimum',tel('oranje'))+
+    pill('groen','🟢 In orde',tel('groen'))+(tel('uitlopend')?pill('uit','Niet meer bijbestellen',tel('uitlopend')):'');
+}
+function renderProdControle(alle){
+  const el=document.getElementById('prodControle'); if(!el) return;
+  if(!alle.length){ el.innerHTML=''; return; }
+  const sc=BBInv.getStockControle(huidigHoofdstuk);
+  const metMin=alle.some(x=>x.staat!==''&&x.staat!=='uitlopend');
+  el.innerHTML='<span class="sc-info">'+(sc
+      ? ('Laatste stockcontrole: <b>'+esc(fmtDag(sc.datum))+'</b>'+(sc.door?(' door '+esc(sc.door)):''))
+      : (metMin?'<b>Nog geen stockcontrole.</b> Tel alles eens na, dan kloppen de aantallen en de kleuren.':'Nog geen stockcontrole.'))+'</span>'+
+    '<button class="btn" id="scOpen" type="button">✅ Stockcontrole</button>'+
+    (metMin?'<button class="btn" id="scPrint" type="button">🖨️ Bestellijst</button>':'');
+  document.getElementById('scOpen').onclick=openControle;
+  const pb=document.getElementById('scPrint'); if(pb) pb.onclick=()=>BBInv.printProductBestellijst(huidigHoofdstuk);
+}
 function renderProdStock(){
   vvToonStockHint();
   const list=document.getElementById('prodList'); if(!list) return; list.innerHTML='';
   const q=(document.getElementById('prodZoek').value||'').toLowerCase().trim();
-  let items=BBInv.getProducten().filter(p=>p.hoofdstuk===huidigHoofdstuk);
-  if(q) items=items.filter(p=>p.naam.toLowerCase().includes(q));
-  items.sort((a,b)=>a.naam.localeCompare(b.naam));
+  const alle=prodMetStaat();
+  renderProdSum(alle); renderProdControle(alle);
+  let items=alle;
+  if(q) items=items.filter(x=>x.p.naam.toLowerCase().includes(q));
+  items.sort((a,b)=>(ST_VOLGORDE[a.staat]-ST_VOLGORDE[b.staat])||a.p.naam.localeCompare(b.p.naam));
   if(!items.length){
     const note=document.createElement('div'); note.className='empty-note';
     note.textContent=q?'Geen producten gevonden.':'Nog geen producten voor dit hoofdstuk. Voeg ze toe onder 🔒 Beheer.';
     list.appendChild(note); return;
   }
-  items.forEach(p=>{
-    const row=document.createElement('div'); row.className='invrow';
+  let scheiding=false;
+  items.forEach(x=>{
+    const p=x.p;
+    if(x.staat==='uitlopend' && !scheiding && items.some(y=>y.staat!=='uitlopend')){
+      scheiding=true;
+      const d=document.createElement('div'); d.className='invdiv-lbl'; d.textContent='Niet meer bijbestellen — opmaken wat er ligt';
+      list.appendChild(d);
+    }
+    const sub=staatTekst(x.staat,x.i,Math.round(p.stock||0));
+    const row=document.createElement('div'); row.className='invrow'+(x.staat?(' st-'+x.staat):'');
     row.innerHTML=(p.foto?'<img class="thumb ro" src="'+p.foto+'" alt="">':'<div class="thumb ph ro">📷</div>')+
-      '<div class="nm"><div class="t">'+esc(p.naam)+'</div></div>'+
+      '<div class="nm"><div class="t">'+esc(p.naam)+'</div>'+(sub?('<div class="st">'+esc(sub)+'</div>'):'')+'</div>'+
       '<div class="stocknum'+((p.stock||0)<0?' neg':'')+'">'+(p.stock||0)+'</div>';
     if(p.foto){const t=row.querySelector('.thumb'); if(t){t.style.cursor='zoom-in'; t.onclick=()=>viewFoto(p.foto);}}
     list.appendChild(row);
   });
 }
+
+// ---- Het venster van de stockcontrole ----
+let scNagekeken={};   // product-id → getelde aantal (enkel wat nagekeken is)
+async function openControle(){
+  if(!await eisToegang('inventaris','beheren','de stockcontrole te doen')) return;
+  scNagekeken={};
+  const alle=prodMetStaat().filter(x=>x.staat!=='buiten')
+    .sort((a,b)=>((a.staat==='uitlopend')-(b.staat==='uitlopend'))||a.p.naam.localeCompare(b.p.naam));
+  document.getElementById('scTitel').textContent='Stockcontrole — '+({quiz:'Quiz',of:'O&F',algemeen:'Algemeen'}[huidigHoofdstuk]||'');
+  const lijst=document.getElementById('scLijst'); lijst.innerHTML='';
+  alle.forEach(x=>{
+    const p=x.p, huidig=Math.round(p.stock||0);
+    const r=document.createElement('div'); r.className='fe-rij sc-rij';
+    r.innerHTML='<div class="fe-nm"><div>'+esc(p.naam)+'</div>'+
+        (x.i.min!=null&&x.staat!=='uitlopend'?('<span class="sc-min">'+esc(minTekst(x.i))+'</span>'):(x.staat==='uitlopend'?'<span class="sc-min">opmaken wat er ligt</span>':''))+'</div>'+
+      '<div class="stk"><button type="button" class="min">−</button><input type="tel" inputmode="numeric" value="'+huidig+'"><button type="button" class="pl">+</button></div>'+
+      '<button type="button" class="sc-ok" title="Het aantal klopt">✓</button>';
+    const inp=r.querySelector('input');
+    const markeer=v=>{ scNagekeken[p.id]=Math.max(0,Math.round(+v||0)); inp.value=scNagekeken[p.id]; r.classList.add('gedaan'); scTel(alle.length); };
+    r.querySelector('.min').onclick=()=>markeer((+inp.value||0)-1);
+    r.querySelector('.pl').onclick=()=>markeer((+inp.value||0)+1);
+    inp.onchange=()=>markeer(inp.value);
+    r.querySelector('.sc-ok').onclick=()=>markeer(inp.value);
+    lijst.appendChild(r);
+  });
+  scTel(alle.length);
+  document.getElementById('controleModal').classList.add('open');
+}
+function scTel(totaal){ document.getElementById('scTeller').textContent=Object.keys(scNagekeken).length+' van '+totaal+' nagekeken'; }
+function sluitControle(){ document.getElementById('controleModal').classList.remove('open'); scNagekeken={}; }
+document.getElementById('scAnnuleer').onclick=sluitControle;
+document.getElementById('controleModal').addEventListener('click',e=>{ if(e.target.id==='controleModal') sluitControle(); });
+document.getElementById('scBewaar').onclick=()=>{
+  const n=Object.keys(scNagekeken).length;
+  if(!n){ bbToon('Je hebt nog niets nagekeken. Tik op ✓ of zet het juiste aantal.'); return; }
+  const r=BBInv.stockControle(huidigHoofdstuk,scNagekeken,currentUserName());
+  sluitControle();
+  bbToon('Stockcontrole bewaard: '+r.geteld+' nagekeken, '+r.gewijzigd+' aangepast'+(r.onder?('. '+r.onder+' onder het minimum — zie 🖨️ Bestellijst.'):'. Alles staat op of boven het minimum.'));
+  renderProdStock();
+};
+
 document.getElementById('prodZoek').oninput=renderProdStock;
 
 function prodRow(p){
   const row=document.createElement('div'); row.className='invrow';
-  row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div></div>'+
+  const i=BBInv.getProductInfo(p.hoofdstuk)[p.id]||{};
+  row.innerHTML='<div class="nm"><div class="t">'+esc(p.naam)+'</div>'+
+      '<div class="pinfo"><label>min.</label><input type="tel" inputmode="numeric" class="pmin" value="'+(i.min==null?'':i.min)+'" placeholder="—">'+
+      '<input type="text" class="peh" value="'+esc(i.eenheid||'')+'" placeholder="eenheid (flessen…)">'+
+      '<select class="pst"><option value="">Gewoon</option><option value="uitlopend">Niet meer bijbestellen</option><option value="zomer">Enkel in de zomer</option></select></div></div>'+
     '<div class="stk"><button type="button" class="min">−</button><input type="number" value="'+(p.stock||0)+'"><button type="button" class="pl">+</button></div>'+
     '<button type="button" class="del" title="Verwijderen">✕</button>';
   const tw=document.createElement('div'); tw.className='thumbwrap';
@@ -886,6 +1004,11 @@ function prodRow(p){
   });
   if(p.foto) tw.querySelector('.thumbx').onclick=async e=>{e.stopPropagation();if(await bbBevestig({titel:'Foto verwijderen?', okTekst:'Ja, verwijderen', gevaar:true})){BBInv.setProductFoto(p.id,'');renderProdBeheerList();}};
   row.prepend(tw);
+  // Minimum, eenheid en soort: bewaren zodra je het veld verlaat of een keuze maakt.
+  const pmin=row.querySelector('.pmin'), peh=row.querySelector('.peh'), pst=row.querySelector('.pst');
+  pst.value=i.status||'';
+  const bewaarInfo=()=>{ const w={}; w[p.id]={min:pmin.value.trim(),eenheid:peh.value,status:pst.value}; BBInv.setProductInfo(p.hoofdstuk,w); };
+  pmin.onchange=bewaarInfo; peh.onchange=bewaarInfo; pst.onchange=bewaarInfo;
   const inp=row.querySelector('.stk input');
   const commit=v=>{ v=Math.round(v||0); BBInv.setProductStock(p.id,v); inp.value=v; inp.classList.toggle('neg',v<0); };
   row.querySelector('.min').onclick=()=>commit((+inp.value||0)-1);
@@ -912,7 +1035,25 @@ function renderProdBeheerList(){
   }
   items.forEach(p=>list.appendChild(prodRow(p)));
 }
-function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); renderVastVerbruik(); }
+function renderProdBeheer(){ renderProdBeheerList(); vulProdLevKiezer(); renderVastVerbruik(); renderStocklijstVak(); }
+// De papieren stocklijst (enkel voor O&F en Algemeen): verdwijnt zodra alles erin staat.
+function renderStocklijstVak(){
+  const vak=document.getElementById('stocklijstVak'); if(!vak) return;
+  const lijst=((window.STOCKLIJSTEN_DEFAULT||{})[huidigHoofdstuk])||[];
+  const ontbreekt=lijst.length?BBInv.stocklijstOntbreekt(huidigHoofdstuk):0;
+  vak.hidden=!ontbreekt;
+  if(!ontbreekt) return;
+  document.getElementById('stocklijstUitleg').innerHTML='De producten van de papieren stocklijst <b>'+
+    ({of:'O&amp;F Spelshow',algemeen:'Algemeen'}[huidigHoofdstuk]||'')+'</b>, met hun minimum: er staan er nog <b>'+ontbreekt+
+    '</b> van de '+lijst.length+' niet in. Wat er al staat, blijft zoals het is.';
+}
+document.getElementById('stocklijstAdd').onclick=async()=>{
+  if(!await eisToegang('inventaris','beheren','de stocklijst toe te voegen')) return;
+  const r=BBInv.voegStocklijstToe(huidigHoofdstuk);
+  renderProdBeheer();
+  bbToon(r.toegevoegd+' producten toegevoegd'+(r.bijgewerkt?(', '+r.bijgewerkt+' aangevuld met hun minimum'):'')+
+    '. Ze staan nog op 0: doe een ✅ Stockcontrole (onder Stock) om de echte aantallen in te vullen.');
+};
 document.getElementById('prodBeheerZoek').oninput=renderProdBeheerList;
 let prodNewFoto='';
 document.getElementById('prodAddFoto').onclick=()=>chooseFoto(url=>{

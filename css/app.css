@@ -498,6 +498,38 @@
     border-radius:10px;padding:7px 11px;cursor:pointer;font-size:13px;}
   .subrec .ed:active{transform:translateY(1px);}
 
+  /* ---- minimum per product (Quiz/O&F/Algemeen): kleur volgens de voorraad ---- */
+  .invsum .pill.rood b{color:#c0392b;} .invsum .pill.oranje b{color:#d07a12;}
+  .invsum .pill.groen b{color:var(--leaf);} .invsum .pill.uit b{color:var(--muted);}
+  .invrow.st-rood{border-left:6px solid #c0392b;} .invrow.st-oranje{border-left:6px solid #e08a1e;}
+  .invrow.st-groen{border-left:6px solid var(--leaf);}
+  .invrow.st-uitlopend,.invrow.st-buiten{opacity:.75;}
+  .invrow .nm .st{font-size:12px;color:var(--muted);margin-top:2px;}
+  .invrow.st-rood .nm .st,.invrow.st-rood .stocknum{color:#c0392b;}
+  .invrow.st-rood .nm .st,.invrow.st-oranje .nm .st{font-weight:700;}
+  .invrow.st-oranje .nm .st{color:#b86a0c;}
+  [data-theme="dark"] .invrow.st-oranje .nm .st{color:#e0a24a;}
+  [data-theme="dark"] .invrow.st-rood .nm .st,[data-theme="dark"] .invrow.st-rood .stocknum{color:#e0685c;}
+  .invdiv-lbl{grid-column:1/-1;margin:14px 2px 2px;font-size:12px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.8px;color:var(--muted);}
+  .prodcontrole{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 2px 12px;font-size:13.5px;color:var(--muted);}
+  .prodcontrole .sc-info{flex:1 1 220px;} .prodcontrole .sc-info b{color:var(--text);}
+  .pinfo{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--muted);}
+  .pinfo input,.pinfo select{border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    border-radius:8px;padding:5px 7px;font-size:13px;font-family:inherit;}
+  .pinfo .pmin{width:56px;text-align:center;} .pinfo .peh{width:130px;}
+  /* het venster van de stockcontrole */
+  .sc-lijst{display:flex;flex-direction:column;gap:7px;}
+  .sc-rij .fe-nm{white-space:normal;}
+  .sc-rij .sc-min{display:block;font-size:11.5px;font-weight:600;color:var(--muted);}
+  .sc-rij .sc-ok{flex:0 0 auto;width:34px;height:30px;border:1px solid var(--line);border-radius:8px;
+    background:var(--panel);color:var(--forest);font-weight:800;cursor:pointer;}
+  .sc-rij.gedaan{border-color:var(--leaf);background:rgba(74,155,94,.10);}
+  .sc-rij.gedaan .sc-ok{background:var(--leaf);color:#fff;border-color:var(--leaf);}
+  .sc-voet{position:sticky;bottom:-16px;display:flex;align-items:center;gap:8px;margin-top:12px;
+    padding:10px 0 4px;background:var(--panel);}
+  .sc-teller{flex:1;font-size:13px;color:var(--muted);font-weight:700;}
+
   /* ---- venster: een ingezonden formulier aanpassen ---- */
   .cammodal-box.formbox{max-width:560px;width:100%;max-height:92vh;overflow:auto;text-align:left;}
   .fe-lijst{display:flex;flex-direction:column;gap:7px;}

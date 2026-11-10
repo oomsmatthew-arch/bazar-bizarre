@@ -120,6 +120,26 @@ daardoor dezelfde opslag** op het toestel.
     dan terug onder *Producten & hoeveelheden*.
   - Geen extra SQL nodig: de regel staat in het gedeelde instellingen-document, de claims in
     de bestaande tabel `productleveringen` (`docs/hoofdstukken-producten-supabase.sql`).
+  - **Minimum per product** — zoals op de papieren stocklijsten. Onder 🔒 Beheer zet je per
+    product het minimum dat er altijd moet liggen, de eenheid (bv. *6 flessen*) en de soort:
+    *Gewoon*, *Niet meer bijbestellen* (opmaken wat er ligt, bv. de T-shirts) of *Enkel in de
+    zomer* (mei t/m september, bv. zonnebrand). Op het Stock-scherm kleurt elke rij: **rood**
+    onder het minimum, **oranje** precies erop, **groen** erboven; wat bijbesteld moet worden,
+    staat bovenaan, met een samenvatting zoals bij Bazar Bizarre.
+  - **📋 Stocklijst toevoegen** (onder 🔒 Beheer, bij O&F en Algemeen) zet de producten van de
+    papieren stocklijsten (controle 27/10/2026) erin, met hun minimum. Wat er al staat, blijft
+    staan; de knop verdwijnt zodra alles erin staat. De lijsten staan in `STOCKLIJSTEN_DEFAULT`
+    in `inventaris-data.js`.
+  - **✅ Stockcontrole** (op het Stock-scherm) is de papieren lijst in de app: loop de producten
+    af, tik ✓ als het aantal klopt of zet het juiste aantal. Datum en wie de controle deed,
+    staan erbij ("Laatste stockcontrole: 10/11/2026 door …"). Vraagt dezelfde toegang als
+    🔒 Beheer.
+  - **🖨️ Bestellijst** drukt af wat onder (en op) het minimum staat, met het tekort. Op de
+    startpagina verschijnt een rode melding voor wat onder het minimum staat en een oranje voor
+    wat erop staat — pas **na de eerste stockcontrole** van dat hoofdstuk, anders zou alles wat
+    net is toegevoegd (op 0) meteen "op" lijken.
+  - Ook dit vraagt geen SQL: minimum, eenheid en de laatste controle staan in het gedeelde
+    instellingen-document (`productInfo_of`, `stockControle_of`, …), de aantallen in `producten`.
 - De startlijst komt uit `inventaris-data.js` (gegenereerd uit `_bron/CGT - Inventaris.xlsx`,
   119 kleine + 61 grote prijzen + boekjes). De gedeelde logica staat in `inventaris.js`.
 - Let op: de gegevens leven **op dat toestel**. Gebruik Export/Import om te back-uppen of
