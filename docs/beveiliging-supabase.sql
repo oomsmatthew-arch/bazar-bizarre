@@ -24,7 +24,9 @@ declare
     'activiteit','appconfig','bestellingen','boekjes','checklisten','contacten',
     'formulieren','gebruikers','leveringen','logboek','manuals','manualsdoc',
     'prijzen','projectagenda','projectberichten','projectdocs','projecten',
-    'projecttaken','spelarchief'
+    'projecttaken','spelarchief',
+    -- later bijgekomen (zie ook docs/beveiliging-aanvulling-supabase.sql):
+    'producten','productleveringen','werkuren','techniek'
   ];
 begin
   foreach t in array tabellen loop
