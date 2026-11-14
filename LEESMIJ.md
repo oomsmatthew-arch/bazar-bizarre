@@ -65,8 +65,10 @@ daardoor dezelfde opslag** op het toestel.
     als je ze pas ná het openen van het formulier hebt ingevuld. Achteraf terug te vinden bij
     **Inventaris → Formulieren** — daar staat de vraag van het **laatst ingezonden formulier**
     ook altijd in een kader rechts — en in de CSV-export.
-    <br>Het oude vak *Finalereeks* is uit het formulier gehaald; formulieren van vóór die
-    wijziging blijven hun ingevulde reeks gewoon tonen.
+  - **Finalereeks** — welke reeks er gespeeld is: één van de knoppen **A tot J**. Net als de
+    finalevraag **verplicht**: zonder reeks kan je niet doorsturen. Staat in het veld `finale`
+    (het bestaande veld, dus geen SQL nodig) en is aan te passen bij Inventaris → Formulieren
+    → bewerken.
     <br>Eenmalig instellen: voer `docs/finalevraag-kolom.sql` uit in Supabase. Doe je dat
     niet, dan werkt alles gewoon, maar komt de vraag achter de finalereeks te staan in
     plaats van in een eigen veld. Het Systeem-scherm zegt of de kolom er al is.

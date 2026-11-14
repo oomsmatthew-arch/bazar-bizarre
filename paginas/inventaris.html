@@ -321,7 +321,7 @@
     </div>
 
     <label class="mlbl">Finalereeks</label>
-    <input type="text" id="feFinale" class="finp" placeholder="De reeks van de finale">
+    <select id="feFinale" class="finp"></select>
 
     <label class="mlbl">Finalevraag</label>
     <textarea id="feVraag" class="finp" rows="3" placeholder="V1: vraag → antwoord"></textarea>
@@ -1428,7 +1428,11 @@ function feOpen(f){
   feEl('feBkGratis').value=+b.gratis||0;
   // De vraag kan in 'finale' zijn beland zolang die kolom nog niet bestaat; reeksVan() en
   // vraagVan() halen ze weer uit elkaar, zodat je hier twee schone velden ziet.
-  feEl('feFinale').value=reeksVan(f);
+  // A tot J; een oudere, vrij ingevulde reeks blijft als extra keuze staan.
+  const reeks=reeksVan(f), reeksen=['A','B','C','D','E','F','G','H','I','J'];
+  feEl('feFinale').innerHTML='<option value="">— geen —</option>'+reeksen.concat(reeks&&reeksen.indexOf(reeks)<0?[reeks]:[])
+    .map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('');
+  feEl('feFinale').value=reeks;
   feEl('feVraag').value=vraagVan(f);
   feEl('feOpm').value=f.opmerking||'';
   feVulKiezers(); feTeken();
