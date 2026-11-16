@@ -888,20 +888,60 @@ window.BESTELLINGEN_OUDE_SLEUTELS = [
 // De vragen voor het finalespel. Deze lijst wordt één keer ingelezen; daarna leeft
 // ze gedeeld in de database (bij de app-instellingen) en beheer je ze in de app zelf
 // via "Vragen beheren" op het Finalespel-scherm.
-// Enkel Nederlands: de app vertaalt zelf naar Engels, Frans en Duits.
+// Het Nederlands volstaat (de app vertaalt dan zelf naar Engels, Frans en Duits), maar
+// staat er een eigen vertaling bij ('vert'), dan krijgt die voorrang.
+//
+// EEN NIEUWE LIJST INVOEREN: pas de lijst aan en verhoog FINALEVRAGEN_VERSIE. Het eerste
+// toestel dat de nieuwe versie opent, vervangt dan de gedeelde lijst — één keer. Een vraag
+// die er al stond (zelfde tekst, of herkend aan 'oud'), behoudt haar telling: hoe vaak en
+// wanneer laatst gespeeld. Stonden er meerdere versies van dezelfde vraag (bv. twee keer
+// ALDI, anders getypt), dan worden die samengeteld. De rest valt weg.
+// 'oud' = waaraan je een eerdere versie van dezelfde vraag herkent.
+//
+// Lijst van november 2026 ("Benaderingsvragen — wie er het dichtstbij zit wint").
+window.FINALEVRAGEN_VERSIE = '2026-11';
 window.FINALEVRAGEN_DEFAULT = [
   {vraag:'Wanneer valt Black Friday?',
-   antwoord:'2026: 27 november · 2027: 26 november · 2028: 24 november · 2029: 23 november · 2030: 29 november'},
-  {vraag:'Volgens Wikipedia: wat is het gemiddelde gewicht van 1 banaan?',
-   antwoord:'150 gram'},
-  {vraag:'Hoeveel tijd brengt een Amerikaan gemiddeld door per supermarktbezoek volgens het Time Use Institute? Onderzoek uit 2023.',
-   antwoord:'41 minuten'},
-  {vraag:'Hoe groot is de grootste supermarkt van Frankrijk? In vierkante meter…',
-   antwoord:'25.000 vierkante meter — de Carrefour in Villiers-en-Bière, Frankrijk'},
-  {vraag:'Wanneer werd winkelketen ALDI opgericht volgens Wikipedia?',
-   antwoord:'1946, in Essen (Duitsland)'},
-  {vraag:'De eerste aardappelen kwamen vanuit Zuid-Amerika naar Europa, maar wanneer was dat volgens Wikipedia?',
-   antwoord:'1536'}
+   antwoord:'2026: 27 november · 2027: 26 november · 2028: 24 november · 2029: 23 november · 2030: 29 november',
+   oud:/black ?friday/i,
+   vert:{
+     de:{v:'Wann ist Black Friday?',
+         a:'2026: 27. November · 2027: 26. November · 2028: 24. November · 2029: 23. November · 2030: 29. November'},
+     fr:{v:'Quand a lieu le Black Friday ?',
+         a:'2026 : 27 novembre · 2027 : 26 novembre · 2028 : 24 novembre · 2029 : 23 novembre · 2030 : 29 novembre'},
+     en:{v:'When is Black Friday?',
+         a:'2026: November 27 · 2027: November 26 · 2028: November 24 · 2029: November 23 · 2030: November 29'}}},
+  {vraag:'Hoe groot is de grootste supermarkt van Frankrijk? In vierkante meter… (hypermarkten tellen mee)',
+   antwoord:'25.000 vierkante meter — de Carrefour in Villiers-en-Bière, Frankrijk',
+   oud:/grootste supermarkt/i,
+   vert:{
+     de:{v:'Wie groß ist der größte Supermarkt Frankreichs? In Quadratmetern… (Hypermärkte zählen mit)',
+         a:'25.000 Quadratmeter — der Carrefour in Villiers-en-Bière, Frankreich'},
+     fr:{v:'Quelle est la superficie du plus grand supermarché/hypermarché de France ? En mètres carrés…',
+         a:'25 000 mètres carrés (vingt-cinq mille) — le Carrefour de Villiers-en-Bière, France'},
+     en:{v:'According to Wikipedia, how large is the biggest supermarket in France, in square meters? (hypermarkets count too)',
+         a:'25,000 square meters — the Carrefour in Villiers-en-Bière, France'}}},
+  {vraag:'Wanneer opende de eerste Aldi-winkel in België?',
+   antwoord:'1976',
+   oud:/\baldi\b/i,
+   vert:{
+     de:{v:'Wann wurde die erste Aldi-Filiale in Belgien eröffnet?', a:'1976'},
+     fr:{v:'Quand le premier magasin Aldi a-t-il ouvert en Belgique ?', a:'En 1976 (mille neuf cent soixante-seize)'},
+     en:{v:'When did the first Aldi store open in Belgium?', a:'1976'}}},
+  {vraag:'Wanneer kwamen de eerste aardappelen vanuit Zuid-Amerika naar Europa?',
+   antwoord:'1536',
+   oud:/aardappel/i,
+   vert:{
+     de:{v:'Wann kamen die ersten Kartoffeln aus Südamerika nach Europa?', a:'1536 (fünfzehnhundertsechsunddreißig)'},
+     fr:{v:'Quand les premières pommes de terre sont-elles arrivées d’Amérique du Sud en Europe ?', a:'1536 (mille cinq cent trente-six)'},
+     en:{v:'When did the first potatoes arrive in Europe from South America?', a:'1536 (fifteen hundred thirty-six)'}}},
+  {vraag:'Wanneer werd Spa water voor het eerst gebotteld?',
+   antwoord:'1583',
+   oud:/\bspa\b/i,
+   vert:{
+     de:{v:'Wann wurde Spa-Wasser zum ersten Mal in Flaschen abgefüllt?', a:'1583 (fünfzehnhundertdreiundachtzig)'},
+     fr:{v:'Quand l’eau de Spa a-t-elle été mise en bouteille pour la première fois ?', a:'1583 (mille cinq cent quatre-vingt-trois)'},
+     en:{v:'When was Spa water first bottled?', a:'1583 (fifteen eighty-three)'}}}
 ];
 
 // De papieren stocklijsten (controle van 27/10/2026), voor de knop "Stocklijst toevoegen"

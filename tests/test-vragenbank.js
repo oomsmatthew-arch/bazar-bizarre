@@ -312,5 +312,71 @@ function namen(lijst){ return lijst.map(function(v){return v.vraag;}); }
   var q2=BBInv.getFinalevragen().find(function(v){return v.id==='q-2r';});
   ok(q2 && q2.keer===1 && q2.laatst===5000,'de vraag met een regelovergang telt gewoon mee');
 
+  // ---- Een nieuwe lijst (november 2026) vervangt de oude, met behoud van de tellingen ----
+  // Nagebouwd op de echte lijst van 16/11/2026: 13 vragen, met dubbels (drie keer ALDI, twee
+  // keer Spa) en rommel die uit formulieren meekwam ("Reeks B", "Geen vraag").
+  print('\n— Een nieuwe lijst finalevragen vervangt de oude — tellingen blijven —');
+  Object.keys(store).forEach(function(k){ delete store[k]; });
+  var vorigeDefault=globalThis.FINALEVRAGEN_DEFAULT;
+  load('./js/inventaris-data.js');          // de ECHTE nieuwe lijst + FINALEVRAGEN_VERSIE
+  var D=function(j,m,d,u){ return new Date(j,m-1,d,u||21).getTime(); };
+  var dbN=basisDB();
+  dbN.appconfig=[{id:1,data:{finalevragenGeleerd:true,finalevragenBeurten:true,finalevragenGeteld:{'f-oud':1},finalevragen:[
+    {id:'bf',vraag:'Wanneer valt Black Friday?',antwoord:'2026: 27 november',keer:4,laatst:D(2026,10,16),
+     vert:{fr:{v:'Quand est le Black Friday ?',a:'x'}}},
+    {id:'ban',vraag:'Volgens Wikipedia: wat is het gemiddelde gewicht van 1 banaan?',antwoord:'150 gram',keer:3,laatst:D(2026,9,15)},
+    {id:'tijd',vraag:'Hoeveel tijd brengt een Amerikaan gemiddeld door per supermarktbezoek volgens het Time Use Institute? Onderzoek uit 2023.',antwoord:'41 minuten',keer:2,laatst:D(2026,9,23)},
+    {id:'sup',vraag:'Hoe groot is de grootste supermarkt van Frankrijk? In vierkante meter…',antwoord:'25.000',keer:2,laatst:D(2026,8,12)},
+    {id:'aldi1',vraag:'Wanneer werd winkelketen ALDI opgericht volgens Wikipedia?',antwoord:'1946',keer:5,laatst:D(2026,10,28)},
+    {id:'aard',vraag:'De eerste aardappelen kwamen vanuit Zuid-Amerika naar Europa, maar wanneer was dat volgens Wikipedia?',antwoord:'1536',keer:1,laatst:D(2026,10,16)},
+    {id:'r1',vraag:'Nieuwe reeks gedaan.',antwoord:'',keer:1,laatst:D(2026,9,26)},
+    {id:'aldi2',vraag:'Wanneer werd winkelketen ALDI opgericht?',antwoord:'1946 in Essen',keer:4,laatst:D(2026,10,21)},
+    {id:'spa1',vraag:'Wanneer werd Spa voor het eerst gebotteld?',antwoord:'1583',keer:3,laatst:D(2026,11,14)},
+    {id:'geen',vraag:'Geen vraag',antwoord:'',keer:1,laatst:D(2026,10,23)},
+    {id:'spa2',vraag:'In welk jaar werd Spa voor het eerst gebotteld?',antwoord:'1583',keer:1,laatst:D(2026,11,4)},
+    {id:'aldi3',vraag:'Aldi',antwoord:'',keer:1,laatst:D(2026,10,29,10)},
+    {id:'rb',vraag:'Reeks B',antwoord:'',keer:1,laatst:D(2026,11,7)}]}}];
+  dbN.formulieren=[{id:'f-oud',ts:D(2026,10,21),namen:'Oud',kleine:[],groot:[],boekjes:{},opmerking:'',finale:'',
+    finalevraag:'V1: Wanneer werd winkelketen ALDI opgericht? → 1946 in Essen'}];
+  await sessie(dbN);
+  await verwerk();
+  var nieuw=BBInv.getFinalevragen();
+  var opV=function(stuk){ return nieuw.find(function(v){ return v.vraag.toLowerCase().indexOf(stuk)>=0; }); };
+  ok(nieuw.length===5,'precies de 5 nieuwe vragen ('+nieuw.length+')');
+  ok(!opV('banaan') && !opV('time use') && !opV('reeks') && !opV('geen vraag'),'banaan, Time Use, "Reeks B", "Geen vraag" en "Nieuwe reeks gedaan." zijn weg');
+  var bf=opV('black friday'), sp=opV('grootste supermarkt'), al=opV('aldi'), aa=opV('aardappelen'), spa=opV('spa water');
+  ok(bf && bf.keer===4 && bf.laatst===D(2026,10,16),'Black Friday: 4×, laatst 16/10 — behouden');
+  ok(sp && sp.keer===2 && sp.laatst===D(2026,8,12) && /hypermarkten/.test(sp.vraag),'de supermarkt-vraag (nu mét "hypermarkten tellen mee"): 2×, laatst 12/08');
+  ok(al && al.vraag==='Wanneer opende de eerste Aldi-winkel in België?' && al.antwoord==='1976','ALDI wordt "Wanneer opende de eerste Aldi-winkel in België?" → 1976');
+  ok(al && al.keer===10 && al.laatst===D(2026,10,29,10),'de drie ALDI-versies samengeteld: 10×, laatst 29/10 ('+(al&&al.keer)+'×)');
+  ok(al && al.id==='aldi1','met het id van de meest gespeelde ALDI-versie');
+  ok(aa && aa.keer===1 && aa.antwoord==='1536','de aardappel-vraag (nieuwe tekst): 1×');
+  ok(spa && spa.keer===4 && spa.laatst===D(2026,11,14) && spa.id==='spa1','Spa: beide versies samengeteld, 4×, laatst 14/11');
+  ok(bf && bf.vert && bf.vert.fr && bf.vert.fr.v==='Quand a lieu le Black Friday ?','de eigen vertalingen uit het document staan erbij');
+  ok(nieuw.every(function(v){ return v.vert && v.vert.de && v.vert.fr && v.vert.en; }),'bij alle 5 vragen, in het Duits, Frans en Engels');
+  ok(dbN.appconfig[0].data.finalevragen.length===5 && dbN.appconfig[0].data.finalevragenVersie==='2026-11','zo staat het ook in de gedeelde database');
+  ok((dbN.appconfig[0].data.finalevragenGeteld||{})['f-oud']===1,'en het overzicht van getelde formulieren bleef bewaard');
+  // Aardappel (1×, 16/10) en supermarkt (2×, 12/08) scoren gelijk; dan wint wie het langst geleden is.
+  var volgN=BBInv.gesorteerdeFinalevragen();
+  ok(volgN[0].id===sp.id && volgN[1].id===aa.id,'bovenaan: supermarkt (langst geleden), dan aardappel (minst gespeeld)');
+  ok(volgN[volgN.length-1].id===al.id || volgN[volgN.length-1].id===spa.id,'ALDI en Spa (vaak en recent gespeeld) staan onderaan');
+
+  print('\n— Een tweede start verandert niets meer —');
+  await sessie(dbN);
+  var nog=BBInv.getFinalevragen();
+  ok(nog.length===5 && nog.find(function(v){return v.id==='aldi1';}).keer===10,'nog altijd 5 vragen, ALDI nog 10×');
+
+  print('\n— Een formulier met de OUDE tekst telt bij de nieuwe vraag —');
+  // Een tablet die de oude ALDI-vraag nog in het finalevak had staan.
+  var fO=BBInv.submitFormulier({namen:'Y',kleine:[],groot:[],boekjes:{},finale:'C',
+    finalevraag:'V1: Wanneer werd winkelketen ALDI opgericht volgens Wikipedia? → 1946',opmerking:''});
+  await verwerk();
+  var alN=function(){ return BBInv.getFinalevragen().find(function(v){return v.id==='aldi1';}); };
+  ok(BBInv.getFinalevragen().length===5,'de oude vraag komt NIET terug in de lijst');
+  ok(alN().keer===11,'ze telt bij de nieuwe ALDI-vraag (11×)');
+  BBInv.setFormulieren(BBInv.getFormulieren().filter(function(f){return f.id!==fO.id;}));
+  ok(alN().keer===10,'dat formulier verwijderen zet ze terug op 10×');
+  globalThis.FINALEVRAGEN_DEFAULT=vorigeDefault; delete globalThis.FINALEVRAGEN_VERSIE;
+
   print(fouten?('\nRESULTAAT: '+fouten+' fout(en)'):'\nRESULTAAT: alles in orde');
 })();

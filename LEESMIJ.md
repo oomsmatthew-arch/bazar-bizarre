@@ -56,6 +56,15 @@ daardoor dezelfde opslag** op het toestel.
     de app vertaalt zelf naar Engels, Frans en Duits.
   - De lijst is **gedeeld met alle toestellen** en zit in het instellingen-document; er is dus
     géén extra tabel of SQL voor nodig. De startlijst staat in `js/inventaris-data.js`.
+  - **Een hele nieuwe lijst invoeren** (zoals de "Benaderingsvragen" van november 2026, v9.47):
+    pas `FINALEVRAGEN_DEFAULT` in `js/inventaris-data.js` aan en verhoog `FINALEVRAGEN_VERSIE`.
+    Het eerste toestel dat de nieuwe versie opent (met internet), vervangt de gedeelde lijst —
+    één keer. Een vraag die al bestond (zelfde tekst, of herkend aan `oud`) **behoudt haar
+    telling**; meerdere versies van dezelfde vraag (bv. drie keer ALDI, anders getypt) worden
+    samengeteld. Al de rest valt weg, ook rommel die uit formulieren meekwam ("Reeks B",
+    "Geen vraag"). De oude teksten worden onthouden: een formulier met een oude tekst telt zo
+    nog bij de juiste nieuwe vraag in plaats van ze terug in de lijst te zetten. Eigen
+    vertalingen (Engels, Frans, Duits) staan er meteen bij (`vert`).
 - **Formulier** (in Bazar Bizarre): de knop **"Spel afsluiten"** opent een formulier waar
   je de weggegeven kleine/grote prijzen aanklikt (met zoek + aantal), boekjes invult,
   finale en opmerkingen. **Doorsturen** boekt alles af van de voorraad én sluit het spel af.
@@ -63,8 +72,8 @@ daardoor dezelfde opslag** op het toestel.
     **Finalespel** hebt ingetypt (`V1: vraag → antwoord`, één per regel). Je kan het gerust
     aanpassen of aanvullen; met **↻ Opnieuw overnemen uit finale** haal je de vragen weer op
     als je ze pas ná het openen van het formulier hebt ingevuld. Achteraf terug te vinden bij
-    **Inventaris → Formulieren** — daar staat de vraag van het **laatst ingezonden formulier**
-    ook altijd in een kader rechts — en in de CSV-export.
+    **Inventaris → Formulieren** — daar staan de finalereeks en de vraag van het **laatst
+    ingezonden formulier** ook altijd in het kader *Laatste finale* rechts — en in de CSV-export.
   - **Finalereeks** — welke reeks er gespeeld is: één van de knoppen **A tot J**. Net als de
     finalevraag **verplicht**: zonder reeks kan je niet doorsturen. Staat in het veld `finale`
     (het bestaande veld, dus geen SQL nodig) en is aan te passen bij Inventaris → Formulieren

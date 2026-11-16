@@ -945,6 +945,7 @@
       leerUitFormulieren();  // tellers bijwerken met wat er al ingezonden is
       vulOudeSpeelbeurten(); // en met de handmatig doorgegeven speelbeurten
       telFormulierenBij();   // en elk formulier dat nog niet in de tellers zit (zelfherstellend)
+      vernieuwFinalevragen(); // een nieuwe lijst uit js/inventaris-data.js (één keer per versie)
     }
     normalizeInGebruik(); // prijzen op 0 die nog "in gebruik" stonden opschonen + syncen
     subscribe();
@@ -2664,11 +2665,52 @@
     return (g && typeof g==='object' && !Array.isArray(g)) ? g : null;
   }
   // Eén keer de startlijst plaatsen als er nog niets staat.
+  const _lijstVersie=()=>(typeof window!=='undefined' && window.FINALEVRAGEN_VERSIE)||'';
   function zaaiFinalevragen(){
     if(_vragenLijst()) return false;
     const def=(typeof window!=='undefined' && window.FINALEVRAGEN_DEFAULT)||[];
     if(!def.length) return false;
-    _bewaarVragen(def.map(v=>({id:uid(),vraag:v.vraag||'',antwoord:v.antwoord||'',keer:0,laatst:0})));
+    const lijst=def.map(v=>({id:uid(),vraag:v.vraag||'',antwoord:v.antwoord||'',vert:v.vert||{},keer:0,laatst:0}));
+    const patch={finalevragen:lijst};
+    if(_lijstVersie()) patch.finalevragenVersie=_lijstVersie();
+    saveConfig(patch);
+    return true;
+  }
+  // EEN NIEUWE LIJST (zie FINALEVRAGEN_VERSIE in js/inventaris-data.js). Eén keer: het eerste
+  // toestel met de nieuwe versie vervangt de gedeelde lijst, en zet de versie erbij.
+  // Een vraag die er al stond (zelfde tekst, of herkend aan 'oud') behoudt haar telling;
+  // meerdere versies van dezelfde vraag worden samengeteld. Haar id gaat mee (van de meest
+  // gespeelde), zodat een tablet die de vraag al klaarzette, ze blijft herkennen. De oude
+  // teksten worden onthouden: een formulier met de oude tekst telt zo nog altijd bij de
+  // juiste vraag — anders kwam die oude vraag als "zelf getypt" gewoon terug in de lijst.
+  function vernieuwFinalevragen(){
+    const versie=_lijstVersie(); const c=cache.appconfig;
+    if(!versie || !c || c.finalevragenVersie===versie) return false;
+    const def=(typeof window!=='undefined' && window.FINALEVRAGEN_DEFAULT)||[];
+    const oud=_vragenLijst();
+    if(!def.length || !oud) return false;
+    const op={};
+    const lijst=def.map(n=>{
+      const sleutel=_normVraag(n.vraag);
+      const horen=oud.filter(o=>!op[o.id] &&
+        (_normVraag(o.vraag)===sleutel || (n.oud && typeof n.oud.test==='function' && n.oud.test(o.vraag||''))));
+      horen.forEach(o=>{ op[o.id]=1; });
+      const basis=horen.slice().sort((a,b)=>((b.keer||0)-(a.keer||0))||((b.laatst||0)-(a.laatst||0)))[0];
+      const namen=[];
+      horen.forEach(o=>[o.vraag].concat(Array.isArray(o.oud)?o.oud:[]).forEach(t=>{
+        const s=_normVraag(t); if(s && s!==sleutel && namen.indexOf(s)<0) namen.push(s);
+      }));
+      const rec={id:basis?basis.id:uid(),vraag:n.vraag||'',antwoord:n.antwoord||'',vert:n.vert||{},
+        keer:horen.reduce((s,o)=>s+(o.keer||0),0),
+        laatst:horen.reduce((m,o)=>Math.max(m,o.laatst||0),0)};
+      if(namen.length) rec.oud=namen;
+      return rec;
+    });
+    const patch={finalevragen:lijst,finalevragenVersie:versie};
+    const g=_geteld(); if(g) patch.finalevragenGeteld=g;
+    saveConfig(patch);
+    const weg=oud.filter(o=>!op[o.id]).length;
+    logAct('Finalevragen vervangen door de lijst van '+versie+' ('+lijst.length+' vragen'+(weg?', '+weg+' oude weg':'')+')');
     return true;
   }
   const getFinalevragen=()=>(_vragenLijst()||[]).slice();
@@ -2748,7 +2790,12 @@
   }
   function _eersteVraagVan(f){ const r=_eersteRegel(f); return r?(r.split('→')[0]||'').trim():''; }
   function _eersteAntwoordVan(f){ const r=_eersteRegel(f); const i=r.indexOf('→'); return i>=0?r.slice(i+1).trim():''; }
-  function _vraagRec(lijst,tekst){ const s=_normVraag(tekst); return s?(lijst.find(x=>_normVraag(x.vraag)===s)||null):null; }
+  // Op de huidige tekst, of op een vroegere tekst van dezelfde vraag (zie vernieuwFinalevragen).
+  function _vraagRec(lijst,tekst){
+    const s=_normVraag(tekst); if(!s) return null;
+    return lijst.find(x=>_normVraag(x.vraag)===s)
+      || lijst.find(x=>Array.isArray(x.oud) && x.oud.indexOf(s)>=0) || null;
+  }
   // Een verwijderd formulier terugdraaien in de telling.
   function telFormulierAf(f){
     const lijst=_vragenLijst(); if(!lijst||!f) return;
@@ -2761,10 +2808,10 @@
     if(rec){
       rec.keer=Math.max(0,(rec.keer||0)-1);
       // 'laatst' opnieuw bepalen uit de formulieren die er nog wél zijn (en meetellen).
-      const sleutel=_normVraag(v); let nieuwste=0;
+      let nieuwste=0;
       (cache.formulieren||[]).forEach(g=>{
         if(g.id===f.id || (geteld && !geteld[g.id])) return;
-        if(_normVraag(_eersteVraagVan(g))!==sleutel) return;
+        if(_vraagRec(lijst,_eersteVraagVan(g))!==rec) return;
         if((g.ts||0)>nieuwste) nieuwste=g.ts||0;
       });
       if(nieuwste) rec.laatst=nieuwste;

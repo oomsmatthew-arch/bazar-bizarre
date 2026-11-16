@@ -252,7 +252,7 @@
       <p class="hint"><b id="formCount">0</b> doorgestuurde formulieren vanuit Bazar Bizarre.</p>
       <div class="formlayout">
         <div id="formList"></div>
-        <!-- Rechts blijft de finalevraag van het laatst ingezonden formulier staan. -->
+        <!-- Rechts blijven de finalereeks en de finalevraag van het laatst ingezonden formulier staan. -->
         <aside class="laatstevraag" id="laatsteVraag"></aside>
       </div>
     </div>
@@ -1347,9 +1347,15 @@ function renderLaatsteVraag(forms){
   if(!f){ box.style.display='none'; return; }
   box.style.display='';
   const vraag=vraagVan(f);
-  let body='';
+  // De finalereeks (A–J) bovenaan: die moet je net zo goed weten als de vraag.
+  const reeks=reeksVan(f).trim();
+  let body='<div class="lv-reeks"><span class="lv-nr">Finalereeks</span>'+
+    (reeks
+      ? (reeks.length<=2?'<span class="lv-letter">'+esc(reeks)+'</span>':'<span class="lv-v">'+esc(reeks)+'</span>')
+      : '<span class="lv-leeg">niet ingevuld</span>')+
+    '</div>';
   if(!vraag){
-    body='<div class="lv-leeg">Bij dit formulier is geen finalevraag ingevuld.</div>';
+    body+='<div class="lv-leeg">Bij dit formulier is geen finalevraag ingevuld.</div>';
   }else{
     // Regels zien er zo uit: "V1: vraag → antwoord". Past een regel niet in dat patroon,
     // dan tonen we ze gewoon zoals ze is.
@@ -1365,7 +1371,7 @@ function renderLaatsteVraag(forms){
       '</div>';
     });
   }
-  box.innerHTML='<div class="lv-kop"><div class="t">Laatste finalevraag</div>'+
+  box.innerHTML='<div class="lv-kop"><div class="t">Laatste finale</div>'+
       '<div class="s">'+esc(f.namen||'zonder naam')+' · '+bbFmtTs(f.ts)+'</div></div>'+
     '<div class="lv-body">'+body+'</div>';
 }
