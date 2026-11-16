@@ -1,5 +1,5 @@
 // Service worker: installeerbaar + offline, maar ALTIJD de nieuwste versie tonen als er internet is.
-const CACHE = 'bazar-bizarre-v9.47';
+const CACHE = 'bazar-bizarre-v9.48';
 // De foto's van Ronde 1 (Super Deals) meteen mee opslaan, zodat ze ook offline werken
 // zonder dat je ze eerst online moet hebben geopend.
 const DEALS = Array.from({length:30},(_,i)=>`./deals/deal-${String(i+1).padStart(2,'0')}.png`);
@@ -66,7 +66,15 @@ self.addEventListener('fetch', e=>{
   if(req.method!=='GET') return;
   // De versiecontrole van de app gebruikt ?_v=… — die moet altijd vers zijn en hoort
   // niet in de cache thuis (anders groeit die aan met één kopie per controle).
-  if(new URL(req.url).searchParams.has('_v')) return;
+  const u=new URL(req.url);
+  if(u.searchParams.has('_v')) return;
+  // De DATABASE (Supabase) nooit uit de bewaarde kopie — enkel de bestanden in de opslag
+  // (manuals) wel, die moeten ook offline open gaan. Tot v9.47 viel alles hieronder in "de
+  // rest": wie een lijst ophaalde, kreeg de stand van de vorige keer, en pas bij de keer
+  // daarna de echte. Een wijziging van een ander toestel (of je eigen, na het bewaren) kwam
+  // zo niet op het scherm tot je de pagina herlaadde. Zonder internet heeft de app haar eigen
+  // offline kopie; die heeft deze cache niet nodig.
+  if(u.hostname.endsWith('.supabase.co') && !u.pathname.startsWith('/storage/v1/object/public/')) return;
 
   if(isPagina(req)){
     e.respondWith((async()=>{

@@ -36,6 +36,7 @@ $JSC tests/test-boekjes-telling.js
 $JSC tests/test-toegangscode.js
 $JSC tests/test-doorgestuurd.js
 $JSC tests/test-rooster.js
+$JSC tests/test-serviceworker.js
 ```
 
 Elke test eindigt met `RESULTAAT: alles in orde` of een aantal fouten.
@@ -81,6 +82,7 @@ gebruiken — stilletjes door hun Node-tegenhangers.)
 | `test-toegangscode.js` | Het toegangscode-scherm: op een wifi zonder internet (het TP-Link-netwerk aan de techniektafel) mag het nooit verschijnen, ook niet als de aanmelding van een uur verlopen is. De app werkt dan lokaal verder, meldt zich stil opnieuw aan zodra het internet terug is en stuurt dan de wachtrij door. Enkel een toestel dat nooit aangemeld was (of echt afgemeld werd) krijgt het scherm, en alleen als de code ook gecontroleerd kán worden. Zonder internet zegt het scherm "geen verbinding" in plaats van "klopt niet". De code wordt onthouden: valt de aanmelding weg (bv. na een update), dan meldt het toestel zich stil opnieuw aan — ook zonder internet geen scherm, en zodra het internet terug is vanzelf; werd de code in Supabase gewijzigd, dan wordt de oude vergeten en één keer de nieuwe gevraagd (nooit op de achtergrond) |
 | `test-doorgestuurd.js` | Het "Doorgestuurd"-scherm van het spel: één kader dat rood (nog niet verstuurd), oranje (bezig) of groen (verstuurd) wordt. Op een wifi zonder internet en bij een foutmelding van de server moet het rood worden in plaats van eindeloos "bezig" te blijven, met een knop om meteen opnieuw te proberen; zonder internet of zonder aanmelding ook rood; groen enkel als de wachtrij echt leeg is |
 | `test-rooster.js` | De persoonlijke ratings: een nagebouwde rooster-PDF (verzonnen namen) wordt gelezen — elke shift bij de juiste naam en dag, ook over twee pagina's met dezelfde dagen en aan het einde van de maand, zonder kop of voettekst als shift; verlof, restaurant en overleg worden niet bewaard. Daarna het koppelen: een show gaat naar Orry én de technieker, een taxirit tijdens een pool-shift naar het personage maar nooit naar de DJ, de pool party ook naar de DJ, Prize Night naar ENT 2, een rating buiten elke shift blijft niet gekoppeld; samenvoegen/weghalen van maanden; de Halloween Show enkel naar wie ze speelde (vaste bezetting); de namen van activiteiten (duur achteraan, Engelse/Franse gameshow, Halloween Show); en je eigen naam op de rooster terugvinden (andere volgorde, hoofdletters, zonder accent), maar nooit op enkel een voornaam |
+| `test-serviceworker.js` | De service worker (`sw.js`) geeft gegevens uit de database nooit uit zijn bewaarde kopie. Tot v9.47 deed hij dat wel: elke lijst kwam één keer te laat binnen, dus een wijziging van een ander toestel verscheen pas na herladen en iets wat je verwijderde kwam terug. Manuals en app-bestanden blijven wel bewaard (offline) |
 
 `nep-supabase.js` is een nagemaakte database, zodat `test-sync.js` het echte online-gedrag
 kan naspelen zonder internet.

@@ -629,6 +629,20 @@ werkt — maar met een limiet van 1,5 seconden: daarna verschijnt de bewaarde ve
 de app zichzelf even later stil bij. Vroeger keek je op een trage wifi naar een leeg scherm
 tot het verzoek klaar was.
 
+**De database zelf gaat nooit via die bewaarde kopie** (sinds v9.48). Tot dan viel ook elk
+verzoek aan Supabase onder "bewaarde versie eerst". Wie een lijst ophaalde, kreeg de stand
+van de vorige keer, en pas bij de keer daarna de echte. Dat gaf drie rare dingen:
+
+- een wijziging van een ander toestel kwam niet op je scherm tot je de pagina herlaadde;
+- iets wat je verwijderde, kwam terug, en je moest het nog eens verwijderen;
+- vlak vóór het bewaren van de instellingen (vragenlijst, tellers) haalt de app de laatste
+  stand op om niets van een ander toestel te overschrijven. Ook dát kwam uit de oude kopie,
+  waardoor een teller toch kon terugspringen.
+
+Enkel de bestanden in de opslag (manuals) komen nog uit de bewaarde kopie, zodat ze ook
+offline open gaan. Zonder internet gebruikt de app haar eigen offline kopie, en daarvoor is
+de cache van de service worker niet nodig. `tests/test-serviceworker.js` bewaakt dit.
+
 > Meer in de database steken maakt het dus **niet** sneller — de database zit aan de andere
 > kant van de wifi en dát is het trage stuk. Sneller worden we door minder op te halen en
 > meer op het toestel te houden.
