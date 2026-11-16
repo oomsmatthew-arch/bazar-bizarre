@@ -227,5 +227,64 @@ function aangemeld(){ return !!BBInv.getSysteem().aangemeld; }
   await klaar;
   ok(aangemeld(),'en met de code is hij aangemeld');
 
+  // ---- Maar één keer per toestel: ook niet opnieuw na een update ----
+  // Een update herlaadt alle toestellen tegelijk. Viel dat net op een verversing van de
+  // aanmelding, dan ging die verloren en moest iedereen de code opnieuw intypen.
+  print('\n— De code wordt onthouden zodra ze één keer juist werd ingetypt —');
+  ok(store['bb_toegangscode']===CODE,'de juiste code staat op dit toestel');
+
+  print('\n— Na een update is de aanmelding weg — de code komt NIET terug —');
+  delete store[K_AUTH]; internet=true;
+  klaar=start(basisDB());
+  await rust();
+  ok(schermen.length===0,'geen toegangscode-scherm');
+  if(schermen.length) antwoord(schermen[0],null);
+  await klaar;
+  ok(aangemeld(),'stil opnieuw aangemeld met de onthouden code');
+  ok(!!store[K_AUTH],'en er staat weer een aanmelding');
+
+  print('\n— Aanmelding weg én geen internet: ook geen scherm, later stil aangemeld —');
+  delete store[K_AUTH]; internet=false;
+  klaar=start(basisDB());
+  await rust();
+  ok(schermen.length===0,'geen scherm zonder internet');
+  await klaar;
+  ok(!aangemeld(),'voorlopig lokaal verder');
+  ok(store['bb_toegangscode']===CODE,'de onthouden code blijft staan (het was het netwerk, niet de code)');
+  internet=true;
+  draaiTimers(60000); await rust();
+  ok(aangemeld(),'internet terug: vanzelf aangemeld, zonder scherm');
+  ok(schermen.length===0,'nog altijd geen scherm');
+
+  print('\n— De code werd in Supabase gewijzigd: dán één keer de nieuwe vragen —');
+  var OUDE_CODE=CODE; CODE='nieuwe-code-voor-iedereen';
+  delete store[K_AUTH]; internet=true;
+  klaar=start(basisDB());
+  await rust();
+  ok(schermen.length===1,'het scherm verschijnt');
+  ok(foutOp(schermen[0])==='','zonder foutmelding (de oude code werd stil geprobeerd)');
+  ok(!store['bb_toegangscode'],'de oude code is vergeten');
+  antwoord(schermen[0],CODE);
+  await klaar;
+  ok(aangemeld() && store['bb_toegangscode']===CODE,'met de nieuwe code aangemeld, en die wordt onthouden');
+  ok(OUDE_CODE!==CODE,'(controle) de code is echt veranderd');
+
+  print('\n— Op de achtergrond wordt een gewijzigde code nooit gevraagd —');
+  CODE='nog-een-andere';
+  delete store[K_AUTH]; internet=false;
+  await start(basisDB());
+  internet=true;
+  draaiTimers(60000); await rust();
+  ok(schermen.length===0,'geen scherm midden in het werk');
+  ok(!aangemeld(),'niet aangemeld (de code klopt niet meer)');
+
+  print('\n— Vlak vóór een update herlaadt: even wachten op de aanmelding —');
+  CODE='drie-woorden-samen'; store={}; internet=true;
+  zetAanmelding(60);
+  await start(basisDB());
+  var gewacht=false;
+  await BBInv.wachtOpAanmelding(3000).then(function(){ gewacht=true; });
+  ok(gewacht,'wachtOpAanmelding is klaar zodra de aanmelding rustig bewaard staat');
+
   print('\n'+(fouten?'RESULTAAT: '+fouten+' fout(en)':'RESULTAAT: alles in orde'));
 })().catch(function(e){ print('CRASH: '+e+'\n'+(e&&e.stack)); print('RESULTAAT: crash'); });

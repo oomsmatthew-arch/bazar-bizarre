@@ -42,6 +42,21 @@ is, meldt ze zich stil opnieuw aan en vertrekt de wachtrij, zonder herladen. Het
 enkel nog op een toestel dat nooit aangemeld was, of als de toegangscode in Supabase
 gewijzigd werd — en dan alleen met internet.
 
+**Ook niet opnieuw na een update** (sinds v9.46). Een update herlaadt alle toestellen
+tegelijk. Viel dat net op het verversen van de aanmelding, dan kon die verloren gaan, en moest
+iedereen de code opnieuw intypen. Nu onthoudt elk toestel de code zelf zodra ze één keer juist
+werd ingetypt (in de opslag van de browser, sleutel `bb_toegangscode`). Valt de aanmelding
+weg, dan meldt het toestel zich daarmee stil opnieuw aan. Een update wacht ook even tot een
+lopende verversing klaar is voor hij herlaadt.
+
+- **De code wijzigen in Supabase** werkt nog altijd als "alle toestellen buiten": de onthouden
+  code klopt dan niet meer, het toestel vergeet ze en vraagt één keer de nieuwe.
+- **Is dat minder veilig?** Nauwelijks. Wie aan het toestel kan, kon met de bewaarde aanmelding
+  al evengoed in de database. Het verschil: de aanmelding kan je in Supabase intrekken zonder de
+  code te wijzigen, de onthouden code niet. Raakt een tablet zoek, wijzig dan de code.
+- Toestellen die al aangemeld waren vóór v9.46 kennen de code nog niet. Valt hun aanmelding
+  ooit weg, dan vragen ze ze nog één laatste keer.
+
 De namenlijst met pincodes blijft gewoon werken zoals nu — dat blijft de "wie ben ik"-keuze.
 Er komt enkel één grendel vóór de deur.
 

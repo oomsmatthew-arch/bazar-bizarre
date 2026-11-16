@@ -109,7 +109,7 @@ document.body.insertAdjacentHTML('afterbegin',`
 `);
 
 // ---------------- STATE ----------------
-const APP_VERSION='v9.45';
+const APP_VERSION='v9.46';
 const K_MED='bb_home_mededeling';
 const K_LINKS='bb_home_links';
 const K_PIN='bb_home_pin';
@@ -1343,6 +1343,9 @@ async function werkBij(){
       });
     }
   }catch(e){}
+  // Niet herladen midden in het verversen van de database-aanmelding: dan kan die verloren
+  // gaan (zie onthoudenCode in js/inventaris.js). Hooguit 3 seconden wachten.
+  try{ if(window.BBInv && BBInv.wachtOpAanmelding) await BBInv.wachtOpAanmelding(3000); }catch(e){}
   location.reload();
 }
 // Geeft true (nieuwe versie), false (je bent bij) of null (niet na te kijken) terug.

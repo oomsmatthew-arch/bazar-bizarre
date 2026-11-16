@@ -695,6 +695,41 @@
     catch(e){ return null; }
   }
 
+  // DE CODE ZELF ONTHOUDEN. De aanmelding hierboven is een sleutel die de bibliotheek elk uur
+  // ververst — en bij elke verversing vervangt de database ze door een nieuwe. Wordt de pagina
+  // net op dat moment herladen (en dat doet elke update op alle toestellen tegelijk), dan kan
+  // die nieuwe sleutel verloren gaan. De bibliotheek gooit de aanmelding dan weg, en vroeger
+  // betekende dat: iedereen de toegangscode opnieuw intypen.
+  // Daarom onthoudt dit toestel de code zelf zodra ze één keer juist werd ingetypt, en meldt
+  // het zich daarmee stil opnieuw aan als de aanmelding ooit wegvalt. Wordt de code in Supabase
+  // gewijzigd, dan klopt de onthouden code niet meer: dan wordt ze vergeten en verschijnt het
+  // scherm wél (één keer, met de nieuwe code). Veiliger of minder veilig dan vroeger is dit
+  // niet: wie aan dit toestel kan, kon met de bewaarde aanmelding al evengoed in de database.
+  const K_CODE='bb_toegangscode';
+  function onthoudenCode(){ try{ return localStorage.getItem(K_CODE)||''; }catch(e){ return ''; } }
+  function onthoudCode(code){ try{ localStorage.setItem(K_CODE,code); }catch(e){} }
+  function vergeetCode(){ try{ localStorage.removeItem(K_CODE); }catch(e){} }
+  // Eén aanmeldpoging. 'ok', 'fout' (de code klopt niet) of 'geenNet' (de database antwoordde niet).
+  async function meldAanMet(code){
+    let error=null;
+    try{ ({error}=await sb.auth.signInWithPassword({email:TEAM_EMAIL,password:code})); }
+    catch(e){ error={name:'AuthRetryableFetchError',status:0}; }
+    if(!error) return 'ok';
+    return (error.name==='AuthRetryableFetchError' || !error.status || error.status>=500) ? 'geenNet' : 'fout';
+  }
+  // Vlak vóór een update de pagina herlaadt: wachten tot een verversing die nog onderweg is,
+  // netjes bewaard staat (getSession wacht daar zelf op). Nooit langer dan 'ms'.
+  async function wachtOpAanmelding(ms){
+    if(!sb||!aangemeld) return;
+    let t=null;
+    try{
+      await Promise.race([
+        Promise.resolve().then(()=>sb.auth.getSession()).catch(()=>{}),
+        new Promise(r=>{ t=setTimeout(r,ms||3000); })
+      ]);
+    }finally{ if(t!==null) clearTimeout(t); }
+  }
+
   // Is de database ECHT te bereiken? 'navigator.onLine' zegt enkel of er wifi is, niet of
   // er internet achter zit. Op het TP-Link-netwerk aan de techniektafel is er wél wifi maar
   // géén internet — daar zei onLine "ja" en kreeg je de toegangscode voor je neus.
@@ -744,21 +779,28 @@
     // Er staat nog een aanmelding op dit toestel, maar verversen lukte nu niet: een storing
     // onderweg, geen echte afmelding. Geen code vragen — later stil opnieuw proberen.
     if(bewaardeAanmelding()) return false;
+    // Geen aanmelding meer op dit toestel, maar de code werd hier al eens ingetypt (zie
+    // onthoudenCode): stil opnieuw aanmelden — ook bij een poging op de achtergrond.
+    const onthouden=onthoudenCode();
+    if(onthouden){
+      if(!await databaseBereikbaar()) return false;
+      const r=await meldAanMet(onthouden);
+      if(r==='ok') return true;
+      if(r==='geenNet') return false;     // later stil opnieuw proberen
+      vergeetCode();                       // de code werd gewijzigd: hieronder de nieuwe vragen
+    }
     if(!magVragen) return false;
     // Nooit aangemeld. Vragen heeft enkel zin als de code ook gecontroleerd kán worden.
-    if(!await databaseBereikbaar()) return false;
+    if(!onthouden && !await databaseBereikbaar()) return false;
     let fout='';
     for(;;){
       const code=await vraagToegangscode(fout);
       if(code===null) return false;       // "Verder zonder internet" gekozen
       if(!code){ fout='Vul de toegangscode in.'; continue; }
-      let error=null;
-      try{ ({error}=await sb.auth.signInWithPassword({email:TEAM_EMAIL,password:code})); }
-      catch(e){ error={name:'AuthRetryableFetchError',status:0}; }
-      if(!error) return true;
+      const r=await meldAanMet(code);
+      if(r==='ok'){ onthoudCode(code); return true; }
       // Kon de database niet antwoorden, dan zeggen we dat — niet "de code klopt niet".
-      const geenNet = error.name==='AuthRetryableFetchError' || !error.status || error.status>=500;
-      fout = geenNet
+      fout = r==='geenNet'
         ? 'Geen verbinding met de database (dit netwerk heeft geen internet?). Tik "Verder zonder internet" — je kan gewoon verder werken.'
         : 'Deze code klopt niet. Probeer opnieuw.';
     }
@@ -3272,7 +3314,8 @@
     'bb_projectberichten':'Projectberichten (oude kopie)','bb_projectagenda':'Projectagenda (oude kopie)',
     'bb_projectdocs':'Projectdocumenten (oude kopie)','bb_sessies':'Recente spelsessies',
     'bb_cache_v1':'Offline kopie (verhuist naar IndexedDB)',
-    'bb_proj_wacht':'Projecten die nog moeten vertrekken'
+    'bb_proj_wacht':'Projecten die nog moeten vertrekken',
+    'bb_toegangscode':'Toegangscode (onthouden op dit toestel)'
   };
   // Hoeveel ruimte de app inneemt op dit toestel (localStorage is hard begrensd, ± 5 MB).
   async function getOpslag(){
@@ -3405,7 +3448,7 @@
     // Seintje zodra het aantal wachtende wijzigingen verandert (zie meldWachtrij).
     setOnWachtrij:fn=>{ onWachtrij=fn; gemeld=null; meldWachtrij(); },
     rolTags,heeftRol,zetRol,
-    getSysteem,pingDB,getOpslag,wisWachtrij,opruimen,
+    getSysteem,pingDB,getOpslag,wisWachtrij,opruimen,wachtOpAanmelding,
     submitFormulier,updateFormulier,addLevering,addPrijs,removePrijs,setFoto,setGebruik,setStock,
     undoLastFormulier,resetInventaris,printInventaris,printBestellijst,uid};
 })();
