@@ -254,15 +254,34 @@ function metRuilen(rooster){
   const ruilen=(rooster&&rooster.ruilen)||[];
   const shifts=(rooster&&rooster.shifts)||[];
   if(!ruilen.length) return shifts;
-  return shifts.map(s=>{ const r=ruilen.find(x=>zelfdeShift(x,s)); return r?Object.assign({},s,{n:r.naar,ruil:r.van}):s; });
+  return shifts.map(s=>{ const r=ruilen.find(x=>zelfdeShift(x,s)); return r?Object.assign({},s,{n:r.naar,ruil:r.van,door:r.door||''}):s; });
 }
 // shift: een rij uit rooster.shifts ({n,d,l,v,t}); naar: wie ze overnam. Eén ruil per shift:
 // een tweede keer ruilen vervangt de eerste. Terug naar de oorspronkelijke naam = ruil weg.
-function voegRuilToe(rooster, shift, naar){
+// door: wie de ruil aanduidde (de naam van het account) — zo ziet de ander wie de rating
+// naar hem of haar zette.
+function voegRuilToe(rooster, shift, naar, door){
   const r=Object.assign({},rooster);
   r.ruilen=(rooster.ruilen||[]).filter(x=>!zelfdeShift(x,shift));
-  if(naar && naar!==shift.n) r.ruilen.push({d:shift.d,l:shift.l,v:shift.v,t:shift.t,van:shift.n,naar:naar,ts:Date.now()});
+  if(naar && naar!==shift.n){
+    const ruil={d:shift.d,l:shift.l,v:shift.v,t:shift.t,van:shift.n,naar:naar,ts:Date.now()};
+    if(door) ruil.door=door;
+    r.ruilen.push(ruil);
+  }
   return r;
+}
+// "Dit was ik niet": de shift(s) waarlangs deze rating bij `naam` terechtkwam, zoals ze op de
+// rooster staan (dus met de oorspronkelijke naam, ook als ze al eens geruild werden). Leeg als
+// de rating niet via een shift kwam (vaste bezetting) — dan valt er niets te ruilen.
+function shiftsVan(review, rooster, canon, naam){
+  if(!review || !(review.datum instanceof Date) || isNaN(review.datum)) return [];
+  const d=iso(review.datum);
+  const act=canon?canon(review.activiteit):String(review.activiteit||'');
+  if(vasteBezetting(act,d)) return [];
+  const regels=KOPPEL.filter(k=>k.act(act));
+  const um=minuten(review.uur);
+  return metRuilen(rooster).filter(s=>s.d===d && s.n===naam && !GEEN_OPTREDEN.test(s.l) && regels.some(k=>past(k,s.l)) && (um==null||binnenShift(um,s)))
+    .map(s=>({n:s.ruil||s.n, d:s.d, l:s.l, v:s.v, t:s.t}));
 }
 function verwijderRuil(rooster, ruil){
   const r=Object.assign({},rooster);
@@ -272,14 +291,15 @@ function verwijderRuil(rooster, ruil){
 
 // ---------------------------------------------------------------- ratings koppelen
 // reviews: zoals Ratings.laadReviews() ze geeft ({score, activiteit, datum: Date, uur, …}).
-// canon: Ratings.canonAct. Geeft {perPersoon:{naam:[review…]}, niet:[review…], buiten:n}.
+// canon: Ratings.canonAct. Geeft {perPersoon:{naam:[review…]}, niet:[review…], buiten:n,
+//   overgenomen:{naam:[{r:review, van, door}]}} — ratings die via een overgenomen shift kwamen.
 //   niet   = in de roosterperiode, maar niemand op een passende shift gevonden
 //   buiten = op een dag waarvoor nog geen rooster is opgeladen
 function koppel(reviews, rooster, canon){
   const perDag={};
   metRuilen(rooster).forEach(s=>{ (perDag[s.d]=perDag[s.d]||[]).push(s); });
   const dagen=new Set((rooster&&rooster.dagen)||[]);
-  const perPersoon={}, niet=[]; let buiten=0;
+  const perPersoon={}, niet=[], overgenomen={}; let buiten=0;
   (reviews||[]).forEach(r=>{
     if(!(r.datum instanceof Date) || isNaN(r.datum)){ buiten++; return; }
     const d=iso(r.datum);
@@ -293,12 +313,15 @@ function koppel(reviews, rooster, canon){
     (perDag[d]||[]).forEach(s=>{
       if(GEEN_OPTREDEN.test(s.l) || !regels.some(k=>past(k,s.l))) return;
       if(um!=null && !binnenShift(um,s)) return;
-      if(wie.indexOf(s.n)<0) wie.push(s.n);
+      if(wie.indexOf(s.n)<0){
+        wie.push(s.n);
+        if(s.ruil) (overgenomen[s.n]=overgenomen[s.n]||[]).push({r:r, van:s.ruil, door:s.door||''});
+      }
     });
     if(!wie.length){ niet.push(r); return; }
     wie.forEach(n=>{ (perPersoon[n]=perPersoon[n]||[]).push(r); });
   });
-  return {perPersoon:perPersoon, niet:niet, buiten:buiten};
+  return {perPersoon:perPersoon, niet:niet, buiten:buiten, overgenomen:overgenomen};
 }
 // Het uur van de activiteit valt binnen de shift. Een kwartier speling vooraan: een show
 // van 15u00 hoort ook bij wie om 15u15 begint, en een bezoek van 14u00 bij een shift van
@@ -343,7 +366,7 @@ async function leesPdf(file){
 const API={KOPPEL:KOPPEL, VASTE_BEZETTING:VASTE_BEZETTING, isOptreden:isOptreden, uitItems:uitItems, alleenOptredens:alleenOptredens,
   voegSamen:voegSamen, verwijderUpload:verwijderUpload, koppel:koppel, minuten:minuten, mooieNaam:mooieNaam,
   zoekNaam:zoekNaam, iso:iso, leesPdf:leesPdf,
-  metRuilen:metRuilen, voegRuilToe:voegRuilToe, verwijderRuil:verwijderRuil};
+  metRuilen:metRuilen, shiftsVan:shiftsVan, voegRuilToe:voegRuilToe, verwijderRuil:verwijderRuil};
 if(typeof window!=='undefined') window.Rooster=API;
 else if(typeof globalThis!=='undefined') globalThis.Rooster=API;
 })();

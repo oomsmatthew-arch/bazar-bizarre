@@ -117,6 +117,15 @@
   .reviewgrid .rv{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:12px;}
   .filterchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--forest);background:var(--forest);color:#fff;
     border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+  .rv-ruil{margin-top:8px;font-size:13px;font-weight:700;color:var(--forest);}
+  .rv-nietik{margin-top:8px;border:none;background:transparent;color:var(--muted);font:inherit;font-size:13px;
+    text-decoration:underline;cursor:pointer;padding:4px 0;}
+  .rv-nietik:hover{color:var(--text);}
+  .nietik-venster{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;}
+  .nietik-box{background:var(--panel);color:var(--text);border-radius:18px;padding:20px;width:100%;max-width:380px;
+    display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .nietik-box h3{margin:0;font-size:18px;color:var(--forest);}
+  .nietik-box .fout{color:#c0392b;font-size:13px;font-weight:700;min-height:16px;}
   .reviewcount{font-size:13px;margin:4px 0 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
   /* niet gekoppeld */
   details summary{cursor:pointer;font-weight:700;color:var(--forest);margin-top:8px;}
@@ -213,6 +222,19 @@
       <p class="hint" id="nietUitleg" style="margin:0;"></p>
       <div id="nietPerAct" style="margin-top:8px;"></div>
       <details><summary>Toon de ratings</summary><div class="nietlijst" id="nietLijst"></div></details>
+    </div>
+  </div>
+
+  <!-- "Dit was ik niet": wie nam de shift over? -->
+  <div class="nietik-venster" id="nietIkVenster" style="display:none;">
+    <div class="nietik-box">
+      <h3>Dit was ik niet</h3>
+      <div class="muted" id="nietIkWat" style="font-size:13px;"></div>
+      <div><b>Wie heeft die shift overgenomen?</b></div>
+      <select id="nietIkWie" class="finp"></select>
+      <div class="fout" id="nietIkFout"></div>
+      <button class="btn primary" id="nietIkOk" type="button">Rating doorzetten</button>
+      <button class="btn" id="nietIkNee" type="button">Annuleren</button>
     </div>
   </div>
 

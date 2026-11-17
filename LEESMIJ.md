@@ -433,6 +433,11 @@ het gemiddelde, en de ratings per maand, per activiteit en per taal.
   *Shift overgenomen* de dag, de shift en wie ze echt deed, en bewaar. De ratings van die
   shift verhuizen mee. De ruil staat los van de rooster zelf (`ruilen` in dezelfde rij), dus
   een nieuwe upload van die maand wist hem niet; met het kruisje haal je hem weer weg.
+- **Dit was ik niet** (sinds v9.50): elke medewerker kan dat zelf, zonder Beheer. Onder elke
+  eigen rating staat *Dit was ik niet*; de app vraagt dan wie de shift overnam en zet de
+  rating door. Bij die collega staat erbij wie dat deed ("Matthew Ooms heeft deze rating naar
+  jou gezet"), en die kan ze op zijn of haar beurt doorzetten als het niet klopt. Het is
+  dezelfde ruil als hierboven, met erbij wie hem aanduidde (`door`).
 - Net als bij de ratings zit de afscherming in de app zelf: wie technisch onderlegd is, kan
   de gegevens ook buiten de app opvragen.
 

@@ -216,7 +216,64 @@ function renderReacties(lijst){
   c.innerHTML=toonLijst.length+' van '+lijst.length+' reacties'+(f?' · gemiddelde '+(toonLijst.length?R.fmtScore(R.avg(toonLijst.map(r=>r.score))):'–'):'')+
     (f?' <span class="filterchip" id="dFilterWeg">'+esc(f.label)+' ✕</span>':'');
   const w=$('dFilterWeg'); if(w) w.onclick=()=>{ _dFilter=null; renderReacties(lijst); };
-  $('dLijst').innerHTML=toonLijst.length?toonLijst.map(R.reviewKaart).join(''):'<p class="muted">Geen reacties.</p>';
+  const box=$('dLijst'); box.innerHTML='';
+  if(!toonLijst.length){ box.innerHTML='<p class="muted">Geen reacties.</p>'; return; }
+  const over=(_koppel&&_koppel.overgenomen&&_koppel.overgenomen[_mdw])||[];
+  const ikZelf=!!(_ik && RO.zoekNaam(_ik.naam,[_mdw]));
+  toonLijst.forEach(r=>{
+    const t=document.createElement('div'); t.innerHTML=R.reviewKaart(r);
+    const kaart=t.firstChild, body=kaart.querySelector('.rv-body')||kaart;
+    // Kwam deze rating via een overgenomen shift? Zeg dan wie ze hierheen zette.
+    const o=over.find(x=>x.r===r);
+    if(o){
+      const n=document.createElement('div'); n.className='rv-ruil';
+      const naar=ikZelf?'jou':_mdw;
+      n.textContent='↪ '+(o.door?(o.door+' heeft deze rating naar '+naar+' gezet')+(o.door!==o.van?' (shift van '+o.van+')':'')
+        :('Shift overgenomen van '+o.van));
+      body.appendChild(n);
+    }
+    // "Dit was ik niet" — enkel als de rating via een shift op de rooster kwam.
+    if(RO.shiftsVan(r,_rooster,R.canonAct,_mdw).length){
+      const k=document.createElement('button'); k.type='button'; k.className='rv-nietik';
+      k.textContent=ikZelf?'Dit was ik niet':'Dit was '+_mdw.split(' ')[0]+' niet';
+      k.onclick=()=>nietIk(r);
+      body.appendChild(k);
+    }
+    box.appendChild(kaart);
+  });
+}
+
+// ---------------------------------------------------------------- "Dit was ik niet"
+// Elke medewerker kan bij een eigen rating aanduiden dat iemand anders die shift deed. De
+// vraag is dan: wie nam ze over? De shift (en dus elke rating ervan) verhuist naar die
+// collega, en daar staat bij wie ze doorzette. Zie Rooster.voegRuilToe.
+function vraagWie(r){
+  return new Promise(klaar=>{
+    const v=$('nietIkVenster'), sel=$('nietIkWie');
+    $('nietIkWat').textContent=(r.activiteit||'')+' · '+(r.datum?langDatum(RO.iso(r.datum)):'')+(r.uur?' · '+r.uur:'');
+    sel.innerHTML='<option value="">Kies een collega…</option>'+(_rooster.namen||[]).filter(n=>n!==_mdw).sort((a,b)=>a.localeCompare(b))
+      .map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+    $('nietIkFout').textContent='';
+    v.style.display='';
+    const sluit=w=>{ v.style.display='none'; $('nietIkOk').onclick=$('nietIkNee').onclick=v.onclick=null; klaar(w); };
+    $('nietIkOk').onclick=()=>{ if(!sel.value){ $('nietIkFout').textContent='Kies eerst wie de shift overnam.'; return; } sluit(sel.value); };
+    $('nietIkNee').onclick=()=>sluit(null);
+    v.onclick=e=>{ if(e.target===v) sluit(null); };
+  });
+}
+async function nietIk(r){
+  if(!_mdw || !_rooster) return;
+  if(!_coach && !(_ik && RO.zoekNaam(_ik.naam,[_mdw]))) return;      // enkel bij je eigen ratings
+  const naar=await vraagWie(r); if(!naar) return;
+  status('Bewaren…','bezig');
+  let basis=recentste(_rooster, await laadGedeeld());
+  const shifts=RO.shiftsVan(r,basis,R.canonAct,_mdw);
+  if(!shifts.length){ status('Deze rating staat intussen al niet meer op naam van '+_mdw+'.','klaar'); _rooster=basis; bewaarLokaal(basis); render(); return; }
+  shifts.forEach(s=>{ basis=RO.voegRuilToe(basis,s,naar,(_ik&&_ik.naam)||''); });
+  const ok=await bewaarRooster(basis);
+  status('De rating'+(shifts.length>1?'s':'')+' van '+shifts.map(s=>s.l+' '+s.v+'–'+s.t).join(' en ')+' op '+langDatum(shifts[0].d)+
+    ' staat nu bij '+naar+'.'+(ok?'':'\nLet op: enkel op dit toestel bewaard — er was geen verbinding met de gedeelde opslag.'),ok?'klaar':'fout');
+  render();
 }
 
 function renderNiet(){
@@ -260,7 +317,7 @@ function renderRuil(){
   ruilen.forEach(r=>{
     const el=document.createElement('div'); el.className='rij';
     el.innerHTML='<div class="rij-nm"><div class="t">'+esc(langDatum(r.d)+' · '+r.l+' '+r.v+(r.t?'–'+r.t:''))+'</div>'+
-      '<div class="muted" style="font-size:13px;">'+esc(r.van)+' → <b>'+esc(r.naar)+'</b></div></div>'+
+      '<div class="muted" style="font-size:13px;">'+esc(r.van)+' → <b>'+esc(r.naar)+'</b>'+(r.door?' · aangeduid door '+esc(r.door):'')+'</div></div>'+
       '<button class="btn" type="button" title="Deze ruil weghalen">✕</button>';
     el.querySelector('button').onclick=()=>ruilWeg(r);
     box.appendChild(el);
@@ -277,7 +334,7 @@ async function ruilToe(){
   if(naar===s.n){ status(s.n+' staat al op die shift.','fout'); return; }
   status('Bewaren…','bezig');
   const basis=recentste(_rooster, await laadGedeeld());
-  const ok=await bewaarRooster(RO.voegRuilToe(basis,s,naar));
+  const ok=await bewaarRooster(RO.voegRuilToe(basis,s,naar,(_ik&&_ik.naam)||''));
   status('Shift '+s.l+' van '+langDatum(s.d)+' staat nu op naam van '+naar+' (in plaats van '+s.n+').'+
     (ok?'':'\nLet op: enkel op dit toestel bewaard — er was geen verbinding met de gedeelde opslag.'),ok?'klaar':'fout');
   sh.value=''; $('ruilNaar').value='';

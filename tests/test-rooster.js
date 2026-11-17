@@ -193,4 +193,20 @@ ok(r4.ruilen.length===0 && RO.koppel(quiz,r4,zelfde).perPersoon['Matthew Ooms'],
 ok(RO.voegRuilToe(r1,rr.shifts[0],'Matthew Ooms').ruilen.length===0,'terug naar de eigen naam = geen ruil meer');
 ok(RO.verwijderUpload(r1,0).ruilen.length===1,'een rooster weghalen laat de ruilen staan (ze doen dan gewoon niets)');
 
+// ---- "Dit was ik niet": een medewerker zet de rating zelf door
+print('— Dit was ik niet');
+var sv=RO.shiftsVan(quiz[0],rr,zelfde,'Matthew Ooms');
+ok(sv.length===1 && sv[0].n==='Matthew Ooms' && sv[0].l==='FQN','de shift achter de rating wordt gevonden');
+ok(RO.shiftsVan(quiz[0],rr,zelfde,'Julie Daems').length===0,'wie de rating niet heeft, kan niets doorzetten');
+var d1=RO.voegRuilToe(rr,sv[0],'Julie Daems','Matthew Ooms');
+var kd=RO.koppel(quiz,d1,zelfde);
+ok(kd.overgenomen['Julie Daems'] && kd.overgenomen['Julie Daems'][0].door==='Matthew Ooms' && kd.overgenomen['Julie Daems'][0].r===quiz[0],'bij Julie staat dat Matthew de rating naar haar zette');
+ok(!kd.overgenomen['Lien Ramaekers'],'bij Lien staat niets: zij stond gewoon op de shift');
+var sj=RO.shiftsVan(quiz[0],d1,zelfde,'Julie Daems');
+ok(sj.length===1 && sj[0].n==='Matthew Ooms','Julie kan ze op haar beurt doorzetten (de shift blijft die van de rooster)');
+var d2=RO.voegRuilToe(d1,sj[0],'Lien Ramaekers','Julie Daems');
+ok(d2.ruilen.length===1 && d2.ruilen[0].naar==='Lien Ramaekers' && d2.ruilen[0].door==='Julie Daems','doorzetten vervangt de vorige ruil');
+ok(RO.voegRuilToe(d1,sj[0],'Matthew Ooms','Julie Daems').ruilen.length===0,'terugzetten naar wie op de rooster stond = ruil weg');
+ok(RO.shiftsVan({score:5,activiteit:'O&F: Halloween Show',datum:new Date(2026,9,20),uur:'15:00'},rr,zelfde,'Matthew Ooms').length===0,'een rating via de vaste bezetting kan niet doorgezet worden');
+
 print(fouten?('RESULTAAT: '+fouten+' fout(en)'):'RESULTAAT: alles in orde');
