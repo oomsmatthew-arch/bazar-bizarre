@@ -222,7 +222,8 @@ function voegSamen(oud, nieuw){
   return metNamen({
     dagen:Array.from(new Set((o.dagen||[]).concat(nieuw.dagen))).sort(),
     shifts:(o.shifts||[]).filter(s=>!vervangen.has(s.d)).concat(nieuw.shifts),
-    uploads:uploads
+    uploads:uploads,
+    ruilen:(o.ruilen||[]).slice()            // overgenomen shifts overleven een nieuwe upload
   });
 }
 function verwijderUpload(r, index){
@@ -231,7 +232,8 @@ function verwijderUpload(r, index){
   return metNamen({
     dagen:(r.dagen||[]).filter(d=>!weg.has(d)),
     shifts:(r.shifts||[]).filter(s=>!weg.has(s.d)),
-    uploads:r.uploads.filter((x,i)=>i!==index)
+    uploads:r.uploads.filter((x,i)=>i!==index),
+    ruilen:(r.ruilen||[]).slice()
   });
 }
 // Iedereen die op een van de opgeladen roosters staat, in de volgorde van de rooster.
@@ -242,6 +244,32 @@ function metNamen(r){
   return r;
 }
 
+// ---------------------------------------------------------------- shift overgenomen
+// De rooster-PDF weet niet wie er achteraf geruild heeft. Een "ruil" zegt: de shift van
+// persoon X op dag D (label + beginuur) werd gedaan door persoon Y. Ruilen staan los van de
+// shifts zelf (rooster.ruilen), zodat een nieuwe upload van dezelfde maand ze niet wist.
+// Staat de shift na een nieuwe upload al op naam van Y, dan doet de ruil gewoon niets meer.
+function zelfdeShift(r,s){ return r.d===s.d && r.van===s.n && r.l===s.l && r.v===s.v; }
+function metRuilen(rooster){
+  const ruilen=(rooster&&rooster.ruilen)||[];
+  const shifts=(rooster&&rooster.shifts)||[];
+  if(!ruilen.length) return shifts;
+  return shifts.map(s=>{ const r=ruilen.find(x=>zelfdeShift(x,s)); return r?Object.assign({},s,{n:r.naar,ruil:r.van}):s; });
+}
+// shift: een rij uit rooster.shifts ({n,d,l,v,t}); naar: wie ze overnam. Eén ruil per shift:
+// een tweede keer ruilen vervangt de eerste. Terug naar de oorspronkelijke naam = ruil weg.
+function voegRuilToe(rooster, shift, naar){
+  const r=Object.assign({},rooster);
+  r.ruilen=(rooster.ruilen||[]).filter(x=>!zelfdeShift(x,shift));
+  if(naar && naar!==shift.n) r.ruilen.push({d:shift.d,l:shift.l,v:shift.v,t:shift.t,van:shift.n,naar:naar,ts:Date.now()});
+  return r;
+}
+function verwijderRuil(rooster, ruil){
+  const r=Object.assign({},rooster);
+  r.ruilen=(rooster.ruilen||[]).filter(x=>!(x.d===ruil.d&&x.van===ruil.van&&x.l===ruil.l&&x.v===ruil.v));
+  return r;
+}
+
 // ---------------------------------------------------------------- ratings koppelen
 // reviews: zoals Ratings.laadReviews() ze geeft ({score, activiteit, datum: Date, uur, …}).
 // canon: Ratings.canonAct. Geeft {perPersoon:{naam:[review…]}, niet:[review…], buiten:n}.
@@ -249,7 +277,7 @@ function metNamen(r){
 //   buiten = op een dag waarvoor nog geen rooster is opgeladen
 function koppel(reviews, rooster, canon){
   const perDag={};
-  ((rooster&&rooster.shifts)||[]).forEach(s=>{ (perDag[s.d]=perDag[s.d]||[]).push(s); });
+  metRuilen(rooster).forEach(s=>{ (perDag[s.d]=perDag[s.d]||[]).push(s); });
   const dagen=new Set((rooster&&rooster.dagen)||[]);
   const perPersoon={}, niet=[]; let buiten=0;
   (reviews||[]).forEach(r=>{
@@ -314,7 +342,8 @@ async function leesPdf(file){
 
 const API={KOPPEL:KOPPEL, VASTE_BEZETTING:VASTE_BEZETTING, isOptreden:isOptreden, uitItems:uitItems, alleenOptredens:alleenOptredens,
   voegSamen:voegSamen, verwijderUpload:verwijderUpload, koppel:koppel, minuten:minuten, mooieNaam:mooieNaam,
-  zoekNaam:zoekNaam, iso:iso, leesPdf:leesPdf};
+  zoekNaam:zoekNaam, iso:iso, leesPdf:leesPdf,
+  metRuilen:metRuilen, voegRuilToe:voegRuilToe, verwijderRuil:verwijderRuil};
 if(typeof window!=='undefined') window.Rooster=API;
 else if(typeof globalThis!=='undefined') globalThis.Rooster=API;
 })();

@@ -169,4 +169,28 @@ ok(RO.zoekNaam('Bram',namen)===null,'ook niet als die voornaam maar één keer v
 ok(RO.zoekNaam('An Peeters-Maes',namen)===null,'een andere naam geeft niemand');
 ok(RO.zoekNaam('',namen)===null,'geen naam geeft niemand');
 
+// ---- Shift overgenomen: de rooster zegt Matthew, maar Julie deed de quiz (met Lien)
+print('— Shift overgenomen');
+var rr={dagen:['2026-11-12'],namen:['Matthew Ooms','Lien Ramaekers','Julie Daems'],uploads:[{van:'2026-11-01',tot:'2026-12-01',dagen:['2026-11-12'],namen:['Matthew Ooms','Lien Ramaekers','Julie Daems'],ts:1}],
+  shifts:[{n:'Matthew Ooms',d:'2026-11-12',l:'FQN',v:'19:00',t:'22:00'},{n:'Lien Ramaekers',d:'2026-11-12',l:'FQN',v:'19:00',t:'22:00'}]};
+var quiz=[{score:5,activiteit:'Family Quiz Night',datum:new Date(2026,10,12),uur:'19:30'}];
+var zelfde=function(a){ return a; };
+var k0=RO.koppel(quiz,rr,zelfde);
+ok(k0.perPersoon['Matthew Ooms'] && !k0.perPersoon['Julie Daems'],'zonder ruil gaat de rating naar wie op de rooster staat');
+var r1=RO.voegRuilToe(rr,rr.shifts[0],'Julie Daems');
+var k1=RO.koppel(quiz,r1,zelfde);
+ok(!k1.perPersoon['Matthew Ooms'],'na de ruil krijgt Matthew de rating niet meer');
+ok(k1.perPersoon['Julie Daems'] && k1.perPersoon['Julie Daems'].length===1,'Julie krijgt ze wel');
+ok(k1.perPersoon['Lien Ramaekers'] && k1.perPersoon['Lien Ramaekers'].length===1,'Lien houdt ze');
+ok(rr.shifts[0].n==='Matthew Ooms' && !rr.ruilen,'de opgeladen rooster zelf blijft ongewijzigd');
+var r2=RO.voegSamen(r1,{periode:{van:'2026-11-01',tot:'2026-12-01'},dagen:['2026-11-12'],namen:rr.namen,shifts:rr.shifts.slice()});
+ok(!RO.koppel(quiz,r2,zelfde).perPersoon['Matthew Ooms'] && RO.koppel(quiz,r2,zelfde).perPersoon['Julie Daems'],'een nieuwe upload van dezelfde maand wist de ruil niet');
+var r3=RO.voegRuilToe(r1,rr.shifts[0],'Lien Ramaekers');
+ok(r3.ruilen.length===1 && r3.ruilen[0].naar==='Lien Ramaekers','opnieuw ruilen vervangt de vorige ruil');
+ok(RO.koppel(quiz,r3,zelfde).perPersoon['Lien Ramaekers'].length===1,'wie al op de shift stond, krijgt de rating maar één keer');
+var r4=RO.verwijderRuil(r1,r1.ruilen[0]);
+ok(r4.ruilen.length===0 && RO.koppel(quiz,r4,zelfde).perPersoon['Matthew Ooms'],'ruil weghalen zet de shift terug op de oorspronkelijke naam');
+ok(RO.voegRuilToe(r1,rr.shifts[0],'Matthew Ooms').ruilen.length===0,'terug naar de eigen naam = geen ruil meer');
+ok(RO.verwijderUpload(r1,0).ruilen.length===1,'een rooster weghalen laat de ruilen staan (ze doen dan gewoon niets)');
+
 print(fouten?('RESULTAAT: '+fouten+' fout(en)'):'RESULTAAT: alles in orde');

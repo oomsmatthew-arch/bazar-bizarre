@@ -195,6 +195,19 @@
       <div id="perMdw"></div>
     </div>
 
+    <!-- Enkel met ⚙ Beheer aan: een shift die na het opladen van de rooster werd overgenomen. -->
+    <div class="card" id="ruilCard" style="display:none;">
+      <h2>Shift overgenomen</h2>
+      <p class="hint" style="margin:0 0 10px;">Nam iemand een shift over nadat de rooster werd opgeladen? Kies de dag, de shift en wie ze echt deed. De ratings van die shift verhuizen mee, ook na een nieuwe upload.</p>
+      <div class="toolbar">
+        <input type="date" id="ruilDag" class="finp" style="max-width:170px;" title="Dag">
+        <select id="ruilShift" class="finp" style="max-width:320px;" title="Shift"></select>
+        <select id="ruilNaar" class="finp" style="max-width:240px;" title="Overgenomen door"></select>
+        <button class="btn primary" id="ruilBtn" type="button">Bewaren</button>
+      </div>
+      <div id="ruilLijst" style="margin-top:10px;"></div>
+    </div>
+
     <div class="card" id="nietCard" style="display:none;">
       <h2>Niet gekoppeld</h2>
       <p class="hint" id="nietUitleg" style="margin:0;"></p>

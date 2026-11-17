@@ -90,7 +90,7 @@ function render(){
     $('leegTekst').innerHTML=_coach
       ? '<b>Nog geen rooster.</b> Upload via <b>⚙ Beheer</b> de <b>Master Schedule</b>-PDF uit het planningsprogramma. Elke rating wordt dan gekoppeld aan wie die dag op de passende shift stond: een O&amp;F-show van 15u00 gaat naar iedereen met een O&amp;F-shift rond dat uur (ook de technieker), een Prize Night naar ENT 1 én ENT 2, een quiz naar wie op FQN staat. Upload gerust meerdere maanden; een nieuwe upload van dezelfde maand vervangt de vorige.'
       : '<b>Nog geen rooster.</b> Zodra een admin of parkcoach de rooster uploadt, zie je hier je eigen ratings: elke rating van een activiteit waarop jij op de rooster stond.';
-    toon('detail',false); toon('nietCard',false);
+    toon('detail',false); toon('nietCard',false); toon('ruilCard',false);
     return;
   }
 
@@ -107,7 +107,7 @@ function render(){
       toon('nietOpRooster',true);
     }
     renderDetail();
-    toon('nietCard',false);
+    toon('nietCard',false); toon('ruilCard',false);
     return;
   }
 
@@ -144,6 +144,7 @@ function render(){
 
   renderDetail();
   renderNiet();
+  renderRuil();
 }
 
 function renderUploads(){
@@ -169,7 +170,7 @@ function renderDetail(){
   if(!_mdw || !_koppel){ box.style.display='none'; return; }
   box.style.display='';
   const lijst=_koppel.perPersoon[_mdw]||[];
-  const shifts=(_rooster.shifts||[]).filter(s=>s.n===_mdw);
+  const shifts=RO.metRuilen(_rooster).filter(s=>s.n===_mdw);
   $('dNaam').textContent=_coach?_mdw:('Jouw ratings — '+_mdw);
   $('dSub').textContent=lijst.length+(lijst.length===1?' rating · ':' ratings · ')+shifts.length+(shifts.length===1?' shift':' shifts')+' met een activiteit op de rooster';
   if(!lijst.length){
@@ -231,6 +232,66 @@ function renderNiet(){
     .map(r=>'<div class="r"><span>'+esc(r.activiteit||'—')+'</span><span>'+esc(r.datum?kortDatum(RO.iso(r.datum)):'')+(r.uur?' · '+esc(r.uur):'')+'</span><b>'+R.fmtScore(r.score)+'</b></div>').join('');
 }
 
+// ---------------------------------------------------------------- shift overgenomen (via ⚙ Beheer)
+// Iemand nam een shift over nadat de rooster was opgeladen: kies de dag, de shift en wie ze
+// echt deed. De ratings van die shift verhuizen mee. Zie Rooster.voegRuilToe.
+function langDatum(isoDag){ const p=String(isoDag||'').split('-'); return p.length>2?(+p[2]+'/'+(+p[1])+'/'+p[0]):''; }
+function renderRuil(){
+  const card=$('ruilCard'); if(!card) return;
+  if(!(_coach&&_beheer)){ card.style.display='none'; return; }
+  card.style.display='';
+  const dag=$('ruilDag'), sh=$('ruilShift'), naar=$('ruilNaar');
+  const dagen=(_rooster.dagen||[]);
+  if(dagen.length){ dag.min=dagen[0]; dag.max=dagen[dagen.length-1]; }
+  const d=dag.value;
+  const vandaag=d?(_rooster.shifts||[]).filter(s=>s.d===d).sort((a,b)=>a.v.localeCompare(b.v)||a.n.localeCompare(b.n)):[];
+  const vorige=sh.value;
+  sh.innerHTML=!d?'<option value="">Kies eerst een dag…</option>'
+    :(!vandaag.length?'<option value="">Geen shifts met een activiteit op die dag</option>'
+    :'<option value="">Kies de shift…</option>'+vandaag.map((s,i)=>'<option value="'+i+'">'+esc(s.n+' — '+s.l+' '+s.v+'–'+s.t)+'</option>').join(''));
+  if(vorige && sh.querySelector('option[value="'+vorige+'"]')) sh.value=vorige;
+  sh._lijst=vandaag;
+  const vn=naar.value;
+  naar.innerHTML='<option value="">Overgenomen door…</option>'+(_rooster.namen||[]).slice().sort((a,b)=>a.localeCompare(b))
+    .map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+  naar.value=vn;
+  const box=$('ruilLijst'); box.innerHTML='';
+  const ruilen=((_rooster.ruilen)||[]).slice().sort((a,b)=>b.d.localeCompare(a.d));
+  ruilen.forEach(r=>{
+    const el=document.createElement('div'); el.className='rij';
+    el.innerHTML='<div class="rij-nm"><div class="t">'+esc(langDatum(r.d)+' · '+r.l+' '+r.v+(r.t?'–'+r.t:''))+'</div>'+
+      '<div class="muted" style="font-size:13px;">'+esc(r.van)+' → <b>'+esc(r.naar)+'</b></div></div>'+
+      '<button class="btn" type="button" title="Deze ruil weghalen">✕</button>';
+    el.querySelector('button').onclick=()=>ruilWeg(r);
+    box.appendChild(el);
+  });
+}
+async function bewaarRooster(nieuw){
+  nieuw.ts=Date.now(); _rooster=nieuw; bewaarLokaal(nieuw);
+  return await bewaarGedeeld(nieuw);
+}
+async function ruilToe(){
+  if(!(_coach&&_beheer)) return;
+  const sh=$('ruilShift'), s=(sh._lijst||[])[+sh.value], naar=$('ruilNaar').value;
+  if(sh.value===''||!s||!naar){ status('Kies een dag, de shift en wie ze overnam.','fout'); return; }
+  if(naar===s.n){ status(s.n+' staat al op die shift.','fout'); return; }
+  status('Bewaren…','bezig');
+  const basis=recentste(_rooster, await laadGedeeld());
+  const ok=await bewaarRooster(RO.voegRuilToe(basis,s,naar));
+  status('Shift '+s.l+' van '+langDatum(s.d)+' staat nu op naam van '+naar+' (in plaats van '+s.n+').'+
+    (ok?'':'\nLet op: enkel op dit toestel bewaard — er was geen verbinding met de gedeelde opslag.'),ok?'klaar':'fout');
+  sh.value=''; $('ruilNaar').value='';
+  render();
+}
+async function ruilWeg(r){
+  if(!(_coach&&_beheer)) return;
+  status('Bewaren…','bezig');
+  const basis=recentste(_rooster, await laadGedeeld());
+  const ok=await bewaarRooster(RO.verwijderRuil(basis,r));
+  status(ok?'Ruil weggehaald: de shift staat weer op naam van '+r.van+'.':'Weggehaald op dit toestel, maar de gedeelde opslag was niet bereikbaar.',ok?'klaar':'fout');
+  render();
+}
+
 // ---------------------------------------------------------------- uploaden en weghalen (via ⚙ Beheer)
 async function upload(file){
   if(!(_coach&&_beheer)) return;
@@ -281,6 +342,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(_beheer){ _beheer=false; render(); return; }
     if(await R.vraagBeheer('Nodig om de rooster te uploaden of weg te halen. Vaste medewerkers en admins hoeven dit niet.')){ _beheer=true; render(); }
   };
+  $('ruilDag').onchange=()=>{ $('ruilShift').value=''; renderRuil(); };
+  $('ruilBtn').onclick=ruilToe;
   $('boekjaar').onchange=()=>{ _boekjaar=$('boekjaar').value; render(); };
   $('mdwKeuze').onchange=()=>{ const v=$('mdwKeuze').value; if(v) kies(v,true); else { _mdw=''; render(); } };
   // Terug naar het overzicht van iedereen (Admin/Parkcoach).

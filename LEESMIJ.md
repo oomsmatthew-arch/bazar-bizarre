@@ -428,6 +428,11 @@ het gemiddelde, en de ratings per maand, per activiteit en per taal.
 - De rooster wordt gedeeld bewaard, net als de ratings (tabel `spelarchief`, rij 5): één
   keer uploaden, en hij staat op elk toestel. Dezelfde maand
   opnieuw uploaden vervangt de vorige; met het kruisje haal je een maand weer weg.
+- **Shift overgenomen** (sinds v9.49): ruilde iemand van shift nadat de rooster werd
+  opgeladen, dan gaat de rating naar de verkeerde. Zet **⚙ Beheer** aan, kies onderaan bij
+  *Shift overgenomen* de dag, de shift en wie ze echt deed, en bewaar. De ratings van die
+  shift verhuizen mee. De ruil staat los van de rooster zelf (`ruilen` in dezelfde rij), dus
+  een nieuwe upload van die maand wist hem niet; met het kruisje haal je hem weer weg.
 - Net als bij de ratings zit de afscherming in de app zelf: wie technisch onderlegd is, kan
   de gegevens ook buiten de app opvragen.
 
